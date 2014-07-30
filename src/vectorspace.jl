@@ -10,11 +10,23 @@
 abstract VectorSpace
 # Start a type hierarchy for defining vector spaces (actually Hilbert spaces) and corresponding basis vectors
 
-# general definition
+# general definitions
+space(V::VectorSpace) = V # just returns the space
 Base.ctranspose(V::VectorSpace) = dual(V)
+==(V1::VectorSpace,V2::VectorSpace) = ==(promote(V1,V2)...)
 
 abstract ElementarySpace <: VectorSpace
 # Elementary finite-dimensional vector spaces that can be used as the index space corresponding to the indices of a tensor
+==(V1::ElementarySpace,V2::ElementarySpace) = V1 === V2
+
+# Functionality for extracting and iterating over elementary space
+Base.length(V::ElementarySpace) = 1
+Base.endof(V::ElementarySpace) = 1
+Base.getindex(V::ElementarySpace, n::Integer) = (n == 1 ? V : throw(BoundsError()))
+
+Base.start(V::ElementarySpace) = false
+Base.next(V::ElementarySpace, state) = (V,true)
+Base.done(V::ElementarySpace, state) = state
 
 # BasisVector and Basis
 #-----------------------

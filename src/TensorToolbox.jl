@@ -15,10 +15,10 @@ using LinearMaps
 # Types:
 export VectorSpace, EuclideanSpace, CartesianSpace, ProductSpace
 export AbstractTensor, Tensor
-export TensorMap
+export AbstractTensorMap
 
 # general vector space methods
-export dim, dual, iscnumber, issubspace, directsum, fuse, basis
+export dim, dual, iscnumber, directsum, fuse, basis
 # vector spaces with symmetries
 export sectors, invariant
 

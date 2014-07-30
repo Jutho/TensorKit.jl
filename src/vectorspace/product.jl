@@ -5,19 +5,6 @@ immutable ProductSpace{N, S<:ElementarySpace} <: VectorSpace
   spaces::NTuple{N, S}
 end
 
-# Functionality for extracting and iterating over spaces
-Base.length{N}(P::ProductSpace{N}) = N
-Base.endof{N}(P::ProductSpace{N}) = N
-Base.getindex(P::ProductSpace,n::Integer) = P.spaces[n]
-Base.getindex{N,S}(P::ProductSpace{N,S},r)=ProductSpace{length(r),S}(P.spaces[r])
-
-Base.reverse{N,S}(P::ProductSpace{N,S})=ProductSpace{N,S}(reverse(P.spaces))
-Base.map(f::Base.Callable,P::ProductSpace) = map(f,P.spaces) # required to make map(dim,P) efficient
-
-Base.start(P::ProductSpace) = start(P.spaces)
-Base.next(P::ProductSpace, state) = next(P.spaces, state)
-Base.done(P::ProductSpace, state) = done(P.spaces, state)
-
 # Corresponding methods
 dim(P::ProductSpace{0}) = 1
 dim(P::ProductSpace) = prod(dim, P.spaces)
@@ -28,6 +15,30 @@ iscnumber(P::ProductSpace) = length(P)==0 || all(iscnumber,P.spaces)
 *{N,S<:ElementarySpace}(P1::ProductSpace{N,S}, V2::S) = ProductSpace{N+1,S}(tuple(P1.spaces..., V2))
 *{N,S<:ElementarySpace}(V1::S, P2::ProductSpace{N,S}) = ProductSpace{N+1,S}(tuple(V1, P2.spaces...))
 *{N1,N2,S}(P1::ProductSpace{N1,S}, P2::ProductSpace{N2,S}) = ProductSpace{N1+N2,S}(tuple(P1.spaces..., P2.spaces...))
+
+Base.prod{S<:ElementarySpace}(V::S) = ProductSpace{1,S}((V,))
+
+# Promotion and conversion
+Base.convert(::Type{ProductSpace}, V::ElementarySpace) = prod(V)
+Base.convert(::Type{ProductSpace{1}}, V::ElementarySpace) = prod(V)
+Base.convert{S<:ElementarySpace}(::Type{ProductSpace{1,S}}, V::S) = prod(V)
+
+Base.promote_rule{S<:ElementarySpace,N}(::Type{ProductSpace{N,S}},::Type{S}) = ProductSpace
+
+==(P1::ProductSpace,P2::ProductSpace) = P1.spaces == P2.spaces
+
+# Functionality for extracting and iterating over spaces
+Base.length{N}(P::ProductSpace{N}) = N
+Base.endof{N}(P::ProductSpace{N}) = N
+Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
+Base.getindex{N,S}(P::ProductSpace{N,S}, r)=ProductSpace{length(r),S}(P.spaces[r])
+
+Base.reverse{N,S}(P::ProductSpace{N,S})=ProductSpace{N,S}(reverse(P.spaces))
+Base.map(f::Base.Callable,P::ProductSpace) = map(f,P.spaces) # required to make map(dim,P) efficient
+
+Base.start(P::ProductSpace) = start(P.spaces)
+Base.next(P::ProductSpace, state) = next(P.spaces, state)
+Base.done(P::ProductSpace, state) = done(P.spaces, state)
 
 # Show method
 function Base.show(io::IO, P::ProductSpace)
