@@ -5,15 +5,15 @@
 
 module TensorToolbox
 
-using Reexport
 using LinearMaps
-@reexport using TensorOperations
 #using Cartesian
 
 # Exports
 #---------
 # Types:
-export VectorSpace, EuclideanSpace, CartesianSpace, ProductSpace
+export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
+export ComplexSpace, CartesianSpace, GeneralSpace
+export ProductSpace
 export AbstractTensor, Tensor
 export AbstractTensorMap
 
@@ -58,13 +58,16 @@ include("vectorspace.jl")
 
 # Types and methods for tensors
 #-------------------------------
+import TensorOperations
+# intentionally shadow original TensorOperation methods for StridedArray objects
+
 # New abstract type for defining tensors, multilinear objects whose indices
 # take values in an IndexSpace <: VectorSpace.
 include("abstracttensor.jl")
 
 # Implementations:
 
-# generic tensor living in a ProductSpace{N,IndexSpace} without special properties
+# generic tensor living in a ProductSpace without special properties
 include("tensor.jl")
 
 # Linear maps acting on tensors

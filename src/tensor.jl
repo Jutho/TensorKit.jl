@@ -18,6 +18,9 @@ type Tensor{S,T,N} <: AbstractTensor{S,T,N}
         if length(data)!=dim(space)
             throw(DimensionMismatch("data not of right size"))
         end
+        if promote_type(T,eltype(S)) != eltype(S)
+            error("For a tensor in $(space), the entries cannot be of type $(T)")
+        end
         return new(reshape(data,map(dim,space)),space)
     end
 end
@@ -28,7 +31,7 @@ function Base.show{S,T,N}(io::IO,t::Tensor{S,T,N})
     print(io," Tensor ∈ $T")
     for n=1:N
         print(io, n==1 ? "[" : " ⊗ ")
-        showcompact(io,space(t,n))
+        show(io,space(t,n))
     end
     println(io,"]:")
     Base.showarray(io,t.data;header=false)
@@ -43,9 +46,13 @@ space(t::Tensor)=t.space
 #---------------------
 # with data
 tensor{T<:Real,N}(data::Array{T,N})=Tensor{CartesianSpace,T,N}(data,prod(CartesianSpace,size(data)))
-function tensor{T,N}(data::Array{T,N})
+function tensor{T<:Complex}(data::Array{T,1})
     warning("for complex array, consider specifying Euclidean index spaces")
-    Tensor{CartesianSpace,T,N}(data,map(CartesianSpace,size(data)))
+    Tensor{ComplexEuclideanSpace,T,1}(data,prod(ComplexSpace(size(data,1))))
+end
+function tensor{T<:Complex}(data::Array{T,2})
+    warning("for complex array, consider specifying Euclidean index spaces")
+    Tensor{ComplexEuclideanSpace,T,2}(data,ComplexSpace(size(data,1))*ComplexSpace(size(data,2))')
 end
 
 tensor{S,T,N}(data::Array{T},P::ProductSpace{N,S})=Tensor{S,T,N}(data,P)
@@ -151,22 +158,42 @@ end
 
 # Basic algebra:
 #----------------
-# hermitian conjugation inverts order of indices, is only way to make
-# this compatible with tensors coupled to fermions
-function Base.ctranspose(t::Tensor)
-    tdest=similar(t,space(t)')
-    return ctranspose!(tdest,tsource)
+# transpose inverts order of indices, compatible with graphical notation
+
+Base.conj(t::Tensor) = tensor(conj(t.data),conj(space(t)))
+function Base.conj!(t::Tensor)
+    t.space=conj(t.space)
+    conj!(t.data)
+    return t
 end
 
-function ctranspose!(tdest::Tensor,tsource::Tensor)
-    if space(tdest)!=space(tsource)'
-        throw(SpaceError("tensor spaces don't match"))
-    end
-    N=numind(tsource)
-    TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,N:-1:1)
-    conj!(tdest.data)
-    return tdest
-end
+# SHOULD THIS BE DEFINED?
+# function Base.transpose(t::Tensor)
+#     tdest=similar(t,reverse(space(t)))
+#     return Base.transpose!(tdest,t)
+# end
+# function Base.transpose!(tdest::Tensor,tsource::Tensor)
+#     if space(tdest)!=reverse(space(tsource))
+#         throw(SpaceError("tensor spaces don't match"))
+#     end
+#     N=numind(tsource)
+#     TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
+#     return tdest
+# end
+
+# function Base.ctranspose(t::Tensor)
+#     tdest=similar(t,reverse(conj(space(t))))
+#     return Base.ctranspose!(tdest,t)
+# end
+# function Base.ctranspose!(tdest::Tensor,tsource::Tensor)
+#     if space(tdest)!=reverse(conj(space(tsource))))
+#         throw(SpaceError("tensor spaces don't match"))
+#     end
+#     N=numind(tsource)
+#     TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
+#     conj!(tdest.data)
+#     return tdest
+# end
 
 Base.scale(t::Tensor,a::Number)=tensor(scale(t.data,a),space(t))
 Base.scale!(t::Tensor,a::Number)=(scale!(t.data,convert(eltype(t),a));return t)
@@ -198,9 +225,9 @@ Base.setindex!{S,T,N}(t::Tensor{S,T,N},value,b::ProductBasisVector{N,S})=setinde
 
 # Tensor Operations
 #-------------------
-TensorOperations.scalar{S,T}(t::Tensor{S,T,0})=scalar(t.data)
+scalar{S,T}(t::Tensor{S,T,0})=scalar(t.data)
 
-function TensorOperations.tensorcopy!{S,T1,T2,N}(t1::Tensor{S,T1,N},labels1,t2::Tensor{S,T2,N},labels2)
+function tensorcopy!{S,T1,T2,N}(t1::Tensor{S,T1,N},labels1,t2::Tensor{S,T2,N},labels2)
     # Replaces tensor t2 with t1
     perm=indexin(labels1,labels2)
 
@@ -213,7 +240,7 @@ function TensorOperations.tensorcopy!{S,T1,T2,N}(t1::Tensor{S,T1,N},labels1,t2::
     TensorOperations.tensorcopy!(t1.data,labels1,t2.data,labels2)
     return t2
 end
-function TensorOperations.tensoradd!{S,T1,T2,N}(alpha::Number,t1::Tensor{S,T1,N},labels1,beta::Number,t2::Tensor{S,T2,N},labels2)
+function tensoradd!{S,T1,T2,N}(alpha::Number,t1::Tensor{S,T1,N},labels1,beta::Number,t2::Tensor{S,T2,N},labels2)
     # Replaces tensor t2 with beta*t2+alpha*t1
     perm=indexin(labels1,labels2)
 
@@ -226,7 +253,7 @@ function TensorOperations.tensoradd!{S,T1,T2,N}(alpha::Number,t1::Tensor{S,T1,N}
     TensorOperations.tensoradd!(alpha,t1.data,labels1,beta,t2.data,labels2)
     return t2
 end
-function TensorOperations.tensortrace!{S,TA,NA,TC,NC}(alpha::Number,A::Tensor{S,TA,NA},labelsA,beta::Number,C::Tensor{S,TC,NC},labelsC)
+function tensortrace!{S,TA,NA,TC,NC}(alpha::Number,A::Tensor{S,TA,NA},labelsA,beta::Number,C::Tensor{S,TC,NC},labelsC)
     (length(labelsA)==NA && length(labelsC)==NC) || throw(LabelError("invalid label specification"))
     NA==NC && return tensoradd!(alpha,A,labelsA,beta,C,labelsC) # nothing to trace
     
@@ -249,9 +276,9 @@ function TensorOperations.tensortrace!{S,TA,NA,TC,NC}(alpha::Number,A::Tensor{S,
         space(A,pc1[i]) == dual(space(A,pc2[i])) || throw(SpaceError("space mismatch"))
     end
     
-    tensortrace!(alpha,A.data,labelsA,beta,C.data,labelsC)
+    TensorOperations.tensortrace!(alpha,A.data,labelsA,beta,C.data,labelsC)
 end
-function TensorOperations.tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,conjA::Char,B::Tensor{S},labelsB,conjB::Char,beta::Number,C::Tensor{S},labelsC;method=:BLAS)
+function tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,conjA::Char,B::Tensor{S},labelsB,conjB::Char,beta::Number,C::Tensor{S},labelsC;method=:BLAS)
     # Get properties of input arrays
     NA=numind(A)
     NB=numind(B)
@@ -300,14 +327,20 @@ function TensorOperations.tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,
     conjA=='C' || conjA=='N' || throw(ArgumentError("conjA should be 'C' or 'N'."))
     conjB=='C' || conjA=='N' || throw(ArgumentError("conjB should be 'C' or 'N'."))
 
-    for i=1:numcontract
-        cspaceA[i]==(conjA==conjB ? dual(cspaceB[i]) : cspaceB[i]) || throw(SpaceError("incompatible index space for label $(clabels[i])"))
+    if conjA == conjB
+        for i=1:numcontract
+            cspaceA[i] == dual(cspaceB[i]) || throw(SpaceError("incompatible index space for label $(clabels[i])"))
+        end
+    else
+        for i=1:numcontract
+            cspaceA[i] == dual(conj(cspaceB[i])) || throw(SpaceError("incompatible index space for label $(clabels[i])"))
+        end
     end
     for i=1:numopenA
-        spaceC[oindCA[i]]==(conjA ? dual(ospaceA[i]) : ospaceA[i]) || throw(SpaceError("incompatible index space for label $(olabelsA[i])"))
+        spaceC[oindCA[i]] == (conjA=='C' ? conj(ospaceA[i]) : ospaceA[i]) || throw(SpaceError("incompatible index space for label $(olabelsA[i])"))
     end
     for i=1:numopenB
-        spaceC[oindCB[i]]==(conjB ? dual(ospaceB[i]) : ospaceB[i]) || throw(SpaceError("incompatible index space for label $(olabelsB[i])"))
+        spaceC[oindCB[i]] == (conjB=='C' ? conj(ospaceB[i]) : ospaceB[i]) || throw(SpaceError("incompatible index space for label $(olabelsB[i])"))
     end
 
     TensorOperations.tensorcontract!(alpha,A.data,labelsA,conjA,B.data,labelsB,conjB,beta,C.data,labelsC;method=method)
@@ -316,12 +349,12 @@ end
 
 # Methods below are only implemented for Cartesian or Euclidean tensors:
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-typealias EuclideanTensor{T,N} Tensor{EuclideanSpace,T,N}
+typealias ComplexTensor{T,N} Tensor{ComplexSpace,T,N}
 typealias CartesianTensor{T,N} Tensor{CartesianSpace,T,N}
 
 # Index methods
 #---------------
-for (S,TT) in ((CartesianSpace,CartesianTensor),(EuclideanSpace,EuclideanTensor))
+for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
     @eval function insertind(t::$TT,ind::Int,V::$S)
         N=numind(t)
         0<=ind<=N || throw(IndexError("index out of range"))
@@ -357,7 +390,7 @@ end
 
 # Factorizations:
 #-----------------
-for (S,TT) in ((CartesianSpace,CartesianTensor),(EuclideanSpace,EuclideanTensor))
+for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
     @eval function Base.svd(t::$TT,leftind,rightind=setdiff(1:numind(t),leftind))
         # Perform singular value decomposition corresponding to bipartion of the
         # tensor indices into leftind and rightind.
@@ -520,14 +553,13 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(EuclideanSpace,EuclideanTensor)
     end
 end
 
-# Methods below are only implemented for Cartesian or Euclidean matrices:
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-typealias EuclideanMatrix{T} EuclideanTensor{T,2}
+# Methods below are only implemented for CartesianMatrix or ComplexMatrix:
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+typealias ComplexMatrix{T} ComplexTensor{T,2}
 typealias CartesianMatrix{T} CartesianTensor{T,2}
 
-function Base.pinv(t::Union(EuclideanMatrix,CartesianMatrix))
-    # Compute pseudo-inverse corresponding to bipartion of the tensor indices
-    # into leftind and rightind.
+function Base.pinv(t::Union(ComplexMatrix,CartesianMatrix))
+    # Compute pseudo-inverse
     spacet=space(t)
     data=copy(t.data)
     leftdim=dim(spacet[1])
@@ -544,7 +576,7 @@ function Base.pinv(t::Union(EuclideanMatrix,CartesianMatrix))
     return tensor(data,spacet')
 end
 
-function Base.eig(t::Union(EuclideanMatrix,CartesianMatrix))
+function Base.eig(t::Union(ComplexMatrix,CartesianMatrix))
     # Compute eigenvalue decomposition.
     spacet=space(t)
     spacet[1] == spacet[2]' || throw(SpaceError("eigenvalue factorization only exists if left and right index space are dual"))
@@ -557,7 +589,7 @@ function Base.eig(t::Union(EuclideanMatrix,CartesianMatrix))
     return Lambda, V
 end
 
-function Base.inv(t::Union(EuclideanMatrix,CartesianMatrix))
+function Base.inv(t::Union(ComplexMatrix,CartesianMatrix))
     # Compute inverse.
     spacet=space(t)
     spacet[1] == spacet[2]' || throw(SpaceError("inverse only exists if left and right index space are dual"))

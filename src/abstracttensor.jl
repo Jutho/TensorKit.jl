@@ -14,7 +14,7 @@ typealias IndexSpace ElementarySpace
 #+++++++++++++++++++++++
 # Abstract Tensor type:
 #+++++++++++++++++++++++
-abstract AbstractTensor{S<:IndexSpace,T<:Number,N}
+abstract AbstractTensor{S<:IndexSpace,T,N}
 # Any implementation of AbstractTensor should have method definitions for the
 # same set of methods which are defined for the dense implementation Tensor
 # defined in tensor.jl.
@@ -51,32 +51,35 @@ tensor(t::AbstractTensor)=t
 # convenience definition which works for vectors and matrices but also sometimes useful in general case
 *{S}(t1::AbstractTensor{S},t2::AbstractTensor{S})=tensorcontract(t1,vcat(1:numind(t1)-1,0),t2,vcat(0,-(1:numind(t2)-1)))
 
-# general methods for TensorOperations: no error checking, refer to mutating methods
-function TensorOperations.tensorcopy(A::AbstractTensor,labelsA,outputlabels=labelsA)
+Base.trace{S,T}(t::AbstractTensor{S,T,2})=scalar(tensortrace(t,[1,1],[]))
+
+# general tensor operations: no error checking, refer to mutating methods
+function tensorcopy(A::AbstractTensor,labelsA,outputlabels=labelsA)
     spaceA=space(A)
     spaceC=spaceA[indexin(outputlabels,labelsA)]
     C=similar(A,spaceC)
-    TensorOperations.tensorcopy!(A,labelsA,C,outputlabels)
+    tensorcopy!(A,labelsA,C,outputlabels)
     return C
 end
-function TensorOperations.tensoradd{S,TA,TB,N}(A::AbstractTensor{S,TA,N},labelsA,B::AbstractTensor{S,TB,N},labelsB,outputlabels=labelsA)
+function tensoradd{S,TA,TB,N}(A::AbstractTensor{S,TA,N},labelsA,B::AbstractTensor{S,TB,N},labelsB,outputlabels=labelsA)
     spaceA=space(A)
     spaceC=spaceA[indexin(outputlabels,labelsA)]
     T=promote_type(TA,TB)
     C=similar(A,T,spaceC)
     tensorcopy!(A,labelsA,C,outputlabels)
-    TensorOperations.tensoradd!(one(T),B,labelsB,one(T),C,outputlabels)
+    tensoradd!(one(T),B,labelsB,one(T),C,outputlabels)
     return C
 end
-function TensorOperations.tensortrace(A::AbstractTensor,labelsA,outputlabels)
+function tensortrace(A::AbstractTensor,labelsA,outputlabels)
     T=eltype(A)
     spaceA=space(A)
     spaceC=spaceA[indexin(outputlabels,labelsA)]
     C=similar(A,spaceC)
     fill!(C,zero(T))
-    return tensortrace!(one(T),A,labelsA,zero(T),C,outputlabels)
+    tensortrace!(one(T),A,labelsA,zero(T),C,outputlabels)
+    return C
 end
-function TensorOperations.tensortrace(A::AbstractTensor,labelsA) # there is no one-line method to compute the default outputlabels
+function tensortrace(A::AbstractTensor,labelsA) # there is no one-line method to compute the default outputlabels
     ulabelsA=unique(labelsA)
     labelsC=similar(labelsA,0)
     sizehint(labelsC,length(labelsA))
@@ -86,9 +89,9 @@ function TensorOperations.tensortrace(A::AbstractTensor,labelsA) # there is no o
             push!(labelsC,ulabelsA[j])
         end
     end
-    tensortrace(A,labelsA,labelsC)
+    return tensortrace(A,labelsA,labelsC)
 end
-function TensorOperations.tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB);method::Symbol=:BLAS)
+function tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB);method::Symbol=:BLAS)
     spaceA=space(A)
     spaceB=space(B)
     
@@ -96,6 +99,6 @@ function TensorOperations.tensorcontract{S}(A::AbstractTensor{S},labelsA,B::Abst
     T=promote_type(eltype(A),eltype(B))
     C=similar(A,T,spaceC)
     fill!(C,zero(T))
-    TensorOperations.tensorcontract!(one(T),A,labelsA,'N',B,labelsB,'N',zero(T),C,outputlabels;method=method)
+    tensorcontract!(one(T),A,labelsA,'N',B,labelsB,'N',zero(T),C,outputlabels;method=method)
     return C
 end

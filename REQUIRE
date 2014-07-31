@@ -1,4 +1,3 @@
 julia 0.3-
 LinearMaps 0.1.0
 TensorOperations 0.1.0
-Reexport
