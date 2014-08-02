@@ -14,6 +14,8 @@ end
 
 # Corresponding methods:
 dim(V::CartesianSpace) = V.d
+cnumber(V::CartesianSpace) = CartesianSpace(1)
+cnumber(::Type{CartesianSpace}) = CartesianSpace(1)
 iscnumber(V::CartesianSpace) = dim(V)==1
 
 # Show methods

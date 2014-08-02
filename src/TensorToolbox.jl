@@ -32,6 +32,7 @@ export insertind, deleteind, fuseind, splitind
 export tensorcopy, tensoradd, tensortrace, tensorcontract
 # tensor factorizations
 export leftorth, rightorth, svdtrunc
+export leftorth!, rightorth!, svd!, svdtrunc!
 
 # tensor maps
 export domain, codomain

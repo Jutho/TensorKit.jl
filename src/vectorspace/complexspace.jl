@@ -16,6 +16,8 @@ end
 # Corresponding methods:
 dim(V::ComplexSpace) = V.d
 dual(V::ComplexSpace) = ComplexSpace(V.d, !V.dual)
+cnumber(V::ComplexSpace) = ComplexSpace(1,V.dual)
+cnumber(::Type{ComplexSpace}) = ComplexSpace(1)
 iscnumber(V::ComplexSpace) = dim(V)==1
 
 # Show methods

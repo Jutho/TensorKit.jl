@@ -20,12 +20,15 @@ abstract AbstractTensor{S<:IndexSpace,T,N}
 # defined in tensor.jl.
 
 # tensor characteristics
-Base.eltype{S,T}(::AbstractTensor{S,T})=T
-Base.eltype{S,T,N}(::Type{AbstractTensor{S,T,N}})=T
-Base.eltype{TT<:AbstractTensor}(::Type{TT})=eltype(super(TT))
+Base.eltype{S,T}(::AbstractTensor{S,T}) = T
+Base.eltype{S<:IndexSpace,T}(::Type{AbstractTensor{S,T}}) = T
+Base.eltype{S<:IndexSpace,T,N}(::Type{AbstractTensor{S,T,N}}) = T
+Base.eltype{TT<:AbstractTensor}(::Type{TT}) = eltype(super(TT))
 
 spacetype{S}(::AbstractTensor{S})=S
-spacetype{S,T,N}(::Type{AbstractTensor{S,T,N}})=S
+spacetype{S<:IndexSpace}(::Type{AbstractTensor{S}})=S
+spacetype{S<:IndexSpace,T}(::Type{AbstractTensor{S,T}})=S
+spacetype{S<:IndexSpace,T,N}(::Type{AbstractTensor{S,T,N}})=S
 spacetype{TT<:AbstractTensor}(::Type{TT})=spacetype(super(TT))
 
 numind{S,T,N}(::AbstractTensor{S,T,N})=N
@@ -53,7 +56,7 @@ tensor(t::AbstractTensor)=t
 
 Base.trace{S,T}(t::AbstractTensor{S,T,2})=scalar(tensortrace(t,[1,1],[]))
 
-# general tensor operations: no error checking, refer to mutating methods
+# general tensor operations: no error checking, pass to mutating methods
 function tensorcopy(A::AbstractTensor,labelsA,outputlabels=labelsA)
     spaceA=space(A)
     spaceC=spaceA[indexin(outputlabels,labelsA)]
@@ -101,4 +104,52 @@ function tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},lab
     fill!(C,zero(T))
     tensorcontract!(one(T),A,labelsA,'N',B,labelsB,'N',zero(T),C,outputlabels;method=method)
     return C
+end
+
+# general tensor factorizations: permute to correct order and pass to in place methods
+function Base.svd(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind))
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into leftind and rightind.
+    N=numind(t)
+    p=vcat(leftind,rightind)
+    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
+    newt=tensorcopy(t,1:N,p)
+    return svd!(t,length(leftind))
+end
+
+function svdtrunc(t::AbstractTensor,leftind=codomainind(t),rightind=setdiff(1:numind(t),leftind);kwargs...)
+    # Truncate tensor rank corresponding to bipartition into leftind and
+    # rightind, based on singular value decomposition. Truncation parameters
+    # are given as  keyword arguments: trunctol should always be one of the
+    # possible arguments for specifying truncation, but truncdim can be
+    # replaced with different parameters for other types of tensors.
+    N=numind(t)
+    p=vcat(leftind,rightind)
+    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
+    newt=tensorcopy(t,1:N,p)
+    return svdtrunc!(t,length(leftind);kwargs...)
+end
+
+function leftorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind))
+    # Create orthogonal basis U for left indices, and remainder R for right
+    # indices. Decomposition should be unique, such that it always returns the
+    # same result for the same input tensor t. QR is fastest but only unique
+    # after correcting for phases.
+    N=numind(t)
+    p=vcat(leftind,rightind)
+    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
+    newt=tensorcopy(t,1:N,p)
+    return leftorth!(t,length(leftind))
+end
+
+function rightorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind))
+    # Create orthogonal basis U for left indices, and remainder R for right
+    # indices. Decomposition should be unique, such that it always returns the
+    # same result for the same input tensor t. QR is fastest but only unique
+    # after correcting for phases.
+    N=numind(t)
+    p=vcat(leftind,rightind)
+    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
+    newt=tensorcopy(t,1:N,p)
+    return rightorth!(t,length(leftind))
 end

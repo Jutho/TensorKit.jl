@@ -7,7 +7,7 @@ end
 
 # Corresponding methods
 dim(P::ProductSpace{0}) = 1
-dim(P::ProductSpace) = prod(dim, P.spaces)
+dim(P::ProductSpace) = prod(dim, P.spaces)::Int
 iscnumber(P::ProductSpace) = length(P)==0 || all(iscnumber,P.spaces)
 
 # Dual and conjugate spaces

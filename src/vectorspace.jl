@@ -37,7 +37,7 @@ const R=Real
 const C=Complex{Real}
 
 abstract EuclideanSpace{F<:Union(R,C)} <: ElementaryHilbertSpace{F}
-# Elementary finite-dimensional space R^d or C^d with standard (Euclidean) inner product
+# Elementary finite-dimensional space R^d or C^d with standard (Euclidean) inner product (i.e. orthonormal basis)
 
 Base.conj(V::EuclideanSpace) = dual(V)
 # The complex conjugate space of a Hilbert space is naturally isomorphic to its dual space

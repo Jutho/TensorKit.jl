@@ -59,18 +59,24 @@ tensor{S,T,N}(data::Array{T},P::ProductSpace{N,S})=Tensor{S,T,N}(data,P)
 
 # without data
 tensor{T}(::Type{T},P::ProductSpace)=tensor(Array(T,dim(P)),P)
-tensor(P::ProductSpace)=tensor(Float64,P)
+tensor{T}(::Type{T},V::IndexSpace)=tensor(T,prod(V))
+tensor(V::Union(ProductSpace,IndexSpace))=tensor(Float64,V)
 
 Base.similar{S,T,N}(t::Tensor{S},::Type{T},P::ProductSpace{N,S}=space(t))=tensor(similar(t.data,T,dim(P)),P)
-Base.similar{S,N}(t::Tensor{S},P::ProductSpace{N,S}=space(t))=tensor(similar(t.data,dim(P)),P)
+Base.similar{S,T}(t::Tensor{S},::Type{T},V::S)=similar(t,T,prod(V))
+
+Base.similar{S,N}(t::Tensor{S},P::ProductSpace{N,S}=space(t))=similar(t,eltype(t),P)
+Base.similar{S}(t::Tensor{S},V::S)=similar(t,eltype(t),V)
 
 Base.zero(t::Tensor)=tensor(zero(t.data),space(t))
 
 Base.zeros{T}(::Type{T},P::ProductSpace)=tensor(zeros(T,dim(P)),P)
-Base.zeros(P::ProductSpace)=tensor(zeros(dim(P)),P)
+Base.zeros{T}(::Type{T},V::IndexSpace)=zeros(T,prod(V))
+Base.zeros(V::Union(ProductSpace,IndexSpace))=zeros(Float64,V)
 
 Base.rand{T}(::Type{T},P::ProductSpace)=tensor(2*rand(T,dim(P))-1,P)
-Base.rand(P::ProductSpace)=tensor(2*rand(dim(P))-1,P)
+Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,prod(V))
+Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
 
 Base.eye{T}(::Type{T},V::IndexSpace)=tensor(eye(T,dim(V)),V'*V)
 Base.eye(V::IndexSpace)=tensor(eye(dim(V)),V'*V)
@@ -136,9 +142,18 @@ Base.vec(t::Tensor)=vec(t.data)
 #---------------------------
 Base.full(t::Tensor)=t.data
 
+Base.promote_rule{S,T,N1,N2}(::Type{Tensor{S,T,N1}},::Type{Tensor{S,T,N2}})=Tensor{S,T}
 Base.promote_rule{S,T1,T2,N}(::Type{Tensor{S,T1,N}},::Type{Tensor{S,T2,N}})=Tensor{S,promote_type(T1,T2),N}
+Base.promote_rule{S,T1,T2,N1,N2}(::Type{Tensor{S,T1,N1}},::Type{Tensor{S,T2,N2}})=Tensor{S,promote_type(T1,T2)}
+Base.promote_rule{S,T1,T2}(::Type{Tensor{S,T1}},::Type{Tensor{S,T2}})=Tensor{S,promote_type(T1,T2)}
 Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=tensor(convert(Array{T1,N},t.data),space(t))
+Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1}},t::Tensor{S,T2,N})=tensor(convert(Array{T1},t.data),space(t))
+Base.convert{S,T,N}(::Type{Tensor{S}},t::Tensor{S,T,N})=t
+Base.convert{S,T,N}(::Type{Tensor},t::Tensor{S,T,N})=t
 Base.convert{S,T1,T2,N}(::Type{AbstractTensor{S,T1,N}},t::Tensor{S,T2,N})=tensor(convert(Array{T1,N},t.data),space(t))
+Base.convert{S,T1,T2,N}(::Type{AbstractTensor{S,T1}},t::Tensor{S,T2,N})=tensor(convert(Array{T1},t.data),space(t))
+Base.convert{S,T,N}(::Type{AbstractTensor{S}},t::Tensor{S,T,N})=t
+Base.convert{S,T,N}(::Type{AbstractTensor},t::Tensor{S,T,N})=t
 
 Base.float{S,T<:FloatingPoint}(t::Tensor{S,T})=t
 Base.float(t::Tensor)=tensor(float(t.data),space(t))
@@ -391,24 +406,18 @@ end
 # Factorizations:
 #-----------------
 for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
-    @eval function Base.svd(t::$TT,leftind,rightind=setdiff(1:numind(t),leftind))
+    @eval function svd!(t::$TT,n::Int)
         # Perform singular value decomposition corresponding to bipartion of the
-        # tensor indices into leftind and rightind.
+        # tensor indices into the left indices 1:n and remaining right indices,
+        # thereby destroying the original tensor.
         N=numind(t)
         spacet=space(t)
-        p=vcat(leftind,rightind)
-        if !isperm(p)
-            throw(IndexError("Not a valid bipartation of the tensor indices"))
-        end
-        data=permutedims(t.data,p)
-        # always copies data, also for trivial permutation
-        leftspace=spacet[leftind]
-        rightspace=spacet[rightind]
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
         leftdim=dim(leftspace)
         rightdim=dim(rightspace)
-        data=reshape(data,(leftdim,rightdim))
+        data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
-        # overwrite, since data is already a copy anyway
         newdim=length(F[:S])
         newspace=$S(newdim)
         U=tensor(F[:U],leftspace*newspace')
@@ -417,41 +426,41 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return U,Sigma,V
     end
 
-    @eval function svdtrunc(t::$TT,leftind=codomainind(t),rightind=setdiff(1:numind(t),leftind);truncdim::Int=dim(space(t)[leftind]),trunctol::Real=eps(abs(one(eltype(t)))))
-        # Truncate tensor rank corresponding to bipartition into leftind and
-        # rightind, based on singular value decomposition. Truncation parameters
-        # are given as  keyword arguments: trunctol should always be one of the
-        # possible arguments for specifying truncation, but truncdim can be
-        # replaced with different parameters for other types of tensors.
+    @eval function svdtrunc!(t::$TT,n::Int;trunctol::Real=0,truncdim::Int=typemax(Int),truncspace::$S=$S(truncdim))
+        # Truncate rank corresponding to bipartition into left indices 1:n
+        # and remain right indices, based on singular value decomposition, 
+        # thereby destroying the original tensor.
+        # Truncation parameters are given as keyword arguments: trunctol should
+        # always be one of the possible arguments for specifying truncation, but
+        # truncdim can be replaced with different parameters for other types of tensors.
 
         N=numind(t)
         spacet=space(t)
-        p=vcat(leftind,rightind)
-        if !isperm(p)
-            throw(IndexError("Not a valid bipartation of the tensor indices"))
-        end
-        data=permutedims(t.data,p)
-        # always copies data, also for trivial permutation
-        leftspace=spacet[leftind]
-        rightspace=spacet[rightind]
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
         leftdim=dim(leftspace)
         rightdim=dim(rightspace)
-        data=reshape(data,(leftdim,rightdim))
+        data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
 
         # find truncdim based on trunctolinfo
         sing=F[:S]
-        normsing=norm(sing)
-        trunctoldim=0
-        while norm(sing[(trunctoldim+1):end])>trunctol*normsing
-            trunctoldim+=1
-            if trunctoldim==length(sing)
-                break
+        if trunctol==0
+            trunctoldim=length(sing)
+        else
+            normsing=norm(sing)
+            trunctoldim=0
+            while norm(sing[(trunctoldim+1):end])>trunctol*normsing
+                trunctoldim+=1
+                if trunctoldim==length(sing)
+                    break
+                end
             end
         end
 
         # choose minimal truncdim
-        truncdim=min(truncdim,trunctoldim)
+        truncdim > 0 || throw(ArgumentError("Truncation dimension should be bigger than zero"))
+        truncdim=min(truncdim,trunctoldim,dim(truncspace))
         truncerr=zero(eltype(sing))
         newspace=$S(truncdim)
         if truncdim<length(sing)
@@ -469,87 +478,91 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return U,Sigma,V,truncerr
     end
 
-    @eval function leftorth(t::$TT,leftind,rightind=setdiff(1:numind(t),leftind))
-        # Create orthogonal basis U for left indices, and remainder R for right
-        # indices. Decomposition should be unique, such that it always returns the
-        # same result for the same input tensor t. QR is fastest but only unique
+    @eval function leftorth!(t::$TT,n::Int;buildC::Bool=true)
+        # Create orthogonal basis U for indices 1:n, and remainder C for right
+        # indices, thereby destroying the original tensor.
+        # Decomposition should be unique, such that it always returns the same
+        # result for the same input tensor t. UC = QR is fastest but only unique
         # after correcting for phases.
+        local C::Array{eltype(t),2}
+        
         N=numind(t)
         spacet=space(t)
-        p=vcat(leftind,rightind)
-        if !isperm(p)
-            throw(IndexError("Not a valid bipartation of the tensor indices"))
-        end
-        data=permutedims(t.data,p)
-        # always copies data, also for trivial permutation
-        leftspace=spacet[leftind]
-        rightspace=spacet[rightind]
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
         leftdim=dim(leftspace)
         rightdim=dim(rightspace)
-        data=reshape(data,(leftdim,rightdim))
+        data=reshape(t.data,(leftdim,rightdim))
         if leftdim>rightdim
-            F=qrfact!(data)
             newdim=rightdim
-
-            # make unique by correcting for phase arbitrariness
-            R=full(F[:R])
-            phase=zeros(eltype(R),(newdim,))
-            for i=1:newdim
-                phase[i]=abs(R[i,i])/R[i,i]
+            tau=zeros(eltype(data),(newdim,))
+            Base.LinAlg.LAPACK.geqrf!(data,tau)
+            
+            phase=zeros(eltype(data),(newdim,))
+            C=zeros(eltype(t),(newdim,newdim))
+            for j in 1:newdim
+                for i in 1:j
+                    @inbounds C[i,j]=data[i,j]
+                end
             end
-            R=scale!(phase,R)
-
-            # also build unitary transformation
-            U=full(F[:Q])
-            U=scale(U,one(eltype(U))./phase)
+            Base.LinAlg.LAPACK.orgqr!(data,tau)
+            U=data
+            for i=1:newdim
+                phase[i]=C[i,i]/abs(C[i,i])
+                tau[i]=1/phase[i]
+            end
+            scale!(tau,C)
+            scale!(U,phase)
         else
             newdim=leftdim
-            R=data
+            C=data
             U=eye(eltype(data),newdim)
         end
-        newspace=$S(newspace)
-        return tensor(U,leftspace*newspace'), tensor(R,newspace*rightspace)
+        
+        newspace=$S(newdim)
+        return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace)
     end
 
-    @eval function rightorth(t::$TT,leftind,rightind=setdiff(1:numind(t),leftind))
-        # Create orthogonal basis U for right indices, and remainder R for left
+    @eval function rightorth!(t::$TT,n::Int)
+        # Create orthogonal basis U for right indices, and remainder C for left
         # indices. Decomposition should be unique, such that it always returns the
-        # same result for the same input tensor t. QR of transpose fastest but only
+        # same result for the same input tensor t. CU = LQ is typically fastest but only
         # unique after correcting for phases.
         N=numind(t)
         spacet=space(t)
-        p=vcat(rightind,leftind)
-        if !isperm(p)
-            throw(IndexError("Not a valid bipartation of the tensor indices"))
-        end
-        data=permutedims(t.data,p)
-        # always copies data, also for trivial permutation
-        leftspace=spacet[leftind]
-        rightspace=spacet[rightind]
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
         leftdim=dim(leftspace)
         rightdim=dim(rightspace)
-        data=reshape(data,(rightdim,leftdim)) # data is already transposed by permutedims
+        data=reshape(t.data,(leftdim,rightdim))
         if leftdim<rightdim
-            F=qrfact!(data)
             newdim=leftdim
-
-            # make unique by correcting for phase arbitrariness
-            R=full(F[:R])
-            phase=zeros(eltype(R),(newdim,))
-            for i=1:newdim
-                phase[i]=abs(R[i,i])/R[i,i]
+            tau=zeros(eltype(data),(newdim,))
+            Base.LinAlg.LAPACK.gelqf!(data,tau)
+            
+            phase=zeros(eltype(data),(newdim,))
+            C=zeros(eltype(data),(newdim,newdim))
+            for j=1:newdim
+                for i=j:newdim
+                    @inbounds C[i,j]=data[i,j]
+                end
             end
-            R=scale!(phase,R)
-
-            U=full(F[:Q])
-            U=scale(U,one(eltype(U))./phase)
+            Base.LinAlg.LAPACK.orglq!(data,tau)
+            U=data
+            for i=1:newdim
+                phase[i]=C[i,i]/abs(C[i,i])
+                tau[i]=1/phase[i]
+            end
+            scale!(C,tau)
+            scale!(phase,U)
         else
             newdim=rightdim
-            R=data
+            C=data
             U=eye(eltype(data),newdim)
         end
+        
         newspace=$S(newdim)
-        return tensor(transpose(R),leftspace*newspace'), tensor(transpose(U),newspace*rightspace)
+        return tensor(C,leftspace*newspace'), tensor(U,newspace*rightspace)
     end
 end
 
