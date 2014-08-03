@@ -1,8 +1,6 @@
 # basis.jl
 #
 # Types and methods for defining and working with basis vectors of vector spaces
-#
-# Written by Jutho Haegeman
 
 # BasisVector and Basis
 #-----------------------

@@ -5,12 +5,9 @@
 # functionality for working with multilinear objects. A tensor is interpreted
 # as a multilinear map whose indices are associated to vector spaces corresponding
 # IndexSpace objects.
-#
-# Written by Jutho Haegeman
 
-#+++++++++++++++++++++++
-# Abstract Tensor type:
-#+++++++++++++++++++++++
+# Abstract Tensor type
+#----------------------
 abstract AbstractTensor{S<:IndexSpace,P<:TensorSpace,T,N}
 # Any implementation of AbstractTensor should have method definitions for the
 # same set of methods which are defined for the dense implementation Tensor
@@ -47,13 +44,18 @@ Base.in(t::AbstractTensor,V::VectorSpace)= (space(t) == V)
 
 tensor(t::AbstractTensor)=t
 
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Common functionality for AbstractTensor{S,T,N} and AbstractTensor{S,T,2}:
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Common functionality for AbstractTensor{S,P,T,N} and AbstractTensor{S,P,T,2}:
+#-------------------------------------------------------------------------------
 *(t::AbstractTensor,a::Number)=scale(t,a)
 *(a::Number,t::AbstractTensor)=scale(t,a)
 /(t::AbstractTensor,a::Number)=scale(t,one(a)/a)
 \(a::Number,t::AbstractTensor)=scale(t,one(a)/a)
+Base.scale(a::Number,t::AbstractTensor)=scale(t,a)
+function Base.scale(t::AbstractTensor,a::Number)
+    tnew=similar(t,promote_type(eltype(t),typeof(a)))
+    copy!(tnew,t)
+    scale!(tnew,a)
+end
 
 # convenience definition which works for vectors and matrices but also sometimes useful in general case
 *{S}(t1::AbstractTensor{S},t2::AbstractTensor{S})=tensorcontract(t1,vcat(1:numind(t1)-1,0),t2,vcat(0,-(1:numind(t2)-1)))

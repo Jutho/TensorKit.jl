@@ -3,8 +3,6 @@
 # Tensor provides a dense implementation of an AbstractTensor type without any
 # symmetry assumptions, i.e. it describes tensors living in the full tensor
 # product space of its index spaces.
-#
-# Written by Jutho Haegeman
 
 #++++++++++++++
 # Tensor type:
@@ -211,8 +209,10 @@ end
 #     return tdest
 # end
 
-Base.scale(t::Tensor,a::Number)=tensor(scale(t.data,a),space(t))
-Base.scale!(t::Tensor,a::Number)=(scale!(t.data,convert(eltype(t),a));return t)
+Base.scale!(t::Tensor,a::Number)=(scale!(t.data,a);return t)
+Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)
+Base.scale!{S,P,T,N}(t1::Tensor{S,P,T,N},t2::Tensor{S,P,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
+Base.scale!{S,P,T,N}(t1::Tensor{S,P,T,N},a::Number,t2::Tensor{S,P,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
 
 -(t::Tensor)=tensor(-t.data,space(t))
 
