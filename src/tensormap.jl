@@ -9,6 +9,21 @@
 
 abstract AbstractTensorMap{S<:IndexSpace,P<:TensorSpace,T} <: AbstractLinearMap{T}
 
+spacetype{S}(::AbstractTensorMap{S})=S
+spacetype{S<:IndexSpace}(::Type{AbstractTensorMap{S}})=S
+spacetype{S<:IndexSpace,P<:Tensorspace}(::Type{AbstractTensorMap{S,P}})=S
+spacetype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensorMap{S,P,T}})=S
+spacetype{TM<:AbstractTensorMap}(::Type{TM})=spacetype(super(TM))
+
+tensortype{S,P}(::AbstractTensorMap{S,P})=P
+tensortype{S<:IndexSpace,P<:Tensorspace}(::Type{AbstractTensorMap{S,P}})=P
+tensortype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensorMap{S,P,T}})=P
+tensortype{TM<:AbstractTensorMap}(::Type{TM})=spacetype(super(TM))
+
+Base.eltype{S,P,T}(::AbstractTensorMap{S,P,T}) = T
+Base.eltype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensorMap{S,P,T}})=T
+Base.eltype{TM<:AbstractTensor}(::Type{TM}) = eltype(super(TM))
+
 domain(A::AbstractTensorMap)=throw(MethodError()) # this should be implemented by subtypes; defined here to allow import
 codomain(A::AbstractTensorMap)=throw(MethodError()) # this should be implemented by subtypes; defined here to allow import
 
