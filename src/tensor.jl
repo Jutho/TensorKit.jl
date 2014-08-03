@@ -181,33 +181,32 @@ function Base.conj!(t::Tensor)
     return t
 end
 
-# SHOULD THIS BE DEFINED?
-# function Base.transpose(t::Tensor)
-#     tdest=similar(t,reverse(space(t)))
-#     return Base.transpose!(tdest,t)
-# end
-# function Base.transpose!(tdest::Tensor,tsource::Tensor)
-#     if space(tdest)!=reverse(space(tsource))
-#         throw(SpaceError("tensor spaces don't match"))
-#     end
-#     N=numind(tsource)
-#     TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
-#     return tdest
-# end
+function Base.transpose(t::Tensor)
+    tdest=similar(t,space(t).')
+    return Base.transpose!(tdest,t)
+end
+function Base.transpose!(tdest::Tensor,tsource::Tensor)
+    if space(tdest)!=space(tsource).'
+        throw(SpaceError("tensor spaces don't match"))
+    end
+    N=numind(tsource)
+    TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
+    return tdest
+end
 
-# function Base.ctranspose(t::Tensor)
-#     tdest=similar(t,reverse(conj(space(t))))
-#     return Base.ctranspose!(tdest,t)
-# end
-# function Base.ctranspose!(tdest::Tensor,tsource::Tensor)
-#     if space(tdest)!=reverse(conj(space(tsource))))
-#         throw(SpaceError("tensor spaces don't match"))
-#     end
-#     N=numind(tsource)
-#     TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
-#     conj!(tdest.data)
-#     return tdest
-# end
+function Base.ctranspose(t::Tensor)
+    tdest=similar(t,space(t)')
+    return Base.ctranspose!(tdest,t)
+end
+function Base.ctranspose!(tdest::Tensor,tsource::Tensor)
+    if space(tdest)!=space(tsource)'
+        throw(SpaceError("tensor spaces don't match"))
+    end
+    N=numind(tsource)
+    TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
+    conj!(tdest.data)
+    return tdest
+end
 
 Base.scale!(t::Tensor,a::Number)=(scale!(t.data,a);return t)
 Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)

@@ -22,9 +22,11 @@ Base.done(P::ProductSpace, state) = done(P.spaces, state)
 dim(P::ProductSpace) = (d=1;for V in P;d*=dim(V);end;return d)
 iscnumber(P::ProductSpace) = length(P)==0 || all(iscnumber,P)
 
-# Dual and conjugate spaces
-dual{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->dual(P[n])))
+# Convention on dual, conj, transpose and ctranspose of tensor product spaces
+dual{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(reverse(ntuple(N,n->dual(P[n]))))
 Base.conj{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->conj(P[n])))
+Base.transpose{S,N}(P::ProductSpace{S,N}) = reverse(P)
+Base.ctranspose{S,N}(P::ProductSpace{S,N}) = reverse(conj(P))
 
 # Construct from product of spaces
 *{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace{S,2}((V1, V2))
@@ -35,11 +37,12 @@ Base.conj{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->conj(P[n]))
 Base.prod{S<:ElementarySpace}(V::S) = ProductSpace{S,1}((V,))
 
 # Promotion and conversion
-Base.convert(::Type{ProductSpace}, V::ElementarySpace) = prod(V)
-Base.convert{S<:ElementarySpace}(::Type{ProductSpace{S}}, V::ElementarySpace) = prod(V)
 Base.convert{S<:ElementarySpace}(::Type{ProductSpace{S,1}}, V::S) = prod(V)
+Base.convert{S<:ElementarySpace}(::Type{ProductSpace{S}}, V::S) = prod(V)
+Base.convert(::Type{ProductSpace}, V::ElementarySpace) = prod(V)
 
-Base.promote_rule{S<:ElementarySpace,N}(::Type{ProductSpace{S,N}},::Type{S}) = ProductSpace
+Base.promote_rule{S<:ElementarySpace,N}(::Type{ProductSpace{S,N}},::Type{S}) = ProductSpace{S}
+Base.promote_rule{S<:ElementarySpace}(::Type{ProductSpace{S}},::Type{S}) = ProductSpace{S}
 
 ==(P::ProductSpace,V::ElementarySpace) = length(P) ==1 && P[1] == V
 ==(V::ElementarySpace,P::ProductSpace) = length(P) ==1 && P[1] == V

@@ -61,7 +61,6 @@ end
 domain(A::DualTensorMap) = dual(codomain(A.map))
 codomain(A::DualTensorMap) = dual(domain(A.map))
 
-
 Base.transpose(A::AbstractTensorMap) = dual(A)
 
 dual(A::AbstractTensorMap) = DualTensorMap(A)

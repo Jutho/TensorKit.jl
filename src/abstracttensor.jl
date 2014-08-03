@@ -43,6 +43,7 @@ order=numind
 Base.in(t::AbstractTensor,V::VectorSpace)= issubspace(space(t),V)
 
 tensor(t::AbstractTensor)=t
+tensor(t::AbstractTensor,P::TensorSpace)= (space(t) == P ? t : throw(SpaceError("tensor not in $P")))
 
 Base.promote_rule{S,P,T1,T2,N}(::Type{AbstractTensor{S,P,T1,N}},::Type{AbstractTensor{S,P,T2,N}})=AbstractTensor{S,P,promote_type(T1,T2),N}
 Base.promote_rule{S,P,T1,T2,N1,N2}(::Type{AbstractTensor{S,P,T1,N1}},::Type{AbstractTensor{S,P,T2,N2}})=AbstractTensor{S,P,promote_type(T1,T2)}
