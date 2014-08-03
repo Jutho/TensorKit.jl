@@ -53,25 +53,22 @@ IndexError()=IndexError("")
 
 # Types and methods for vector spaces and corresponding bases
 #-------------------------------------------------------------
-include("vectorspace.jl")
+abstract VectorSpace
+space(V::VectorSpace) = V # just returns the space
+
+include("basis.jl") # defining basis of a vector space
+include("elementaryspace.jl") # elementary finite-dimensional vector spaces
+include("compositespace.jl") # composing elementary vector spaces
 
 # Types and methods for tensors
 #-------------------------------
 import TensorOperations
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
-# Relevant vector spaces for defining tensors
-typealias IndexSpace ElementarySpace
-typealias TensorSpace CompositeSpace
-
-# New abstract type for defining tensors, multilinear objects whose indices
-# take values in an IndexSpace <: VectorSpace.
 include("abstracttensor.jl")
 
 # Implementations:
-
-# generic tensor living in a ProductSpace without special properties
-include("tensor.jl")
+include("tensor.jl") # generic tensor living in a ProductSpace without special properties
 
 # Linear maps acting on tensors
 #-------------------------------
