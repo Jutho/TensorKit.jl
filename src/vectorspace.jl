@@ -117,6 +117,7 @@ abstract Abelian <: Sector
 # vector spaces graded with abelian sectors
 #include("vectorspace/abelian.jl")
 
-
 # invariant subspace of tensor product of abelian spaces
 #include("vectorspace/invariant.jl")
+
+# braidedspace and fermionspace:

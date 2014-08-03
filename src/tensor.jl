@@ -11,7 +11,7 @@
 #++++++++++++++
 # Type definition and constructors:
 #-----------------------------------
-type Tensor{S,T,N} <: AbstractTensor{S,ProductSpace{S},T,N}
+type Tensor{S,T,N} <: AbstractTensor{S,ProductSpace,T,N}
     data::Array{T,N}
     space::ProductSpace{S,N}
     function Tensor(data::Array{T},space::ProductSpace{S,N})

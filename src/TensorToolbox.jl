@@ -5,9 +5,6 @@
 
 module TensorToolbox
 
-using LinearMaps
-#using Cartesian
-
 # Exports
 #---------
 # Types:
@@ -15,7 +12,8 @@ export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
 export ComplexSpace, CartesianSpace, GeneralSpace
 export CompositeSpace, ProductSpace
 export IndexSpace, TensorSpace, AbstractTensor, Tensor
-export AbstractTensorMap
+export AbstractTensorMap, DualTensorMap
+export SpaceError, IndexError
 
 # general vector space methods
 export space, dim, dual, iscnumber, directsum, fuse, basis
@@ -62,6 +60,10 @@ include("vectorspace.jl")
 import TensorOperations
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
+# Relevant vector spaces for defining tensors
+typealias IndexSpace ElementarySpace
+typealias TensorSpace CompositeSpace
+
 # New abstract type for defining tensors, multilinear objects whose indices
 # take values in an IndexSpace <: VectorSpace.
 include("abstracttensor.jl")
@@ -73,6 +75,8 @@ include("tensor.jl")
 
 # Linear maps acting on tensors
 #-------------------------------
+using LinearMaps
+
 include("tensormap.jl")
 
 end

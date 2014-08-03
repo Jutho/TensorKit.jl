@@ -8,14 +8,10 @@
 #
 # Written by Jutho Haegeman
 
-# Indices of tensors live in ElementarySpace objects
-typealias IndexSpace ElementarySpace
-typealias Tensorspace CompositeSpace
-
 #+++++++++++++++++++++++
 # Abstract Tensor type:
 #+++++++++++++++++++++++
-abstract AbstractTensor{S<:IndexSpace,P<:Tensorspace{S},T,N}
+abstract AbstractTensor{S<:IndexSpace,P<:TensorSpace,T,N}
 # Any implementation of AbstractTensor should have method definitions for the
 # same set of methods which are defined for the dense implementation Tensor
 # defined in tensor.jl.
@@ -23,25 +19,25 @@ abstract AbstractTensor{S<:IndexSpace,P<:Tensorspace{S},T,N}
 # tensor characteristics
 spacetype{S}(::AbstractTensor{S})=S
 spacetype{S<:IndexSpace}(::Type{AbstractTensor{S}})=S
-spacetype{S<:IndexSpace,P<:Tensorspace}(::Type{AbstractTensor{S,P}})=S
-spacetype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensor{S,P,T}})=S
-spacetype{S<:IndexSpace,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=S
+spacetype{S<:IndexSpace,P<:TensorSpace}(::Type{AbstractTensor{S,P}})=S
+spacetype{S<:IndexSpace,P<:TensorSpace,T}(::Type{AbstractTensor{S,P,T}})=S
+spacetype{S<:IndexSpace,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=S
 spacetype{TT<:AbstractTensor}(::Type{TT})=spacetype(super(TT))
 
 tensortype{S,P}(::AbstractTensor{S,P})=P
-tensortype{S<:IndexSpace,P<:Tensorspace}(::Type{AbstractTensor{S,P}})=P
-tensortype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensor{S,P,T}})=P
-tensortype{S<:IndexSpace,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=P
+tensortype{S<:IndexSpace,P<:TensorSpace}(::Type{AbstractTensor{S,P}})=P
+tensortype{S<:IndexSpace,P<:TensorSpace,T}(::Type{AbstractTensor{S,P,T}})=P
+tensortype{S<:IndexSpace,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=P
 tensortype{TT<:AbstractTensor}(::Type{TT})=spacetype(super(TT))
 
 Base.eltype{S,P,T}(::AbstractTensor{S,P,T}) = T
-Base.eltype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensor{S,P,T}})=T
-Base.eltype{S<:IndexSpace,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=T
+Base.eltype{S<:IndexSpace,P<:TensorSpace,T}(::Type{AbstractTensor{S,P,T}})=T
+Base.eltype{S<:IndexSpace,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=T
 Base.eltype{TT<:AbstractTensor}(::Type{TT}) = eltype(super(TT))
 
 numind{S,P,T,N}(::AbstractTensor{S,P,T,N})=N
-numind{S,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=N
-numind{T<:Tensorspace}(::Type{T})=numind(super(T))
+numind{S,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=N
+numind{T<:TensorSpace}(::Type{T})=numind(super(T))
 
 order=numind
 
