@@ -55,6 +55,7 @@ IndexError()=IndexError("")
 #-------------------------------------------------------------
 abstract VectorSpace
 space(V::VectorSpace) = V # just returns the space
+issubspace(V1::VectorSpace,V2::VectorSpace) = V1==V2 # default, only identical subspaces are subspaces
 
 include("basis.jl") # defining basis of a vector space
 include("elementaryspace.jl") # elementary finite-dimensional vector spaces

@@ -40,9 +40,18 @@ order=numind
 
 # check whether a tensor describes a valid state in a Hilbert space encoded as a QuantumSystem object
 # by comparing space(t) to the tensor product structure of the Hilbert space
-Base.in(t::AbstractTensor,V::VectorSpace)= (space(t) == V)
+Base.in(t::AbstractTensor,V::VectorSpace)= issubspace(space(t),V)
 
 tensor(t::AbstractTensor)=t
+
+Base.promote_rule{S,P,T1,T2,N}(::Type{AbstractTensor{S,P,T1,N}},::Type{AbstractTensor{S,P,T2,N}})=AbstractTensor{S,P,promote_type(T1,T2),N}
+Base.promote_rule{S,P,T1,T2,N1,N2}(::Type{AbstractTensor{S,P,T1,N1}},::Type{AbstractTensor{S,P,T2,N2}})=AbstractTensor{S,P,promote_type(T1,T2)}
+Base.promote_rule{S,P,T1,T2}(::Type{AbstractTensor{S,P,T1}},::Type{AbstractTensor{S,P,T2}})=AbstractTensor{S,P,promote_type(T1,T2)}
+
+Base.convert{S,P,T,N}(::Type{AbstractTensor{S,P,T,N}},t::AbstractTensor{S,P,T,N})=t
+Base.convert{S,P,T1,T2,N}(::Type{AbstractTensor{S,P,T1,N}},t::AbstractTensor{S,P,T2,N})=copy!(similar(t,T2),t)
+Base.convert{S,P,T}(::Type{AbstractTensor{S,P,T}},t::AbstractTensor{S,P,T})=t
+Base.convert{S,P,T1,T2}(::Type{AbstractTensor{S,P,T1}},t::AbstractTensor{S,P,T2})=copy!(similar(t,T2),t)
 
 # Common functionality for AbstractTensor{S,P,T,N} and AbstractTensor{S,P,T,2}:
 #-------------------------------------------------------------------------------

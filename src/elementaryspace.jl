@@ -12,11 +12,13 @@ Base.eltype{F}(V::ElementarySpace{F}) = F
 Base.eltype{F}(::Type{ElementarySpace{F}}) = F
 Base.eltype{S<:ElementarySpace}(::Type{S}) = eltype(super(S))
 
+Base.isfinite(::ElementarySpace) = true
+
 # The complex conjugate vector space of a real vector space is equal to itself
 Base.conj{F<:Real}(V::ElementarySpace{F}) = V
 
 abstract ElementaryHilbertSpace{F} <: ElementarySpace{F}
-typealias ElementaryInnerProductSpace{F} ElementaryHilbertSpace{F}
+typealias ElementaryInnerProductSpace ElementaryHilbertSpace
 # An inner product space, has the possibility to raise or lower indices of tensors
 
 const R=Real

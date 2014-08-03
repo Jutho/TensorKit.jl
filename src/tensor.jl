@@ -76,8 +76,9 @@ Base.rand{T}(::Type{T},P::ProductSpace)=tensor(rand(T,dim(P)),P)
 Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,prod(V))
 Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
 
-Base.eye{T}(::Type{T},V::IndexSpace)=tensor(eye(T,dim(V)),V*dual(V))
-Base.eye(V::IndexSpace)=tensor(eye(dim(V)),V*dual(V))
+Base.eye{T}(::Type{T},P::ProductSpace)=tensor(eye(T,dim(P)),P*dual(P))
+Base.eye{T}(::Type{T},V::IndexSpace)=eye(T,prod(V))
+Base.eye(V::Union(ProductSpace,IndexSpace))=eye(Float64,V)
 
 # tensors from concatenation
 function tensorcat{S}(catind, X::Tensor{S}...)
@@ -140,19 +141,18 @@ Base.vec(t::Tensor)=vec(t.data)
 #---------------------------
 Base.full(t::Tensor)=t.data
 
-Base.promote_rule{S,T,N1,N2}(::Type{Tensor{S,T,N1}},::Type{Tensor{S,T,N2}})=Tensor{S,T}
 Base.promote_rule{S,T1,T2,N}(::Type{Tensor{S,T1,N}},::Type{Tensor{S,T2,N}})=Tensor{S,promote_type(T1,T2),N}
 Base.promote_rule{S,T1,T2,N1,N2}(::Type{Tensor{S,T1,N1}},::Type{Tensor{S,T2,N2}})=Tensor{S,promote_type(T1,T2)}
 Base.promote_rule{S,T1,T2}(::Type{Tensor{S,T1}},::Type{Tensor{S,T2}})=Tensor{S,promote_type(T1,T2)}
-Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=tensor(convert(Array{T1,N},t.data),space(t))
-Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1}},t::Tensor{S,T2,N})=tensor(convert(Array{T1},t.data),space(t))
-Base.convert{S,T,N}(::Type{Tensor{S}},t::Tensor{S,T,N})=t
-Base.convert{S,T,N}(::Type{Tensor},t::Tensor{S,T,N})=t
 
-Base.convert{S,T1,T2,N}(::Type{AbstractTensor{S,ProductSpace,T1,N}},t::Tensor{S,T2,N})=tensor(convert(Array{T1,N},t.data),space(t))
-Base.convert{S,T1,T2}(::Type{AbstractTensor{S,ProductSpace,T1}},t::Tensor{S,T2})=tensor(convert(Array{T1},t.data),space(t))
-Base.convert{S}(::Type{AbstractTensor{S,ProductSpace}},t::Tensor{S})=t
-Base.convert(::Type{AbstractTensor},t::Tensor)=t
+Base.promote_rule{S,T1,T2,N}(::Type{AbstractTensor{S,ProductSpace,T1,N}},::Type{Tensor{S,T2,N}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2),N}
+Base.promote_rule{S,T1,T2,N1,N2}(::Type{AbstractTensor{S,ProductSpace,T1,N1}},::Type{Tensor{S,T2,N2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
+Base.promote_rule{S,T1,T2}(::Type{AbstractTensor{S,ProductSpace,T1}},::Type{Tensor{S,T2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
+
+Base.convert{S,T,N}(::Type{Tensor{S,T,N}},t::Tensor{S,T,N})=t
+Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=copy!(similar(t,T1),t)
+Base.convert{S,T}(::Type{Tensor{S,T}},t::Tensor{S,T})=t
+Base.convert{S,T1,T2}(::Type{Tensor{S,T1}},t::Tensor{S,T2})=copy!(similar(t,T1),t)
 
 Base.float{S,T<:FloatingPoint}(t::Tensor{S,T})=t
 Base.float(t::Tensor)=tensor(float(t.data),space(t))
@@ -211,8 +211,8 @@ end
 
 Base.scale!(t::Tensor,a::Number)=(scale!(t.data,a);return t)
 Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)
-Base.scale!{S,P,T,N}(t1::Tensor{S,P,T,N},t2::Tensor{S,P,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
-Base.scale!{S,P,T,N}(t1::Tensor{S,P,T,N},a::Number,t2::Tensor{S,P,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
+Base.scale!{S,T,N}(t1::Tensor{S,T,N},t2::Tensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
+Base.scale!{S,T,N}(t1::Tensor{S,T,N},a::Number,t2::Tensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
 
 -(t::Tensor)=tensor(-t.data,space(t))
 
