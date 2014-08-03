@@ -1,49 +1,48 @@
 # ProductSpace
 #--------------
 # Tensor product of several ElementarySpace objects
-immutable ProductSpace{N, S<:ElementarySpace} <: CompositeSpace{S}
+immutable ProductSpace{S<:ElementarySpace,N} <: CompositeSpace{S}
   spaces::NTuple{N, S}
 end
 
-# Corresponding methods
-dim(P::ProductSpace{0}) = 1
-dim(P::ProductSpace) = prod(dim, P.spaces)::Int
-iscnumber(P::ProductSpace) = length(P)==0 || all(iscnumber,P.spaces)
-
-# Dual and conjugate spaces
-dual{N,S}(P::ProductSpace{N,S}) = ProductSpace{N,S}(map(dual, P.spaces))
-Base.conj{N,S}(P::ProductSpace{N,S}) = ProductSpace{N,S}(map(conj, P.spaces))
-
 # Functionality for extracting and iterating over spaces
-Base.length{N}(P::ProductSpace{N}) = N
-Base.endof{N}(P::ProductSpace{N}) = N
+Base.length{S,N}(P::ProductSpace{S,N}) = N
+Base.endof(P::ProductSpace) = length(P)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
-Base.getindex{N,S}(P::ProductSpace{N,S}, r)=ProductSpace{length(r),S}(P.spaces[r])
+Base.getindex{S,N}(P::ProductSpace{S,N}, r)=ProductSpace{S,length(r)}(P.spaces[r])
 
-Base.reverse{N,S}(P::ProductSpace{N,S})=ProductSpace{N,S}(reverse(P.spaces))
+Base.reverse{S,N}(P::ProductSpace{S,N})=ProductSpace{S,N}(reverse(P.spaces))
 Base.map(f::Base.Callable,P::ProductSpace) = map(f,P.spaces) # required to make map(dim,P) efficient
 
 Base.start(P::ProductSpace) = start(P.spaces)
 Base.next(P::ProductSpace, state) = next(P.spaces, state)
 Base.done(P::ProductSpace, state) = done(P.spaces, state)
 
-# Construct from product of spaces
-*{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace{2,S}((V1, V2))
-*{N,S<:ElementarySpace}(P1::ProductSpace{N,S}, V2::S) = ProductSpace{N+1,S}(tuple(P1.spaces..., V2))
-*{N,S<:ElementarySpace}(V1::S, P2::ProductSpace{N,S}) = ProductSpace{N+1,S}(tuple(V1, P2.spaces...))
-*{N1,N2,S}(P1::ProductSpace{N1,S}, P2::ProductSpace{N2,S}) = ProductSpace{N1+N2,S}(tuple(P1.spaces..., P2.spaces...))
+# Corresponding methods
+dim(P::ProductSpace) = (d=1;for V in P;d*=dim(V);end;return d)
+iscnumber(P::ProductSpace) = length(P)==0 || all(iscnumber,P)
 
-Base.prod{S<:ElementarySpace}(V::S) = ProductSpace{1,S}((V,))
+# Dual and conjugate spaces
+dual{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->dual(P[n])))
+Base.conj{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->conj(P[n])))
+
+# Construct from product of spaces
+*{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace{S,2}((V1, V2))
+*{S<:ElementarySpace,N}(P1::ProductSpace{S,N}, V2::S) = ProductSpace{S,N+1}(tuple(P1.spaces..., V2))
+*{S<:ElementarySpace,N}(V1::S, P2::ProductSpace{S,N}) = ProductSpace{S,N+1}(tuple(V1, P2.spaces...))
+*{S,N1,N2}(P1::ProductSpace{S,N1}, P2::ProductSpace{S,N2}) = ProductSpace{S,N1+N2}(tuple(P1.spaces..., P2.spaces...))
+
+Base.prod{S<:ElementarySpace}(V::S) = ProductSpace{S,1}((V,))
 
 # Promotion and conversion
 Base.convert(::Type{ProductSpace}, V::ElementarySpace) = prod(V)
-Base.convert(::Type{ProductSpace{1}}, V::ElementarySpace) = prod(V)
-Base.convert{S<:ElementarySpace}(::Type{ProductSpace{1,S}}, V::S) = prod(V)
+Base.convert{S<:ElementarySpace}(::Type{ProductSpace{S}}, V::ElementarySpace) = prod(V)
+Base.convert{S<:ElementarySpace}(::Type{ProductSpace{S,1}}, V::S) = prod(V)
 
-Base.promote_rule{S<:ElementarySpace,N}(::Type{ProductSpace{N,S}},::Type{S}) = ProductSpace
+Base.promote_rule{S<:ElementarySpace,N}(::Type{ProductSpace{S,N}},::Type{S}) = ProductSpace
 
-==(P::ProductSpace,V::ElementarySpace) = length(P) ==1 && P.spaces[1] == V
-==(V::ElementarySpace,P::ProductSpace) = length(P) ==1 && P.spaces[1] == V
+==(P::ProductSpace,V::ElementarySpace) = length(P) ==1 && P[1] == V
+==(V::ElementarySpace,P::ProductSpace) = length(P) ==1 && P[1] == V
 
 # Show method
 function Base.show(io::IO, P::ProductSpace)
@@ -54,13 +53,13 @@ function Base.show(io::IO, P::ProductSpace)
 end
 
 # basis and basisvector
-typealias ProductBasisVector{N,S} BasisVector{ProductSpace{N,S},Int} # use integer from 1 to dim as identifier
-typealias ProductBasis{N,S} Basis{ProductSpace{N,S}}
+typealias ProductBasisVector{S,N} BasisVector{ProductSpace{S,N},Int} # use integer from 1 to dim as identifier
+typealias ProductBasis{S,N} Basis{ProductSpace{S,N}}
 
-Base.length{N,S}(B::ProductBasis{N,S}) = dim(space(B))
-Base.start{N,S}(B::ProductBasis{N,S}) = 1
-Base.next{N,S}(B::ProductBasis{N,S}, state::Int) = (ProductBasisVector{N,S}(space(B),state),state+1)
-Base.done{N,S}(B::ProductBasis{N,S}, state::Int) = state>length(B)
+Base.length{S,N}(B::ProductBasis{S,N}) = dim(space(B))
+Base.start{S,N}(B::ProductBasis{S,N}) = 1
+Base.next{S,N}(B::ProductBasis{S,N}, state::Int) = (ProductBasisVector{S,N}(space(B),state),state+1)
+Base.done{S,N}(B::ProductBasis{S,N}, state::Int) = state>length(B)
 
-Base.to_index{N,S}(b::ProductBasisVector{N,S}) = b.identifier # use linear indexing as long as we cannot efficiently generate a cartesian iterator
-Base.show{N,S}(io::IO,b::ProductBasisVector{N,S}) = print(io, "BasisVector($(b.space),$(ind2sub(map(dim,b.space),b.identifier)))")
+Base.to_index{S,N}(b::ProductBasisVector{S,N}) = b.identifier # use linear indexing as long as we cannot efficiently generate a cartesian iterator
+Base.show{S,N}(io::IO,b::ProductBasisVector{S,N}) = print(io, "BasisVector($(b.space),$(ind2sub(map(dim,b.space),b.identifier)))")

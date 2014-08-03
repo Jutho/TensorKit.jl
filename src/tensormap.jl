@@ -7,7 +7,7 @@
 # hooks into AbstractLinearMap and provides functionality for reinterpreting a tensor map
 # as a linear map acting on Julia's standard Vector type.
 
-abstract AbstractTensorMap{S<:IndexSpace,T} <: AbstractLinearMap{T}
+abstract AbstractTensorMap{S<:IndexSpace,P<:TensorSpace,T} <: AbstractLinearMap{T}
 
 domain(A::AbstractTensorMap)=throw(MethodError()) # this should be implemented by subtypes; defined here to allow import
 codomain(A::AbstractTensorMap)=throw(MethodError()) # this should be implemented by subtypes; defined here to allow import
@@ -34,14 +34,14 @@ function Base.Ac_mul_B!(y::Vector,A::AbstractTensorMap,x::Vector)
     vec(Ac_mul_B!(Y,A,X))
 end
 
-*(A::AbstractTensorMap,X::AbstractTensor)=(x in domain(A) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),codomain(A)),A,x) : throw(SpaceError("Tensor not in domain of map")))
-Base.At_mul_B(A::AbstractTensorMap,X::AbstractTensor)=(x in dual(codomain(A)) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(domain(A))),A,x) : throw(SpaceError("Tensor not in domain of map")))
-Base.Ac_mul_B(A::AbstractTensorMap,X::AbstractTensor)=(x in dual(conj(codomain(A)))s ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(conj(domain(A)))),A,x) : throw(SpaceError("Tensor not in domain of map")))
+*{S,P}(A::AbstractTensorMap{S,P},X::AbstractTensor{S,P})=(x in domain(A) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),codomain(A)),A,x) : throw(SpaceError("Tensor not in domain of map")))
+Base.At_mul_B{S,P}(A::AbstractTensorMap{S,P},X::AbstractTensor{S,P})=(x in dual(codomain(A)) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(domain(A))),A,x) : throw(SpaceError("Tensor not in domain of map")))
+Base.Ac_mul_B{S,P}(A::AbstractTensorMap{S,P},X::AbstractTensor{S,P})=(x in dual(conj(codomain(A)))s ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(conj(domain(A)))),A,x) : throw(SpaceError("Tensor not in domain of map")))
 
 
 # Some convenient definitions
-immutable DualTensorMap{S,T} <: AbstractTensorMap{S,T}
-    map::AbstractTensorMap{S,T}
+immutable DualTensorMap{S,P,T} <: AbstractTensorMap{S,P,T}
+    map::AbstractTensorMap{S,P,T}
 end
 domain(A::DualTensorMap) = dual(codomain(A.map))
 codomain(A::DualTensorMap) = dual(domain(A.map))
@@ -52,6 +52,6 @@ Base.transpose(A::AbstractTensorMap) = dual(A)
 dual(A::AbstractTensorMap) = DualTensorMap(A)
 dual(A::DualTensorMap) = A.map
 
-A_mul_B!{S}(Y::AbstractTensor{S},A::DualTensorMap{S},X::AbstractTensor{S})=At_mul_B!(Y,A.map,X)
-At_mul_B!{S}(Y::AbstractTensor{S},A::DualTensorMap{S},X::AbstractTensor{S})=A_mul_B!(Y,A.map,X)
-Ac_mul_B!{S}(Y::AbstractTensor{S},A::DualTensorMap{S},X::AbstractTensor{S})=(A_mul_B!(Y,A.map,conj(X)); return conj!(Y))
+A_mul_B!{S,P}(Y::AbstractTensor{S,P},A::DualTensorMap{S,P},X::AbstractTensor{S,P})=At_mul_B!(Y,A.map,X)
+At_mul_B!{S,P}(Y::AbstractTensor{S,P},A::DualTensorMap{S,P},X::AbstractTensor{S,P})=A_mul_B!(Y,A.map,X)
+Ac_mul_B!{S,P}(Y::AbstractTensor{S,P},A::DualTensorMap{S,P},X::AbstractTensor{S,P})=(A_mul_B!(Y,A.map,conj(X)); return conj!(Y))

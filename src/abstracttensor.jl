@@ -10,30 +10,38 @@
 
 # Indices of tensors live in ElementarySpace objects
 typealias IndexSpace ElementarySpace
+typealias Tensorspace CompositeSpace
 
 #+++++++++++++++++++++++
 # Abstract Tensor type:
 #+++++++++++++++++++++++
-abstract AbstractTensor{S<:IndexSpace,T,N}
+abstract AbstractTensor{S<:IndexSpace,P<:Tensorspace{S},T,N}
 # Any implementation of AbstractTensor should have method definitions for the
 # same set of methods which are defined for the dense implementation Tensor
 # defined in tensor.jl.
 
 # tensor characteristics
-Base.eltype{S,T}(::AbstractTensor{S,T}) = T
-Base.eltype{S<:IndexSpace,T}(::Type{AbstractTensor{S,T}}) = T
-Base.eltype{S<:IndexSpace,T,N}(::Type{AbstractTensor{S,T,N}}) = T
-Base.eltype{TT<:AbstractTensor}(::Type{TT}) = eltype(super(TT))
-
 spacetype{S}(::AbstractTensor{S})=S
 spacetype{S<:IndexSpace}(::Type{AbstractTensor{S}})=S
-spacetype{S<:IndexSpace,T}(::Type{AbstractTensor{S,T}})=S
-spacetype{S<:IndexSpace,T,N}(::Type{AbstractTensor{S,T,N}})=S
+spacetype{S<:IndexSpace,P<:Tensorspace}(::Type{AbstractTensor{S,P}})=S
+spacetype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensor{S,P,T}})=S
+spacetype{S<:IndexSpace,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=S
 spacetype{TT<:AbstractTensor}(::Type{TT})=spacetype(super(TT))
 
-numind{S,T,N}(::AbstractTensor{S,T,N})=N
-numind{S,T,N}(::Type{AbstractTensor{S,T,N}})=N
-numind{T<:AbstractTensor}(::Type{T})=numind(super(T))
+tensortype{S,P}(::AbstractTensor{S,P})=P
+tensortype{S<:IndexSpace,P<:Tensorspace}(::Type{AbstractTensor{S,P}})=P
+tensortype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensor{S,P,T}})=P
+tensortype{S<:IndexSpace,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=P
+tensortype{TT<:AbstractTensor}(::Type{TT})=spacetype(super(TT))
+
+Base.eltype{S,P,T}(::AbstractTensor{S,P,T}) = T
+Base.eltype{S<:IndexSpace,P<:Tensorspace,T}(::Type{AbstractTensor{S,P,T}})=T
+Base.eltype{S<:IndexSpace,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=T
+Base.eltype{TT<:AbstractTensor}(::Type{TT}) = eltype(super(TT))
+
+numind{S,P,T,N}(::AbstractTensor{S,P,T,N})=N
+numind{S,P<:Tensorspace,T,N}(::Type{AbstractTensor{S,P,T,N}})=N
+numind{T<:Tensorspace}(::Type{T})=numind(super(T))
 
 order=numind
 
@@ -54,7 +62,7 @@ tensor(t::AbstractTensor)=t
 # convenience definition which works for vectors and matrices but also sometimes useful in general case
 *{S}(t1::AbstractTensor{S},t2::AbstractTensor{S})=tensorcontract(t1,vcat(1:numind(t1)-1,0),t2,vcat(0,-(1:numind(t2)-1)))
 
-Base.trace{S,T}(t::AbstractTensor{S,T,2})=scalar(tensortrace(t,[1,1],[]))
+Base.trace{S,P,T}(t::AbstractTensor{S,P,T,2})=scalar(tensortrace(t,[1,1],[]))
 
 # general tensor operations: no error checking, pass to mutating methods
 function tensorcopy(A::AbstractTensor,labelsA,outputlabels=labelsA)
@@ -64,7 +72,7 @@ function tensorcopy(A::AbstractTensor,labelsA,outputlabels=labelsA)
     tensorcopy!(A,labelsA,C,outputlabels)
     return C
 end
-function tensoradd{S,TA,TB,N}(A::AbstractTensor{S,TA,N},labelsA,B::AbstractTensor{S,TB,N},labelsB,outputlabels=labelsA)
+function tensoradd{S,P,TA,TB,N}(A::AbstractTensor{S,P,TA,N},labelsA,B::AbstractTensor{S,P,TB,N},labelsB,outputlabels=labelsA)
     spaceA=space(A)
     spaceC=spaceA[indexin(outputlabels,labelsA)]
     T=promote_type(TA,TB)

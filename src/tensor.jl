@@ -11,10 +11,10 @@
 #++++++++++++++
 # Type definition and constructors:
 #-----------------------------------
-type Tensor{S,T,N} <: AbstractTensor{S,T,N}
+type Tensor{S,T,N} <: AbstractTensor{S,ProductSpace{S},T,N}
     data::Array{T,N}
-    space::ProductSpace{N,S}
-    function Tensor(data::Array{T},space::ProductSpace{N,S})
+    space::ProductSpace{S,N}
+    function Tensor(data::Array{T},space::ProductSpace{S,N})
         if length(data)!=dim(space)
             throw(DimensionMismatch("data not of right size"))
         end
@@ -55,17 +55,17 @@ function tensor{T<:Complex}(data::Array{T,2})
     Tensor{ComplexEuclideanSpace,T,2}(data,ComplexSpace(size(data,1))*ComplexSpace(size(data,2))')
 end
 
-tensor{S,T,N}(data::Array{T},P::ProductSpace{N,S})=Tensor{S,T,N}(data,P)
+tensor{S,T,N}(data::Array{T},P::ProductSpace{S,N})=Tensor{S,T,N}(data,P)
 
 # without data
 tensor{T}(::Type{T},P::ProductSpace)=tensor(Array(T,dim(P)),P)
 tensor{T}(::Type{T},V::IndexSpace)=tensor(T,prod(V))
 tensor(V::Union(ProductSpace,IndexSpace))=tensor(Float64,V)
 
-Base.similar{S,T,N}(t::Tensor{S},::Type{T},P::ProductSpace{N,S}=space(t))=tensor(similar(t.data,T,dim(P)),P)
+Base.similar{S,T,N}(t::Tensor{S},::Type{T},P::ProductSpace{S,N}=space(t))=tensor(similar(t.data,T,dim(P)),P)
 Base.similar{S,T}(t::Tensor{S},::Type{T},V::S)=similar(t,T,prod(V))
 
-Base.similar{S,N}(t::Tensor{S},P::ProductSpace{N,S}=space(t))=similar(t,eltype(t),P)
+Base.similar{S,N}(t::Tensor{S},P::ProductSpace{S,N}=space(t))=similar(t,eltype(t),P)
 Base.similar{S}(t::Tensor{S},V::S)=similar(t,eltype(t),V)
 
 Base.zero(t::Tensor)=tensor(zero(t.data),space(t))
@@ -74,12 +74,12 @@ Base.zeros{T}(::Type{T},P::ProductSpace)=tensor(zeros(T,dim(P)),P)
 Base.zeros{T}(::Type{T},V::IndexSpace)=zeros(T,prod(V))
 Base.zeros(V::Union(ProductSpace,IndexSpace))=zeros(Float64,V)
 
-Base.rand{T}(::Type{T},P::ProductSpace)=tensor(2*rand(T,dim(P))-1,P)
+Base.rand{T}(::Type{T},P::ProductSpace)=tensor(rand(T,dim(P)),P)
 Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,prod(V))
 Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
 
-Base.eye{T}(::Type{T},V::IndexSpace)=tensor(eye(T,dim(V)),V'*V)
-Base.eye(V::IndexSpace)=tensor(eye(dim(V)),V'*V)
+Base.eye{T}(::Type{T},V::IndexSpace)=tensor(eye(T,dim(V)),V*dual(V))
+Base.eye(V::IndexSpace)=tensor(eye(dim(V)),V*dual(V))
 
 # tensors from concatenation
 function tensorcat{S}(catind, X::Tensor{S}...)
@@ -90,7 +90,7 @@ function tensorcat{S}(catind, X::Tensor{S}...)
     nargs = length(X)
     numindX = map(numind, X)
     
-    all(numindX.== numindX[1]) || throw(SpaceError("all tensors should have the same number of indices for concatenation"))
+    all(n->(n == numindX[1]), numindX) || throw(SpaceError("all tensors should have the same number of indices for concatenation"))
     
     numindC = numindX[1]
     ncatind = setdiff(1:numindC,catind)
@@ -150,10 +150,11 @@ Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=tensor(convert
 Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1}},t::Tensor{S,T2,N})=tensor(convert(Array{T1},t.data),space(t))
 Base.convert{S,T,N}(::Type{Tensor{S}},t::Tensor{S,T,N})=t
 Base.convert{S,T,N}(::Type{Tensor},t::Tensor{S,T,N})=t
-Base.convert{S,T1,T2,N}(::Type{AbstractTensor{S,T1,N}},t::Tensor{S,T2,N})=tensor(convert(Array{T1,N},t.data),space(t))
-Base.convert{S,T1,T2,N}(::Type{AbstractTensor{S,T1}},t::Tensor{S,T2,N})=tensor(convert(Array{T1},t.data),space(t))
-Base.convert{S,T,N}(::Type{AbstractTensor{S}},t::Tensor{S,T,N})=t
-Base.convert{S,T,N}(::Type{AbstractTensor},t::Tensor{S,T,N})=t
+
+Base.convert{S,T1,T2,N}(::Type{AbstractTensor{S,ProductSpace,T1,N}},t::Tensor{S,T2,N})=tensor(convert(Array{T1,N},t.data),space(t))
+Base.convert{S,T1,T2}(::Type{AbstractTensor{S,ProductSpace,T1}},t::Tensor{S,T2})=tensor(convert(Array{T1},t.data),space(t))
+Base.convert{S}(::Type{AbstractTensor{S,ProductSpace}},t::Tensor{S})=t
+Base.convert(::Type{AbstractTensor},t::Tensor)=t
 
 Base.float{S,T<:FloatingPoint}(t::Tensor{S,T})=t
 Base.float(t::Tensor)=tensor(float(t.data),space(t))

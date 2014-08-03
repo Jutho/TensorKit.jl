@@ -13,17 +13,17 @@ using LinearMaps
 # Types:
 export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
 export ComplexSpace, CartesianSpace, GeneralSpace
-export ProductSpace
-export AbstractTensor, Tensor
+export CompositeSpace, ProductSpace
+export IndexSpace, TensorSpace, AbstractTensor, Tensor
 export AbstractTensorMap
 
 # general vector space methods
-export dim, dual, iscnumber, directsum, fuse, basis
+export space, dim, dual, iscnumber, directsum, fuse, basis
 # vector spaces with symmetries
 export sectors, invariant
 
 # tensor characteristics
-export numind, order, space, spacetype
+export spacetype, tensortype, numind, order
 # tensor constructors
 export tensor, tensorcat
 # index manipulations
