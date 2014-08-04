@@ -27,8 +27,9 @@ end
 #-------------
 function Base.show{S,T,N}(io::IO,t::Tensor{S,T,N})
     print(io," Tensor ∈ $T")
+    print(io,"[")
     for n=1:N
-        print(io, n==1 ? "[" : " ⊗ ")
+        n==1 || print(io, " ⊗ ")
         show(io,space(t,n))
     end
     println(io,"]:")
@@ -43,25 +44,25 @@ space(t::Tensor)=t.space
 # General constructors
 #---------------------
 # with data
-tensor{T<:Real,N}(data::Array{T,N})=Tensor{CartesianSpace,T,N}(data,prod(CartesianSpace,size(data)))
+tensor{T<:Real,N}(data::Array{T,N})=Tensor{CartesianSpace,T,N}(data,mapreduce(CartesianSpace,⊗,size(data)))
 function tensor{T<:Complex}(data::Array{T,1})
     warning("for complex array, consider specifying Euclidean index spaces")
-    Tensor{ComplexEuclideanSpace,T,1}(data,prod(ComplexSpace(size(data,1))))
+    Tensor{ComplexEuclideanSpace,T,1}(data,⊗(ComplexSpace(size(data,1))))
 end
 function tensor{T<:Complex}(data::Array{T,2})
     warning("for complex array, consider specifying Euclidean index spaces")
-    Tensor{ComplexEuclideanSpace,T,2}(data,ComplexSpace(size(data,1))*ComplexSpace(size(data,2))')
+    Tensor{ComplexEuclideanSpace,T,2}(data,ComplexSpace(size(data,1))⊗ComplexSpace(size(data,2))')
 end
 
 tensor{S,T,N}(data::Array{T},P::ProductSpace{S,N})=Tensor{S,T,N}(data,P)
 
 # without data
 tensor{T}(::Type{T},P::ProductSpace)=tensor(Array(T,dim(P)),P)
-tensor{T}(::Type{T},V::IndexSpace)=tensor(T,prod(V))
+tensor{T}(::Type{T},V::IndexSpace)=tensor(T,⊗(V))
 tensor(V::Union(ProductSpace,IndexSpace))=tensor(Float64,V)
 
 Base.similar{S,T,N}(t::Tensor{S},::Type{T},P::ProductSpace{S,N}=space(t))=tensor(similar(t.data,T,dim(P)),P)
-Base.similar{S,T}(t::Tensor{S},::Type{T},V::S)=similar(t,T,prod(V))
+Base.similar{S,T}(t::Tensor{S},::Type{T},V::S)=similar(t,T,⊗(V))
 
 Base.similar{S,N}(t::Tensor{S},P::ProductSpace{S,N}=space(t))=similar(t,eltype(t),P)
 Base.similar{S}(t::Tensor{S},V::S)=similar(t,eltype(t),V)
@@ -69,15 +70,15 @@ Base.similar{S}(t::Tensor{S},V::S)=similar(t,eltype(t),V)
 Base.zero(t::Tensor)=tensor(zero(t.data),space(t))
 
 Base.zeros{T}(::Type{T},P::ProductSpace)=tensor(zeros(T,dim(P)),P)
-Base.zeros{T}(::Type{T},V::IndexSpace)=zeros(T,prod(V))
+Base.zeros{T}(::Type{T},V::IndexSpace)=zeros(T,⊗(V))
 Base.zeros(V::Union(ProductSpace,IndexSpace))=zeros(Float64,V)
 
 Base.rand{T}(::Type{T},P::ProductSpace)=tensor(rand(T,dim(P)),P)
-Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,prod(V))
+Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,⊗(V))
 Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
 
-Base.eye{T}(::Type{T},P::ProductSpace)=tensor(eye(T,dim(P)),P*dual(P))
-Base.eye{T}(::Type{T},V::IndexSpace)=eye(T,prod(V))
+Base.eye{T}(::Type{T},P::ProductSpace)=tensor(eye(T,dim(P)),P⊗dual(P))
+Base.eye{T}(::Type{T},V::IndexSpace)=eye(T,⊗(V))
 Base.eye(V::Union(ProductSpace,IndexSpace))=eye(Float64,V)
 
 # tensors from concatenation
@@ -88,9 +89,9 @@ function tensorcat{S}(catind, X::Tensor{S}...)
 
     nargs = length(X)
     numindX = map(numind, X)
-    
+
     all(n->(n == numindX[1]), numindX) || throw(SpaceError("all tensors should have the same number of indices for concatenation"))
-    
+
     numindC = numindX[1]
     ncatind = setdiff(1:numindC,catind)
     spaceCvec = Array(S, numindC)
@@ -105,7 +106,7 @@ function tensorcat{S}(catind, X::Tensor{S}...)
             spaceCvec[n] == space(X[i],n) || throw(SpaceError("space mismatch for index $n"))
         end
     end
-    spaceC = prod(spaceCvec)
+    spaceC = ⊗(spaceCvec...)
     typeC = mapreduce(eltype, promote_type, X)
     dataC = zeros(typeC, map(dim,spaceC))
 
@@ -271,11 +272,11 @@ end
 function tensortrace!{S,TA,NA,TC,NC}(alpha::Number,A::Tensor{S,TA,NA},labelsA,beta::Number,C::Tensor{S,TC,NC},labelsC)
     (length(labelsA)==NA && length(labelsC)==NC) || throw(LabelError("invalid label specification"))
     NA==NC && return tensoradd!(alpha,A,labelsA,beta,C,labelsC) # nothing to trace
-    
+
     po=indexin(labelsC,labelsA)
     clabels=unique(setdiff(labelsA,labelsC))
     NA==NC+2*length(clabels) || throw(LabelError("invalid label specification"))
-    
+
     pc1=Array(Int,length(clabels))
     pc2=Array(Int,length(clabels))
     for i=1:length(clabels)
@@ -283,14 +284,14 @@ function tensortrace!{S,TA,NA,TC,NC}(alpha::Number,A::Tensor{S,TA,NA},labelsA,be
         pc2[i]=findnext(labelsA,clabels[i],pc1[i]+1)
     end
     isperm(vcat(po,pc1,pc2)) || throw(LabelError("invalid label specification"))
-    
+
     for i = 1:NC
         space(A,po[i]) == space(C,i) || throw(SpaceError("space mismatch"))
     end
     for i = 1:div(NA-NC,2)
         space(A,pc1[i]) == dual(space(A,pc2[i])) || throw(SpaceError("space mismatch"))
     end
-    
+
     TensorOperations.tensortrace!(alpha,A.data,labelsA,beta,C.data,labelsC)
 end
 function tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,conjA::Char,B::Tensor{S},labelsB,conjB::Char,beta::Number,C::Tensor{S},labelsC;method=:BLAS)
@@ -362,6 +363,30 @@ function tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,conjA::Char,B::Te
     return C
 end
 
+function tensorproduct!{S}(alpha::Number,A::Tensor{S},labelsA,B::Tensor{S},labelsB,beta::Number,C::Tensor{S},labelsC)
+    # Get properties of input arrays
+    NA=numind(A)
+    NB=numind(B)
+    NC=numind(C)
+
+    # Process labels, do some error checking and analyse problem structure
+    if NA!=length(labelsA) || NB!=length(labelsB) || NC!=length(labelsC)
+        throw(TensorOperations.LabelError("invalid label specification"))
+    end
+    NC==NA+NB || throw(TensorOperations.LabelError("invalid label specification for tensor product"))
+    ulabelsA=unique(labelsA)
+    ulabelsB=unique(labelsB)
+    ulabelsC=unique(labelsC)
+    if NA!=length(ulabelsA) || NB!=length(ulabelsB) || NC!=length(ulabelsC)
+        throw(TensorOperations.LabelError("tensorproduct requires unique label for every index of the tensor"))
+    end
+    labels=setdiff(ulabelsC,ulabelsA)
+    labels=setdiff(labels,ulabelsB)
+    isempty(labels) || throw(TensorOperations.LabelError("invalid label specification for tensor product"))
+
+    tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:native)
+end
+
 # Methods below are only implemented for Cartesian or Euclidean tensors:
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 typealias ComplexTensor{T,N} Tensor{ComplexSpace,T,N}
@@ -428,7 +453,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
 
     @eval function svdtrunc!(t::$TT,n::Int;trunctol::Real=0,truncdim::Int=typemax(Int),truncspace::$S=$S(truncdim))
         # Truncate rank corresponding to bipartition into left indices 1:n
-        # and remain right indices, based on singular value decomposition, 
+        # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
         # Truncation parameters are given as keyword arguments: trunctol should
         # always be one of the possible arguments for specifying truncation, but
@@ -485,7 +510,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         # result for the same input tensor t. UC = QR is fastest but only unique
         # after correcting for phases.
         local C::Array{eltype(t),2}
-        
+
         N=numind(t)
         spacet=space(t)
         leftspace=spacet[1:n]
@@ -497,7 +522,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             newdim=rightdim
             tau=zeros(eltype(data),(newdim,))
             Base.LinAlg.LAPACK.geqrf!(data,tau)
-            
+
             phase=zeros(eltype(data),(newdim,))
             C=zeros(eltype(t),(newdim,newdim))
             for j in 1:newdim
@@ -518,7 +543,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             C=data
             U=eye(eltype(data),newdim)
         end
-        
+
         newspace=$S(newdim)
         return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace)
     end
@@ -539,7 +564,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             newdim=leftdim
             tau=zeros(eltype(data),(newdim,))
             Base.LinAlg.LAPACK.gelqf!(data,tau)
-            
+
             phase=zeros(eltype(data),(newdim,))
             C=zeros(eltype(data),(newdim,newdim))
             for j=1:newdim
@@ -560,7 +585,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             C=data
             U=eye(eltype(data),newdim)
         end
-        
+
         newspace=$S(newdim)
         return tensor(C,leftspace*newspace'), tensor(U,newspace*rightspace)
     end
@@ -606,6 +631,6 @@ function Base.inv(t::Union(ComplexMatrix,CartesianMatrix))
     # Compute inverse.
     spacet=space(t)
     spacet[1] == spacet[2]' || throw(SpaceError("inverse only exists if left and right index space are dual"))
-    
+
     return tensor(inv(t.data),spacet)
 end

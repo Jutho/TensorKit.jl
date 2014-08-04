@@ -6,12 +6,12 @@
 
 # EuclideanSpace:
 #-----------------
-immutable ComplexSpace <: EuclideanSpace{C}
+immutable ComplexSpace <: EuclideanSpace{ℂ}
   d::Int
   dual::Bool
   ComplexSpace(d::Int, dual::Bool=false) = (d>0 ? new(d, dual) : throw(ArgumentError("Dimension of a vector space should be bigger than zero")))
 end
-^(::Type{C},d::Int) = ComplexSpace(d)
+^(::Type{ℂ},d::Int) = ComplexSpace(d)
 
 # Corresponding methods:
 dim(V::ComplexSpace) = V.d
@@ -21,7 +21,7 @@ cnumber(::Type{ComplexSpace}) = ComplexSpace(1)
 iscnumber(V::ComplexSpace) = dim(V)==1
 
 # Show methods
-Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "C^$(V.d)*" : "C^$(V.d)")
+Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "ℂ^$(V.d)*" : "ℂ^$(V.d)")
 
 # direct sum of ComplexSpaces
 directsum(V1::ComplexSpace, V2::ComplexSpace) = (V1.dual==V2.dual ? ComplexSpace(V1.d+V2.d, V1.dual) : throw(SpaceError("Direct sum of a vector space and its dual do not exist")))

@@ -6,11 +6,11 @@
 
 # Cartesian:
 #------------
-immutable CartesianSpace <: EuclideanSpace{R}
+immutable CartesianSpace <: EuclideanSpace{ℝ}
     d::Int
     CartesianSpace(d::Int) = (d>0 ? new(d) : throw(ArgumentError("Dimension of a vector space should be bigger than zero")))
 end
-^(::Type{R},d::Int) = CartesianSpace(d)
+^(::Type{ℝ},d::Int) = CartesianSpace(d)
 
 # Corresponding methods:
 dim(V::CartesianSpace) = V.d
@@ -19,7 +19,7 @@ cnumber(::Type{CartesianSpace}) = CartesianSpace(1)
 iscnumber(V::CartesianSpace) = dim(V)==1
 
 # Show methods
-Base.show(io::IO, V::CartesianSpace) = print(io, "R^$(V.d)")
+Base.show(io::IO, V::CartesianSpace) = print(io, "ℝ^$(V.d)")
 
 # direct sum of CartesianSpace vector spaces
 directsum(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(V1.d+V2.d)

@@ -29,12 +29,18 @@ Base.transpose{S,N}(P::ProductSpace{S,N}) = reverse(P)
 Base.ctranspose{S,N}(P::ProductSpace{S,N}) = reverse(conj(P))
 
 # Construct from product of spaces
-*{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace{S,2}((V1, V2))
-*{S<:ElementarySpace,N}(P1::ProductSpace{S,N}, V2::S) = ProductSpace{S,N+1}(tuple(P1.spaces..., V2))
-*{S<:ElementarySpace,N}(V1::S, P2::ProductSpace{S,N}) = ProductSpace{S,N+1}(tuple(V1, P2.spaces...))
-*{S,N1,N2}(P1::ProductSpace{S,N1}, P2::ProductSpace{S,N2}) = ProductSpace{S,N1+N2}(tuple(P1.spaces..., P2.spaces...))
+⊗{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace{S,2}((V1, V2))
+⊗{S<:ElementarySpace,N}(P1::ProductSpace{S,N}, V2::S) = ProductSpace{S,N+1}(tuple(P1.spaces..., V2))
+⊗{S<:ElementarySpace,N}(V1::S, P2::ProductSpace{S,N}) = ProductSpace{S,N+1}(tuple(V1, P2.spaces...))
+⊗{S,N1,N2}(P1::ProductSpace{S,N1}, P2::ProductSpace{S,N2}) = ProductSpace{S,N1+N2}(tuple(P1.spaces..., P2.spaces...))
 
-Base.prod{S<:ElementarySpace}(V::S) = ProductSpace{S,1}((V,))
+⊗{S<:ElementarySpace}(V::S) = ProductSpace{S,1}((V,))
+⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S) = ProductSpace{S,3}(tuple(V1,V2,V3))
+⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S, V4::S) = ProductSpace{S,4}(tuple(V1,V2,V3,V4))
+⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S, V4::S, V5::S) = ProductSpace{S,5}(tuple(V1,V2,V3,V4,V5))
+⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S, V4::S, V5::S, V6::S) = ProductSpace{S,6}(tuple(V1,V2,V3,V4,V5,V6))
+⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S...) = ProductSpace{S,2+length(V3)}(tuple(V1,V2,V3...))
+⊗(V1,V2,V3...)=⊗(⊗(V1,V2),V3...)
 
 # Promotion and conversion
 Base.convert{S<:ElementarySpace}(::Type{ProductSpace{S,1}}, V::S) = prod(V)

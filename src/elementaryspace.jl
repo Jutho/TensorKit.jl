@@ -21,16 +21,16 @@ abstract ElementaryHilbertSpace{F} <: ElementarySpace{F}
 typealias ElementaryInnerProductSpace ElementaryHilbertSpace
 # An inner product space, has the possibility to raise or lower indices of tensors
 
-const R=Real
-const C=Complex{Real}
+const ℝ=Real
+const ℂ=Complex{Real}
 
-abstract EuclideanSpace{F<:Union(R,C)} <: ElementaryHilbertSpace{F}
+abstract EuclideanSpace{F<:Union(ℝ,ℂ)} <: ElementaryHilbertSpace{F}
 # Elementary finite-dimensional space R^d or C^d with standard (Euclidean) inner product (i.e. orthonormal basis)
 
 Base.conj(V::EuclideanSpace) = dual(V)
 # The complex conjugate space of a Hilbert space is naturally isomorphic to its dual space
 
-dual(V::EuclideanSpace{R}) = V
+dual(V::EuclideanSpace{ℝ}) = V
 # For a real Euclidean space, the dual space is naturally isomorphic to the vector space
 
 # Functionality for extracting and iterating over elementary space

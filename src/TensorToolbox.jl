@@ -16,7 +16,9 @@ export AbstractTensorMap, DualTensorMap
 export SpaceError, IndexError
 
 # general vector space methods
-export space, dim, dual, iscnumber, directsum, fuse, basis
+export space, issubspace, dim, dual, cnumber, iscnumber, directsum, fuse, basis
+export ⊗, ℂ, ℝ # some unicode
+
 # vector spaces with symmetries
 export sectors, invariant
 
@@ -56,6 +58,7 @@ IndexError()=IndexError("")
 abstract VectorSpace
 space(V::VectorSpace) = V # just returns the space
 issubspace(V1::VectorSpace,V2::VectorSpace) = V1==V2 # default, only identical spaces are subspaces
+*(V1::VectorSpace,V2::VectorSpace) = ⊗(V1,V2) # for convenience, product of vector spaces is tensor product
 
 include("basis.jl") # defining basis of a vector space
 include("elementaryspace.jl") # elementary finite-dimensional vector spaces

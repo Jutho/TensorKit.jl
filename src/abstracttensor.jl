@@ -69,6 +69,7 @@ end
 
 # convenience definition which works for vectors and matrices but also sometimes useful in general case
 *{S}(t1::AbstractTensor{S},t2::AbstractTensor{S})=tensorcontract(t1,vcat(1:numind(t1)-1,0),t2,vcat(0,-(1:numind(t2)-1)))
+⊗{S}(t1::AbstractTensor{S},t2::AbstractTensor{S})=tensorproduct(t1,1:numind(t1),t2,numind(t1)+(1:numind(t2)))
 
 Base.trace{S,P,T}(t::AbstractTensor{S,P,T,2})=scalar(tensortrace(t,[1,1],[]))
 
@@ -113,12 +114,23 @@ end
 function tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB);method::Symbol=:BLAS)
     spaceA=space(A)
     spaceB=space(B)
-    
-    spaceC=(spaceA*spaceB)[indexin(outputlabels,vcat(labelsA,labelsB))]
+
+    spaceC=(spaceA ⊗ spaceB)[indexin(outputlabels,vcat(labelsA,labelsB))]
     T=promote_type(eltype(A),eltype(B))
     C=similar(A,T,spaceC)
     fill!(C,zero(T))
     tensorcontract!(one(T),A,labelsA,'N',B,labelsB,'N',zero(T),C,outputlabels;method=method)
+    return C
+end
+function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB))
+    spaceA=space(A)
+    spaceB=space(B)
+
+    spaceC=(spaceA ⊗ spaceB)[indexin(outputlabels,vcat(labelsA,labelsB))]
+    T=promote_type(eltype(A),eltype(B))
+    C=similar(A,T,spaceC)
+    fill!(C,zero(T))
+    tensorproduct!(one(T),A,labelsA,B,labelsB,zero(T),C,outputlabels)
     return C
 end
 
