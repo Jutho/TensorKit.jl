@@ -55,6 +55,7 @@ function tensor{T<:Complex}(data::Array{T,2})
 end
 
 tensor{S,T,N}(data::Array{T},P::ProductSpace{S,N})=Tensor{S,T,N}(data,P)
+tensor(data::Array,V::ElementarySpace)=tensor(data,⊗(V))
 
 # without data
 tensor{T}(::Type{T},P::ProductSpace)=tensor(Array(T,dim(P)),P)
@@ -63,7 +64,6 @@ tensor(V::Union(ProductSpace,IndexSpace))=tensor(Float64,V)
 
 Base.similar{S,T,N}(t::Tensor{S},::Type{T},P::ProductSpace{S,N}=space(t))=tensor(similar(t.data,T,dim(P)),P)
 Base.similar{S,T}(t::Tensor{S},::Type{T},V::S)=similar(t,T,⊗(V))
-
 Base.similar{S,N}(t::Tensor{S},P::ProductSpace{S,N}=space(t))=similar(t,eltype(t),P)
 Base.similar{S}(t::Tensor{S},V::S)=similar(t,eltype(t),V)
 
@@ -168,7 +168,7 @@ for (f,T) in ((:float32,    Float32),
               (:complex64,  Complex64),
               (:complex128, Complex128))
     @eval (Base.$f){S}(t::Tensor{S,$T}) = t
-    @eval (Base.$f)(t::Tensor) = Tensor(($f)(t.data),space(t))
+    @eval (Base.$f)(t::Tensor) = tensor(($f)(t.data),space(t))
 end
 
 # Basic algebra:
@@ -384,7 +384,7 @@ function tensorproduct!{S}(alpha::Number,A::Tensor{S},labelsA,B::Tensor{S},label
     labels=setdiff(labels,ulabelsB)
     isempty(labels) || throw(TensorOperations.LabelError("invalid label specification for tensor product"))
 
-    tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:native)
+    tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:BLAS)
 end
 
 # Methods below are only implemented for Cartesian or Euclidean tensors:
@@ -394,22 +394,23 @@ typealias CartesianTensor{T,N} Tensor{CartesianSpace,T,N}
 
 # Index methods
 #---------------
+@eval function insertind{S}(t::Tensor{S},ind::Int,V::S)
+    N=numind(t)
+    0<=ind<=N || throw(IndexError("index out of range"))
+    iscnumber(V) || throw(SpaceError("can only insert index with c-number index space"))
+    spacet=space(t)
+    newspace=spacet[1:ind] ⊗ V ⊗ spacet[ind+1:N]
+    return tensor(t.data,newspace)
+end
+@eval function deleteind(t::Tensor,ind::Int)
+    1<=ind<=numind(t) || throw(IndexError("index out of range"))
+    iscnumber(space(t,ind)) || throw(SpaceError("can only delete index with c-number index space"))
+    spacet=space(t)
+    newspace=spacet[1:ind-1] ⊗ spacet[ind+1:N]
+    return tensor(t.data,newspace)
+end
+
 for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
-    @eval function insertind(t::$TT,ind::Int,V::$S)
-        N=numind(t)
-        0<=ind<=N || throw(IndexError("index out of range"))
-        iscnumber(V) || throw(SpaceError("can only insert index with c-number index space"))
-        spacet=space(t)
-        newspace=spacet[1:ind]*V*spacet[ind+1:N]
-        return tensor(t.data,newspace)
-    end
-    @eval function deleteind(t::$TT,ind::$S)
-        1<=ind<=numind(t) || throw(IndexError("index out of range"))
-        iscnumber(space(t,ind)) || throw(SpaceError("can only squeeze index with c-number index space"))
-        spacet=space(t)
-        newspace=spacet[1:ind-1]*spacet[ind+1:N]
-        return tensor(t.data,newspace)
-    end
     @eval function fuseind(t::$TT,ind1::Int,ind2::Int,V::$S)
         N=numind(t)
         ind2==ind1+1 || throw(IndexError("only neighbouring indices can be fused"))
@@ -587,7 +588,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         end
 
         newspace=$S(newdim)
-        return tensor(C,leftspace*newspace'), tensor(U,newspace*rightspace)
+        return tensor(C,leftspace ⊗ dual(newspace)), tensor(U,newspace ⊗ rightspace)
     end
 end
 

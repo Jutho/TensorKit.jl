@@ -29,7 +29,8 @@ export tensor, tensorcat
 # index manipulations
 export insertind, deleteind, fuseind, splitind
 # tensor operations
-export tensorcopy, tensoradd, tensortrace, tensorcontract
+export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
+export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
 # tensor factorizations
 export leftorth, rightorth, svdtrunc
 export leftorth!, rightorth!, svd!, svdtrunc!
@@ -53,6 +54,10 @@ end
 IndexError()=IndexError("")
 # Exception type for all errors related to invalid tensor index specification.
 
+# General definitions:
+#----------------------
+⊗(V1,V2,V3...)=⊗(⊗(V1,V2),V3...)
+
 # Types and methods for vector spaces and corresponding bases
 #-------------------------------------------------------------
 abstract VectorSpace
@@ -69,10 +74,10 @@ include("compositespace.jl") # composing elementary vector spaces
 import TensorOperations
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
-include("abstracttensor.jl")
+include("tensors/abstracttensor.jl")
 
 # Implementations:
-include("tensor.jl") # generic tensor living in a ProductSpace without special properties
+include("tensors/tensor.jl") # generic tensor living in a ProductSpace without special properties
 
 # Linear maps acting on tensors
 #-------------------------------

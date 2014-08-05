@@ -40,7 +40,6 @@ Base.ctranspose{S,N}(P::ProductSpace{S,N}) = reverse(conj(P))
 ⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S, V4::S, V5::S) = ProductSpace{S,5}(tuple(V1,V2,V3,V4,V5))
 ⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S, V4::S, V5::S, V6::S) = ProductSpace{S,6}(tuple(V1,V2,V3,V4,V5,V6))
 ⊗{S<:ElementarySpace}(V1::S, V2::S, V3::S...) = ProductSpace{S,2+length(V3)}(tuple(V1,V2,V3...))
-⊗(V1,V2,V3...)=⊗(⊗(V1,V2),V3...)
 
 # Promotion and conversion
 Base.convert{S<:ElementarySpace}(::Type{ProductSpace{S,1}}, V::S) = prod(V)
