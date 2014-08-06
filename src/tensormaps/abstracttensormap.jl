@@ -46,13 +46,13 @@ Base.issym(::AbstractTensorMap)=false # default assumption
 Base.ishermitian(A::AbstractTensorMap)=false # default assumption
 Base.isposdef(::AbstractTensorMap)=false # default assumption
 
-Base.A_mul_B!(y::Vector,A::AbstractTensorMap,x::Vector)=vec(A_mul_B!(tensor(y,codomain(A)), A, tensor(x,domain(A))))
-Base.At_mul_B!(y::Vector,A::AbstractTensorMap,x::Vector)=vec(At_mul_B!(tensor(y,dual(domain(A))), A, tensor(x,dual(codomain(A)))))
-Base.Ac_mul_B!(y::Vector,A::AbstractTensorMap,x::Vector)=vec(Ac_mul_B!(tensor(y,conj(dual(domain(A)))), A, tensor(x,conj(dual(codomain(A))))))
+Base.A_mul_B!(y::Vector,A::AbstractTensorMap,x::Vector)=vec(Base.A_mul_B!(tensor(y,codomain(A)), A, tensor(x,domain(A))))
+Base.At_mul_B!(y::Vector,A::AbstractTensorMap,x::Vector)=vec(Base.At_mul_B!(tensor(y,dual(domain(A))), A, tensor(x,dual(codomain(A)))))
+Base.Ac_mul_B!(y::Vector,A::AbstractTensorMap,x::Vector)=vec(Base.Ac_mul_B!(tensor(y,conj(dual(domain(A)))), A, tensor(x,conj(dual(codomain(A))))))
 
-*(A::AbstractTensorMap,x::Vector)=A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dim(codomain(A))), A, x)
-Base.At_mul_B(A::AbstractTensorMap,x::Vector)=At_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dim(domain(A))), A, x)
-Base.Ac_mul_B(y::Vector,A::AbstractTensorMap,x::Vector)=Ac_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dim(domain(A))), A, x)
+*(A::AbstractTensorMap,x::Vector)=Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dim(codomain(A))), A, x)
+Base.At_mul_B(A::AbstractTensorMap,x::Vector)=Base.At_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dim(domain(A))), A, x)
+Base.Ac_mul_B(y::Vector,A::AbstractTensorMap,x::Vector)=Base.Ac_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dim(domain(A))), A, x)
 
 # Compute full matrix representation
 function Base.full(A::AbstractTensorMap)
