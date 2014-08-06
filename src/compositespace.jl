@@ -1,6 +1,6 @@
 # Composite vector spaces
 #-------------------------
-# Obtained in some way or another from composing elementary vector spaces
+# Obtained as (some subspace of) the tensor product elementary vector spaces
 abstract CompositeSpace{S<:ElementarySpace} <: VectorSpace
 
 Base.eltype{S<:ElementarySpace}(V::CompositeSpace{S}) = eltype(S)

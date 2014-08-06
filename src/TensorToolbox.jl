@@ -54,10 +54,6 @@ end
 IndexError()=IndexError("")
 # Exception type for all errors related to invalid tensor index specification.
 
-# General definitions:
-#----------------------
-⊗(V1,V2,V3...)=⊗(⊗(V1,V2),V3...)
-
 # Types and methods for vector spaces and corresponding bases
 #-------------------------------------------------------------
 abstract VectorSpace
@@ -79,10 +75,15 @@ include("tensors/abstracttensor.jl")
 # Implementations:
 include("tensors/tensor.jl") # generic tensor living in a ProductSpace without special properties
 
-# Linear maps acting on tensors
-#-------------------------------
-using LinearMaps
-
-include("tensormap.jl")
+# Tensor maps: linear maps acting on tensors
+#--------------------------------------------
+include("tensormaps/abstracttensormap.jl")
+include("tensormaps/linearcombination.jl")
+include("tensormaps/composition.jl")
+include("tensormaps/dual.jl")
+#include("tensormaps/adjoint.jl") 
+include("tensormaps/hermitian.jl") # guaranteed self adjoint operator
+include("tensormaps/posdef.jl") # guaranteed positive definite operator
+include("tensormaps/tensormap.jl") # a dense tensor map implemented using a tensor
 
 end

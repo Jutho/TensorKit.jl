@@ -174,8 +174,8 @@ end
 # Basic algebra:
 #----------------
 # transpose inverts order of indices, compatible with graphical notation
-
 Base.conj(t::Tensor) = tensor(conj(t.data),conj(space(t)))
+
 function Base.conj!(t::Tensor)
     t.space=conj(t.space)
     conj!(t.data)
@@ -213,6 +213,8 @@ Base.scale!(t::Tensor,a::Number)=(scale!(t.data,a);return t)
 Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},t2::Tensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},a::Number,t2::Tensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
+
+Base.axpy!{S,T1,T2,N}(a::Number,x::Tensor{S,T1,N},y::Tensor{S,T2,N})=(Base.axpy!(a,x.data,y.data);return y)
 
 -(t::Tensor)=tensor(-t.data,space(t))
 
