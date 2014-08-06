@@ -2,19 +2,24 @@ immutable TensorMap{S,P,T}<:AbstractTensorMap{S,P,T}
     tensor::AbstractTensor{S,P,T}
     codom::P
     dom::P
-    function TensorMap(t::TensorMap{S,P,T},codom::P,dom::P=codom)
+    function TensorMap(t::AbstractTensor{S,P,T},codom::P,dom::P=codom)
         t in codom ⊗ dual(dom).' || throw(SpaceError("tensor cannot represent map from $dom to $codom"))
-        new(d,codom,dom)
+        new(t,codom,dom)
     end
 end
+tensormap{S,P,T}(t::AbstractTensor{S,P,T},codom::TensorSpace,dom::TensorSpace=codom)=TensorMap{S,P,T}(t,codom,dom)
+
 # properties
-codomain(A::TensorMap)=codomain(A.codom)
-domain(A::TensorMap)=domain(A.dom)
+codomain(A::TensorMap)=A.codom
+domain(A::TensorMap)=A.dom
 
 Base.isreal(A::TensorMap)=isreal(A.tensor)
 
+Base.transpose(A::TensorMap)=tensormap(A.tensor.',dual(A.dom),dual(A.codom))
+Base.ctranspose(A::TensorMap)=tensormap(A.tensor',conj(dual(A.dom)),conj(dual(A.codom)))
+
 # comparison
-==(A::TensorMap,B::TensorMap)=A.map==B.map
+# ==(A::TensorMap,B::TensorMap)=A.map==B.map
 
 # multiplication with vector
 function Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::TensorMap{S,P},x::AbstractTensor{S,P})

@@ -232,7 +232,8 @@ function -(t1::Tensor,t2::Tensor)
     return tensor(t1.data-t2.data,space(t1))
 end
 
-Base.vecnorm(t::Tensor)=vecnorm(t.data)
+Base.dot{S<:EuclideanSpace}(t1::Tensor{S},t2::Tensor{S})= (space(t1)==space(t2) ? dot(vec(t1),vec(t2)) : throw(SpaceError()))
+Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data)
 # Frobenius norm of tensor
 
 # Indexing
@@ -343,7 +344,7 @@ function tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,conjA::Char,B::Te
     ospaceB=spaceB[oindB]
 
     conjA=='C' || conjA=='N' || throw(ArgumentError("conjA should be 'C' or 'N'."))
-    conjB=='C' || conjA=='N' || throw(ArgumentError("conjB should be 'C' or 'N'."))
+    conjB=='C' || conjB=='N' || throw(ArgumentError("conjB should be 'C' or 'N'."))
 
     if conjA == conjB
         for i=1:numcontract

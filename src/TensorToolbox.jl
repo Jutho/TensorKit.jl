@@ -5,6 +5,8 @@
 
 module TensorToolbox
 
+using Debug
+
 # Exports
 #---------
 # Types:
@@ -12,7 +14,7 @@ export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
 export ComplexSpace, CartesianSpace, GeneralSpace
 export CompositeSpace, ProductSpace
 export IndexSpace, TensorSpace, AbstractTensor, Tensor
-export AbstractTensorMap, DualTensorMap
+export AbstractTensorMap
 export SpaceError, IndexError
 
 # general vector space methods
@@ -36,7 +38,7 @@ export leftorth, rightorth, svdtrunc
 export leftorth!, rightorth!, svd!, svdtrunc!
 
 # tensor maps
-export domain, codomain
+export domain, codomain, hermitian, posdef, tensormap
 
 # Exception types:
 #------------------
@@ -80,8 +82,9 @@ include("tensors/tensor.jl") # generic tensor living in a ProductSpace without s
 include("tensormaps/abstracttensormap.jl")
 include("tensormaps/linearcombination.jl")
 include("tensormaps/composition.jl")
+include("tensormaps/shifted.jl")
 include("tensormaps/dual.jl")
-#include("tensormaps/adjoint.jl") 
+#include("tensormaps/adjoint.jl")
 include("tensormaps/hermitian.jl") # guaranteed self adjoint operator
 include("tensormaps/posdef.jl") # guaranteed positive definite operator
 include("tensormaps/tensormap.jl") # a dense tensor map implemented using a tensor

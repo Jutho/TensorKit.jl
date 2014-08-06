@@ -27,9 +27,9 @@ domain(A::AbstractTensorMap)=throw(MethodError(domain,(AbstractTensorMap))) # th
 codomain(A::AbstractTensorMap)=throw(MethodError(codomain,(AbstractTensorMap))) # this should be implemented by subtypes; defined here to allow import
 
 # Generate non-mutating multiplication methods for maps that only implement mutating methods
-*{S,P}(A::AbstractTensorMap{S,P},X::AbstractTensor{S,P})=(x in domain(A) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),codomain(A)),A,x) : throw(SpaceError("Tensor not in domain of map")))
-Base.At_mul_B{S,P}(A::AbstractTensorMap{S,P},X::AbstractTensor{S,P})=(x in dual(codomain(A)) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(domain(A))),A,x) : throw(SpaceError("Tensor not in domain of map")))
-Base.Ac_mul_B{S,P}(A::AbstractTensorMap{S,P},X::AbstractTensor{S,P})=(x in dual(conj(codomain(A)))s ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(conj(domain(A)))),A,x) : throw(SpaceError("Tensor not in domain of map")))
+*{S,P}(A::AbstractTensorMap{S,P},x::AbstractTensor{S,P})=(x in domain(A) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),codomain(A)),A,x) : throw(SpaceError("Tensor not in domain of map")))
+Base.At_mul_B{S,P}(A::AbstractTensorMap{S,P},x::AbstractTensor{S,P})=(x in dual(codomain(A)) ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(domain(A))),A,x) : throw(SpaceError("Tensor not in domain of map")))
+Base.Ac_mul_B{S,P}(A::AbstractTensorMap{S,P},x::AbstractTensor{S,P})=(x in dual(conj(codomain(A)))s ? Base.A_mul_B!(similar(x,promote_type(eltype(A),eltype(x)),dual(conj(domain(A)))),A,x) : throw(SpaceError("Tensor not in domain of map")))
 
 # Other properties
 dual(A::AbstractTensorMap)=transpose(A)

@@ -12,11 +12,11 @@ immutable BasisVector{S<:VectorSpace,T}
 end
 
 space(b::BasisVector) = b.space
-in(b::BasisVector,V::VectorSpace) = space(b) == V
+Base.in(b::BasisVector,V::VectorSpace) = space(b) == V
 
 Base.show(io::IO, b::BasisVector) = print(io, "BasisVector($(b.space),$(b.identifier))")
 
-# a basis is just an iterator over the canonical basis vectors of the space 
+# a basis is just an iterator over the canonical basis vectors of the space
 immutable Basis{S<:VectorSpace}
     space::S
 end

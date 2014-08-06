@@ -17,7 +17,7 @@ Base.ishermitian(A::HermitianTensorOperator)=true
 Base.isposdef(A::HermitianTensorOperator)=isposdef(A.map)
 
 # comparison
-==(A::HermitianTensorOperator,B::HermitianTensorOperator)=A.map==B.map
+# ==(A::HermitianTensorOperator,B::HermitianTensorOperator)=A.map==B.map
 
 # multiplication with vector
 Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::HermitianTensorOperator{S,P},x::AbstractTensor{S,P})=Base.A_mul_B!(y,A.map,x)

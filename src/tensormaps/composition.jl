@@ -1,4 +1,4 @@
-type CompositeMap{S,P,T}<:AbstractTensorMap{S,P,T}
+immutable CompositeMap{S,P,T}<:AbstractTensorMap{S,P,T}
     maps::Vector{AbstractTensorMap{S,P}} # stored in order of application to vector
     function CompositeMap(maps::Vector{AbstractTensorMap})
         N=length(maps)
@@ -74,7 +74,7 @@ function *{S,P,T1,T2}(A1::AbstractTensorMap{S,P,T1},A2::AbstractTensorMap{S,P,T2
 end
 
 # comparison of CompositeMap objects
-==(A::CompositeMap,B::CompositeMap)=(eltype(A)==eltype(B) && A.maps==B.maps)
+# ==(A::CompositeMap,B::CompositeMap)=(eltype(A)==eltype(B) && A.maps==B.maps)
 
 # special transposition behavior
 transpose{S,P}(A::CompositeMap{S,P})=CompositeMap{S,P,eltype(A)}(AbstractTensorMap{S,P}[transpose(M) for M in reverse(A.maps)])
@@ -84,53 +84,69 @@ ctranspose{S,P}(A::CompositeMap{S,P})=CompositeMap{S,P,eltype(A)}(AbstractTensor
 function Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::CompositeMap{S,P},x::AbstractTensor{S,P})
     # no domain checking, will be done by individual maps
     N=length(A.maps)
-    if N==1
-        Base.A_mul_B!(y,A.maps[1],x)
-    else
-        T=promote_type(eltype(A),eltype(x))
-        dest=Array(T,dim(domain(A.maps[1])))
-        w=tensor(dest,dual(domain(A.maps[1])))
-        Base.At_mul_B!(w,A.maps[1],x)
-        v=w
-        source=dest
-        if N>2
-            dest=Array(T,dim(domain(A.maps[2])))
-        end
-        for n=2:N-1
-            resize!(dest,dim(domain(A.maps[n])))
-            w=tensor(dest,dual(domain(A.maps[1])))
-            Base.At_mul_B!(w,A.maps[n],v)
-            v=w
-            dest,source=source,dest # alternate dest and source
-        end
-        Base.A_mul_B!(y,A.maps[N],v)
+    N==1 && return Base.A_mul_B!(y,A.maps[1],x)
+
+    T=promote_type(eltype(A),eltype(x))
+    dest=Array(T,dim(codomain(A.maps[1])))
+    w=tensor(pointer_to_array(pointer(dest),size(dest)),codomain(A.maps[1]))
+    Base.At_mul_B!(w,A.maps[1],x)
+    v=w
+    source=dest
+    if N>2
+        dest=Array(T,dim(codomain(A.maps[2])))
     end
-    return y
+    for n=2:N-1
+        resize!(dest,dim(codomain(A.maps[n])))
+        w=tensor(pointer_to_array(pointer(dest),size(dest)),codomain(A.maps[n]))
+        Base.A_mul_B!(w,A.maps[n],v)
+        v=w
+        dest,source=source,dest # alternate dest and source
+    end
+    return Base.A_mul_B!(y,A.maps[N],v)
 end
-function Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::CompositeMap{S,P},x::AbstractTensor{S,P})
+function Base.At_mul_B!{S,P}(y::AbstractTensor{S,P},A::CompositeMap{S,P},x::AbstractTensor{S,P})
     # no domain checking, will be done by individual maps
     N=length(A.maps)
-    if N==1
-        Base.Ac_mul_B!(y,A.maps[1],x)
-    else
-        T=promote_type(eltype(A),eltype(x))
-        dest=Array(T,dim(domain(A.maps[1])))
-        w=tensor(dest,dual(conj(domain(A.maps[1]))))
-        Base.A_mul_B!(w,A.maps[1],x)
-        v=w
-        source=dest
-        if N>2
-            dest=Array(T,dim(codomain(A.maps[2])))
-        end
-        for n=2:N-1
-            resize!(dest,dim(domain(A.maps[n])))
-            w=tensor(dest,dual(conj(domain(A.maps[1]))))
-            Base.A_mul_B!(w,A.maps[n],v)
-            v=w
-            dest,source=source,dest # alternate dest and source
-        end
-        Base.Ac_mul_B!(y,A.maps[N],v)
-    end
-    return y
-end
+    N==1 && return Base.At_mul_B!(y,A.maps[1],x)
 
+    T=promote_type(eltype(A),eltype(x))
+    dest=Array(T,dim(dual(domain(A.maps[N]))))
+    w=tensor(pointer_to_array(pointer(dest),size(dest)),dual(domain(A.maps[N])))
+    Base.At_mul_B!(w,A.maps[N],x)
+    v=w
+    source=dest
+    if N>2
+        dest=Array(T,dim(dual(domain(A.maps[N-1]))))
+    end
+    for n=N-1:-1:2
+        resize!(dest,dim(dual(domain(A.maps[n]))))
+        w=tensor(pointer_to_array(pointer(dest),size(dest)),dual(domain(A.maps[n])))
+        Base.At_mul_B!(w,A.maps[n],v)
+        v=w
+        dest,source=source,dest # alternate dest and source
+    end
+    return Base.At_mul_B!(y,A.maps[1],v)
+end
+function Base.Ac_mul_B!{S,P}(y::AbstractTensor{S,P},A::CompositeMap{S,P},x::AbstractTensor{S,P})
+    # no domain checking, will be done by individual maps
+    N=length(A.maps)
+    N==1 && return Base.At_mul_B!(y,A.maps[1],x)
+
+    T=promote_type(eltype(A),eltype(x))
+    dest=Array(T,dim(conj(dual(domain(A.maps[N])))))
+    w=tensor(pointer_to_array(pointer(dest),size(dest)),conj(dual(domain(A.maps[N]))))
+    Base.Ac_mul_B!(w,A.maps[N],x)
+    v=w
+    source=dest
+    if N>2
+        dest=Array(T,dim(conj(dual(domain(A.maps[N-1])))))
+    end
+    for n=N-1:-1:2
+        resize!(dest,dim(conj(dual(domain(A.maps[n])))))
+        w=tensor(pointer_to_array(pointer(dest),size(dest)),conj(dual(domain(A.maps[n]))))
+        Base.Ac_mul_B!(w,A.maps[n],v)
+        v=w
+        dest,source=source,dest # alternate dest and source
+    end
+    return Base.Ac_mul_B!(y,A.maps[1],v)
+end

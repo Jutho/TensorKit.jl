@@ -7,6 +7,7 @@ end
 
 # Additional constructors
 ProductSpace{S<:ElementarySpace}(V::S,Vlist::S...) = ProductSpace(tuple(V,Vlist...))
+ProductSpace(P::ProductSpace) = P
 
 # Default construction from product of spaces:
 ⊗{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace{S,2}((V1, V2))

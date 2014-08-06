@@ -1,4 +1,4 @@
-type LinearCombination{S,P,T}<:AbstractTensorMap{S,P,T}
+immutable LinearCombination{S,P,T}<:AbstractTensorMap{S,P,T}
     maps::Vector{AbstractTensorMap{S,P}}
     coeffs::Vector{T}
     function LinearCombination(maps::Vector{AbstractTensorMap{S,P}},coeffs::Vector{T})
@@ -85,7 +85,7 @@ end
 /(A::AbstractTensorMap,alpha::Number)=*(1/alpha,A)
 
 # comparison of LinearCombination objects
-==(A::LinearCombination,B::LinearCombination)=(eltype(A)==eltype(B) && A.maps==B.maps && A.coeffs==B.coeffs)
+# ==(A::LinearCombination,B::LinearCombination)=(eltype(A)==eltype(B) && A.maps==B.maps && A.coeffs==B.coeffs)
 
 # special transposition behavior
 transpose(A::LinearCombination)=LinearCombination{eltype(A)}(AbstractLinearMap[transpose(l) for l in A.maps],A.coeffs)
