@@ -14,7 +14,7 @@ export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
 export ComplexSpace, CartesianSpace, GeneralSpace
 export CompositeSpace, ProductSpace
 export IndexSpace, TensorSpace, AbstractTensor, Tensor
-export TruncationStrategy
+export TruncationScheme
 export AbstractTensorMap
 export SpaceError, IndexError
 
