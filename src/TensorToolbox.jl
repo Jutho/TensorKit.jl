@@ -14,6 +14,7 @@ export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
 export ComplexSpace, CartesianSpace, GeneralSpace
 export CompositeSpace, ProductSpace
 export IndexSpace, TensorSpace, AbstractTensor, Tensor
+export TruncationStrategy
 export AbstractTensorMap
 export SpaceError, IndexError
 
@@ -34,8 +35,11 @@ export insertind, deleteind, fuseind, splitind
 export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
 export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
 # tensor factorizations
-export leftorth, rightorth, svdtrunc
-export leftorth!, rightorth!, svd!, svdtrunc!
+export leftorth, rightorth
+export leftorth!, rightorth!, svd!
+
+# truncation strategies
+export notrunc, maxtruncerr, maxtruncdim, truncspace
 
 # tensor maps
 export domain, codomain, hermitian, posdef, tensormap
@@ -72,6 +76,10 @@ include("compositespace.jl") # composing elementary vector spaces
 import TensorOperations
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
+# define truncation strategies for tensors
+include("tensors/truncation.jl")
+
+# general definitions
 include("tensors/abstracttensor.jl")
 
 # Implementations:

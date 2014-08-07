@@ -1,4 +1,4 @@
-# base/abstracttensor.jl
+# abstracttensor.jl
 #
 # Defines AbstractTensor, an abstract tensor to start a type hierarchy for
 # representing tensors and extending/uniformizing Julia's built-in
@@ -144,49 +144,40 @@ function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labe
 end
 
 # general tensor factorizations: permute to correct order and pass to in place methods
-function Base.svd(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind))
+function Base.svd(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind),truncation::TruncationScheme=notrunc())
     # Perform singular value decomposition corresponding to bipartion of the
     # tensor indices into leftind and rightind.
     N=numind(t)
     p=vcat(leftind,rightind)
-    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
+    (isperm(p) && length(p)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
     newt=tensorcopy(t,1:N,p)
-    return svd!(t,length(leftind))
+    return svd!(newt,length(leftind),truncation)
 end
 
-function svdtrunc(t::AbstractTensor,leftind=codomainind(t),rightind=setdiff(1:numind(t),leftind);kwargs...)
-    # Truncate tensor rank corresponding to bipartition into leftind and
-    # rightind, based on singular value decomposition. Truncation parameters
-    # are given as  keyword arguments: trunctol should always be one of the
-    # possible arguments for specifying truncation, but truncdim can be
-    # replaced with different parameters for other types of tensors.
-    N=numind(t)
-    p=vcat(leftind,rightind)
-    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
-    newt=tensorcopy(t,1:N,p)
-    return svdtrunc!(t,length(leftind);kwargs...)
-end
-
-function leftorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind))
+function leftorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind),truncation::TruncationScheme=notrunc())
     # Create orthogonal basis U for left indices, and remainder R for right
     # indices. Decomposition should be unique, such that it always returns the
     # same result for the same input tensor t. QR is fastest but only unique
     # after correcting for phases.
     N=numind(t)
     p=vcat(leftind,rightind)
-    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
+    (isperm(p) && length(p)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
     newt=tensorcopy(t,1:N,p)
-    return leftorth!(t,length(leftind))
+    return leftorth!(newt,length(leftind),truncation)
 end
 
-function rightorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind))
+function rightorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind),truncation::TruncationScheme=notrunc())
     # Create orthogonal basis U for left indices, and remainder R for right
     # indices. Decomposition should be unique, such that it always returns the
     # same result for the same input tensor t. QR is fastest but only unique
     # after correcting for phases.
     N=numind(t)
     p=vcat(leftind,rightind)
-    (isperm(p) && length(P)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
+    (isperm(p) && length(p)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
     newt=tensorcopy(t,1:N,p)
-    return rightorth!(t,length(leftind))
+    return rightorth!(newt,length(leftind),truncation)
 end
+
+svd!(t::AbstractTensor,n::Int) = svd!(t,n,notrunc())
+leftorth!(t::AbstractTensor,n::Int) = leftorth!(t,n,notrunc())
+rightorth!(t::AbstractTensor,n::Int) = rightorth!(t,n,notrunc())

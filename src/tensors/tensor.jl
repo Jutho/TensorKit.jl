@@ -126,10 +126,9 @@ end
 #------------------------
 function Base.copy!(tdest::Tensor,tsource::Tensor)
     # Copies data of tensor tsource to tensor tdest if compatible
-    if space(tdest)!=space(tsource)
-        throw(SpaceError("tensor spaces don't match"))
-    end
+    space(tdest)==space(tsource) || throw(SpaceError("tensor spaces don't match"))
     copy!(tdest.data,tsource.data)
+    return tdest
 end
 Base.fill!{S,T}(tdest::Tensor{S,T},value::Number)=fill!(tdest.data,convert(T,value))
 
@@ -200,7 +199,7 @@ Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},t2::Tensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},a::Number,t2::Tensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
 
-Base.axpy!(a::Number,x::Tensor,y::Tensor)=(space(t1)==space(t2) ? Base.axpy!(a,x.data,y.data) : throw(SpaceError()); return y)
+Base.axpy!(a::Number,x::Tensor,y::Tensor)=(space(x)==space(y) ? Base.axpy!(a,x.data,y.data) : throw(SpaceError()); return y)
 
 -(t::Tensor)=tensor(-t.data,space(t))
 +(t1::Tensor,t2::Tensor)= space(t1)==space(t2) ? tensor(t1.data+t2.data,space(t1)) : throw(SpaceError())
@@ -364,8 +363,8 @@ function tensorproduct!{S}(alpha::Number,A::Tensor{S},labelsA,B::Tensor{S},label
     tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:BLAS)
 end
 
-# Methods below are only implemented for Cartesian or Euclidean tensors:
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Methods below are only implemented for CartesianTensor or ComplexTensor:
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 typealias ComplexTensor{T,N} Tensor{ComplexSpace,T,N}
 typealias CartesianTensor{T,N} Tensor{CartesianSpace,T,N}
 
@@ -409,7 +408,7 @@ end
 # Factorizations:
 #-----------------
 for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
-    @eval function svd!(t::$TT,n::Int)
+    @eval function svd!(t::$TT,n::Int,::NoTruncation)
         # Perform singular value decomposition corresponding to bipartion of the
         # tensor indices into the left indices 1:n and remaining right indices,
         # thereby destroying the original tensor.
@@ -429,7 +428,36 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return U,Sigma,V
     end
 
-    @eval function svdtrunc!(t::$TT,n::Int;trunctol::Real=0,truncdim::Int=typemax(Int),truncspace::$S=$S(truncdim))
+    @eval function svd!(t::$TT,n::Int,trunc::Union(MaximalTruncationDimension,TruncationSpace))
+        # Truncate rank corresponding to bipartition into left indices 1:n
+        # and remain right indices, based on singular value decomposition,
+        # thereby destroying the original tensor.
+        # Truncation parameters are given as keyword arguments: trunctol should
+        # always be one of the possible arguments for specifying truncation, but
+        # truncdim can be replaced with different parameters for other types of tensors.
+
+        N=numind(t)
+        spacet=space(t)
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
+        leftdim=dim(leftspace)
+        rightdim=dim(rightspace)
+        dim(trunc) >= min(leftdim,rightdim) && return tuple(svd!(t,n)..., abs(zero(eltype(t))))
+        data=reshape(t.data,(leftdim,rightdim))
+        F=svdfact!(data)
+        sing=F[:S]
+        truncdim=dim(trunc)
+        newspace=$S(truncdim)
+
+        # truncate
+        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
+        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
+        Sigma=tensor(diagm(sing[1:truncdim]),newspace*newspace')
+        V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
+        return U,Sigma,V,truncerr
+    end
+
+    @eval function svd!(t::$TT,n::Int,trunc::MaximalTruncationError)
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -448,47 +476,27 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
 
         # find truncdim based on trunctolinfo
         sing=F[:S]
-        if trunctol==0
-            trunctoldim=length(sing)
-        else
-            normsing=norm(sing)
-            trunctoldim=0
-            while norm(sing[(trunctoldim+1):end])>trunctol*normsing
-                trunctoldim+=1
-                if trunctoldim==length(sing)
-                    break
-                end
-            end
+        normsing=vecnorm(sing)
+        truncdim=0
+        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+            truncdim+=1
         end
-
-        # choose minimal truncdim
-        truncdim > 0 || throw(ArgumentError("Truncation dimension should be bigger than zero"))
-        truncdim=min(truncdim,trunctoldim,dim(truncspace))
-        truncerr=zero(eltype(sing))
         newspace=$S(truncdim)
-        if truncdim<length(sing)
-            truncerr=vecnorm(sing[(truncdim+1):end])
-            Sigma=Sigma[1:truncdim]
-            U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-            Sigma=tensor(diagm(sing[1:truncdim]),newspace*newspace')
-            V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-        else
-            U=tensor(F[:U],leftspace*newspace')
-            Sigma=tensor(diagm(sing),newspace*newspace')
-            V=tensor(F[:Vt],newspace*rightspace)
-        end
 
+        # truncate
+        truncerr=vecnorm(sing[(truncdim+1):end])/normsing
+        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
+        Sigma=tensor(diagm(sing[1:truncdim]),newspace*newspace')
+        V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
         return U,Sigma,V,truncerr
     end
 
-    @eval function leftorth!(t::$TT,n::Int;buildC::Bool=true)
+    @eval function leftorth!(t::$TT,n::Int,::NoTruncation)
         # Create orthogonal basis U for indices 1:n, and remainder C for right
         # indices, thereby destroying the original tensor.
         # Decomposition should be unique, such that it always returns the same
         # result for the same input tensor t. UC = QR is fastest but only unique
         # after correcting for phases.
-        local C::Array{eltype(t),2}
-
         N=numind(t)
         spacet=space(t)
         leftspace=spacet[1:n]
@@ -526,7 +534,69 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace)
     end
 
-    @eval function rightorth!(t::$TT,n::Int)
+    @eval function leftorth!(t::$TT,n::Int,trunc::Union(MaximalTruncationDimension,TruncationSpace))
+        # Truncate rank corresponding to bipartition into left indices 1:n
+        # and remain right indices, based on singular value decomposition,
+        # thereby destroying the original tensor.
+        # Truncation parameters are given as keyword arguments: trunctol should
+        # always be one of the possible arguments for specifying truncation, but
+        # truncdim can be replaced with different parameters for other types of tensors.
+
+        N=numind(t)
+        spacet=space(t)
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
+        leftdim=dim(leftspace)
+        rightdim=dim(rightspace)
+        dim(trunc) >= min(leftdim,rightdim) && return tuple(leftorth!(t,n)..., abs(zero(eltype(t))))
+        data=reshape(t.data,(leftdim,rightdim))
+        F=svdfact!(data)
+        sing=F[:S]
+        truncdim=dim(trunc)
+        newspace=$S(truncdim)
+
+        # truncate
+        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
+        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
+        C=tensor(scale!(sing[1:truncdim],F[:Vt][1:truncdim,:]),newspace*rightspace)
+        return U,C,truncerr
+    end
+
+    @eval function leftorth!(t::$TT,n::Int,trunc::MaximalTruncationError)
+        # Truncate rank corresponding to bipartition into left indices 1:n
+        # and remain right indices, based on singular value decomposition,
+        # thereby destroying the original tensor.
+        # Truncation parameters are given as keyword arguments: trunctol should
+        # always be one of the possible arguments for specifying truncation, but
+        # truncdim can be replaced with different parameters for other types of tensors.
+
+        N=numind(t)
+        spacet=space(t)
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
+        leftdim=dim(leftspace)
+        rightdim=dim(rightspace)
+        data=reshape(t.data,(leftdim,rightdim))
+        F=svdfact!(data)
+
+        # find truncdim based on trunctolinfo
+        sing=F[:S]
+        normsing=vecnorm(sing)
+        truncdim=0
+        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+            truncdim+=1
+        end
+        newspace=$S(truncdim)
+
+        # truncate
+        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
+        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
+        C=tensor(scale!(sing[1:truncdim],F[:Vt][1:truncdim,:]),newspace*rightspace)
+
+        return U,Sigma,V,truncerr
+    end
+
+    @eval function rightorth!(t::$TT,n::Int,::NoTruncation)
         # Create orthogonal basis U for right indices, and remainder C for left
         # indices. Decomposition should be unique, such that it always returns the
         # same result for the same input tensor t. CU = LQ is typically fastest but only
@@ -566,6 +636,67 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
 
         newspace=$S(newdim)
         return tensor(C,leftspace ⊗ dual(newspace)), tensor(U,newspace ⊗ rightspace)
+    end
+
+    @eval function rightorth!(t::$TT,n::Int,trunc::Union(MaximalTruncationDimension,TruncationSpace))
+        # Truncate rank corresponding to bipartition into left indices 1:n
+        # and remain right indices, based on singular value decomposition,
+        # thereby destroying the original tensor.
+        # Truncation parameters are given as keyword arguments: trunctol should
+        # always be one of the possible arguments for specifying truncation, but
+        # truncdim can be replaced with different parameters for other types of tensors.
+
+        N=numind(t)
+        spacet=space(t)
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
+        leftdim=dim(leftspace)
+        rightdim=dim(rightspace)
+        dim(trunc) >= min(leftdim,rightdim) && return tuple(rightorth!(t,n)..., abs(zero(eltype(t))))
+        data=reshape(t.data,(leftdim,rightdim))
+        F=svdfact!(data)
+        sing=F[:S]
+        truncdim=dim(trunc)
+        newspace=$S(truncdim)
+
+        # truncate
+        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
+        C=tensor(scale!(F[:U][:,1:truncdim],sing[1:truncdim]),leftspace*newspace')
+        U=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
+        return C,U,truncerr
+    end
+
+    @eval function rightorth!(t::$TT,n::Int,trunc::MaximalTruncationError)
+        # Truncate rank corresponding to bipartition into left indices 1:n
+        # and remain right indices, based on singular value decomposition,
+        # thereby destroying the original tensor.
+        # Truncation parameters are given as keyword arguments: trunctol should
+        # always be one of the possible arguments for specifying truncation, but
+        # truncdim can be replaced with different parameters for other types of tensors.
+
+        N=numind(t)
+        spacet=space(t)
+        leftspace=spacet[1:n]
+        rightspace=spacet[n+1:N]
+        leftdim=dim(leftspace)
+        rightdim=dim(rightspace)
+        data=reshape(t.data,(leftdim,rightdim))
+        F=svdfact!(data)
+
+        # find truncdim based on trunctolinfo
+        sing=F[:S]
+        normsing=vecnorm(sing)
+        truncdim=0
+        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+            truncdim+=1
+        end
+        newspace=$S(truncdim)
+
+        # truncate
+        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
+        C=tensor(scale!(F[:U][:,1:truncdim],sing[1:truncdim]),leftspace*newspace')
+        U=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
+        return C,U,truncerr
     end
 end
 
