@@ -1,6 +1,6 @@
 # truncation.jl
 #
-# Implements truncation strategies for truncating a tensor with svdtrunc!, leftorthtrunc! or rightorthtrunc!
+# Implements truncation schemes for truncating a tensor with svd, leftorth or rightorth
 
 abstract TruncationScheme
 

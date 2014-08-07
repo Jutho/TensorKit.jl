@@ -38,7 +38,7 @@ export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
 export leftorth, rightorth
 export leftorth!, rightorth!, svd!
 
-# truncation strategies
+# truncation schemes
 export notrunc, maxtruncerr, maxtruncdim, truncspace
 
 # tensor maps
@@ -76,7 +76,7 @@ include("compositespace.jl") # composing elementary vector spaces
 import TensorOperations
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
-# define truncation strategies for tensors
+# define truncation schemes for tensors
 include("tensors/truncation.jl")
 
 # general definitions
