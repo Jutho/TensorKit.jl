@@ -10,20 +10,19 @@ end
 ShiftedTensorOperator{S,P,T1,T2}(A::AbstractTensorMap{S,P,T1},shift::T2)=ShiftedTensorOperator{S,P,promote_type(T1,T2)}(A,convert(promote_type(T1,T2),shift))
 
 # create from adding scalars to tensormaps
-+(A::ShiftedTensorOperator,shift::Number)=ShiftedTensorOperator(A.map,A.shift+shift)
-+(shift::Number,A::ShiftedTensorOperator)=ShiftedTensorOperator(A.map,A.shift+shift)
-+(A::AbstractTensorMap,shift::Number)=ShiftedTensorOperator(A,shift)
-+(shift::Number,A::AbstractTensorMap)=ShiftedTensorOperator(A,shift)
--(A::ShiftedTensorOperator,shift::Number)=ShiftedTensorOperator(A.map,A.shift-shift)
--(shift::Number,A::ShiftedTensorOperator)=ShiftedTensorOperator(-A.map,-A.shift+shift)
--(A::AbstractTensorMap,shift::Number)=ShiftedTensorOperator(A,-shift)
--(shift::Number,A::AbstractTensorMap)=ShiftedTensorOperator(-A,shift)
++(A::ShiftedTensorOperator,shift::Number)=shift==0 ? A : ShiftedTensorOperator(A.map,A.shift+shift)
++(shift::Number,A::ShiftedTensorOperator)=shift==0 ? A : ShiftedTensorOperator(A.map,A.shift+shift)
++(A::AbstractTensorMap,shift::Number)=shift==0 ? A : ShiftedTensorOperator(A,shift)
++(shift::Number,A::AbstractTensorMap)=shift==0 ? A : ShiftedTensorOperator(A,shift)
+-(A::ShiftedTensorOperator,shift::Number)=shift==0 ? A : ShiftedTensorOperator(A.map,A.shift-shift)
+-(shift::Number,A::ShiftedTensorOperator)=shift==0 ? -A : ShiftedTensorOperator(-A.map,-A.shift+shift)
+-(A::AbstractTensorMap,shift::Number)=shift==0 ? A : ShiftedTensorOperator(A,-shift)
+-(shift::Number,A::AbstractTensorMap)=shift==0 ? -A : ShiftedTensorOperator(-A,shift)
 
-+(A::AbstractTensorMap,shift::UniformScaling)=ShiftedTensorOperator(A,shift[1,1])
-+(shift::UniformScaling,A::AbstractTensorMap)=ShiftedTensorOperator(A,shift[1,1])
--(A::AbstractTensorMap,shift::UniformScaling)=ShiftedTensorOperator(A,-shift[1,1])
--(shift::UniformScaling,A::AbstractTensorMap)=ShiftedTensorOperator(-A,shift[1,1])
-
++(A::AbstractTensorMap,shift::UniformScaling)=+(A,shift[1,1])
++(shift::UniformScaling,A::AbstractTensorMap)=+(shift[1,1],A)
+-(A::AbstractTensorMap,shift::UniformScaling)=-(A,shift[1,1])
+-(shift::UniformScaling,A::AbstractTensorMap)=-(shift[1,1],A)
 
 # properties
 domain(A::ShiftedTensorOperator)=domain(A.map)

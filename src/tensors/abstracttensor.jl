@@ -56,6 +56,8 @@ Base.convert{S,P,T1,T2}(::Type{AbstractTensor{S,P,T1}},t::AbstractTensor{S,P,T2}
 
 # Common functionality for AbstractTensor{S,P,T,N} and AbstractTensor{S,P,T,2}:
 #-------------------------------------------------------------------------------
+Base.copy(t::AbstractTensor)=Base.copy!(similar(t),t)
+
 *(t::AbstractTensor,a::Number)=scale(t,a)
 *(a::Number,t::AbstractTensor)=scale(t,a)
 /(t::AbstractTensor,a::Number)=scale(t,one(a)/a)
@@ -66,6 +68,10 @@ function Base.scale(t::AbstractTensor,a::Number)
     copy!(tnew,t)
     scale!(tnew,a)
 end
+
+Base.conj(t::AbstractTensor)=Base.conj!(similar(t,conj(space(t))),t)
+Base.transpose(t::AbstractTensor)=Base.transpose!(similar(t,space(t).'),t)
+Base.ctranspose(t::AbstractTensor)=Base.ctranspose!(similar(t,space(t)'),t)
 
 # convenience definition which works for vectors and matrices but also sometimes useful in general case
 *{S,P,T1,T2,N1,N2}(t1::AbstractTensor{S,P,T1,N1},t2::AbstractTensor{S,P,T2,N2})=(t3=similar(t1,promote_type(T1,T2),space(t1)[1:N1-1] ⊗ space(t2)[2:N2]);tensorcontract!(1,t1,vcat(1:N1-1,0),'N',t2,vcat(0,numind(t1)-1+(1:N2-1)),'N',0,t3,1:(N1+N2-2)))

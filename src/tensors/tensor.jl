@@ -173,36 +173,22 @@ end
 
 # Basic algebra:
 #----------------
+function Base.conj!(t1::Tensor,t2::Tensor)
+    space(t1)==conj(space(t2)) || throw(SpaceError())
+    copy!(t1.data,t2.data)
+    conj!(t1.data)
+    return t1
+end
+
 # transpose inverts order of indices, compatible with graphical notation
-Base.conj(t::Tensor) = tensor(conj(t.data),conj(space(t)))
-
-function Base.conj!(t::Tensor)
-    t.space=conj(t.space)
-    conj!(t.data)
-    return t
-end
-
-function Base.transpose(t::Tensor)
-    tdest=similar(t,space(t).')
-    return Base.transpose!(tdest,t)
-end
 function Base.transpose!(tdest::Tensor,tsource::Tensor)
-    if space(tdest)!=space(tsource).'
-        throw(SpaceError("tensor spaces don't match"))
-    end
+    space(tdest)==space(tsource).' || throw(SpaceError())
     N=numind(tsource)
     TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
     return tdest
 end
-
-function Base.ctranspose(t::Tensor)
-    tdest=similar(t,space(t)')
-    return Base.ctranspose!(tdest,t)
-end
 function Base.ctranspose!(tdest::Tensor,tsource::Tensor)
-    if space(tdest)!=space(tsource)'
-        throw(SpaceError("tensor spaces don't match"))
-    end
+    space(tdest)==space(tsource)' || throw(SpaceError())
     N=numind(tsource)
     TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
     conj!(tdest.data)
@@ -214,27 +200,15 @@ Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},t2::Tensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},a::Number,t2::Tensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
 
-Base.axpy!{S,T1,T2,N}(a::Number,x::Tensor{S,T1,N},y::Tensor{S,T2,N})=(Base.axpy!(a,x.data,y.data);return y)
+Base.axpy!(a::Number,x::Tensor,y::Tensor)=(space(t1)==space(t2) ? Base.axpy!(a,x.data,y.data) : throw(SpaceError()); return y)
 
 -(t::Tensor)=tensor(-t.data,space(t))
++(t1::Tensor,t2::Tensor)= space(t1)==space(t2) ? tensor(t1.data+t2.data,space(t1)) : throw(SpaceError())
+-(t1::Tensor,t2::Tensor)= space(t1)==space(t2) ? tensor(t1.data-t2.data,space(t1)) : throw(SpaceError())
 
-function +(t1::Tensor,t2::Tensor)
-    if space(t1)!=space(t2)
-        throw(SpaceError("tensor spaces do not agree"))
-    end
-    return tensor(t1.data+t2.data,space(t1))
-end
-
-function -(t1::Tensor,t2::Tensor)
-    if space(t1)!=space(t2)
-        throw(SpaceError("tensor spaces do not agree"))
-    end
-    return tensor(t1.data-t2.data,space(t1))
-end
-
+# Scalar product and norm: only valid for EuclideanSpace
 Base.dot{S<:EuclideanSpace}(t1::Tensor{S},t2::Tensor{S})= (space(t1)==space(t2) ? dot(vec(t1),vec(t2)) : throw(SpaceError()))
-Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data)
-# Frobenius norm of tensor
+Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data) # frobenius norm
 
 # Indexing
 #----------
