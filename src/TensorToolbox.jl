@@ -39,7 +39,7 @@ export leftorth, rightorth
 export leftorth!, rightorth!, svd!
 
 # truncation schemes
-export notrunc, maxtruncerr, maxtruncdim, truncspace
+export notrunc, truncerr, truncdim, truncspace
 
 # tensor maps
 export domain, codomain, hermitian, posdef, tensormap

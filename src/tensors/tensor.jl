@@ -9,7 +9,7 @@
 #++++++++++++++
 # Type definition and constructors:
 #-----------------------------------
-type Tensor{S,T,N} <: AbstractTensor{S,ProductSpace,T,N}
+immutable Tensor{S,T,N} <: AbstractTensor{S,ProductSpace,T,N}
     data::Array{T,N}
     space::ProductSpace{S,N}
     function Tensor(data::Array{T},space::ProductSpace{S,N})
@@ -219,14 +219,15 @@ Base.setindex!{S,T,N}(t::Tensor{S,T,N},value,b::ProductBasisVector{N,S})=setinde
 #-------------------
 scalar{S,T}(t::Tensor{S,T,0})=scalar(t.data)
 
-function tensorcopy!{S,T1,T2,N}(t1::Tensor{S,T1,N},labels1,t2::Tensor{S,T2,N},labels2)
+function tensorcopy!(t1::Tensor,labels1,t2::Tensor,labels2)
     # Replaces tensor t2 with t1
-    perm=indexin(labels1,labels2)
+    N1=numind(t1)
+    perm=indexin(labels2,labels1)
 
-    length(perm) == N || throw(TensorOperations.LabelError("invalid label specification"))
+    length(perm) == N1 || throw(TensorOperations.LabelError("invalid label specification"))
     isperm(perm) || throw(TensorOperations.LabelError("invalid label specification"))
-    for i = 1:N
-        space(t1,i) == space(t2,perm[i]) || throw(SpaceError("incompatible index spaces of tensors"))
+    for i = 1:N1
+        space(t1,i) == space(t2,perm[i]) || throw(SpaceError())
     end
 
     TensorOperations.tensorcopy!(t1.data,labels1,t2.data,labels2)
@@ -425,10 +426,10 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         U=tensor(F[:U],leftspace*newspace')
         Sigma=tensor(diagm(F[:S]),newspace*newspace')
         V=tensor(F[:Vt],newspace*rightspace)
-        return U,Sigma,V
+        return U,Sigma,V,abs(zero(eltype(t)))
     end
 
-    @eval function svd!(t::$TT,n::Int,trunc::Union(MaximalTruncationDimension,TruncationSpace))
+    @eval function svd!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -442,7 +443,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         rightspace=spacet[n+1:N]
         leftdim=dim(leftspace)
         rightdim=dim(rightspace)
-        dim(trunc) >= min(leftdim,rightdim) && return tuple(svd!(t,n)..., abs(zero(eltype(t))))
+        dim(trunc) >= min(leftdim,rightdim) && return svd!(t,n)
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
         sing=F[:S]
@@ -457,7 +458,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return U,Sigma,V,truncerr
     end
 
-    @eval function svd!(t::$TT,n::Int,trunc::MaximalTruncationError)
+    @eval function svd!(t::$TT,n::Int,trunc::TruncationError)
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -531,10 +532,10 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         end
 
         newspace=$S(newdim)
-        return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace)
+        return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace), abs(zero(eltype(t)))
     end
 
-    @eval function leftorth!(t::$TT,n::Int,trunc::Union(MaximalTruncationDimension,TruncationSpace))
+    @eval function leftorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -548,7 +549,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         rightspace=spacet[n+1:N]
         leftdim=dim(leftspace)
         rightdim=dim(rightspace)
-        dim(trunc) >= min(leftdim,rightdim) && return tuple(leftorth!(t,n)..., abs(zero(eltype(t))))
+        dim(trunc) >= min(leftdim,rightdim) && return leftorth!(t,n)
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
         sing=F[:S]
@@ -562,7 +563,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return U,C,truncerr
     end
 
-    @eval function leftorth!(t::$TT,n::Int,trunc::MaximalTruncationError)
+    @eval function leftorth!(t::$TT,n::Int,trunc::TruncationError)
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -635,10 +636,10 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         end
 
         newspace=$S(newdim)
-        return tensor(C,leftspace ⊗ dual(newspace)), tensor(U,newspace ⊗ rightspace)
+        return tensor(C,leftspace ⊗ dual(newspace)), tensor(U,newspace ⊗ rightspace), abs(zero(eltype(t)))
     end
 
-    @eval function rightorth!(t::$TT,n::Int,trunc::Union(MaximalTruncationDimension,TruncationSpace))
+    @eval function rightorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.
@@ -652,7 +653,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         rightspace=spacet[n+1:N]
         leftdim=dim(leftspace)
         rightdim=dim(rightspace)
-        dim(trunc) >= min(leftdim,rightdim) && return tuple(rightorth!(t,n)..., abs(zero(eltype(t))))
+        dim(trunc) >= min(leftdim,rightdim) && return rightorth!(t,n)
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
         sing=F[:S]
@@ -666,7 +667,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         return C,U,truncerr
     end
 
-    @eval function rightorth!(t::$TT,n::Int,trunc::MaximalTruncationError)
+    @eval function rightorth!(t::$TT,n::Int,trunc::TruncationError)
         # Truncate rank corresponding to bipartition into left indices 1:n
         # and remain right indices, based on singular value decomposition,
         # thereby destroying the original tensor.

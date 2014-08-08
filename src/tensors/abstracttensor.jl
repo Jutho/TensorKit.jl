@@ -54,8 +54,8 @@ Base.convert{S,P,T1,T2,N}(::Type{AbstractTensor{S,P,T1,N}},t::AbstractTensor{S,P
 Base.convert{S,P,T}(::Type{AbstractTensor{S,P,T}},t::AbstractTensor{S,P,T})=t
 Base.convert{S,P,T1,T2}(::Type{AbstractTensor{S,P,T1}},t::AbstractTensor{S,P,T2})=copy!(similar(t,T2),t)
 
-# Common functionality for AbstractTensor{S,P,T,N} and AbstractTensor{S,P,T,2}:
-#-------------------------------------------------------------------------------
+# Basic algebra
+#---------------
 Base.copy(t::AbstractTensor)=Base.copy!(similar(t),t)
 
 *(t::AbstractTensor,a::Number)=scale(t,a)
@@ -73,13 +73,14 @@ Base.conj(t::AbstractTensor)=Base.conj!(similar(t,conj(space(t))),t)
 Base.transpose(t::AbstractTensor)=Base.transpose!(similar(t,space(t).'),t)
 Base.ctranspose(t::AbstractTensor)=Base.ctranspose!(similar(t,space(t)'),t)
 
+# Tensor operations
+#-------------------
 # convenience definition which works for vectors and matrices but also sometimes useful in general case
 *{S,P,T1,T2,N1,N2}(t1::AbstractTensor{S,P,T1,N1},t2::AbstractTensor{S,P,T2,N2})=(t3=similar(t1,promote_type(T1,T2),space(t1)[1:N1-1] ⊗ space(t2)[2:N2]);tensorcontract!(1,t1,vcat(1:N1-1,0),'N',t2,vcat(0,numind(t1)-1+(1:N2-1)),'N',0,t3,1:(N1+N2-2)))
 Base.At_mul_B{S,P,T1,T2,N1,N2}(t1::AbstractTensor{S,P,T1,N1},t2::AbstractTensor{S,P,T2,N2})=(t3=similar(t1,promote_type(T1,T2),space(t1)[2:N1].' ⊗ space(t2)[2:N2]);tensorcontract!(1,t1,vcat(0,reverse(1:N1-1)),'N',t2,vcat(0,N1-1+(1:N2-1)),'N',0,t3,1:(numind(t1)+numind(t2)-2)))
 Base.Ac_mul_B{S,P,T1,T2,N1,N2}(t1::AbstractTensor{S,P,T1,N1},t2::AbstractTensor{S,P,T2,N2})=(t3=similar(t1,promote_type(T1,T2),space(t1)[2:N1]' ⊗ space(t2)[2:N2]);tensorcontract!(1,t1,vcat(0,reverse(1:N1-1)),'C',t2,vcat(0,N1-1+(1:N2-1)),'N',0,t3,1:(numind(t1)+numind(t2)-2)))
 
 ⊗{S,P}(t1::AbstractTensor{S,P},t2::AbstractTensor{S,P})=tensorproduct(t1,1:numind(t1),t2,numind(t1)+(1:numind(t2));method=:native)
-
 Base.trace{S,P,T}(t::AbstractTensor{S,P,T,2})=scalar(tensortrace(t,[1,1],[]))
 
 # general tensor operations: no error checking, pass to mutating methods
@@ -127,7 +128,6 @@ function tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},lab
     spaceC=(spaceA ⊗ spaceB)[indexin(outputlabels,vcat(labelsA,labelsB))]
     T=promote_type(eltype(A),eltype(B))
     C=similar(A,T,spaceC)
-    fill!(C,zero(T))
     tensorcontract!(one(T),A,labelsA,'N',B,labelsB,'N',zero(T),C,outputlabels;method=method)
     return C
 end
@@ -143,8 +143,15 @@ function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labe
     return C
 end
 
+# Factorization
+#---------------
+Base.svd{S,P,T}(t::AbstractTensor{S,P,T,2})=svd(t,1,2)
+leftorth{S,P,T}(t::AbstractTensor{S,P,T,2})=leftorth(t,1,2)
+rightorth{S,P,T}(t::AbstractTensor{S,P,T,2})=rightorth(t,1,2)
+
 # general tensor factorizations: permute to correct order and pass to in place methods
-function Base.svd(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind),truncation::TruncationScheme=notrunc())
+Base.svd(t::AbstractTensor,leftind,truncation::TruncationScheme=notrunc())=svd(t,leftind,setdiff(1:numind(t),leftind),truncation)
+function Base.svd(t::AbstractTensor,leftind,rightind,truncation::TruncationScheme=notrunc())
     # Perform singular value decomposition corresponding to bipartion of the
     # tensor indices into leftind and rightind.
     N=numind(t)
@@ -154,6 +161,7 @@ function Base.svd(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind
     return svd!(newt,length(leftind),truncation)
 end
 
+leftorth(t::AbstractTensor,leftind,truncation::TruncationScheme=notrunc())=leftorth(t,leftind,setdiff(1:numind(t),leftind),truncation)
 function leftorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind),truncation::TruncationScheme=notrunc())
     # Create orthogonal basis U for left indices, and remainder R for right
     # indices. Decomposition should be unique, such that it always returns the
@@ -166,6 +174,7 @@ function leftorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind
     return leftorth!(newt,length(leftind),truncation)
 end
 
+rightorth(t::AbstractTensor,leftind,truncation::TruncationScheme=notrunc())=rightorth(t,leftind,setdiff(1:numind(t),leftind),truncation)
 function rightorth(t::AbstractTensor,leftind,rightind=setdiff(1:numind(t),leftind),truncation::TruncationScheme=notrunc())
     # Create orthogonal basis U for left indices, and remainder R for right
     # indices. Decomposition should be unique, such that it always returns the
