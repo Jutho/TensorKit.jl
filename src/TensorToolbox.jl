@@ -74,6 +74,7 @@ include("compositespace.jl") # composing elementary vector spaces
 # Types and methods for tensors
 #-------------------------------
 import TensorOperations
+import TensorOperations: TCBuffer, defaultcontractbuffer
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
 # define truncation schemes for tensors

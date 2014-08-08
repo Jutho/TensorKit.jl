@@ -97,7 +97,7 @@ function tensoradd{S,P,TA,TB,N}(A::AbstractTensor{S,P,TA,N},labelsA,B::AbstractT
     T=promote_type(TA,TB)
     C=similar(A,T,spaceC)
     tensorcopy!(A,labelsA,C,outputlabels)
-    tensoradd!(one(T),B,labelsB,one(T),C,outputlabels)
+    tensoradd!(1,B,labelsB,1,C,outputlabels)
     return C
 end
 function tensortrace(A::AbstractTensor,labelsA,outputlabels)
@@ -105,14 +105,13 @@ function tensortrace(A::AbstractTensor,labelsA,outputlabels)
     spaceA=space(A)
     spaceC=spaceA[indexin(outputlabels,labelsA)]
     C=similar(A,spaceC)
-    fill!(C,zero(T))
-    tensortrace!(one(T),A,labelsA,zero(T),C,outputlabels)
+    tensortrace!(1,A,labelsA,0,C,outputlabels)
     return C
 end
 function tensortrace(A::AbstractTensor,labelsA) # there is no one-line method to compute the default outputlabels
     ulabelsA=unique(labelsA)
     labelsC=similar(labelsA,0)
-    sizehint(labelsC,length(labelsA))
+    sizehint(labelsC,length(ulabelsA))
     for j=1:length(ulabelsA)
         ind=findfirst(labelsA,ulabelsA[j])
         if findnext(labelsA,ulabelsA[j],ind+1)==0
@@ -121,14 +120,13 @@ function tensortrace(A::AbstractTensor,labelsA) # there is no one-line method to
     end
     return tensortrace(A,labelsA,labelsC)
 end
-function tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB);method::Symbol=:BLAS)
+function tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB);method::Symbol=:BLAS,buffer::TCBuffer=defaultcontractbuffer)
     spaceA=space(A)
     spaceB=space(B)
-
     spaceC=(spaceA ⊗ spaceB)[indexin(outputlabels,vcat(labelsA,labelsB))]
     T=promote_type(eltype(A),eltype(B))
     C=similar(A,T,spaceC)
-    tensorcontract!(one(T),A,labelsA,'N',B,labelsB,'N',zero(T),C,outputlabels;method=method)
+    tensorcontract!(1,A,labelsA,'N',B,labelsB,'N',0,C,outputlabels;method=method,buffer=buffer)
     return C
 end
 function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB))
@@ -138,8 +136,7 @@ function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labe
     spaceC=(spaceA ⊗ spaceB)[indexin(outputlabels,vcat(labelsA,labelsB))]
     T=promote_type(eltype(A),eltype(B))
     C=similar(A,T,spaceC)
-    fill!(C,zero(T))
-    tensorproduct!(one(T),A,labelsA,B,labelsB,zero(T),C,outputlabels)
+    tensorproduct!(1,A,labelsA,B,labelsB,0,C,outputlabels)
     return C
 end
 

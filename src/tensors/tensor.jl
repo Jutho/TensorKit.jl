@@ -199,7 +199,7 @@ Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},t2::Tensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},a::Number,t2::Tensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
 
-Base.axpy!(a::Number,x::Tensor,y::Tensor)=(space(x)==space(y) ? Base.axpy!(a,x.data,y.data) : throw(SpaceError()); return y)
+Base.LinAlg.axpy!(a::Number,x::Tensor,y::Tensor)=(space(x)==space(y) ? Base.LinAlg.axpy!(a,x.data,y.data) : throw(SpaceError()); return y)
 
 -(t::Tensor)=tensor(-t.data,space(t))
 +(t1::Tensor,t2::Tensor)= space(t1)==space(t2) ? tensor(t1.data+t2.data,space(t1)) : throw(SpaceError())
@@ -229,49 +229,56 @@ function tensorcopy!(t1::Tensor,labels1,t2::Tensor,labels2)
     for i = 1:N1
         space(t1,i) == space(t2,perm[i]) || throw(SpaceError())
     end
-
-    TensorOperations.tensorcopy!(t1.data,labels1,t2.data,labels2)
+    N1==0 && (t2.data[1]=t1.data[1]; return t2)
+    perm==[1:N1] && return copy!(t2,t1)
+    TensorOperations.tensorcopy_native!(t1.data,t2.data,perm)
     return t2
 end
-function tensoradd!{S,T1,T2,N}(alpha::Number,t1::Tensor{S,T1,N},labels1,beta::Number,t2::Tensor{S,T2,N},labels2)
+function tensoradd!(alpha::Number,t1::Tensor,labels1,beta::Number,t2::Tensor,labels2)
     # Replaces tensor t2 with beta*t2+alpha*t1
-    perm=indexin(labels1,labels2)
+    N1=numind(t1)
+    perm=indexin(labels2,labels1)
 
-    length(perm) == N || throw(TensorOperations.LabelError("invalid label specification"))
+    length(perm) == N1 || throw(TensorOperations.LabelError("invalid label specification"))
     isperm(perm) || throw(TensorOperations.LabelError("invalid label specification"))
-    for i = 1:N
-        space(t1,i) == space(t2,perm[i]) || throw(SpaceError("incompatible index spaces of tensors"))
+    for i = 1:N1
+        space(t1,perm[i]) == space(t2,i) || throw(SpaceError("incompatible index spaces of tensors"))
     end
-
-    TensorOperations.tensoradd!(alpha,t1.data,labels1,beta,t2.data,labels2)
+    N1==0 && (t2.data[1]=beta*t2.data[1]+alpha*t1.data[1]; return t2)
+    perm==[1:N1] && return (beta==0 ? scale!(copy!(t2,t1),alpha) : Base.LinAlg.axpy!(alpha,t1,scale!(t2,beta)))
+    beta==0 && (TensorOperations.tensorcopy_native!(t1.data,t2.data,perm);return scale!(t2,alpha))
+    TensorOperations.tensoradd_native!(alpha,t1.data,beta,t2.data,perm)
     return t2
 end
-function tensortrace!{S,TA,NA,TC,NC}(alpha::Number,A::Tensor{S,TA,NA},labelsA,beta::Number,C::Tensor{S,TC,NC},labelsC)
+function tensortrace!(alpha::Number,A::Tensor,labelsA,beta::Number,C::Tensor,labelsC)
+    NA=numind(A)
+    NC=numind(C)
     (length(labelsA)==NA && length(labelsC)==NC) || throw(LabelError("invalid label specification"))
     NA==NC && return tensoradd!(alpha,A,labelsA,beta,C,labelsC) # nothing to trace
 
-    po=indexin(labelsC,labelsA)
+    oindA=indexin(labelsC,labelsA)
     clabels=unique(setdiff(labelsA,labelsC))
     NA==NC+2*length(clabels) || throw(LabelError("invalid label specification"))
 
-    pc1=Array(Int,length(clabels))
-    pc2=Array(Int,length(clabels))
+    cindA1=Array(Int,length(clabels))
+    cindA2=Array(Int,length(clabels))
     for i=1:length(clabels)
-        pc1[i]=findfirst(labelsA,clabels[i])
-        pc2[i]=findnext(labelsA,clabels[i],pc1[i]+1)
+        cindA1[i]=findfirst(labelsA,clabels[i])
+        cindA2[i]=findnext(labelsA,clabels[i],cindA1[i]+1)
     end
-    isperm(vcat(po,pc1,pc2)) || throw(LabelError("invalid label specification"))
+    isperm(vcat(oindA,cindA1,cindA2)) || throw(LabelError("invalid label specification"))
 
     for i = 1:NC
-        space(A,po[i]) == space(C,i) || throw(SpaceError("space mismatch"))
+        space(A,oindA[i]) == space(C,i) || throw(SpaceError("space mismatch"))
     end
     for i = 1:div(NA-NC,2)
-        space(A,pc1[i]) == dual(space(A,pc2[i])) || throw(SpaceError("space mismatch"))
+        space(A,cindA1[i]) == dual(space(A,cindA2[i])) || throw(SpaceError("space mismatch"))
     end
 
-    TensorOperations.tensortrace!(alpha,A.data,labelsA,beta,C.data,labelsC)
+    TensorOperations.tensortrace_native!(alpha,A.data,beta,C.data,oindA,cindA1,cindA2)
+    return C
 end
-function tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,conjA::Char,B::Tensor{S},labelsB,conjB::Char,beta::Number,C::Tensor{S},labelsC;method=:BLAS)
+function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,labelsB,conjB::Char,beta::Number,C::Tensor,labelsC;method=:BLAS,buffer::TCBuffer=defaultcontractbuffer)
     # Get properties of input arrays
     NA=numind(A)
     NB=numind(B)
@@ -336,11 +343,14 @@ function tensorcontract!{S}(alpha::Number,A::Tensor{S},labelsA,conjA::Char,B::Te
         spaceC[oindCB[i]] == (conjB=='C' ? conj(ospaceB[i]) : ospaceB[i]) || throw(SpaceError("incompatible index space for label $(olabelsB[i])"))
     end
 
-    TensorOperations.tensorcontract!(alpha,A.data,labelsA,conjA,B.data,labelsB,conjB,beta,C.data,labelsC;method=method)
+    method==:BLAS && TensorOperations.tensorcontract_blas!(alpha,A.data,conjA,B.data,conjB,beta,C.data,buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
+    method==:native && return NA>=NB ? 
+        TensorOperations.tensorcontract_native!(alpha,A.data,conjA,B.data,conjB,beta,C.data,oindA,cindA,oindB,cindB,oindCA,oindCB) :
+        TensorOperations.tensorcontract_native!(alpha,B.data,conjB,A.data,conjA,beta,C.data,oindB,cindB,oindA,cindA,oindCB,oindCA)
     return C
 end
 
-function tensorproduct!{S}(alpha::Number,A::Tensor{S},labelsA,B::Tensor{S},labelsB,beta::Number,C::Tensor{S},labelsC)
+function tensorproduct!(alpha::Number,A::Tensor,labelsA,B::Tensor,labelsB,beta::Number,C::Tensor,labelsC)
     # Get properties of input arrays
     NA=numind(A)
     NB=numind(B)
@@ -351,17 +361,8 @@ function tensorproduct!{S}(alpha::Number,A::Tensor{S},labelsA,B::Tensor{S},label
         throw(TensorOperations.LabelError("invalid label specification"))
     end
     NC==NA+NB || throw(TensorOperations.LabelError("invalid label specification for tensor product"))
-    ulabelsA=unique(labelsA)
-    ulabelsB=unique(labelsB)
-    ulabelsC=unique(labelsC)
-    if NA!=length(ulabelsA) || NB!=length(ulabelsB) || NC!=length(ulabelsC)
-        throw(TensorOperations.LabelError("tensorproduct requires unique label for every index of the tensor"))
-    end
-    labels=setdiff(ulabelsC,ulabelsA)
-    labels=setdiff(labels,ulabelsB)
-    isempty(labels) || throw(TensorOperations.LabelError("invalid label specification for tensor product"))
 
-    tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:BLAS)
+    tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:native)
 end
 
 # Methods below are only implemented for CartesianTensor or ComplexTensor:

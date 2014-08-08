@@ -101,7 +101,7 @@ function Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::LinearCombination,x::Abstr
     end
     for n=2:length(A.maps)
         Base.A_mul_B!(z,A.maps[n],x)
-        Base.axpy!(A.coeffs[n],z,y)
+        Base.LinAlg.axpy!(A.coeffs[n],z,y)
     end
     return y
 end
@@ -114,7 +114,7 @@ function Base.At_mul_B!{S,P}(y::AbstractTensor{S,P},A::LinearCombination,x::Abst
     end
     for n=2:length(A.maps)
         Base.At_mul_B!(z,A.maps[n],x)
-        Base.axpy!(A.coeffs[n],z,y)
+        Base.LinAlg.axpy!(A.coeffs[n],z,y)
     end
     return y
 end
@@ -127,7 +127,7 @@ function Base.Ac_mul_B!{S,P}(y::AbstractTensor{S,P},A::LinearCombination,x::Abst
     end
     for n=2:length(A.maps)
         Base.Ac_mul_B!(z,A.maps[n],x)
-        Base.axpy!(conj(A.coeffs[n]),z,y)
+        Base.LinAlg.axpy!(conj(A.coeffs[n]),z,y)
     end
     return y
 end

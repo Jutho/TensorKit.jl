@@ -37,6 +37,6 @@ Base.isposdef(A::ShiftedTensorOperator)=isposdef(A.map) && isposdef(A.shift)
 # ==(A::ShiftedTensorOperator,B::ShiftedTensorOperator)=(A.map==B.map && A.shift==B.shift)
 
 # multiplication with vector
-Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::ShiftedTensorOperator{S,P},x::AbstractTensor{S,P})=(Base.A_mul_B!(y,A.map,x);Base.axpy!(A.shift,x,y))
-Base.At_mul_B!{S,P}(y::AbstractTensor{S,P},A::ShiftedTensorOperator{S,P},x::AbstractTensor{S,P})=(Base.At_mul_B!(y,A.map,x);Base.axpy!(A.shift,x,y))
-Base.Ac_mul_B!{S,P}(y::AbstractTensor{S,P},A::ShiftedTensorOperator{S,P},x::AbstractTensor{S,P})=(Base.Ac_mul_B!(y,A.map,x);Base.axpy!(conj(A.shift),x,y))
+Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::ShiftedTensorOperator{S,P},x::AbstractTensor{S,P})=(Base.A_mul_B!(y,A.map,x);Base.LinAlg.axpy!(A.shift,x,y))
+Base.At_mul_B!{S,P}(y::AbstractTensor{S,P},A::ShiftedTensorOperator{S,P},x::AbstractTensor{S,P})=(Base.At_mul_B!(y,A.map,x);Base.LinAlg.axpy!(A.shift,x,y))
+Base.Ac_mul_B!{S,P}(y::AbstractTensor{S,P},A::ShiftedTensorOperator{S,P},x::AbstractTensor{S,P})=(Base.Ac_mul_B!(y,A.map,x);Base.LinAlg.axpy!(conj(A.shift),x,y))
