@@ -16,8 +16,8 @@ immutable LinearCombination{S,P,T}<:AbstractTensorMap{S,P,T}
 end
 
 # basic methods
-Base.size(A::LinearCombination,n)=size(A.maps[1],n)
-Base.size(A::LinearCombination)=size(A.maps[1])
+codomain(A::LinearCombination)=codomain(A.maps[1])
+domain(A::LinearCombination)=domain(A.maps[1])
 Base.isreal(A::LinearCombination)=all(isreal,A.maps) && all(isreal,A.coeffs) # sufficient but not necessary
 Base.issym(A::LinearCombination)=all(issym,A.maps) # sufficient but not necessary
 Base.ishermitian(A::LinearCombination)=all(ishermitian,A.maps) && all(isreal,A.coeffs) # sufficient but not necessary

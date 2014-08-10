@@ -50,9 +50,9 @@ Base.promote_rule{S,P,T1,T2,N1,N2}(::Type{AbstractTensor{S,P,T1,N1}},::Type{Abst
 Base.promote_rule{S,P,T1,T2}(::Type{AbstractTensor{S,P,T1}},::Type{AbstractTensor{S,P,T2}})=AbstractTensor{S,P,promote_type(T1,T2)}
 
 Base.convert{S,P,T,N}(::Type{AbstractTensor{S,P,T,N}},t::AbstractTensor{S,P,T,N})=t
-Base.convert{S,P,T1,T2,N}(::Type{AbstractTensor{S,P,T1,N}},t::AbstractTensor{S,P,T2,N})=copy!(similar(t,T2),t)
+Base.convert{S,P,T1,T2,N}(::Type{AbstractTensor{S,P,T1,N}},t::AbstractTensor{S,P,T2,N})=copy!(similar(t,T1),t)
 Base.convert{S,P,T}(::Type{AbstractTensor{S,P,T}},t::AbstractTensor{S,P,T})=t
-Base.convert{S,P,T1,T2}(::Type{AbstractTensor{S,P,T1}},t::AbstractTensor{S,P,T2})=copy!(similar(t,T2),t)
+Base.convert{S,P,T1,T2}(::Type{AbstractTensor{S,P,T1}},t::AbstractTensor{S,P,T2})=copy!(similar(t,T1),t)
 
 # Basic algebra
 #---------------

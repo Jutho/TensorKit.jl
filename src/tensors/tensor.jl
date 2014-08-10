@@ -217,7 +217,7 @@ Base.setindex!{S,T,N}(t::Tensor{S,T,N},value,b::ProductBasisVector{N,S})=setinde
 
 # Tensor Operations
 #-------------------
-scalar{S,T}(t::Tensor{S,T,0})=scalar(t.data)
+scalar{S,T}(t::Tensor{S,T,0})=TensorOperations.scalar(t.data)
 
 function tensorcopy!(t1::Tensor,labels1,t2::Tensor,labels2)
     # Replaces tensor t2 with t1
@@ -511,7 +511,6 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             tau=zeros(eltype(data),(newdim,))
             Base.LinAlg.LAPACK.geqrf!(data,tau)
 
-            phase=zeros(eltype(data),(newdim,))
             C=zeros(eltype(t),(newdim,newdim))
             for j in 1:newdim
                 for i in 1:j
@@ -521,11 +520,10 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             Base.LinAlg.LAPACK.orgqr!(data,tau)
             U=data
             for i=1:newdim
-                phase[i]=C[i,i]/abs(C[i,i])
-                tau[i]=1/phase[i]
+                tau[i]=sign(C[i,i])
             end
-            scale!(tau,C)
-            scale!(U,phase)
+            scale!(U,tau)
+            scale!(conj!(tau),C)
         else
             newdim=leftdim
             C=data
@@ -595,7 +593,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
         C=tensor(scale!(sing[1:truncdim],F[:Vt][1:truncdim,:]),newspace*rightspace)
 
-        return U,Sigma,V,truncerr
+        return U,C,truncerr
     end
 
     @eval function rightorth!(t::$TT,n::Int,::NoTruncation)
@@ -615,7 +613,6 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             tau=zeros(eltype(data),(newdim,))
             Base.LinAlg.LAPACK.gelqf!(data,tau)
 
-            phase=zeros(eltype(data),(newdim,))
             C=zeros(eltype(data),(newdim,newdim))
             for j=1:newdim
                 for i=j:newdim
@@ -625,11 +622,10 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
             Base.LinAlg.LAPACK.orglq!(data,tau)
             U=data
             for i=1:newdim
-                phase[i]=C[i,i]/abs(C[i,i])
-                tau[i]=1/phase[i]
+                tau[i]=sign(C[i,i])
             end
-            scale!(C,tau)
-            scale!(phase,U)
+            scale!(tau,U)
+            scale!(C,conj!(tau))
         else
             newdim=rightdim
             C=data
