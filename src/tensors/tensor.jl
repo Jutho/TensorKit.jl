@@ -552,7 +552,19 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
         sing=F[:S]
-        truncdim=dim(trunc)
+        
+        # compute truncation dimension
+        if eps(trunc)!=0
+            sing=F[:S]
+            normsing=vecnorm(sing)
+            truncdim=0
+            while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+                truncdim+=1
+            end
+            truncdim=min(truncdim,dim(trunc))
+        else
+            truncdim=dim(trunc)
+        end
         newspace=$S(truncdim)
 
         # truncate
@@ -579,7 +591,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
 
-        # find truncdim based on trunctolinfo
+        # compute truncation dimension
         sing=F[:S]
         normsing=vecnorm(sing)
         truncdim=0
@@ -654,7 +666,19 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
         sing=F[:S]
-        truncdim=dim(trunc)
+
+        # compute truncation dimension
+        if eps(trunc)!=0
+            sing=F[:S]
+            normsing=vecnorm(sing)
+            truncdim=0
+            while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+                truncdim+=1
+            end
+            truncdim=min(truncdim,dim(trunc))
+        else
+            truncdim=dim(trunc)
+        end
         newspace=$S(truncdim)
 
         # truncate
@@ -681,7 +705,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
 
-        # find truncdim based on trunctolinfo
+        # compute truncation dimension
         sing=F[:S]
         normsing=vecnorm(sing)
         truncdim=0
