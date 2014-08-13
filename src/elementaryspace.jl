@@ -61,7 +61,11 @@ abstract Sector
 abstract Abelian <: Sector
 # sectors that have an abelian fusion structure
 
-#include("sectors/parity.jl")
+abstract UnitaryRepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ}
+# euclidean space with unitary representation of some group
+
+include("spaces/u1space.jl")
+
 #include("sectors/zncharge.jl")
 #include("sectors/u1charge.jl")
 

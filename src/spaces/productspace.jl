@@ -2,7 +2,7 @@
 #--------------
 # Tensor product of several ElementarySpace objects
 immutable ProductSpace{S<:ElementarySpace,N} <: TensorSpace{S,N}
-  spaces::NTuple{N, S}
+    spaces::NTuple{N, S}
 end
 
 # Additional constructors
@@ -59,10 +59,10 @@ Base.promote_rule{S<:ElementarySpace}(::Type{ProductSpace{S}},::Type{S}) = Produ
 
 # Show method
 function Base.show(io::IO, P::ProductSpace)
-  for i in 1:length(P)
-    i==1 || print(io," ⊗ ")
-    show(io, P[i])
-  end
+    for i in 1:length(P)
+        i==1 || print(io," ⊗ ")
+        show(io, P[i])
+    end
 end
 
 # basis and basisvector
