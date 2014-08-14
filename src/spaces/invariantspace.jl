@@ -9,21 +9,21 @@ InvariantSpace(P::InvariantSpace) = P
 invariant(P::InvariantSpace) = P
 
 # Specific constructors for Abelian Sectors
-function InvariantSpace{S<:AbelianSpace,N}(spaces::NTuple{N,S})
+function InvariantSpace{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
     sectorlist=_invariantsectors(spaces)
     dims=Dict{eltype(sectorlist),Int}()
     sizehint(dims,length(sectorlist))
     for s in sectorlist
         dims[s]=_dim(spaces,s)
     end
-    return InvariantSpace(spaces,dims)
+    return InvariantSpace{G,AbelianSpace{G},N}(spaces,dims)
 end
 
-InvariantSpace{S<:AbelianSpace}(V::S,Vlist::S...) = InvariantSpace(tuple(V,Vlist...))
-InvariantSpace{S<:AbelianSpace}(P::ProductSpace{S}) = InvariantSpace(P.spaces)
+InvariantSpace{G<:Abelian}(V::AbelianSpace{G},Vlist::AbelianSpace{G}...) = InvariantSpace(tuple(V,Vlist...))
+InvariantSpace{G<:Abelian}(P::ProductSpace{AbelianSpace{G}}) = InvariantSpace(P.spaces)
 
-invariant{S<:AbelianSpace}(V::S) = InvariantSpace(tuple(V))
-invariant{S<:AbelianSpace}(P::ProductSpace{S}) = InvariantSpace(P.spaces)
+invariant{G<:Abelian}(V::AbelianSpace{G}) = InvariantSpace(tuple(V))
+invariant{G<:Abelian}(P::ProductSpace{AbelianSpace{G}}) = InvariantSpace(P.spaces)
 
 # Functionality for extracting and iterating over spaces
 Base.length{G,S,N}(P::InvariantSpace{G,S,N}) = N
@@ -68,10 +68,24 @@ function Base.show(io::IO, P::InvariantSpace)
 end
 
 # Auxiliary functions
-_dim{G<:Sector}(spaces::NTuple{1,UnitaryRepresentationSpace{G}},sectors::NTuple{1,G})=dim(spaces[1],sectors[1])
-_dim{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}},sectors::NTuple{N,G})=_dim(spaces[1:div(N,2)],sectors[1:div(N,2)])*_dim(spaces[div(N,2)+1:end],sectors[div(N,2)+1:end])
+dim{S<:UnitaryRepresentationSpace,G<:Sector,N}(P::ProductSpace{S,N},s::NTuple{N,G})=_dim(P.spaces,s)
+sectors{S<:UnitaryRepresentationSpace,N}(P::ProductSpace{S,N})=_sectors(P.spaces,s)
+
+_dim{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}},s::NTuple{N,G})=(d=1;for n=1:N;d*=dim(spaces[n],s[n]);end;return d)
 
 using Cartesian
+@ngenerate N Vector{NTuple{N,G}} function _sectors{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}})
+    numsectors=1
+    @nexprs N i->(s_i=collect(sectors(spaces[i]));numsectors*=length(s_i))
+    sectorlist=Array(NTuple{N,G},numsectors)
+    counter=0
+    @nloops N i d->1:length(s_d) begin
+        counter+=1
+        sectorlist[counter]=@ntuple N k->s_k[i_k]
+    end
+    return sectorlist
+end
+
 @ngenerate N Vector{NTuple{N,G}} function _invariantsectors{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
     @nexprs N i->(s_i=collect(sectors(spaces[i])))
     sectorlist=Array(NTuple{N,G},0)
@@ -83,3 +97,5 @@ using Cartesian
     end
     return sectorlist
 end
+
+

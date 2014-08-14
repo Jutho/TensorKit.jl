@@ -60,15 +60,12 @@ abstract Sector
 # hierarchy of types for labelling different sectors, e.g. irreps, quantum numbers, anyon types, ...
 abstract Abelian <: Sector
 # sectors that have an abelian fusion structure
+include("spaces/abeliansectors.jl")
 
 abstract UnitaryRepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ}
-typealias AbelianSpace{G<:Abelian} UnitaryRepresentationSpace{G}
 # euclidean space with unitary representation of some group
 
-include("spaces/u1space.jl")
-
-#include("sectors/zncharge.jl")
-#include("sectors/u1charge.jl")
+include("spaces/abelianspace.jl")
 
 # vector spaces graded with abelian sectors
 #include("spaces/abelian.jl")

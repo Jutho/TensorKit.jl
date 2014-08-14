@@ -16,8 +16,10 @@ Base.isfinite(::TensorSpace) = true
 # ProductSpace: type and methods for tensor products of ElementarySpace objects
 include("spaces/productspace.jl")
 
+# InvariantSpace: invariant subspace of tensor product of UnitaryRepresentationSpace objects
 include("spaces/invariantspace.jl")
-# invariant subspace of tensor product of UnitaryRepresentationSpace objects
 
-
-# braidedspace and fermionspace:
+# Other examples might include:
+# braidedspace and fermionspace
+# symmetric and antisymmetric subspace of a tensor product of identical vector spaces
+# ...

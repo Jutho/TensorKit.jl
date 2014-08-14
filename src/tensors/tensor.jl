@@ -343,10 +343,17 @@ function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,l
         spaceC[oindCB[i]] == (conjB=='C' ? conj(ospaceB[i]) : ospaceB[i]) || throw(SpaceError("incompatible index space for label $(olabelsB[i])"))
     end
 
-    method==:BLAS && TensorOperations.tensorcontract_blas!(alpha,A.data,conjA,B.data,conjB,beta,C.data,buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
-    method==:native && return NA>=NB ? 
-        TensorOperations.tensorcontract_native!(alpha,A.data,conjA,B.data,conjB,beta,C.data,oindA,cindA,oindB,cindB,oindCA,oindCB) :
-        TensorOperations.tensorcontract_native!(alpha,B.data,conjB,A.data,conjA,beta,C.data,oindB,cindB,oindA,cindA,oindCB,oindCA)
+    if method==:BLAS
+        TensorOperations.tensorcontract_blas!(alpha,A.data,conjA,B.data,conjB,beta,C.data,buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
+    elseif method==:native
+        if NA>=NB
+            TensorOperations.tensorcontract_native!(alpha,A.data,conjA,B.data,conjB,beta,C.data,oindA,cindA,oindB,cindB,oindCA,oindCB)
+        else
+            TensorOperations.tensorcontract_native!(alpha,B.data,conjB,A.data,conjA,beta,C.data,oindB,cindB,oindA,cindA,oindCB,oindCA)
+        end
+    else
+        throw(ArgumentError("method should be :BLAS or :native"))
+    end
     return C
 end
 
@@ -552,7 +559,7 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
         sing=F[:S]
-        
+
         # compute truncation dimension
         if eps(trunc)!=0
             sing=F[:S]
