@@ -62,6 +62,7 @@ abstract Abelian <: Sector
 # sectors that have an abelian fusion structure
 
 abstract UnitaryRepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ}
+typealias AbelianSpace{G<:Abelian} UnitaryRepresentationSpace{G}
 # euclidean space with unitary representation of some group
 
 include("spaces/u1space.jl")

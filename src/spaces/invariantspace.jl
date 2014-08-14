@@ -1,78 +1,85 @@
-# InvariantSpace
-#--------------
-# Tensor product of several ElementarySpace objects
-immutable InvariantSpace{S<:UnitaryRepresentationSpace,N} <: TensorSpace{S,N}
-    spaces::NTuple{N, S}
-    _dims::Dict{NTuple{N,Sector},Int}
-    InvariantSpace(spaces::NTuple{N,S})=new(spaces,_computedims(spaces))
+# General definition: might need to be generalized for nonabelian sectors
+immutable InvariantSpace{G<:Sector,S<:UnitaryRepresentationSpace,N} <: TensorSpace{S,N}
+    spaces::NTuple{N,S}
+    dims::Dict{NTuple{N,G},Int}
 end
 
-dim{G<:Sector}(spaces::NTuple{1,UnitaryRepresentationSpace{G}},sectors::NTuple{1,G})=dim(spaces[1],sectors[1])
-dim{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}},sectors::NTuple{N,G})=dim(spaces[1],sectors[1])*dim(spaces[2:end],sectors[2:end])
-function _computesectors(spaces::NTuple{N,UnitaryRepresentationSpace{G}})
-    sectors=[tuple(c,s...) for c in sectors(spaces[1]), s in _computesectors(spaces[2:end])]
+# Additional constructors
+InvariantSpace(P::InvariantSpace) = P
+invariant(P::InvariantSpace) = P
+
+# Specific constructors for Abelian Sectors
+function InvariantSpace{S<:AbelianSpace,N}(spaces::NTuple{N,S})
+    sectorlist=_invariantsectors(spaces)
+    dims=Dict{eltype(sectorlist),Int}()
+    sizehint(dims,length(sectorlist))
+    for s in sectorlist
+        dims[s]=_dim(spaces,s)
+    end
+    return InvariantSpace(spaces,dims)
 end
 
+InvariantSpace{S<:AbelianSpace}(V::S,Vlist::S...) = InvariantSpace(tuple(V,Vlist...))
+InvariantSpace{S<:AbelianSpace}(P::ProductSpace{S}) = InvariantSpace(P.spaces)
 
-# # Additional constructors
-# InvariantSpace{S<:UnitaryRepresentationSpace}(V::S,Vlist::S...) = InvariantSpace(tuple(V,Vlist...))
-# InvariantSpace(P::UnitaryRepresentationSpace) = P
-# InvariantSpace{S<:UnitaryRepresentationSpace,N}(P::ProductSpace{S,N}) = InvariantSpace{S,N}(P.spaces)
+invariant{S<:AbelianSpace}(V::S) = InvariantSpace(tuple(V))
+invariant{S<:AbelianSpace}(P::ProductSpace{S}) = InvariantSpace(P.spaces)
 
-# # Default construction:
-# invariant(P::ProductSpace)=InvariantSpace(P)
+# Functionality for extracting and iterating over spaces
+Base.length{G,S,N}(P::InvariantSpace{G,S,N}) = N
+Base.endof(P::InvariantSpace) = length(P)
+Base.getindex(P::InvariantSpace, n::Integer) = P.spaces[n]
+Base.getindex{G,S,N}(P::InvariantSpace{G,S,N}, r)=ProductSpace{S,length(r)}(P.spaces[r])
 
-# # Functionality for extracting and iterating over spaces
-# Base.length{S,N}(P::InvariantSpace{S,N}) = N
-# Base.endof(P::InvariantSpace) = length(P)
-# Base.getindex(P::InvariantSpace, n::Integer) = P.spaces[n]
-# Base.getindex{S,N}(P::InvariantSpace{S,N}, r)=ProductSpace{S,length(r)}(P.spaces[r])
+Base.reverse{G,S,N}(P::InvariantSpace{G,S,N})=InvariantSpace{G,S,N}(reverse(P.spaces),[reverse(c)=>dim(P,c) for c in sectors(P)])
+Base.map(f::Base.Callable,P::InvariantSpace) = map(f,P.spaces) # required to make map(dim,P) efficient
 
-# Base.reverse{S,N}(P::InvariantSpace{S,N})=InvariantSpace{S,N}(reverse(P.spaces))
-# Base.map(f::Base.Callable,P::InvariantSpace) = map(f,P.spaces) # required to make map(dim,P) efficient
+Base.start(P::InvariantSpace) = start(P.spaces)
+Base.next(P::InvariantSpace, state) = next(P.spaces, state)
+Base.done(P::InvariantSpace, state) = done(P.spaces, state)
 
-# Base.start(P::InvariantSpace) = start(P.spaces)
-# Base.next(P::InvariantSpace, state) = next(P.spaces, state)
-# Base.done(P::InvariantSpace, state) = done(P.spaces, state)
+# Corresponding methods
+sectors(P::InvariantSpace) = keys(P.dims)
+dim(P::InvariantSpace) = sum(values(P.dims))
+dim{G,S,N}(P::InvariantSpace{G,S,N},sector::NTuple{N,G})=get(P.dims,sector,0)
+iscnumber(P::InvariantSpace) = length(P)==0 || all(iscnumber,P)
 
-# # Corresponding methods
-# dim(P::InvariantSpace) = (d=1;for V in P;d*=dim(V);end;return d)
-# iscnumber(P::InvariantSpace) = length(P)==0 || all(iscnumber,P)
+# Convention on dual, conj, transpose and ctranspose of tensor product spaces
+dual{G,S,N}(P::InvariantSpace{G,S,N}) = InvariantSpace{G,S,N}(ntuple(N,n->dual(P[n])),[map(conj,s)=>dim(P,s) for s in sectors(P)])
+Base.conj(P::InvariantSpace) = dual(P) # since all AbelianSpaces are EuclideanSpaces
 
-# # Convention on dual, conj, transpose and ctranspose of tensor product spaces
-# dual{S,N}(P::InvariantSpace{S,N}) = InvariantSpace{S,N}(ntuple(N,n->dual(P[n])))
-# Base.conj{S,N}(P::InvariantSpace{S,N}) = InvariantSpace{S,N}(ntuple(N,n->conj(P[n])))
+Base.transpose(P::InvariantSpace) = reverse(P)
+Base.ctranspose(P::InvariantSpace) = reverse(conj(P))
 
-# Base.transpose{S,N}(P::InvariantSpace{S,N}) = reverse(P)
-# Base.ctranspose{S,N}(P::InvariantSpace{S,N}) = reverse(conj(P))
+# Promotion and conversion
+==(P::InvariantSpace,V::ElementarySpace) = length(P)==1 && P[1]==V
+==(V::ElementarySpace,P::InvariantSpace) = length(P)==1 && P[1]==V
 
-# # Promotion and conversion
-# Base.convert{S<:ElementarySpace}(::Type{InvariantSpace{S,1}}, V::S) = InvariantSpace(V)
-# Base.convert{S<:ElementarySpace}(::Type{InvariantSpace{S}}, V::S) = InvariantSpace(V)
-# Base.convert(::Type{InvariantSpace}, V::ElementarySpace) = InvariantSpace(V)
+issubspace(P1::InvariantSpace,P2::ProductSpace) = P1.spaces==P2.spaces
 
-# Base.promote_rule{S<:ElementarySpace,N}(::Type{InvariantSpace{S,N}},::Type{S}) = InvariantSpace{S}
-# Base.promote_rule{S<:ElementarySpace}(::Type{InvariantSpace{S}},::Type{S}) = InvariantSpace{S}
+# Show method
+function Base.show(io::IO, P::InvariantSpace)
+    print("invariant(")
+    for i in 1:length(P)
+        i==1 || print(io," ⊗ ")
+        show(io, P[i])
+    end
+    print(")")
+end
 
-# ==(P::InvariantSpace,V::ElementarySpace) = length(P) ==1 && P[1] == V
-# ==(V::ElementarySpace,P::InvariantSpace) = length(P) ==1 && P[1] == V
+# Auxiliary functions
+_dim{G<:Sector}(spaces::NTuple{1,UnitaryRepresentationSpace{G}},sectors::NTuple{1,G})=dim(spaces[1],sectors[1])
+_dim{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}},sectors::NTuple{N,G})=_dim(spaces[1:div(N,2)],sectors[1:div(N,2)])*_dim(spaces[div(N,2)+1:end],sectors[div(N,2)+1:end])
 
-# # Show method
-# function Base.show(io::IO, P::InvariantSpace)
-#   for i in 1:length(P)
-#     i==1 || print(io," ⊗ ")
-#     show(io, P[i])
-#   end
-# end
-
-# # basis and basisvector
-# typealias ProductBasisVector{S,N} BasisVector{InvariantSpace{S,N},Int} # use integer from 1 to dim as identifier
-# typealias ProductBasis{S,N} Basis{InvariantSpace{S,N}}
-
-# Base.length{S,N}(B::ProductBasis{S,N}) = dim(space(B))
-# Base.start{S,N}(B::ProductBasis{S,N}) = 1
-# Base.next{S,N}(B::ProductBasis{S,N}, state::Int) = (ProductBasisVector{S,N}(space(B),state),state+1)
-# Base.done{S,N}(B::ProductBasis{S,N}, state::Int) = state>length(B)
-
-# Base.to_index{S,N}(b::ProductBasisVector{S,N}) = b.identifier # use linear indexing as long as we cannot efficiently generate a cartesian iterator
-# Base.show{S,N}(io::IO,b::ProductBasisVector{S,N}) = print(io, "BasisVector($(b.space),$(ind2sub(map(dim,b.space),b.identifier)))")
+using Cartesian
+@ngenerate N Vector{NTuple{N,G}} function _invariantsectors{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
+    @nexprs N i->(s_i=collect(sectors(spaces[i])))
+    sectorlist=Array(NTuple{N,G},0)
+    @nloops N i d->1:length(s_d) begin
+        sector=@ntuple N k->s_k[i_k]
+        if prod(sector)==one(G)
+            push!(sectorlist,sector)
+        end
+    end
+    return sectorlist
+end
