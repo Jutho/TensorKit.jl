@@ -11,6 +11,8 @@ immutable AbelianSpace{G<:Abelian} <: UnitaryRepresentationSpace{G}
 end
 AbelianSpace{G<:Abelian}(dims::Dict{G,Int},dual::Bool=false)=AbelianSpace{G}(dims,dual)
 
+==(V1::AbelianSpace,V2::AbelianSpace)=(V1.dims==V2.dims && V1.dual==V2.dual)
+
 # Corresponding methods:
 sectors(V::AbelianSpace) = keys(V.dims)
 
@@ -43,15 +45,15 @@ function fuse{G}(V1::AbelianSpace{G}, V2::AbelianSpace{G}, V::AbelianSpace{G})
     return V.dims == dims
 end
 
-# # basis and basisvector
-# typealias ComplexBasisVector BasisVector{AbelianSpace,Int} # use integer from 1 to dim as identifier
-# typealias ComplexBasis Basis{AbelianSpace}
-
-# Base.length(B::ComplexBasis) = dim(space(B))
-# Base.start(B::ComplexBasis) = 1
-# Base.next(B::ComplexBasis, state::Int) = (EuclideanBasisVector(space(B),state),state+1)
-# Base.done(B::ComplexBasis, state::Int) = state>length(B)
-
-# Base.to_index(b::ComplexBasisVector) = b.identifier
-
-
+# indexing using sectors
+function Base.to_range{G}(s::G,V::AbelianSpace{G})
+    offset=0
+    for c in sectors(V)
+        if c!=s
+            offset+=dim(V,c)
+        else
+            break
+        end
+    end
+    return offset+(1:dim(V,s))
+end

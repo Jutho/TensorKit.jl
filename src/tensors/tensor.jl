@@ -211,9 +211,16 @@ Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data) # frobenius norm
 
 # Indexing
 #----------
-# linear indexing using ProductBasisVector
-Base.getindex{S,T,N}(t::Tensor{S,T,N},b::ProductBasisVector{N,S})=getindex(t.data,Base.to_index(b))
-Base.setindex!{S,T,N}(t::Tensor{S,T,N},value,b::ProductBasisVector{N,S})=setindex!(t.data,value,Base.to_index(b))
+# # linear indexing using ProductBasisVector
+# Base.getindex{S,T,N}(t::Tensor{S,T,N},b::ProductBasisVector{N,S})=getindex(t.data,Base.to_index(b))
+# Base.setindex!{S,T,N}(t::Tensor{S,T,N},value,b::ProductBasisVector{N,S})=setindex!(t.data,value,Base.to_index(b))
+
+@ngenerate N Array{T,N} function Base.getindex{G,T,N}(t::Tensor{AbelianSpace{G},T,N},s::NTuple{N,G})
+    @nexprs N n->(r_n=Base.to_range(s[n],space(t,n)))
+    return @ncall N slice t.data r
+end
+
+Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Array{T,N},s::NTuple{N,G})=(size(v)==size(t[s]) ? copy!(t[s],v) : throw(DimensionMismatch()))
 
 # Tensor Operations
 #-------------------
@@ -432,9 +439,9 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         newdim=length(F[:S])
         newspace=$S(newdim)
         U=tensor(F[:U],leftspace*newspace')
-        Sigma=tensor(diagm(F[:S]),newspace*newspace')
+        S=tensor(diagm(F[:S]),newspace*newspace')
         V=tensor(F[:Vt],newspace*rightspace)
-        return U,Sigma,V,abs(zero(eltype(t)))
+        return U,S,V,abs(zero(eltype(t)))
     end
 
     @eval function svd!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
@@ -455,15 +462,27 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         data=reshape(t.data,(leftdim,rightdim))
         F=svdfact!(data)
         sing=F[:S]
-        truncdim=dim(trunc)
+
+        # compute truncation dimension
+        if eps(trunc)!=0
+            sing=F[:S]
+            normsing=vecnorm(sing)
+            truncdim=0
+            while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+                truncdim+=1
+            end
+            truncdim=min(truncdim,dim(trunc))
+        else
+            truncdim=dim(trunc)
+        end
         newspace=$S(truncdim)
 
         # truncate
         truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
         U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-        Sigma=tensor(diagm(sing[1:truncdim]),newspace*newspace')
+        S=tensor(diagm(sing[1:truncdim]),newspace*newspace')
         V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-        return U,Sigma,V,truncerr
+        return U,S,V,truncerr
     end
 
     @eval function svd!(t::$TT,n::Int,trunc::TruncationError)
@@ -495,9 +514,9 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         # truncate
         truncerr=vecnorm(sing[(truncdim+1):end])/normsing
         U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-        Sigma=tensor(diagm(sing[1:truncdim]),newspace*newspace')
+        S=tensor(diagm(sing[1:truncdim]),newspace*newspace')
         V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-        return U,Sigma,V,truncerr
+        return U,S,V,truncerr
     end
 
     @eval function leftorth!(t::$TT,n::Int,::NoTruncation)

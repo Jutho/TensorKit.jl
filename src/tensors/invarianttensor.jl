@@ -10,11 +10,11 @@
 #+++++++++++++++++++++++
 # Type definition and constructors:
 #-----------------------------------
-immutable InvariantTensor{G<:Sector,S<:UnitaryRepresentationSpace,T,N} <: AbstractTensor{S,InvariantSpace,T,N}
+immutable InvariantTensor{G,S,T,N} <: AbstractTensor{S,InvariantSpace,T,N}
     data::Vector{T}
     space::InvariantSpace{G,S,N}
     _datasectors::Dict{NTuple{N,G},Array{T,N}}
-    function Tensor(data::Array{T},space::InvariantSpace{G,S,N})
+    function InvariantTensor(data::Array{T},space::InvariantSpace{G,S,N})
         if length(data)!=dim(space)
             throw(DimensionMismatch("data not of right size"))
         end
@@ -28,29 +28,28 @@ immutable InvariantTensor{G<:Sector,S<:UnitaryRepresentationSpace,T,N} <: Abstra
             _datasectors[s]=pointer_to_array(pointer(data,ind),dims)
             ind+=prod(dims)
         end
-        return new(vec(data),space)
+        return new(vec(data),space,_datasectors)
     end
 end
 
 # Show method:
 #-------------
-function Base.show{S,T,N}(io::IO,t::InvariantTensor{G,S,T,N})
+function Base.show{G,S,T,N}(io::IO,t::InvariantTensor{G,S,T,N})
     print(io," InvariantTensor ∈ $T")
     print(io,"[")
-    for n=1:N
-        n==1 || print(io, " ⊗ ")
-        show(io,space(t,n))
-    end
+    showcompact(io,t.space.dims)
     println(io,"]:")
-    Base.showarray(io,t.data;header=false)
+    for s in sectors(t)
+        println(io,"$s:")
+        Base.showarray(io,t[s];header=false)
+        println(io,"")
+    end
 end
 
 # Basic methods for characterising a tensor:
 #--------------------------------------------
-space(t::Tensor,ind::Int)=t.space[ind]
-space(t::Tensor)=t.space
-
-sectors(t::Tensor)=sectors(space(t))
+space(t::InvariantTensor,ind::Int)=t.space[ind]
+space(t::InvariantTensor)=t.space
 
 # General constructors
 #---------------------
@@ -62,9 +61,11 @@ tensor{T}(::Type{T},P::InvariantSpace)=tensor(Array(T,dim(P)),P)
 tensor(P::InvariantSpace)=tensor(Float64,V)
 
 Base.similar{G,S,T,N}(t::InvariantTensor{G,S},::Type{T},P::InvariantSpace{G,S,N}=space(t))=tensor(similar(t.data,T,dim(P)),P)
-Base.similar{G,S,T,N}(t::InvariantTensor{G,S},::Type{T},P::ProductSpace{S,N})=tensor(t,T,invariant(P))
-Base.similar{G,S,T,N}(t::InvariantTensor{G,S},::Type{T},V::S)=tensor(t,T,invariant(V))
-Base.similar{G,S,T,N}(t::InvariantTensor{G,S},P::Union(InvariantSpace{G,S,N},ProductSpace{S,N},S))=tensor(t,Float64,P)
+Base.similar{G,S,T,N}(t::InvariantTensor{G,S},::Type{T},P::ProductSpace{S,N})=similar(t,T,invariant(P))
+Base.similar{G,S,T}(t::InvariantTensor{G,S},::Type{T},V::S)=similar(t,T,invariant(V))
+Base.similar{G,S,N}(t::InvariantTensor{G,S},P::InvariantSpace{G,S,N}=space(t))=similar(t,eltype(t),P)
+Base.similar{G,S,N}(t::InvariantTensor{G,S},P::ProductSpace{S,N})=similar(t,eltype(t),P)
+Base.similar{G,S}(t::InvariantTensor{G,S},V::S)=similar(t,eltype(t),V)
 
 Base.zero(t::InvariantTensor)=tensor(zero(t.data),space(t))
 
@@ -121,14 +122,16 @@ Base.rand(P::InvariantSpace)=rand(Float64,P)
 function Base.copy!(tdest::InvariantTensor,tsource::InvariantTensor)
     # Copies data of tensor tsource to tensor tdest if compatible
     space(tdest)==space(tsource) || throw(SpaceError())
-    copy!(tdest.data,tsource.data)
+    for s in sectors(tdest)
+        copy!(tdest[s],tsource[s])
+    end
     return tdest
 end
-Base.fill!{S,T}(tdest::Tensor{S,T},value::Number)=fill!(tdest.data,convert(T,value))
+Base.fill!{S,T}(tdest::InvariantTensor{S,T},value::Number)=fill!(tdest.data,convert(T,value))
 
 # Vectorization:
 #----------------
-Base.vec(t::Tensor)=t.data
+Base.vec(t::InvariantTensor)=t.data
 # Convert the non-trivial degrees of freedom in a tensor to a vector to be passed to eigensolvers etc.
 
 # Conversion and promotion:
@@ -139,7 +142,7 @@ Base.promote_rule{G,S,T1,T2}(::Type{InvariantTensor{G,S,T1}},::Type{InvariantTen
 
 Base.promote_rule{G,S,T1,T2,N}(::Type{AbstractTensor{S,InvariantSpace,T1,N}},::Type{InvariantTensor{G,S,T2,N}})=AbstractTensor{S,InvariantSpace,promote_type(T1,T2),N}
 Base.promote_rule{G,S,T1,T2,N1,N2}(::Type{AbstractTensor{S,InvariantSpace,T1,N1}},::Type{InvariantTensor{G,S,T2,N2}})=AbstractTensor{S,InveriantSpace,promote_type(T1,T2)}
-Base.promote_rule{S,T1,T2}(::Type{AbstractTensor{S,InvariantSpace,T1}},::Type{InvariantTensor{G,S,T2}})=AbstractTensor{S,InvariantSpace,promote_type(T1,T2)}
+Base.promote_rule{G,S,T1,T2}(::Type{AbstractTensor{S,InvariantSpace,T1}},::Type{InvariantTensor{G,S,T2}})=AbstractTensor{S,InvariantSpace,promote_type(T1,T2)}
 
 Base.convert{G,S,T,N}(::Type{InvariantTensor{G,S,T,N}},t::InvariantTensor{G,S,T,N})=t
 Base.convert{G,S,T1,T2,N}(::Type{InvariantTensor{G,S,T1,N}},t::InvariantTensor{G,S,T2,N})=copy!(similar(t,T1),t)
@@ -158,8 +161,21 @@ for (f,T) in ((:float32,    Float32),
               (:float64,    Float64),
               (:complex64,  Complex64),
               (:complex128, Complex128))
-    @eval (Base.$f){G,S}(t::InvariantTensor{S,$T}) = t
+    @eval (Base.$f){G,S}(t::InvariantTensor{G,S,$T}) = t
     @eval (Base.$f)(t::InvariantTensor) = tensor(($f)(t.data),space(t))
+end
+
+invariant(t::InvariantTensor)=t
+
+function invariant{G<:Abelian,T,N}(t::Tensor{AbelianSpace{G},T,N})
+    for s in sectors(t)
+        prod(s)==one(G) || all(t[s].==0) || throw(InexactError())
+    end
+    tdest=tensor(T,invariant(space(t)))
+    for s in sectors(tdest)
+        copy!(tdest[s],t[s])
+    end
+    return tdest
 end
 
 # Basic algebra:
@@ -184,7 +200,7 @@ function Base.ctranspose!(tdest::InvariantTensor,tsource::InvariantTensor)
     space(tdest)==space(tsource)' || throw(SpaceError())
     N=numind(tsource)
     for s in sectors(tsource)
-        TensorOperations.tensorcopy!(tsource[s],1:N,tdest[reverse(s)],reverse(1:N))
+        TensorOperations.tensorcopy!(tsource[s],1:N,tdest[reverse(map(conj,s))],reverse(1:N))
     end
     conj!(tdest.data)
     return tdest
@@ -201,9 +217,9 @@ Base.LinAlg.axpy!(a::Number,x::InvariantTensor,y::InvariantTensor)=(space(x)==sp
 +(t1::InvariantTensor,t2::InvariantTensor)= space(t1)==space(t2) ? tensor(t1.data+t2.data,space(t1)) : throw(SpaceError())
 -(t1::InvariantTensor,t2::InvariantTensor)= space(t1)==space(t2) ? tensor(t1.data-t2.data,space(t1)) : throw(SpaceError())
 
-# Scalar product and norm: only valid for EuclideanSpace
-Base.dot{S<:EuclideanSpace}(t1::Tensor{S},t2::Tensor{S})= (space(t1)==space(t2) ? dot(vec(t1),vec(t2)) : throw(SpaceError()))
-Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data) # frobenius norm
+# Scalar product and norm: only implemented for AbelianSpace
+Base.dot{G<:Abelian}(t1::InvariantTensor{G,AbelianSpace{G}},t2::InvariantTensor{G,AbelianSpace{G}})= (space(t1)==space(t2) ? dot(vec(t1),vec(t2)) : throw(SpaceError()))
+Base.vecnorm{G<:Abelian}(t::InvariantTensor{G,AbelianSpace{G}})=vecnorm(t.data) # frobenius norm
 
 # Indexing
 #----------
@@ -213,7 +229,7 @@ Base.setindex!{G,S,T,N}(t::InvariantTensor{S,T,N},v::Array{T,N},s::NTuple{N,G})=
 
 # Tensor Operations
 #-------------------
-scalar{G,S,T}(t::InvariantTensor{G,S,T,0})=TensorOperations.scalar(t.data)
+scalar{G,S,T}(t::InvariantTensor{G,S,T,0})=t.data[1]
 
 function tensorcopy!(t1::InvariantTensor,labels1,t2::InvariantTensor,labels2)
     # Replaces tensor t2 with t1
@@ -355,30 +371,37 @@ function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B:
     end
 
     betadict=[s=>beta for s in sectors(C)]
-    oindC=invperm(vcat(oindCA,oindCB))
+    posC=indexin(ulabelsC,vcat(ulabelsA,ulabelsB))
     if method==:BLAS
         for sA in sectors(A), sB in sectors(B)
-            sC=tuple(sA...,sB...)[oindC]
-            TensorOperations.tensorcontract_blas!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
-            betadict[sC]=one(beta)
+            if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
+                sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
+                TensorOperations.tensorcontract_blas!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
+                betadict[sC]=one(beta)
+            end
         end
     elseif method==:native
         if NA>=NB
             for sA in sectors(A), sB in sectors(B)
-                sC=tuple(sA...,sB...)[oindC]
-                TensorOperations.tensorcontract_native!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
-                betadict[sC]=one(beta)
+                if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
+                    sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
+                    TensorOperations.tensorcontract_native!(alpha,A[sA],conjA,B[sB],conjB,betadict[sC],C[sC],buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
+                    betadict[sC]=one(beta)
+                end
             end
         else
             for sA in sectors(A), sB in sectors(B)
-                sC=tuple(sA...,sB...)[oindC]
-                TensorOperations.tensorcontract_native!(alpha,B[sB],conjB,A[sA],conjA,betadict[sC],C[sC],buffer,oindB,cindB,oindA,cindA,oindCB,oindCA)
-                betadict[sC]=one(beta)
+                if (conjA==conjB ? sA[cindA]==map(conj,sB[cindB]) : sA[cindA]==sB[cindB])
+                    sC=tuple((conjA=='C' ? map(conj,sA) : sA)...,(conjB=='C' ? map(conj,sB) : sB)...)[posC]
+                    TensorOperations.tensorcontract_native!(alpha,B[sB],conjB,A[sA],conjA,betadict[sC],C[sC],buffer,oindB,cindB,oindA,cindA,oindCB,oindCA)
+                    betadict[sC]=one(beta)
+                end
             end
         end
     else
         throw(ArgumentError("method should be :BLAS or :native"))
     end
+    return C
 end
 
 function tensorproduct!(alpha::Number,A::InvariantTensor,labelsA,B::InvariantTensor,labelsB,beta::Number,C::InvariantTensor,labelsC)
@@ -404,13 +427,23 @@ end
     iscnumber(V) || throw(SpaceError("can only insert index with c-number index space"))
     spacet=space(t)
     newspace=spacet[1:ind] ⊗ V ⊗ spacet[ind+1:N]
-    return tensor(t.data,newspace)
+    tdest=similar(t,newspace)
+    for s in sectors(tdest)
+        st=tuple(s[1:ind]...,s[ind+2:N+1]...)
+        copy!(tdest[s],t[st])
+    end
+    return tdest
 end
 @eval function deleteind(t::Tensor,ind::Int)
     1<=ind<=numind(t) || throw(IndexError("index out of range"))
     iscnumber(space(t,ind)) || throw(SpaceError("can only delete index with c-number index space"))
     spacet=space(t)
     newspace=spacet[1:ind-1] ⊗ spacet[ind+1:N]
+    tdest=similar(t,newspace)
+    for s in sectors(tsource)
+        st=tuple(s[1:ind-1]...,s[ind+1:N]...)
+        copy!(tdest[st],t[s])
+    end
     return tensor(t.data,newspace)
 end
 
@@ -440,360 +473,1158 @@ typealias AbelianTensor{G<:Abelian,T,N} InvariantTensor{G,AbelianSpace{G},T,N}
 
 # Factorizations:
 #-----------------
-function svd!(t::AbelianTensor,n::Int,::NoTruncation)
+function _reorderdata!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},tmp::Vector{T},n::Int)
+    # Reorders data in t, using a temporary array of size dim(t), as preparation for
+    # a factorization according to a cut between index n and index n+1. The resulting
+    # tensor t is no longer safe to use, as t will no longer be equal to tensor(vec(t),space(t)).
+
+    spacet=space(t)
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    
+    length(tmp)==dim(spacet) || throw(DimensionMismatch())
+    
+    t2=tensor(tmp,space(t))
+    copy!(t2,t)
+    
+    leftdims=Dict{NTuple{n,G},Int}()
+    rightdims=Dict{NTuple{N-n,G},Int}()
+    for s in sectors(t2)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        leftdims[ls]=dim(leftspace,ls)
+        rightdims[rs]=dim(rightspace,rs)
+    end
+    
+    # Determine sizes of blocks of constant fusing charge
+    blockleftdims=Dict{G,Int}()
+    blockrightdims=Dict{G,Int}()
+    leftoffsets=Dict{NTuple{n,G},Int}()
+    rightoffsets=Dict{NTuple{N-n,G},Int}()
+    for s in keys(leftdims)
+        c=prod(s)
+        leftoffsets[s]=get(blockleftdims,c,0)
+        blockleftdims[c]=get(blockleftdims,c,0)+leftdims[s]
+    end
+    for s in keys(rightdims)
+        c=conj(prod(s))
+        rightoffsets[s]=get(blockrightdims,c,0)
+        blockrightdims[c]=get(blockrightdims,c,0)+rightdims[s]
+    end
+    
+    # Build new blocks in t
+    blocks=Dict{G,Array{T,2}}()
+    offset=0
+    for c in keys(blockleftdims)
+        blocks[c]=pointer_to_array(pointer(t.data,offset+1),(blockleftdims[c],blockrightdims[c]))
+        offset+=length(blocks[c])
+    end
+    for s in sectors(t2)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        
+        src=reshape(t2[s],(ld,rd))
+        copy!(blocks[c],lo+(1:ld),ro+(1:rd),src,1:ld,1:rd)
+    end
+    return blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims
+end
+
+function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,::NoTruncation)
     # Perform singular value decomposition corresponding to bipartion of the
     # tensor indices into the left indices 1:n and remaining right indices,
     # thereby destroying the original tensor.
-    N=numind(t)
+    
     spacet=space(t)
     leftspace=spacet[1:n]
     rightspace=spacet[n+1:N]
-
-
-
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    data=reshape(t.data,(leftdim,rightdim))
-    F=svdfact!(data)
-    newdim=length(F[:S])
-    newspace=$S(newdim)
-    U=tensor(F[:U],leftspace*newspace')
-    Sigma=tensor(diagm(F[:S]),newspace*newspace')
-    V=tensor(F[:Vt],newspace*rightspace)
-    return U,Sigma,V,abs(zero(eltype(t)))
-end
-
-function svd!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
-    # Truncate rank corresponding to bipartition into left indices 1:n
-    # and remain right indices, based on singular value decomposition,
-    # thereby destroying the original tensor.
-    # Truncation parameters are given as keyword arguments: trunctol should
-    # always be one of the possible arguments for specifying truncation, but
-    # truncdim can be replaced with different parameters for other types of tensors.
-
-    N=numind(t)
-    spacet=space(t)
-    leftspace=spacet[1:n]
-    rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    dim(trunc) >= min(leftdim,rightdim) && return svd!(t,n)
-    data=reshape(t.data,(leftdim,rightdim))
-    F=svdfact!(data)
-    sing=F[:S]
-    truncdim=dim(trunc)
-    newspace=$S(truncdim)
-
-    # truncate
-    truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-    U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-    Sigma=tensor(diagm(sing[1:truncdim]),newspace*newspace')
-    V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-    return U,Sigma,V,truncerr
-end
-
-function svd!(t::$TT,n::Int,trunc::TruncationError)
-    # Truncate rank corresponding to bipartition into left indices 1:n
-    # and remain right indices, based on singular value decomposition,
-    # thereby destroying the original tensor.
-    # Truncation parameters are given as keyword arguments: trunctol should
-    # always be one of the possible arguments for specifying truncation, but
-    # truncdim can be replaced with different parameters for other types of tensors.
-
-    N=numind(t)
-    spacet=space(t)
-    leftspace=spacet[1:n]
-    rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    data=reshape(t.data,(leftdim,rightdim))
-    F=svdfact!(data)
-
-    # find truncdim based on trunctolinfo
-    sing=F[:S]
-    normsing=vecnorm(sing)
-    truncdim=0
-    while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
-        truncdim+=1
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    # prepare data
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
     end
-    newspace=$S(truncdim)
-
-    # truncate
-    truncerr=vecnorm(sing[(truncdim+1):end])/normsing
-    U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-    Sigma=tensor(diagm(sing[1:truncdim]),newspace*newspace')
-    V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-    return U,Sigma,V,truncerr
-end
-
-function leftorth!(t::$TT,n::Int,::NoTruncation)
-    # Create orthogonal basis U for indices 1:n, and remainder C for right
-    # indices, thereby destroying the original tensor.
-    # Decomposition should be unique, such that it always returns the same
-    # result for the same input tensor t. UC = QR is fastest but only unique
-    # after correcting for phases.
-    N=numind(t)
-    spacet=space(t)
-    leftspace=spacet[1:n]
-    rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    data=reshape(t.data,(leftdim,rightdim))
-    if leftdim>rightdim
-        newdim=rightdim
-        tau=zeros(eltype(data),(newdim,))
-        Base.LinAlg.LAPACK.geqrf!(data,tau)
-
-        C=zeros(eltype(t),(newdim,newdim))
-        for j in 1:newdim
-            for i in 1:j
-                @inbounds C[i,j]=data[i,j]
-            end
-        end
-        Base.LinAlg.LAPACK.orgqr!(data,tau)
-        U=data
-        for i=1:newdim
-            tau[i]=sign(C[i,i])
-        end
-        scale!(U,tau)
-        scale!(conj!(tau),C)
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceV=invariant(newspace*rightspace)
+    spaceS=invariant(newspace*newspace')
+    if abs(dim(spaceU)-length(tmp)) < abs(dim(spaceV)-length(tmp))
+        dataU=resize!(tmp,dim(spaceU))
+        dataV=Array(T,dim(spaceV))
     else
-        newdim=leftdim
-        C=data
-        U=eye(eltype(data),newdim)
+        dataU=Array(T,dim(spaceU))
+        dataV=resize!(tmp,dim(spaceV))
     end
-
-    newspace=$S(newdim)
-    return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace), abs(zero(eltype(t)))
+    dataS=zeros(ST,dim(spaceS))
+    U=tensor(dataU,spaceU)
+    V=tensor(dataV,spaceV)
+    S=tensor(dataS,spaceS)
+    
+    for c in sectors(newspace)
+        Sblock=S[tuple(c,conj(c))]
+        F=facts[c]
+        for i=1:dims[c]
+            Sblock[i,i]=F[:S][i]
+        end
+    end
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        
+        F=facts[c]
+        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+    end
+    
+    return U,S,V,truncerr
 end
 
-function leftorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
-    # Truncate rank corresponding to bipartition into left indices 1:n
-    # and remain right indices, based on singular value decomposition,
+function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationDimension)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
     # thereby destroying the original tensor.
-    # Truncation parameters are given as keyword arguments: trunctol should
-    # always be one of the possible arguments for specifying truncation, but
-    # truncdim can be replaced with different parameters for other types of tensors.
-
-    N=numind(t)
     spacet=space(t)
     leftspace=spacet[1:n]
     rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    dim(trunc) >= min(leftdim,rightdim) && return leftorth!(t,n)
-    data=reshape(t.data,(leftdim,rightdim))
-    F=svdfact!(data)
-    sing=F[:S]
-
-    # compute truncation dimension
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
+    normsing=vecnorm(sing)
     if eps(trunc)!=0
-        sing=F[:S]
-        normsing=vecnorm(sing)
         truncdim=0
-        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+        while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
             truncdim+=1
         end
         truncdim=min(truncdim,dim(trunc))
     else
         truncdim=dim(trunc)
     end
-    newspace=$S(truncdim)
-
-    # truncate
-    truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-    U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-    C=tensor(scale!(sing[1:truncdim],F[:Vt][1:truncdim,:]),newspace*rightspace)
-    return U,C,truncerr
+    if truncdim<length(sing)
+        truncerr=vecnorm(slice(sing,(truncdim+1):numsing))/normsing
+        trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+    else
+        trunctol=zero(ST)
+    end
+    for c in keys(facts)
+        F=facts[c]
+        dims[c]=sum(F[:S].>trunctol)
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceV=invariant(newspace*rightspace)
+    spaceS=invariant(newspace*newspace')
+    if abs(dim(spaceU)-length(tmp)) < abs(dim(spaceV)-length(tmp))
+        dataU=resize!(tmp,dim(spaceU))
+        dataV=Array(T,dim(spaceV))
+    else
+        dataU=Array(T,dim(spaceU))
+        dataV=resize!(tmp,dim(spaceV))
+    end
+    dataS=zeros(ST,dim(spaceS))
+    U=tensor(dataU,spaceU)
+    V=tensor(dataV,spaceV)
+    S=tensor(dataS,spaceS)
+    
+    for c in sectors(newspace)
+        Sblock=S[tuple(c,conj(c))]
+        F=facts[c]
+        for i=1:dims[c]
+            Sblock[i,i]=F[:S][i]
+        end
+    end
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        
+        F=facts[c]
+        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+    end
+    
+    return U,S,V,truncerr
 end
 
-function leftorth!(t::$TT,n::Int,trunc::TruncationError)
-    # Truncate rank corresponding to bipartition into left indices 1:n
-    # and remain right indices, based on singular value decomposition,
+function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationSpace)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
     # thereby destroying the original tensor.
-    # Truncation parameters are given as keyword arguments: trunctol should
-    # always be one of the possible arguments for specifying truncation, but
-    # truncdim can be replaced with different parameters for other types of tensors.
-
-    N=numind(t)
     spacet=space(t)
     leftspace=spacet[1:n]
     rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    data=reshape(t.data,(leftdim,rightdim))
-    F=svdfact!(data)
-
-    # compute truncation dimension
-    sing=F[:S]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
     normsing=vecnorm(sing)
+    if eps(trunc)!=0
+        truncdim=0
+        while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
+            truncdim+=1
+        end
+        if truncdim<length(sing)
+            trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+        else
+            trunctol=zero(ST)
+        end
+        for c in keys(facts)
+            F=facts[c]
+            dims[c]=min(sum(F[:S].>=trunctol),dim(space(trunc),c))
+        end
+    else
+        for c in keys(facts)
+            F=facts[c]
+            dims[c]=min(dims[c],dim(space(trunc),c))
+        end
+    end
+    newspace=AbelianSpace(dims)
+    fill!(sing,0)
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for i=1:dims[c]
+            sing[ind]=F[:S][i]
+            ind+=1
+        end
+    end
+    truncerr=vecnorm(sing)/normsing
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceV=invariant(newspace*rightspace)
+    spaceS=invariant(newspace*newspace')
+    if abs(dim(spaceU)-length(tmp)) < abs(dim(spaceV)-length(tmp))
+        dataU=resize!(tmp,dim(spaceU))
+        dataV=Array(T,dim(spaceV))
+    else
+        dataU=Array(T,dim(spaceU))
+        dataV=resize!(tmp,dim(spaceV))
+    end
+    dataS=zeros(ST,dim(spaceS))
+    U=tensor(dataU,spaceU)
+    V=tensor(dataV,spaceV)
+    S=tensor(dataS,spaceS)
+    
+    for c in sectors(newspace)
+        Sblock=S[tuple(c,conj(c))]
+        F=facts[c]
+        for i=1:dims[c]
+            Sblock[i,i]=F[:S][i]
+        end
+    end
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        
+        F=facts[c]
+        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+    end
+    
+    return U,S,V,truncerr
+end
+
+function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationError)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
+    # thereby destroying the original tensor.
+    spacet=space(t)
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    normsing=vecnorm(sing)
+    numsing=length(sing)
     truncdim=0
-    while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+    while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
         truncdim+=1
     end
-    newspace=$S(truncdim)
+    if truncdim<length(sing)
+        truncerr=vecnorm(slice(sing,(truncdim+1):numsing))/normsing
+        trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+    else
+        trunctol=zero(ST)
+    end
+    for c in keys(facts)
+        F=facts[c]
+        dims[c]=sum(F[:S].>=trunctol)
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceV=invariant(newspace*rightspace)
+    spaceS=invariant(newspace*newspace')
+    if abs(dim(spaceU)-length(tmp)) < abs(dim(spaceV)-length(tmp))
+        dataU=resize!(tmp,dim(spaceU))
+        dataV=Array(T,dim(spaceV))
+    else
+        dataU=Array(T,dim(spaceU))
+        dataV=resize!(tmp,dim(spaceV))
+    end
+    dataS=zeros(ST,dim(spaceS))
+    U=tensor(dataU,spaceU)
+    V=tensor(dataV,spaceV)
+    S=tensor(dataS,spaceS)
+    
+    for c in sectors(newspace)
+        Sblock=S[tuple(c,conj(c))]
+        F=facts[c]
+        for i=1:dims[c]
+            Sblock[i,i]=F[:S][i]
+        end
+    end
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        
+        F=facts[c]
+        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+    end
+    
+    return U,S,V,truncerr
+end
 
-    # truncate
-    truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-    U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-    C=tensor(scale!(sing[1:truncdim],F[:Vt][1:truncdim,:]),newspace*rightspace)
-
+function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,::NoTruncation)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
+    # thereby destroying the original tensor.
+    spacet=space(t)
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    # prepare data
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    Us=Dict{G,Array{T,2}}()
+    Cs=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        if blockleftdims[c]>blockrightdims[c]
+            F=qrfact!(blocks[c])
+            Us[c]=full(F[:Q])
+            Cs[c]=full(F[:R])
+        else
+            Us[c]=eye(T,blockleftdims[c])
+            Cs[c]=blocks[c]
+        end
+        dims[c]=min(blockleftdims[c],blockrightdims[c])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceC=invariant(newspace*rightspace)
+    dataU=resize!(tmp,dim(spaceU))
+    dataC=Array(T,dim(spaceC))
+    U=tensor(dataU,spaceU)
+    C=tensor(dataC,spaceC)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        
+        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+    end
+    
     return U,C,truncerr
 end
 
-function rightorth!(t::$TT,n::Int,::NoTruncation)
-    # Create orthogonal basis U for right indices, and remainder C for left
-    # indices. Decomposition should be unique, such that it always returns the
-    # same result for the same input tensor t. CU = LQ is typically fastest but only
-    # unique after correcting for phases.
-    N=numind(t)
-    spacet=space(t)
-    leftspace=spacet[1:n]
-    rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    data=reshape(t.data,(leftdim,rightdim))
-    if leftdim<rightdim
-        newdim=leftdim
-        tau=zeros(eltype(data),(newdim,))
-        Base.LinAlg.LAPACK.gelqf!(data,tau)
-
-        C=zeros(eltype(data),(newdim,newdim))
-        for j=1:newdim
-            for i=j:newdim
-                @inbounds C[i,j]=data[i,j]
-            end
-        end
-        Base.LinAlg.LAPACK.orglq!(data,tau)
-        U=data
-        for i=1:newdim
-            tau[i]=sign(C[i,i])
-        end
-        scale!(tau,U)
-        scale!(C,conj!(tau))
-    else
-        newdim=rightdim
-        C=data
-        U=eye(eltype(data),newdim)
-    end
-
-    newspace=$S(newdim)
-    return tensor(C,leftspace ⊗ dual(newspace)), tensor(U,newspace ⊗ rightspace), abs(zero(eltype(t)))
-end
-
-function rightorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
-    # Truncate rank corresponding to bipartition into left indices 1:n
-    # and remain right indices, based on singular value decomposition,
+function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationDimension)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
     # thereby destroying the original tensor.
-    # Truncation parameters are given as keyword arguments: trunctol should
-    # always be one of the possible arguments for specifying truncation, but
-    # truncdim can be replaced with different parameters for other types of tensors.
-
-    N=numind(t)
     spacet=space(t)
     leftspace=spacet[1:n]
     rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    dim(trunc) >= min(leftdim,rightdim) && return rightorth!(t,n)
-    data=reshape(t.data,(leftdim,rightdim))
-    F=svdfact!(data)
-    sing=F[:S]
-
-    # compute truncation dimension
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    Us=Dict{G,Array{T,2}}()
+    Cs=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+        Us[c]=F[:U]
+        Cs[c]=scale!(F[:S],F[:Vt])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
+    normsing=vecnorm(sing)
     if eps(trunc)!=0
-        sing=F[:S]
-        normsing=vecnorm(sing)
         truncdim=0
-        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+        while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
             truncdim+=1
         end
         truncdim=min(truncdim,dim(trunc))
     else
         truncdim=dim(trunc)
     end
-    newspace=$S(truncdim)
-
-    # truncate
-    truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-    C=tensor(scale!(F[:U][:,1:truncdim],sing[1:truncdim]),leftspace*newspace')
-    U=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-    return C,U,truncerr
+    if truncdim<length(sing)
+        truncerr=vecnorm(slice(sing,(truncdim+1):numsing))/normsing
+        trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+    else
+        trunctol=zero(ST)
+    end
+    for c in keys(facts)
+        F=facts[c]
+        dims[c]=sum(F[:S].>trunctol)
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceC=invariant(newspace*rightspace)
+    dataU=resize!(tmp,dim(spaceU))
+    dataC=Array(T,dim(spaceC))
+    U=tensor(dataU,spaceU)
+    C=tensor(dataC,spaceC)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        
+        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+    end
+    
+    return U,C,truncerr
 end
 
-function rightorth!(t::$TT,n::Int,trunc::TruncationError)
-    # Truncate rank corresponding to bipartition into left indices 1:n
-    # and remain right indices, based on singular value decomposition,
+function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationSpace)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
     # thereby destroying the original tensor.
-    # Truncation parameters are given as keyword arguments: trunctol should
-    # always be one of the possible arguments for specifying truncation, but
-    # truncdim can be replaced with different parameters for other types of tensors.
-
-    N=numind(t)
     spacet=space(t)
     leftspace=spacet[1:n]
     rightspace=spacet[n+1:N]
-    leftdim=dim(leftspace)
-    rightdim=dim(rightspace)
-    data=reshape(t.data,(leftdim,rightdim))
-    F=svdfact!(data)
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    Us=Dict{G,Array{T,2}}()
+    Cs=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+        Us[c]=F[:U]
+        Cs[c]=scale!(F[:S],F[:Vt])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
+    normsing=vecnorm(sing)
+    if eps(trunc)!=0
+        truncdim=0
+        while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
+            truncdim+=1
+        end
+        if truncdim<length(sing)
+            trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+        else
+            trunctol=zero(ST)
+        end
+        for c in keys(facts)
+            F=facts[c]
+            dims[c]=min(sum(F[:S].>=trunctol),dim(space(trunc),c))
+        end
+    else
+        for c in keys(facts)
+            F=facts[c]
+            dims[c]=min(dims[c],dim(space(trunc),c))
+        end
+    end
+    newspace=AbelianSpace(dims)
+    fill!(sing,0)
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for i=1:dims[c]
+            sing[ind]=F[:S][i]
+            ind+=1
+        end
+    end
+    truncerr=vecnorm(sing)/normsing
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceC=invariant(newspace*rightspace)
+    dataU=resize!(tmp,dim(spaceU))
+    dataC=Array(T,dim(spaceC))
+    U=tensor(dataU,spaceU)
+    C=tensor(dataC,spaceC)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        
+        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+    end
+    
+    return U,C,truncerr
+end
 
-    # compute truncation dimension
-    sing=F[:S]
+function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationError)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
+    # thereby destroying the original tensor.
+    spacet=space(t)
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    Us=Dict{G,Array{T,2}}()
+    Cs=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+        Us[c]=F[:U]
+        Cs[c]=scale!(F[:S],F[:Vt])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
     normsing=vecnorm(sing)
     truncdim=0
-    while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
+    while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
         truncdim+=1
     end
-    newspace=$S(truncdim)
+    if truncdim<length(sing)
+        truncerr=vecnorm(slice(sing,(truncdim+1):numsing))/normsing
+        trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+    else
+        trunctol=zero(ST)
+    end
+    for c in keys(facts)
+        F=facts[c]
+        dims[c]=sum(F[:S].>=trunctol)
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceU=invariant(leftspace*newspace')
+    spaceC=invariant(newspace*rightspace)
+    dataU=resize!(tmp,dim(spaceU))
+    dataC=Array(T,dim(spaceC))
+    U=tensor(dataU,spaceU)
+    C=tensor(dataC,spaceC)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        
+        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+    end
+    
+    return U,C,truncerr
+end
 
-    # truncate
-    truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-    C=tensor(scale!(F[:U][:,1:truncdim],sing[1:truncdim]),leftspace*newspace')
-    U=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
+function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,::NoTruncation)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
+    # thereby destroying the original tensor.
+    spacet=space(t)
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    # prepare data
+    tmp=similar(vec(t))
+    t2=tensor(tmp,space(t))
+    copy!(t2,t)
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t2,t.data,n)
+    offset=0
+    tblocks=Dict{G,Array{T,2}}()
+    for c in keys(blockleftdims)
+        tblocks[c]=pointer_to_array(pointer(t.data,offset+1),(blockrightdims[c],blockleftdims[c]))
+        Base.transpose!(tblocks[c],blocks[c])
+        offset+=length(tblocks[c])
+    end
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    Cs=Dict{G,Array{T,2}}()
+    Us=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        if blockleftdims[c]<blockrightdims[c]
+            F=qrfact!(tblocks[c])
+            Us[c]=full(F[:Q])
+            Cs[c]=full(F[:R])
+        else
+            Us[c]=eye(T,blockrightdims[c])
+            Cs[c]=tblocks[c]
+        end
+        dims[c]=min(blockleftdims[c],blockrightdims[c])
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceC=invariant(leftspace*newspace')
+    spaceU=invariant(newspace*rightspace)
+    dataC=Array(T,dim(spaceC))
+    dataU=resize!(tmp,dim(spaceU))
+    C=tensor(dataC,spaceC)
+    U=tensor(dataU,spaceU)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        
+        Base.transpose!(Cblock,slice(Cs[c],1:d,lo+(1:ld)))
+        Base.transpose!(Ublock,slice(Us[c],ro+(1:rd),1:d))
+    end
+    
     return C,U,truncerr
 end
 
-# Methods below are only implemented for CartesianMatrix or ComplexMatrix:
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-typealias ComplexMatrix{T} ComplexTensor{T,2}
-typealias CartesianMatrix{T} CartesianTensor{T,2}
-
-function Base.pinv(t::Union(ComplexMatrix,CartesianMatrix))
-    # Compute pseudo-inverse
+function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationDimension)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
+    # thereby destroying the original tensor.
     spacet=space(t)
-    data=copy(t.data)
-    leftdim=dim(spacet[1])
-    rightdim=dim(spacet[2])
-
-    F=svdfact!(data)
-    Sinv=F[:S]
-    for k=1:length(Sinv)
-        if Sinv[k]>eps(Sinv[1])*max(leftdim,rightdim)
-            Sinv[k]=one(Sinv[k])/Sinv[k]
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    Cs=Dict{G,Array{T,2}}()
+    Us=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+        Cs[c]=scale!(F[:U],F[:S])
+        Us[c]=F[:Vt]
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
         end
     end
-    data=F[:V]*scale(F[:S],F[:U]')
-    return tensor(data,spacet')
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
+    normsing=vecnorm(sing)
+    if eps(trunc)!=0
+        truncdim=0
+        while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
+            truncdim+=1
+        end
+        truncdim=min(truncdim,dim(trunc))
+    else
+        truncdim=dim(trunc)
+    end
+    if truncdim<length(sing)
+        truncerr=vecnorm(slice(sing,(truncdim+1):numsing))/normsing
+        trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+    else
+        trunctol=zero(ST)
+    end
+    for c in keys(facts)
+        F=facts[c]
+        dims[c]=sum(F[:S].>trunctol)
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceC=invariant(leftspace*newspace')
+    spaceU=invariant(newspace*rightspace)
+    dataC=Array(T,dim(spaceC))
+    dataU=resize!(tmp,dim(spaceU))
+    C=tensor(dataC,spaceC)
+    U=tensor(dataU,spaceU)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        
+        copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
+        copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+    end
+    
+    return C,U,truncerr
 end
 
-function Base.eig(t::Union(ComplexMatrix,CartesianMatrix))
-    # Compute eigenvalue decomposition.
+function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationSpace)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
+    # thereby destroying the original tensor.
     spacet=space(t)
-    spacet[1] == spacet[2]' || throw(SpaceError("eigenvalue factorization only exists if left and right index space are dual"))
-    data=copy(t.data)
-
-    F=eigfact!(data)
-
-    Lambda=tensor(diagm(F[:values]),spacet)
-    V=tensor(F[:vectors],spacet)
-    return Lambda, V
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    Cs=Dict{G,Array{T,2}}()
+    Us=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+        Cs[c]=scale!(F[:U],F[:S])
+        Us[c]=F[:Vt]
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
+    normsing=vecnorm(sing)
+    if eps(trunc)!=0
+        truncdim=0
+        while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
+            truncdim+=1
+        end
+        if truncdim<length(sing)
+            trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+        else
+            trunctol=zero(ST)
+        end
+        for c in keys(facts)
+            F=facts[c]
+            dims[c]=min(sum(F[:S].>=trunctol),dim(space(trunc),c))
+        end
+    else
+        for c in keys(facts)
+            F=facts[c]
+            dims[c]=min(dims[c],dim(space(trunc),c))
+        end
+    end
+    newspace=AbelianSpace(dims)
+    fill!(sing,0)
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for i=1:dims[c]
+            sing[ind]=F[:S][i]
+            ind+=1
+        end
+    end
+    truncerr=vecnorm(sing)/normsing
+    
+    # bring output in tensor form
+    spaceC=invariant(leftspace*newspace')
+    spaceU=invariant(newspace*rightspace)
+    dataC=Array(T,dim(spaceC))
+    dataU=resize!(tmp,dim(spaceU))
+    C=tensor(dataC,spaceC)
+    U=tensor(dataU,spaceU)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        
+        copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
+        copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+    end
+    
+    return C,U,truncerr
 end
 
-function Base.inv(t::Union(ComplexMatrix,CartesianMatrix))
-    # Compute inverse.
+function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationError)
+    # Perform singular value decomposition corresponding to bipartion of the
+    # tensor indices into the left indices 1:n and remaining right indices,
+    # thereby destroying the original tensor.
     spacet=space(t)
-    spacet[1] == spacet[2]' || throw(SpaceError("inverse only exists if left and right index space are dual"))
-
-    return tensor(inv(t.data),spacet)
+    leftspace=spacet[1:n]
+    rightspace=spacet[n+1:N]
+    truncerr=abs(zero(T))
+    ST=typeof(truncerr)
+    
+    tmp=similar(vec(t))
+    blocks, blockleftdims, blockrightdims, leftoffsets, rightoffsets, leftdims, rightdims = _reorderdata!(t,tmp,n)
+    
+    # perform singular value decomposition
+    dims=Dict{G,Int}()
+    facts=Dict{G,Base.LinAlg.SVD{T,ST}}()
+    Cs=Dict{G,Array{T,2}}()
+    Us=Dict{G,Array{T,2}}()
+    for c in keys(blocks)
+        F=svdfact!(blocks[c])
+        facts[c]=F
+        dims[c]=length(F[:S])
+        Cs[c]=scale!(F[:U],F[:S])
+        Us[c]=F[:Vt]
+    end
+    newspace=AbelianSpace(dims)
+    
+    # perform truncation
+    sing=Array(ST,sum(values(dims)))
+    ind=1
+    for c in keys(facts)
+        F=facts[c]
+        for sigma in F[:S]
+            sing[ind]=sigma
+            ind+=1
+        end
+    end
+    sing=sort!(sing,rev=true)
+    numsing=length(sing)
+    normsing=vecnorm(sing)
+    truncdim=0
+    while truncdim<length(sing) && vecnorm(slice(sing,(truncdim+1):numsing))>eps(trunc)*normsing
+        truncdim+=1
+    end
+    if truncdim<length(sing)
+        truncerr=vecnorm(slice(sing,(truncdim+1):numsing))/normsing
+        trunctol=sqrt(sing[truncdim]*sing[truncdim+1])
+    else
+        trunctol=zero(ST)
+    end
+    for c in keys(facts)
+        F=facts[c]
+        dims[c]=sum(F[:S].>=trunctol)
+    end
+    newspace=AbelianSpace(dims)
+    
+    # bring output in tensor form
+    spaceC=invariant(leftspace*newspace')
+    spaceU=invariant(newspace*rightspace)
+    dataC=Array(T,dim(spaceC))
+    dataU=resize!(tmp,dim(spaceU))
+    C=tensor(dataC,spaceC)
+    U=tensor(dataU,spaceU)
+    
+    for s in sectors(t)
+        ls=s[1:n]
+        rs=s[n+1:N]
+        c=prod(ls)
+        lo=leftoffsets[ls]
+        ro=rightoffsets[rs]
+        ld=leftdims[ls]
+        rd=rightdims[rs]
+        d=dims[c]
+        
+        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        
+        copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
+        copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+    end
+    
+    return C,U,truncerr
 end
+
+# # Methods below are only implemented for CartesianMatrix or ComplexMatrix:
+# #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# typealias ComplexMatrix{T} ComplexTensor{T,2}
+# typealias CartesianMatrix{T} CartesianTensor{T,2}
+#
+# function Base.pinv(t::Union(ComplexMatrix,CartesianMatrix))
+#     # Compute pseudo-inverse
+#     spacet=space(t)
+#     data=copy(t.data)
+#     leftdim=dim(spacet[1])
+#     rightdim=dim(spacet[2])
+#
+#     F=svdfact!(data)
+#     Sinv=F[:S]
+#     for k=1:length(Sinv)
+#         if Sinv[k]>eps(Sinv[1])*max(leftdim,rightdim)
+#             Sinv[k]=one(Sinv[k])/Sinv[k]
+#         end
+#     end
+#     data=F[:V]*scale(F[:S],F[:U]')
+#     return tensor(data,spacet')
+# end
+#
+# function Base.eig(t::Union(ComplexMatrix,CartesianMatrix))
+#     # Compute eigenvalue decomposition.
+#     spacet=space(t)
+#     spacet[1] == spacet[2]' || throw(SpaceError("eigenvalue factorization only exists if left and right index space are dual"))
+#     data=copy(t.data)
+#
+#     F=eigfact!(data)
+#
+#     Lambda=tensor(diagm(F[:values]),spacet)
+#     V=tensor(F[:vectors],spacet)
+#     return Lambda, V
+# end
+#
+# function Base.inv(t::Union(ComplexMatrix,CartesianMatrix))
+#     # Compute inverse.
+#     spacet=space(t)
+#     spacet[1] == spacet[2]' || throw(SpaceError("inverse only exists if left and right index space are dual"))
+#
+#     return tensor(inv(t.data),spacet)
+# end

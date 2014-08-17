@@ -36,6 +36,9 @@ numind{S,P,T,N}(::AbstractTensor{S,P,T,N})=N
 numind{S,P<:TensorSpace,T,N}(::Type{AbstractTensor{S,P,T,N}})=N
 numind{T<:TensorSpace}(::Type{T})=numind(super(T))
 
+dim(t::AbstractTensor)=dim(space(t))
+sectors(t::AbstractTensor)=sectors(space(t))
+
 order=numind
 
 # check whether a tensor describes a valid state in a Hilbert space encoded as a QuantumSystem object

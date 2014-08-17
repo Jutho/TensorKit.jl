@@ -37,6 +37,8 @@ Base.done(P::ProductSpace, state) = done(P.spaces, state)
 
 # Corresponding methods
 dim(P::ProductSpace) = (d=1;for V in P;d*=dim(V);end;return d)
+dim{S<:UnitaryRepresentationSpace,G<:Sector,N}(P::ProductSpace{S,N},s::NTuple{N,G})=_dim(P.spaces,s)
+sectors{S<:UnitaryRepresentationSpace,N}(P::ProductSpace{S,N})=_sectors(P.spaces)
 iscnumber(P::ProductSpace) = length(P)==0 || all(iscnumber,P)
 
 # Convention on dual, conj, transpose and ctranspose of tensor product spaces

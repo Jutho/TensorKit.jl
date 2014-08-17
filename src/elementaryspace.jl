@@ -42,7 +42,6 @@ Base.start(V::ElementarySpace) = false
 Base.next(V::ElementarySpace, state) = (V,true)
 Base.done(V::ElementarySpace, state) = state
 
-
 # CartesianSpace: standard real space R^N with euclidean structure (canonical orthonormal/cartesian basis)
 include("spaces/cartesianspace.jl")
 
@@ -54,19 +53,52 @@ include("spaces/generalspace.jl")
 
 # Graded elementary vector spaces
 #---------------------------------
-# vector spaces which have a natural decomposition as a direct sum of several sectors
+# Vector spaces which have a natural decomposition as a direct sum of several sectors
 
+# Sector: hierarchy of types for labelling different sectors, e.g. irreps, quantum numbers, anyon types, ...
 abstract Sector
-# hierarchy of types for labelling different sectors, e.g. irreps, quantum numbers, anyon types, ...
+# Abelian: sectors that have an abelian fusion structure
 abstract Abelian <: Sector
-# sectors that have an abelian fusion structure
-include("spaces/abeliansectors.jl")
+*(s::Abelian)=s
 
+# Explicit realizations
+include("spaces/sectors.jl")
+
+# UnitaryRepresentationSpace: Family of euclidean spaces that are graded corresponding to unitary representations
 abstract UnitaryRepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ}
-# euclidean space with unitary representation of some group
 
+# AbelianSpace: general space that is graded by abelian sectors (i.e. one-dimensional representations)
 include("spaces/abelianspace.jl")
 
-# vector spaces graded with abelian sectors
-#include("spaces/abelian.jl")
+# Auxiliary functionality:
+_dim{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}},s::NTuple{N,G})=(d=1;for n=1:N;d*=dim(spaces[n],s[n]);end;return d)
+
+@ngenerate N Vector{NTuple{N,G}} function _sectors{G<:Sector,N}(spaces::NTuple{N,UnitaryRepresentationSpace{G}})
+    numsectors=1
+    @nexprs N i->(s_i=collect(sectors(spaces[i]));numsectors*=length(s_i))
+    sectorlist=Array(NTuple{N,G},numsectors)
+    counter=0
+    @nloops N i d->1:length(s_d) begin
+        counter+=1
+        sectorlist[counter]=@ntuple N k->s_k[i_k]
+    end
+    return sectorlist
+end
+
+@ngenerate N Vector{NTuple{N,G}} function _invariantsectors{G<:Abelian,N}(spaces::NTuple{N,AbelianSpace{G}})
+    @nexprs N i->(s_i=collect(sectors(spaces[i])))
+    sectorlist=Array(NTuple{N,G},0)
+    @nloops N i d->1:length(s_d) begin
+        sector=@ntuple N k->s_k[i_k]
+        c=one(G)
+        for n=1:N
+            c*=sector[n]
+        end
+        if c==one(G)
+            push!(sectorlist,sector)
+        end
+    end
+    return sectorlist
+end
+
 

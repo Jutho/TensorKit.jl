@@ -10,8 +10,10 @@ module TensorToolbox
 # Types:
 export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
 export ComplexSpace, CartesianSpace, GeneralSpace
-export CompositeSpace, ProductSpace
-export IndexSpace, TensorSpace, AbstractTensor, Tensor
+export UnitaryRepresentationSpace, AbelianSpace
+export U1Charge, ZNCharge, Parity
+export CompositeSpace, ProductSpace, InvariantSpace
+export IndexSpace, TensorSpace, AbstractTensor, Tensor, InvariantTensor
 export TruncationScheme
 export AbstractTensorMap
 export SpaceError, IndexError
@@ -42,6 +44,10 @@ export notrunc, truncerr, truncdim, truncspace
 # tensor maps
 export domain, codomain, hermitian, posdef, tensormap
 
+# General imports:
+#------------------
+using Cartesian
+using Debug
 # Exception types:
 #------------------
 abstract TensorException <: Exception
@@ -49,13 +55,13 @@ abstract TensorException <: Exception
 type SpaceError <: TensorException
     message::String
 end
-SpaceError()=SpaceError("")
+SpaceError()=SpaceError("Space mismatch")
 # Exception type for all errors related to vector space mismatch
 
 type IndexError <: TensorException
     message::String
 end
-IndexError()=IndexError("")
+IndexError()=IndexError("Invalid index specification")
 # Exception type for all errors related to invalid tensor index specification.
 
 # Types and methods for vector spaces and corresponding bases
@@ -83,6 +89,7 @@ include("tensors/abstracttensor.jl")
 
 # Implementations:
 include("tensors/tensor.jl") # generic tensor living in a ProductSpace without special properties
+include("tensors/invarianttensor.jl") # generic tensor living in a ProductSpace without special properties
 
 # Tensor maps: linear maps acting on tensors
 #--------------------------------------------
