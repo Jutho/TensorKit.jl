@@ -75,6 +75,18 @@ Base.zeros(P::InvariantSpace)=zeros(Float64,P)
 Base.rand{T}(::Type{T},P::InvariantSpace)=tensor(rand(T,dim(P)),P)
 Base.rand(P::InvariantSpace)=rand(Float64,P)
 
+function Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T}(::Type{InvariantTensor{G,S,T}},V::S)
+    t=zeros(T,invariant(V⊗dual(V)))
+    for s in sectors(V)
+        for n=1:dim(V,s)
+            t[(s,conj(s))][n,n]=1
+        end
+    end
+    return t
+end
+Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T,N}(::Type{InvariantTensor{G,S,T,N}},V::S)=eye(InvariantTensor{G,S,T},V)
+Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T}(::Type{T},P::InvariantSpace{G,S,2})=(P[1]==dual(P[2]) ? eye(InvariantTensor{G,S,T},P[1]) : throw(SpaceError("Cannot construct eye-tensor when second space is not the dual of the first space")))
+
 # TO BE DONE
 # # tensors from concatenation
 # function tensorcat{S}(catind, X::Tensor{S}...)
@@ -127,12 +139,23 @@ function Base.copy!(tdest::InvariantTensor,tsource::InvariantTensor)
     end
     return tdest
 end
-Base.fill!{S,T}(tdest::InvariantTensor{S,T},value::Number)=fill!(tdest.data,convert(T,value))
+Base.fill!{G,S,T}(tdest::InvariantTensor{G,S,T},value::Number)=fill!(tdest.data,convert(T,value))
 
 # Vectorization:
 #----------------
 Base.vec(t::InvariantTensor)=t.data
 # Convert the non-trivial degrees of freedom in a tensor to a vector to be passed to eigensolvers etc.
+
+@ngenerate N Array{T,N} function Base.full{G,S,T,N}(t::InvariantTensor{G,S,T,N})
+    dims=@ntuple N n->dim(space(t,n))
+    a=zeros(T,dims)
+    for s in sectors(t)
+        @nexprs N n->(r_{n}=Base.to_range(s[n],space(t,n)))
+        (@nref N a r) = t[s]
+    end
+    return a
+end
+
 
 # Conversion and promotion:
 #---------------------------
@@ -225,7 +248,8 @@ Base.vecnorm{G<:Abelian}(t::InvariantTensor{G,AbelianSpace{G}})=vecnorm(t.data) 
 #----------
 # using sectors
 Base.getindex{G,S,T,N}(t::InvariantTensor{G,S,T,N},s::NTuple{N,G})=t._datasectors[s]
-Base.setindex!{G,S,T,N}(t::InvariantTensor{S,T,N},v::Array{T,N},s::NTuple{N,G})=(size(v)==size(t[s]) ? copy!(t[s],v) : throw(DimensionMismatch()))
+Base.setindex!{G,S,T,N}(t::InvariantTensor{G,S,T,N},v::Array,s::NTuple{N,G})=(length(v)==length(t[s]) ? copy!(t[s],v) : throw(DimensionMismatch()))
+Base.setindex!{G,S,T,N}(t::InvariantTensor{G,S,T,N},v::Number,s::NTuple{N,G})=fill!(t[s],v)
 
 # Tensor Operations
 #-------------------
@@ -369,7 +393,10 @@ function tensorcontract!(alpha::Number,A::InvariantTensor,labelsA,conjA::Char,B:
     for i=1:numopenB
         spaceC[oindCB[i]] == (conjB=='C' ? conj(ospaceB[i]) : ospaceB[i]) || throw(SpaceError("incompatible index space for label $(olabelsB[i])"))
     end
-
+    
+    if beta==0
+        fill!(C,0)
+    end
     betadict=[s=>beta for s in sectors(C)]
     posC=indexin(ulabelsC,vcat(ulabelsA,ulabelsB))
     if method==:BLAS
@@ -421,7 +448,7 @@ end
 
 # Index methods
 #---------------
-@eval function insertind{S}(t::Tensor{S},ind::Int,V::S)
+@eval function insertind{G,S}(t::InvariantTensor{G,S},ind::Int,V::S)
     N=numind(t)
     0<=ind<=N || throw(IndexError("index out of range"))
     iscnumber(V) || throw(SpaceError("can only insert index with c-number index space"))
@@ -434,7 +461,7 @@ end
     end
     return tdest
 end
-@eval function deleteind(t::Tensor,ind::Int)
+@eval function deleteind(t::InvariantTensor,ind::Int)
     1<=ind<=numind(t) || throw(IndexError("index out of range"))
     iscnumber(space(t,ind)) || throw(SpaceError("can only delete index with c-number index space"))
     spacet=space(t)
@@ -592,12 +619,14 @@ function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,::NoTruncation)
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Vblock=reshape(V[tuple(c,rs...)],(d,rd))
         
-        F=facts[c]
-        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
-        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+            F=facts[c]
+            copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+            copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+        end
     end
     
     return U,S,V,truncerr
@@ -693,12 +722,14 @@ function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationDi
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Vblock=reshape(V[tuple(c,rs...)],(d,rd))
         
-        F=facts[c]
-        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
-        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+            F=facts[c]
+            copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+            copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+        end
     end
     
     return U,S,V,truncerr
@@ -805,12 +836,14 @@ function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationSp
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Vblock=reshape(V[tuple(c,rs...)],(d,rd))
         
-        F=facts[c]
-        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
-        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+            F=facts[c]
+            copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+            copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+        end
     end
     
     return U,S,V,truncerr
@@ -901,12 +934,14 @@ function svd!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::TruncationEr
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Vblock=reshape(V[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Vblock=reshape(V[tuple(c,rs...)],(d,rd))
         
-        F=facts[c]
-        copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
-        copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+            F=facts[c]
+            copy!(Ublock,1:ld,1:d,F[:U],lo+(1:ld),1:d)
+            copy!(Vblock,1:d,1:rd,F[:Vt],1:d,ro+(1:rd))
+        end
     end
     
     return U,S,V,truncerr
@@ -961,11 +996,13 @@ function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,::NoTruncation
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Cblock=reshape(C[tuple(c,rs...)],(d,rd))
         
-        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
-        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+            copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+            copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+        end
     end
     
     return U,C,truncerr
@@ -1050,11 +1087,13 @@ function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::Truncat
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Cblock=reshape(C[tuple(c,rs...)],(d,rd))
         
-        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
-        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+            copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+            copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+        end
     end
     
     return U,C,truncerr
@@ -1150,11 +1189,13 @@ function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::Truncat
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Cblock=reshape(C[tuple(c,rs...)],(d,rd))
         
-        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
-        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+            copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+            copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+        end
     end
     
     return U,C,truncerr
@@ -1234,11 +1275,13 @@ function leftorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::Truncat
         rd=rightdims[rs]
         d=dims[c]
         
-        Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
-        Cblock=reshape(C[tuple(c,rs...)],(d,rd))
+        if d>0
+            Ublock=reshape(U[tuple(ls...,conj(c))],(ld,d))
+            Cblock=reshape(C[tuple(c,rs...)],(d,rd))
         
-        copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
-        copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+            copy!(Ublock,1:ld,1:d,Us[c],lo+(1:ld),1:d)
+            copy!(Cblock,1:d,1:rd,Cs[c],1:d,ro+(1:rd))
+        end
     end
     
     return U,C,truncerr
@@ -1302,11 +1345,13 @@ function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,::NoTruncatio
         rd=rightdims[rs]
         d=dims[c]
         
-        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
-        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        if d>0
+            Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+            Ublock=reshape(U[tuple(c,rs...)],(d,rd))
         
-        Base.transpose!(Cblock,slice(Cs[c],1:d,lo+(1:ld)))
-        Base.transpose!(Ublock,slice(Us[c],ro+(1:rd),1:d))
+            Base.transpose!(Cblock,slice(Cs[c],1:d,lo+(1:ld)))
+            Base.transpose!(Ublock,slice(Us[c],ro+(1:rd),1:d))
+        end
     end
     
     return C,U,truncerr
@@ -1391,11 +1436,13 @@ function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::Trunca
         rd=rightdims[rs]
         d=dims[c]
         
-        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
-        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        if d>0
+            Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+            Ublock=reshape(U[tuple(c,rs...)],(d,rd))
         
-        copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
-        copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+            copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
+            copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+        end
     end
     
     return C,U,truncerr
@@ -1491,11 +1538,13 @@ function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::Trunca
         rd=rightdims[rs]
         d=dims[c]
         
-        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
-        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        if d>0
+            Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+            Ublock=reshape(U[tuple(c,rs...)],(d,rd))
         
-        copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
-        copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+            copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
+            copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+        end
     end
     
     return C,U,truncerr
@@ -1575,11 +1624,13 @@ function rightorth!{G<:Abelian,T,N}(t::AbelianTensor{G,T,N},n::Int,trunc::Trunca
         rd=rightdims[rs]
         d=dims[c]
         
-        Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
-        Ublock=reshape(U[tuple(c,rs...)],(d,rd))
+        if d>0
+            Cblock=reshape(C[tuple(ls...,conj(c))],(ld,d))
+            Ublock=reshape(U[tuple(c,rs...)],(d,rd))
         
-        copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
-        copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+            copy!(Cblock,1:ld,1:d,Cs[c],lo+(1:ld),1:d)
+            copy!(Ublock,1:d,1:rd,Us[c],1:d,ro+(1:rd))
+        end
     end
     
     return C,U,truncerr

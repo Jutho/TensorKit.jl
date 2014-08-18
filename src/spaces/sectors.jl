@@ -4,12 +4,12 @@
 # Abelian Sectors:
 #-----------------
 immutable Parity <: Abelian
-    p::Bool
+    charge::Bool
 end
 Parity(d::Integer)=Parity(iseven(d))
 
-*(c1::Parity,c2::Parity)=Parity(c1.p != c2.p)
-Base.conj(c::Parity)=Parity(!c.p)
+*(c1::Parity,c2::Parity)=Parity(c1.charge != c2.charge)
+Base.conj(c::Parity)=Parity(!c.charge)
 Base.one(c::Parity)=Parity(false)
 Base.one(::Type{Parity})=Parity(false)
 

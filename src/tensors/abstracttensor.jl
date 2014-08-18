@@ -143,6 +143,8 @@ function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labe
     return C
 end
 
+Base.eye{S<:ElementarySpace}(t::AbstractTensor{S},V::S)=eye(typeof(t),V)
+
 # Factorization
 #---------------
 Base.svd{S,P,T}(t::AbstractTensor{S,P,T,2})=svd(t,1,2)

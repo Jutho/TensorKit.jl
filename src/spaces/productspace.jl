@@ -56,8 +56,9 @@ Base.convert(::Type{ProductSpace}, V::ElementarySpace) = ProductSpace(V)
 Base.promote_rule{S<:ElementarySpace,N}(::Type{ProductSpace{S,N}},::Type{S}) = ProductSpace{S}
 Base.promote_rule{S<:ElementarySpace}(::Type{ProductSpace{S}},::Type{S}) = ProductSpace{S}
 
-==(P::ProductSpace,V::ElementarySpace) = length(P) ==1 && P[1] == V
-==(V::ElementarySpace,P::ProductSpace) = length(P) ==1 && P[1] == V
+==(P1::ProductSpace,P2::ProductSpace) = P1.spaces==P2.spaces
+==(P::ProductSpace,V::ElementarySpace) = length(P)==1 && P[1] == V
+==(V::ElementarySpace,P::ProductSpace) = length(P)==1 && P[1] == V
 
 # Show method
 function Base.show(io::IO, P::ProductSpace)

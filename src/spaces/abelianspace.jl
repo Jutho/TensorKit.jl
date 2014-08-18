@@ -48,7 +48,7 @@ end
 # indexing using sectors
 function Base.to_range{G}(s::G,V::AbelianSpace{G})
     offset=0
-    for c in sectors(V)
+    for c in sort!(collect(sectors(V)),rev=V.dual,by=s->s.charge)
         if c!=s
             offset+=dim(V,c)
         else

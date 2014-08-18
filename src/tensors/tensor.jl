@@ -77,9 +77,9 @@ Base.rand{T}(::Type{T},P::ProductSpace)=tensor(rand(T,dim(P)),P)
 Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,⊗(V))
 Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
 
-Base.eye{T}(::Type{T},P::ProductSpace)=tensor(eye(T,dim(P)),P⊗dual(P))
-Base.eye{T}(::Type{T},V::IndexSpace)=eye(T,⊗(V))
-Base.eye(V::Union(ProductSpace,IndexSpace))=eye(Float64,V)
+Base.eye{S<:ElementarySpace,T}(::Type{Tensor{S,T}},V::S)=tensor(eye(T,dim(V)),V⊗dual(V))
+Base.eye{S<:ElementarySpace,T,N}(::Type{Tensor{S,T,N}},V::S)=eye(Tensor{S,T},V)
+Base.eye{S<:ElementarySpace,T}(::Type{T},P::ProductSpace{S,2})=(P[1]==dual(P[2]) ? eye(Tensor{S,T},P[1]) : throw(SpaceError("Cannot construct eye-tensor when second space is not the dual of the first space")))
 
 # tensors from concatenation
 function tensorcat{S}(catind, X::Tensor{S}...)
@@ -220,7 +220,8 @@ Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data) # frobenius norm
     return @ncall N slice t.data r
 end
 
-Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Array{T,N},s::NTuple{N,G})=(size(v)==size(t[s]) ? copy!(t[s],v) : throw(DimensionMismatch()))
+Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Array,s::NTuple{N,G})=(length(v)==length(t[s]) ? copy!(t[s],v) : throw(DimensionMismatch()))
+Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Number,s::NTuple{N,G})=fill!(t[s],v)
 
 # Tensor Operations
 #-------------------
