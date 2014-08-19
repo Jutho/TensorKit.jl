@@ -47,7 +47,7 @@ export domain, codomain, hermitian, posdef, tensormap
 # General imports:
 #------------------
 using Cartesian
-using Debug
+
 # Exception types:
 #------------------
 abstract TensorException <: Exception
