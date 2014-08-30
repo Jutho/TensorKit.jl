@@ -19,7 +19,7 @@ Base.transpose(A::TensorMap)=tensormap(A.tensor.',dual(A.dom),dual(A.codom))
 Base.ctranspose(A::TensorMap)=tensormap(A.tensor',conj(dual(A.dom)),conj(dual(A.codom)))
 
 # comparison
-# ==(A::TensorMap,B::TensorMap)=A.map==B.map
+==(A::TensorMap,B::TensorMap)=A.map==B.map
 
 # multiplication with vector
 function Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::TensorMap{S,P},x::AbstractTensor{S,P})

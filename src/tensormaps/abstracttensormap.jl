@@ -72,20 +72,3 @@ function Base.full(A::AbstractTensorMap)
     return mat
 end
 
-function Base.diag(A::AbstractTensorMap)
-    domain(A)==codomain(A) || throw(SpaceError("diag only works for operators, i.e. maps with domain == codomain"))
-    M=size(A,1)
-    T=eltype(A)
-    d=zeros(T,M)
-    v=Array(T,M)
-    w=Array(T,M)
-    for i=1:M
-        fill!(v,zero(T))
-        v[j]=one(T)
-        x=tensor(v,domain(A))
-        y=tensor(w,codomain(A))
-        A_mul_B!(y,A,x)
-        d[i]=w[i]
-    end
-    return d
-end

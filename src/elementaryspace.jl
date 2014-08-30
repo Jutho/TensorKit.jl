@@ -67,6 +67,10 @@ include("spaces/sectors.jl")
 # UnitaryRepresentationSpace: Family of euclidean spaces that are graded corresponding to unitary representations
 abstract UnitaryRepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ}
 
+sectortype{G}(V::UnitaryRepresentationSpace{G}) = G
+sectortype{G}(::Type{UnitaryRepresentationSpace{G}}) = G
+sectortype{S<:UnitaryRepresentationSpace}(::Type{S}) = sectortype(super(S))
+
 # AbelianSpace: general space that is graded by abelian sectors (i.e. one-dimensional representations)
 include("spaces/abelianspace.jl")
 

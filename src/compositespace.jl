@@ -9,6 +9,7 @@ Base.eltype{S<:CompositeSpace}(::Type{S}) = eltype(super(S))
 
 # Composite spaces with finite number of elements N, defining spaces of tensors
 abstract TensorSpace{S<:ElementarySpace,N} <: CompositeSpace{S}
+Base.isfinite{S<:ElementarySpace}(::TensorSpace{S,:Inf}) = false
 Base.isfinite(::TensorSpace) = true
 
 # Explicit realizations:

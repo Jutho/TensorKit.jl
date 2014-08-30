@@ -74,7 +74,7 @@ function *{S,P,T1,T2}(A1::AbstractTensorMap{S,P,T1},A2::AbstractTensorMap{S,P,T2
 end
 
 # comparison of CompositeMap objects
-# ==(A::CompositeMap,B::CompositeMap)=(eltype(A)==eltype(B) && A.maps==B.maps)
+==(A::CompositeMap,B::CompositeMap)=(eltype(A)==eltype(B) && A.maps==B.maps)
 
 # special transposition behavior
 transpose{S,P}(A::CompositeMap{S,P})=CompositeMap{S,P,eltype(A)}(AbstractTensorMap{S,P}[transpose(M) for M in reverse(A.maps)])

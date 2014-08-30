@@ -43,7 +43,7 @@ order=numind
 
 # check whether a tensor describes a valid state in a Hilbert space encoded as a QuantumSystem object
 # by comparing space(t) to the tensor product structure of the Hilbert space
-Base.in(t::AbstractTensor,V::VectorSpace)= issubspace(space(t),V)
+Base.in(t::AbstractTensor,V::VectorSpace)=issubspace(space(t),V)
 
 tensor(t::AbstractTensor)=t
 tensor(t::AbstractTensor,P::TensorSpace)= (space(t) == P ? t : throw(SpaceError("tensor not in $P")))
@@ -68,9 +68,10 @@ Base.copy(t::AbstractTensor)=Base.copy!(similar(t),t)
 Base.scale(a::Number,t::AbstractTensor)=scale(t,a)
 function Base.scale(t::AbstractTensor,a::Number)
     tnew=similar(t,promote_type(eltype(t),typeof(a)))
-    copy!(tnew,t)
-    scale!(tnew,a)
+    scale!(tnew,t,a)
 end
+Base.scale!(t::AbstractTensor,a::Number)=scale!(t,t,a)
+Base.scale!(a::Number,t::AbstractTensor)=scale!(t,a,t)
 
 Base.conj(t::AbstractTensor)=Base.conj!(similar(t,conj(space(t))),t)
 Base.transpose(t::AbstractTensor)=Base.transpose!(similar(t,space(t).'),t)
@@ -83,7 +84,7 @@ Base.ctranspose(t::AbstractTensor)=Base.ctranspose!(similar(t,space(t)'),t)
 Base.At_mul_B{S,P,T1,T2,N1,N2}(t1::AbstractTensor{S,P,T1,N1},t2::AbstractTensor{S,P,T2,N2})=(t3=similar(t1,promote_type(T1,T2),space(t1)[2:N1].' ⊗ space(t2)[2:N2]);tensorcontract!(1,t1,vcat(0,reverse(1:N1-1)),'N',t2,vcat(0,N1-1+(1:N2-1)),'N',0,t3,1:(numind(t1)+numind(t2)-2)))
 Base.Ac_mul_B{S,P,T1,T2,N1,N2}(t1::AbstractTensor{S,P,T1,N1},t2::AbstractTensor{S,P,T2,N2})=(t3=similar(t1,promote_type(T1,T2),space(t1)[2:N1]' ⊗ space(t2)[2:N2]);tensorcontract!(1,t1,vcat(0,reverse(1:N1-1)),'C',t2,vcat(0,N1-1+(1:N2-1)),'N',0,t3,1:(numind(t1)+numind(t2)-2)))
 
-⊗{S,P}(t1::AbstractTensor{S,P},t2::AbstractTensor{S,P})=tensorproduct(t1,1:numind(t1),t2,numind(t1)+(1:numind(t2));method=:native)
+⊗{S,P}(t1::AbstractTensor{S,P},t2::AbstractTensor{S,P})=tensorproduct(t1,1:numind(t1),t2,numind(t1)+(1:numind(t2)))
 Base.trace{S,P,T}(t::AbstractTensor{S,P,T,2})=scalar(tensortrace(t,[1,1],[]))
 
 # general tensor operations: no error checking, pass to mutating methods

@@ -17,7 +17,7 @@ Base.ishermitian(A::PosDefTensorOperator)=true
 Base.isposdef(A::PosDefTensorOperator)=true
 
 # comparison
-# ==(A::PosDefTensorOperator,B::PosDefTensorOperator)=A.map==B.map
+==(A::PosDefTensorOperator,B::PosDefTensorOperator)=A.map==B.map
 
 # multiplication with vector
 Base.A_mul_B!{S,P}(y::AbstractTensor{S,P},A::PosDefTensorOperator{S,P},x::AbstractTensor{S,P})=Base.A_mul_B!(y,A.map,x)

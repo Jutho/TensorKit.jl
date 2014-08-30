@@ -205,7 +205,9 @@ end
 #----------------
 function Base.conj!(t1::InvariantTensor,t2::InvariantTensor)
     space(t1)==conj(space(t2)) || throw(SpaceError())
-    copy!(t1.data,t2.data)
+    for s in sectors(t2)
+        copy!(t1[map(conj,s)],t2[s])
+    end
     conj!(t1.data)
     return t1
 end
@@ -229,10 +231,8 @@ function Base.ctranspose!(tdest::InvariantTensor,tsource::InvariantTensor)
     return tdest
 end
 
-Base.scale!(t::InvariantTensor,a::Number)=(scale!(t.data,a);return t)
-Base.scale!(a::Number,t::InvariantTensor)=(scale!(a,t.data);return t)
-Base.scale!{S,T,N}(t1::InvariantTensor{S,T,N},t2::InvariantTensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
-Base.scale!{S,T,N}(t1::InvariantTensor{S,T,N},a::Number,t2::InvariantTensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
+Base.scale!{G,S,T,N}(t1::InvariantTensor{G,S,T,N},t2::InvariantTensor{G,S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
+Base.scale!{G,S,T,N}(t1::InvariantTensor{G,S,T,N},a::Number,t2::InvariantTensor{G,S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
 
 Base.LinAlg.axpy!(a::Number,x::InvariantTensor,y::InvariantTensor)=(space(x)==space(y) ? Base.LinAlg.axpy!(a,x.data,y.data) : throw(SpaceError()); return y)
 

@@ -22,8 +22,8 @@ truncdim(D::Int)=TruncationDimension(D,0)
 dim(t::TruncationDimension)=t.D
 Base.eps(t::TruncationDimension)=t.epsilon
 
-Base.&(trunc1::TruncationDimension,trunc2::TruncationError)=TruncationDimension(dim(trunc1),eps(trunc2))
-Base.&(trunc2::TruncationError,trunc1::TruncationDimension)=TruncationDimension(dim(trunc1),eps(trunc2))
+Base.&(trunc1::TruncationDimension,trunc2::TruncationError)=TruncationDimension(dim(trunc1),max(eps(trunc1),eps(trunc2)))
+Base.&(trunc2::TruncationError,trunc1::TruncationDimension)=TruncationDimension(dim(trunc1),max(eps(trunc1),eps(trunc2)))
 
 immutable TruncationSpace{S<:ElementarySpace} <: TruncationScheme
     space::S
@@ -34,5 +34,5 @@ space(s::TruncationSpace) = s.space
 dim(s::TruncationSpace) = dim(s.space)
 Base.eps(t::TruncationSpace)=t.epsilon
 
-Base.&(trunc1::TruncationSpace,trunc2::TruncationError)=TruncationSpace(space(trunc1),eps(trunc2))
-Base.&(trunc2::TruncationError,trunc1::TruncationSpace)=TruncationSpace(space(trunc1),eps(trunc2))
+Base.&(trunc1::TruncationSpace,trunc2::TruncationError)=TruncationSpace(space(trunc1),max(eps(trunc1),eps(trunc2)))
+Base.&(trunc2::TruncationError,trunc1::TruncationSpace)=TruncationSpace(space(trunc1),max(eps(trunc1),eps(trunc2)))

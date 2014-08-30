@@ -20,6 +20,8 @@ GeneralSpace{F}(::Type{F},d::Int,dual::Bool=false,conj::Bool=false) = GeneralSpa
 dim(V::GeneralSpace) = V.d
 dual(V::GeneralSpace) = GeneralSpace(V.field,V.d, !V.dual, V.conj)
 Base.conj(V::GeneralSpace) = GeneralSpace(V.field,V.d, V.dual, !V.conj)
+cnumber{F}(V::GeneralSpace{F}) = GeneralSpace(F,1,V.dual,V.conj)
+cnumber{F}(::Type{GeneralSpace{F}}) = GeneralSpace(F,1,false,false)
 iscnumber(V::ElementarySpace) = dim(V)==1 && V.field <: Number
 
 # Show methods

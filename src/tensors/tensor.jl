@@ -194,8 +194,6 @@ function Base.ctranspose!(tdest::Tensor,tsource::Tensor)
     return tdest
 end
 
-Base.scale!(t::Tensor,a::Number)=(scale!(t.data,a);return t)
-Base.scale!(a::Number,t::Tensor)=(scale!(a,t.data);return t)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},t2::Tensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
 Base.scale!{S,T,N}(t1::Tensor{S,T,N},a::Number,t2::Tensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
 

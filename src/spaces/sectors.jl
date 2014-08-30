@@ -9,7 +9,7 @@ end
 Parity(d::Integer)=Parity(iseven(d))
 
 *(c1::Parity,c2::Parity)=Parity(c1.charge != c2.charge)
-Base.conj(c::Parity)=Parity(!c.charge)
+Base.conj(c::Parity)=Parity(c.charge)
 Base.one(c::Parity)=Parity(false)
 Base.one(::Type{Parity})=Parity(false)
 

@@ -8,7 +8,6 @@
 #------------
 immutable CartesianSpace <: EuclideanSpace{ℝ}
     d::Int
-    CartesianSpace(d::Int) = (d>0 ? new(d) : throw(ArgumentError("Dimension of a vector space should be bigger than zero")))
 end
 ^(::Type{ℝ},d::Int) = CartesianSpace(d)
 
@@ -27,13 +26,13 @@ directsum(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(V1.d+V2.d)
 # fusing CartesianSpace: return Bool indicating whether V1 and V2 can be fused to V
 fuse(V1::CartesianSpace,V2::CartesianSpace,V::CartesianSpace) = dim(V1)*dim(V2)==dim(V)
 
-# basis and basisvector
-typealias CartesianBasisVector BasisVector{CartesianSpace,Int} # use integer from 1 to dim as identifier
-typealias CartesianBasis Basis{CartesianSpace}
-
-Base.length(B::CartesianBasis) = dim(space(B))
-Base.start(B::CartesianBasis) = 1
-Base.next(B::CartesianBasis, state::Int) = (CartesianBasisVector(space(B),state),state+1)
-Base.done(B::CartesianBasis, state::Int) = state>length(B)
-
-Base.to_index(b::CartesianBasisVector) = b.identifier
+# # basis and basisvector
+# typealias CartesianBasisVector BasisVector{CartesianSpace,Int} # use integer from 1 to dim as identifier
+# typealias CartesianBasis Basis{CartesianSpace}
+#
+# Base.length(B::CartesianBasis) = dim(space(B))
+# Base.start(B::CartesianBasis) = 1
+# Base.next(B::CartesianBasis, state::Int) = (CartesianBasisVector(space(B),state),state+1)
+# Base.done(B::CartesianBasis, state::Int) = state>length(B)
+#
+# Base.to_index(b::CartesianBasisVector) = b.identifier

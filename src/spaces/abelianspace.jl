@@ -1,17 +1,8 @@
 immutable AbelianSpace{G<:Abelian} <: UnitaryRepresentationSpace{G}
     dims::Dict{G,Int}
     dual::Bool
-    function AbelianSpace(dims::Dict{G,Int},dual::Bool=false)
-        charges=collect(keys(dims))
-        d=[dims[c] for c in charges]
-        ind=find(d.>0)
-        isempty(ind) && throw(ArgumentError("Dimension of a vector space should be bigger than zero"))
-        new([c=>dims[c] for c in charges[ind]],dual)
-    end
 end
-AbelianSpace{G<:Abelian}(dims::Dict{G,Int},dual::Bool=false)=AbelianSpace{G}(dims,dual)
-
-==(V1::AbelianSpace,V2::AbelianSpace)=(V1.dims==V2.dims && V1.dual==V2.dual)
+AbelianSpace{G<:Abelian}(dims::Dict{G,Int})=AbelianSpace{G}(dims, false)
 
 # Corresponding methods:
 sectors(V::AbelianSpace) = keys(V.dims)
@@ -23,15 +14,18 @@ cnumber{G}(V::AbelianSpace{G}) = AbelianSpace([one(G)=>1],V.dual)
 cnumber{G}(::Type{AbelianSpace{G}}) = AbelianSpace([one(G)=>1])
 iscnumber{G}(V::AbelianSpace{G}) = V.dims == [one(G)=>1]
 
+# Comparison
+==(V1::AbelianSpace,V2::AbelianSpace)=(V1.dims==V2.dims && V1.dual==V2.dual)
+
 # Show methods
 Base.show(io::IO, V::AbelianSpace) = (print(io,"AbelianSpace");showcompact(io,V.dims);print(io, V.dual ? "*" : ""))
 
 # direct sum of AbelianSpaces
 function directsum{G}(V1::AbelianSpace{G}, V2::AbelianSpace{G})
     V1.dual == V2.dual || throw(SpaceError("Direct sum of a vector space and its dual do not exist"))
-    dims=[c1*c2=>0 for c1 in sectors(V1), c2 in sectors(V2)]
-    for c1 in sectors(V1), c2 in sectors(V2)
-        dims[c1*c2]+= dim(V1,c1)+dim(V2,c2)
+    dims=Dict{G,Int}
+    for c in union(sectors(V1),sectors(V2))
+        dims[c]=dim(V1,c)+dim(V2,c)
     end
     return AbelianSpace(dims,V1.dual)
 end

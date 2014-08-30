@@ -64,14 +64,15 @@ end
 IndexError()=IndexError("Invalid index specification")
 # Exception type for all errors related to invalid tensor index specification.
 
-# Types and methods for vector spaces and corresponding bases
-#-------------------------------------------------------------
+# Types and methods for vector spaces
+#-------------------------------------
 abstract VectorSpace
 space(V::VectorSpace) = V # just returns the space
 issubspace(V1::VectorSpace,V2::VectorSpace) = V1==V2 # default, only identical spaces are subspaces
 *(V1::VectorSpace,V2::VectorSpace) = ⊗(V1,V2) # for convenience, product of vector spaces is tensor product
 
-include("basis.jl") # defining basis of a vector space
+#include("basis.jl") # basis: iterator over a set of basis vectors spanning the space
+
 include("elementaryspace.jl") # elementary finite-dimensional vector spaces
 include("compositespace.jl") # composing elementary vector spaces
 
