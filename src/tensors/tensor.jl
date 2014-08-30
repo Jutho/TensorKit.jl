@@ -77,9 +77,11 @@ Base.rand{T}(::Type{T},P::ProductSpace)=tensor(rand(T,dim(P)),P)
 Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,⊗(V))
 Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
 
-Base.eye{S<:ElementarySpace,T}(::Type{Tensor{S,T}},V::S)=tensor(eye(T,dim(V)),V⊗dual(V))
-Base.eye{S<:ElementarySpace,T,N}(::Type{Tensor{S,T,N}},V::S)=eye(Tensor{S,T},V)
-Base.eye{S<:ElementarySpace,T}(::Type{T},P::ProductSpace{S,2})=(P[1]==dual(P[2]) ? eye(Tensor{S,T},P[1]) : throw(SpaceError("Cannot construct eye-tensor when second space is not the dual of the first space")))
+Base.eye{S<:ElementarySpace,T}(::Type{T},::Type{ProductSpace},V::S)=tensor(eye(T,dim(V)),V⊗dual(V))
+Base.eye{S<:ElementarySpace}(::Type{ProductSpace},V::S)=eye(Float64,ProductSpace,V)
+
+Base.eye{S<:ElementarySpace,T}(::Type{T},P::ProductSpace{S,2})=(P[1]==dual(P[2]) ? eye(T,ProductSpace,P[1]) : throw(SpaceError("Cannot construct eye-tensor when second space is not the dual of the first space")))
+Base.eye{S<:ElementarySpace}(P::ProductSpace{S,2})=eye(Float64,P)
 
 # tensors from concatenation
 function tensorcat{S}(catind, X::Tensor{S}...)
@@ -223,7 +225,7 @@ Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Number,s::NTuple{N,G})=f
 
 # Tensor Operations
 #-------------------
-scalar{S,T}(t::Tensor{S,T,0})=TensorOperations.scalar(t.data)
+scalar(t::Tensor)=iscnumber(space(t)) ? t.data[1] : throw(SpaceError("Not a scalar"))
 
 function tensorcopy!(t1::Tensor,labels1,t2::Tensor,labels2)
     # Replaces tensor t2 with t1
@@ -394,7 +396,8 @@ typealias CartesianTensor{T,N} Tensor{CartesianSpace,T,N}
     return tensor(t.data,newspace)
 end
 @eval function deleteind(t::Tensor,ind::Int)
-    1<=ind<=numind(t) || throw(IndexError("index out of range"))
+    N=numind(t)
+    1<=ind<=N || throw(IndexError("index out of range"))
     iscnumber(space(t,ind)) || throw(SpaceError("can only delete index with c-number index space"))
     spacet=space(t)
     newspace=spacet[1:ind-1] ⊗ spacet[ind+1:N]

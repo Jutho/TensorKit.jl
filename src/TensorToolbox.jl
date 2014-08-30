@@ -69,6 +69,7 @@ IndexError()=IndexError("Invalid index specification")
 abstract VectorSpace
 space(V::VectorSpace) = V # just returns the space
 issubspace(V1::VectorSpace,V2::VectorSpace) = V1==V2 # default, only identical spaces are subspaces
+⊗(a,b,c...)=⊗(a,⊗(b,c...)) # introduce ⊗ as operator
 *(V1::VectorSpace,V2::VectorSpace) = ⊗(V1,V2) # for convenience, product of vector spaces is tensor product
 
 #include("basis.jl") # basis: iterator over a set of basis vectors spanning the space

@@ -75,7 +75,7 @@ Base.zeros(P::InvariantSpace)=zeros(Float64,P)
 Base.rand{T}(::Type{T},P::InvariantSpace)=tensor(rand(T,dim(P)),P)
 Base.rand(P::InvariantSpace)=rand(Float64,P)
 
-function Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T}(::Type{InvariantTensor{G,S,T}},V::S)
+function Base.eye{S<:UnitaryRepresentationSpace,T}(::Type{T},::Type{InvariantSpace},V::S)
     t=zeros(T,invariant(V⊗dual(V)))
     for s in sectors(V)
         for n=1:dim(V,s)
@@ -84,8 +84,10 @@ function Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T}(::Type{InvariantTen
     end
     return t
 end
-Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T,N}(::Type{InvariantTensor{G,S,T,N}},V::S)=eye(InvariantTensor{G,S,T},V)
-Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T}(::Type{T},P::InvariantSpace{G,S,2})=(P[1]==dual(P[2]) ? eye(InvariantTensor{G,S,T},P[1]) : throw(SpaceError("Cannot construct eye-tensor when second space is not the dual of the first space")))
+Base.eye{S<:UnitaryRepresentationSpace}(::Type{InvariantSpace},V::S)=eye(Float64,InvariantSpace,V)
+
+Base.eye{G<:Sector,S<:UnitaryRepresentationSpace,T}(::Type{T},P::InvariantSpace{G,S,2})=(P[1]==dual(P[2]) ? eye(T,InvariantSpace,P[1]) : throw(SpaceError("Cannot construct eye-tensor when second space is not the dual of the first space")))
+Base.eye{G<:Sector,S<:UnitaryRepresentationSpace}(P::InvariantSpace{G,S,2})=eye(Float64,P)
 
 # TO BE DONE
 # # tensors from concatenation
@@ -253,7 +255,7 @@ Base.setindex!{G,S,T,N}(t::InvariantTensor{G,S,T,N},v::Number,s::NTuple{N,G})=fi
 
 # Tensor Operations
 #-------------------
-scalar{G,S,T}(t::InvariantTensor{G,S,T,0})=t.data[1]
+scalar(t::InvariantTensor)=iscnumber(space(t)) ? t.data[1] : throw(SpaceError("Not a scalar"))
 
 function tensorcopy!(t1::InvariantTensor,labels1,t2::InvariantTensor,labels2)
     # Replaces tensor t2 with t1

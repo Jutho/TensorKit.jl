@@ -144,7 +144,7 @@ function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labe
     return C
 end
 
-Base.eye{S<:ElementarySpace}(t::AbstractTensor{S},V::S)=eye(typeof(t),V)
+Base.eye{S<:ElementarySpace,P<:TensorSpace,T}(t::AbstractTensor{S,P,T},V::S)=eye(T,P,V)
 
 # Factorization
 #---------------
