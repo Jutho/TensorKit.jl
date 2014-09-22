@@ -93,6 +93,10 @@ include("tensors/abstracttensor.jl")
 include("tensors/tensor.jl") # generic tensor living in a ProductSpace without special properties
 include("tensors/invarianttensor.jl") # generic tensor living in a ProductSpace without special properties
 
+# Tensor networks: contract a network of tensors
+#------------------------------------------------
+
+
 # Tensor maps: linear maps acting on tensors
 #--------------------------------------------
 include("tensormaps/abstracttensormap.jl")
