@@ -1,12 +1,12 @@
-# general.jl
+# generalspace.jl
 #
 # Defines the immutible GeneralSpace for a general finite dimensional vector space over an arbitrary
 # field, characterized by its field, its dimension and whether or not it is the dual space and/or the
 # complex conjugate space. Tensors with GeneralSpace as index spaces make a distinction between covariant
 # and contravariant indices, and covariant and contravariant dotted/barred indices.
 
-# EuclideanSpace:
-#-----------------
+# GeneralSpace:
+#---------------
 immutable GeneralSpace{F} <: ElementarySpace{F}
     field::Type{F}
     d::Int
@@ -15,6 +15,7 @@ immutable GeneralSpace{F} <: ElementarySpace{F}
     GeneralSpace(d::Int,dual::Bool=false,conj::Bool=false) = (d>0 ? new(F, d, dual, !(F<:Real) && conj) : throw(ArgumentError("Dimension of a vector space should be bigger than zero")))
 end
 GeneralSpace{F}(::Type{F},d::Int,dual::Bool=false,conj::Bool=false) = GeneralSpace{F}(d,dual,conj)
+GeneralSpace(d::Int,dual::Bool=false,conj::Bool=false) = GeneralSpace{Real}(d,dual,conj)
 
 # Corresponding methods:
 dim(V::GeneralSpace) = V.d

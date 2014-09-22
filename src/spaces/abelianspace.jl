@@ -1,3 +1,11 @@
+# AbelianSpace.jl
+#
+# Defines the immutable AbelianSpace for a complex vector space that is graded by
+# the unitary irreps of an Abelian group.
+
+
+# AbelianSpace
+#--------------
 immutable AbelianSpace{G<:Abelian} <: UnitaryRepresentationSpace{G}
     dims::Dict{G,Int}
     dual::Bool

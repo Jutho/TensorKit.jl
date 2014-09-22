@@ -10,7 +10,6 @@ end
 
 # Additional constructors
 InvariantSpace(P::InvariantSpace) = P
-InvariantSpace{S<:UnitaryRepresentationSpace,N}(P::ProductSpace{S,N}) = InvariantSpace(P.spaces)
 InvariantSpace{S<:UnitaryRepresentationSpace}(P::ProductSpace{S}) = InvariantSpace(P.spaces)
 InvariantSpace{S<:UnitaryRepresentationSpace}(V::S,Vlist::S...) = InvariantSpace(tuple(V,Vlist...))
 

@@ -1,11 +1,11 @@
-# cartesian.jl
+# cartesianspace.jl
 #
 # Defines the immutable CartesianSpace for denoting a self-dual vector space. CartesianSpace is completely
 # characterised by its dimension. Tensors with CartesianSpace as index space cannot distinguish between
 # covariant and contravariant indices. This allows to easily wrap standard Arrays.
 
-# Cartesian:
-#------------
+# CartesianSpace:
+#----------------
 immutable CartesianSpace <: EuclideanSpace{ℝ}
     d::Int
 end

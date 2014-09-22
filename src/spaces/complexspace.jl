@@ -4,8 +4,8 @@
 # characterized by its dimension and whether or not it is the dual space. Tensors with
 # ComplexSpace as index spaces make a distinction between covariant and contravariant indices.
 
-# EuclideanSpace:
-#-----------------
+# ComplexSpace:
+#---------------
 immutable ComplexSpace <: EuclideanSpace{ℂ}
   d::Int
   dual::Bool

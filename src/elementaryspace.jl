@@ -17,18 +17,18 @@ Base.isfinite(::ElementarySpace) = true
 # The complex conjugate vector space of a real vector space is equal to itself
 Base.conj{F<:Real}(V::ElementarySpace{F}) = V
 
-abstract ElementaryHilbertSpace{F} <: ElementarySpace{F}
-typealias ElementaryInnerProductSpace ElementaryHilbertSpace
+abstract HilbertSpace{F} <: ElementarySpace{F}
+typealias InnerProductSpace HilbertSpace
 # An inner product space, has the possibility to raise or lower indices of tensors
 
 const ℝ=Real
 const ℂ=Complex{Real}
 
-abstract EuclideanSpace{F<:Union(ℝ,ℂ)} <: ElementaryHilbertSpace{F}
+abstract EuclideanSpace{F<:Union(ℝ,ℂ)} <: HilbertSpace{F}
 # Elementary finite-dimensional space R^d or C^d with standard (Euclidean) inner product (i.e. orthonormal basis)
 
 Base.conj(V::EuclideanSpace) = dual(V)
-# The complex conjugate space of a Hilbert space is naturally isomorphic to its dual space
+# The complex conjugate space of a Euclidean space is naturally isomorphic to its dual space
 
 dual(V::EuclideanSpace{ℝ}) = V
 # For a real Euclidean space, the dual space is naturally isomorphic to the vector space
