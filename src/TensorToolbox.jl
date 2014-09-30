@@ -95,7 +95,8 @@ include("tensors/invarianttensor.jl") # generic tensor living in a ProductSpace 
 
 # Tensor networks: contract a network of tensors
 #------------------------------------------------
-
+include("tensornetworks/abstracttensornetwork.jl")
+include("tensornetworks/tensornetwork.jl")
 
 # Tensor maps: linear maps acting on tensors
 #--------------------------------------------

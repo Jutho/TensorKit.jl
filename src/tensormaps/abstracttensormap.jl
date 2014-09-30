@@ -33,7 +33,7 @@ Base.Ac_mul_B{S,P}(A::AbstractTensorMap{S,P},x::AbstractTensor{S,P})=(x in dual(
 
 # Other properties
 dual(A::AbstractTensorMap)=transpose(A)
-adjoint{S<:ElementaryHilbertSpace}(A::AbstractTensorMap{S})=(domain(A)==dual(conj(codomain(A))) ? ctranspose(A) : throw(SpaceError("Not an operator, i.e. domain != codomain")))
+adjoint{S<:HilbertSpace}(A::AbstractTensorMap{S})=(domain(A)==dual(conj(codomain(A))) ? ctranspose(A) : throw(SpaceError("Not an operator, i.e. domain != codomain")))
 
 # The following methods allow to multiply AbstractTensorMap objects with standard Julia Vector objects, and to use it in
 # general methods such as eigs, ...

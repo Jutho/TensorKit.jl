@@ -1,4 +1,4 @@
-immutable PosDefTensorOperator{S<:ElementaryHilbertSpace,P,T}<:AbstractTensorMap{S,P,T}
+immutable PosDefTensorOperator{S<:HilbertSpace,P,T}<:AbstractTensorMap{S,P,T}
     map::AbstractTensorMap{S,P,T}
     function PosDefTensorOperator(A::AbstractTensorMap{S,P,T})
         domain(A)==conj(dual(codomain(A))) || throw(SpaceError("Not an operator, i.e. domain != codomain"))

@@ -1,4 +1,4 @@
-immutable HermitianTensorOperator{S<:ElementaryHilbertSpace,P,T}<:AbstractTensorMap{S,P,T}
+immutable HermitianTensorOperator{S<:HilbertSpace,P,T}<:AbstractTensorMap{S,P,T}
     map::AbstractTensorMap{S,P,T}
     function HermitianTensorOperator(A::AbstractTensorMap{S,P,T})
         domain(A)==dual(conj(codomain(A))) || throw(SpaceError("Not an operator, i.e. domain != codomain"))

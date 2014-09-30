@@ -124,16 +124,19 @@ function tensortrace(A::AbstractTensor,labelsA) # there is no one-line method to
     end
     return tensortrace(A,labelsA,labelsC)
 end
-function tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB);method::Symbol=:BLAS,buffer::TCBuffer=defaultcontractbuffer)
+function tensorcontract{S}(A::AbstractTensor{S},labelsA,conjA,B::AbstractTensor{S},labelsB,conjB,outputlabels=symdiff(labelsA,labelsB);method::Symbol=:BLAS,buffer::TCBuffer=defaultcontractbuffer)
     spaceA=space(A)
     spaceB=space(B)
     spaceC=(spaceA ⊗ spaceB)[indexin(outputlabels,vcat(labelsA,labelsB))]
     T=promote_type(eltype(A),eltype(B))
     C=similar(A,T,spaceC)
-    tensorcontract!(1,A,labelsA,'N',B,labelsB,'N',0,C,outputlabels;method=method,buffer=buffer)
+    tensorcontract!(1,A,labelsA,conjA,B,labelsB,conjB,0,C,outputlabels;method=method,buffer=buffer)
     return C
 end
-function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB))
+tensorcontract{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=symdiff(labelsA,labelsB);
+    method::Symbol=:BLAS,buffer::TCBuffer=defaultcontractbuffer)=tensorcontract(A,labelsA,'N',B,labelsB,'N',outputlabels;method=method,buffer=buffer)
+
+function tensorproduct{S}(A::AbstractTensor{S},labelsA,B::AbstractTensor{S},labelsB,outputlabels=vcat(labelsA,labelsB))
     spaceA=space(A)
     spaceB=space(B)
 
