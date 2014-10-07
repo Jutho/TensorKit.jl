@@ -38,7 +38,7 @@ end
 
 # Basic methods for characterising a tensor:
 #--------------------------------------------
-space(t::Tensor,ind::Int)=t.space[ind]
+space(t::Tensor,ind::Integer)=t.space[ind]
 space(t::Tensor)=t.space
 
 # General constructors
