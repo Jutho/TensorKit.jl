@@ -44,6 +44,10 @@ export notrunc, truncerr, truncdim, truncspace
 # tensor maps
 export domain, codomain, hermitian, posdef, tensormap
 
+# tensor networks
+export AbstractTensorNetwork, TensorNetwork
+export network, optimizecontract
+
 # General imports:
 #------------------
 using Cartesian
@@ -97,6 +101,7 @@ include("tensors/invarianttensor.jl") # generic tensor living in a ProductSpace 
 #------------------------------------------------
 include("tensornetworks/abstracttensornetwork.jl")
 include("tensornetworks/tensornetwork.jl")
+include("tensornetworks/optimize.jl")
 
 # Tensor maps: linear maps acting on tensors
 #--------------------------------------------

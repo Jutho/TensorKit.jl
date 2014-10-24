@@ -11,10 +11,9 @@ type TensorNetwork{S,P,T,L} <: AbstractTensorNetwork{S,P,T}
     conjs::Vector{Char}
     contracttree::Tuple
     outputorder::Vector{L}
-    _outputspace::P
-    _contracttable::Dict{L,(Int,Int)}
+    outputspaces::Dict{L,S}
 end
-function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::Vector{Vector{L}},conjs::Vector{Char}=fill('N',length(tensors)),contracttree::Tuple=(),outputorder::Vector{L}=Array(L,0))
+function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::Vector{Vector{L}},conjs::Vector{Char},contracttree::Tuple,outputorder::Vector{L}=Array(L,0))
     # basic concistency check on arguments
     numtensors=length(tensors)
     numtensors>1 || throw(Argument("number of tensors should be larger than one for a proper tensor network"))
@@ -46,32 +45,25 @@ function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::V
         end
     end
     
-    # build lookup tables
-    contracttable=Dict{L,(Int,Int)}()
-    outputtable=Dict{L,(Int,Int)}()
-    sizehint(contracttable,numindices-numlabels)
-    sizehint(outputtable,2*numlabels-numindices)
+    # build lookup table for output spaces
+    outputspaces=Dict{L,S}()
+    sizehint(outputspaces,2*numlabels-numindices)
     for i=1:numindices
         if table[i,2]==0
-            outputtable[alllabels[i]]=table[i,1]
-        else
-            contracttable[alllabels[i]]=(table[i,1],table[i,2])
+            n=table[i,1]
+            l=alllabels[i]
+            s=space(tensors[n],findfirst(labels[n],l))
+            outputspaces[l]=conjs[n]=='C' ? conj(s) : s
         end
     end
     
     # check / create output order
-    outputlabels=collect(keys(outputtable))
+    outputlabels=collect(keys(outputspaces))
     if isempty(outputorder)
         outputorder=sort!(outputlabels)
     else
         isperm(indexin(outputorder,outputlabels)) || throw(ArgumentError("output order does not match with uncontracted indices"))
     end
-    outputspace=P(ntuple(length(outputorder),m->begin
-        l=outputorder[m]
-        n=outputtable[l]
-        s=space(tensors[n],findfirst(labels[n],l))
-        conjs[n]=='C' ? conj(s) : s
-    end))
     
     # check contraction tree to visit every tensor once
     visited=zeros(Int,numtensors)
@@ -80,9 +72,9 @@ function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::V
     visit(contracttree)
     all(visited.==1) || throw(ArgumentError("invalid contractrion tree"))
         
-    TensorNetwork{S,P,T,L}(tensors,labels,conjs,contracttree,outputorder,outputspace,contracttable)
+    TensorNetwork{S,P,T,L}(tensors,labels,conjs,contracttree,outputorder,outputspaces)
 end
-function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::Vector{Vector{L}},conjs::Vector{Char}=fill('N',length(tensors)),contractorder::Vector{L}=Array(L,0),outputorder::Vector{L}=Array(L,0))
+function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::Vector{Vector{L}},conjs::Vector{Char},contractorder::Vector{L}=Array(L,0),outputorder::Vector{L}=Array(L,0))
     # basic concistency check on arguments
     numtensors=length(tensors)
     numtensors>1 || throw(Argument("number of tensors should be larger than one for a proper tensor network"))
@@ -114,35 +106,28 @@ function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::V
         end
     end
     
-    # build lookup tables
-    contracttable=Dict{L,(Int,Int)}()
-    outputtable=Dict{L,(Int,Int)}()
-    sizehint(contracttable,numindices-numlabels)
-    sizehint(outputtable,2*numlabels-numindices)
+    # build lookup table for output spaces
+    outputspaces=Dict{L,S}()
+    sizehint(outputspaces,2*numlabels-numindices)
     for i=1:numindices
         if table[i,2]==0
-            outputtable[alllabels[i]]=table[i,1]
-        else
-            contracttable[alllabels[i]]=(table[i,1],table[i,2])
+            n=table[i,1]
+            l=alllabels[i]
+            s=space(tensors[n],findfirst(labels[n],l))
+            outputspaces[l]=conjs[n]=='C' ? conj(s) : s
         end
     end
     
     # check / create output order
-    outputlabels=collect(keys(outputtable))
+    outputlabels=collect(keys(outputspaces))
     if isempty(outputorder)
         outputorder=sort!(outputlabels)
     else
         isperm(indexin(outputorder,outputlabels)) || throw(ArgumentError("output order does not match with uncontracted indices"))
     end
-    outputspace=P(ntuple(length(outputorder),m->begin
-        l=outputorder[m]
-        n=outputtable[l]
-        s=space(tensors[n],findfirst(labels[n],l))
-        conjs[n]=='C' ? conj(s) : s
-    end))
     
     # check / create contraction order
-    contractlabels=collect(keys(contracttable))
+    contractlabels=setdiff(alllabels,outputlabels)
     if isempty(contractorder)
         contractorder=sort!(contractlabels,rev=true)
     else
@@ -150,15 +135,16 @@ function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::V
     end
     
     # create corresponding contraction tree
+    indexorder=indexin(contractorder,alllabels)
     lookup=(Int=>Any)[n=>n for n=1:numtensors]
-    for l in contractorder
-        i1,i2=contracttable[l]
-        node1=lookup[i1]
-        node2=lookup[i2]
+    for i in indexorder
+        n1,n2=table[i,1],table[i,2]
+        node1=lookup[n1]
+        node2=lookup[n2]
         if node1!=node2
             node=tuple(node1,node2)
-            lookup[i1]=node
-            lookup[i2]=node
+            lookup[n1]=node
+            lookup[n2]=node
         end
     end
     nodes=unique(values(lookup))
@@ -167,7 +153,8 @@ function TensorNetwork{S,P,T,L}(tensors::Vector{AbstractTensor{S,P,T}},labels::V
         contracttree=tuple(tree,nodes[k])
     end
     
-    TensorNetwork{S,P,T,L}(tensors,labels,conjs,contracttree,outputorder,outputspace,contracttable)
+    
+    TensorNetwork{S,P,T,L}(tensors,labels,conjs,contracttree,outputorder,outputspaces)
 end
 
 # Convenience constructor
@@ -202,11 +189,15 @@ function network(tensors::Vector,labels::Vector,conjs::Vector{Char}=fill('N',len
     end
 end
 
+# Basic properties
+#------------------
+Base.length(network::TensorNetwork)=length(network.tensors)
+
 # Basic methods for characterising the output tensor:
 #-----------------------------------------------------
-numind(network::TensorNetwork)=length(network._outputspace)
-space(network::TensorNetwork,ind::Integer)=network._outputspace[ind]
-space(network::TensorNetwork)=network._outputspace
+numind(network::TensorNetwork)=length(network.outputorder)
+space(network::TensorNetwork,ind::Integer)=network.outputspaces[network.outputorder[ind]]
+space(network::TensorNetwork)=ntuple(numind(network),ind->space(network,ind))
 
 # Compute the output tensor:
 #----------------------------
