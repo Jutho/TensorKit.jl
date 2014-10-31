@@ -1,111 +1,173 @@
-using Polynomials
+include("bonddimension.jl")
 
-# immutable TensorNetworkSubset
-#     set::IntSet
-#     cost::
-
-function optimizecontract{P<:Union((Poly{Int}...),TensorSpace),X<:AbstractVector}(spaces::Vector{P},labels::Vector{X};maxcost::Number=0)
-    # Finds the optimal contraction order
+function optimizecontract(tensors::AbstractVector,labels::AbstractVector;maximalcost=-1,initialcost=0)
+    length(tensors)==length(labels) || throw("number of tensors and number of labels don't match")
+    numtensors=length(tensors)
+    numtensors > 1 || throw(ArgumentError("a tensor network requires at least two tensors"))
     
-    length(spaces)==length(labels) || throw(ArgumentError("number of label vectors doesn't match number of tensor spaces"))
-
-    # # Convert labels to integers and label vectors to IntSet for faster set operations
-    # intlabels=Array(IntSet,length(labels))
-    # alllabels=unique(vcat(labels...))
-    #
-    # for n=1:length(labels)
-    #     intlabels[n]=IntSet(indexin(labels[n],alllabels))
-    # end
-    
-    spaceT=(P<:(Poly{Int}...)) ? (Poly{Int}...) : P
-    costT=(P<:(Poly{Int}...) ? Poly{Int} : Float64)
-    local maximalcost::costT
-    if costT==Float64
-        maximalcost=(maxcost==0 ? Inf : convert(Float64,maxcost))
-        currentcost=(maxcost==0 ? 1 : maximalcost)
+    # determine type of spaces and of cost
+    if all(x->isa(x,Tuple),tensors)
+        T=mapreduce(x->promote_type(typeof(x)...),promote_type,tensors)
+        if T<:Number || T<:Power
+            P=(T,T...)
+            T=typeof(T(0)+T(0))
+            spaces=Array(P,numtensors)
+            for n=1:numtensors
+                spaces[n]=tensors[n]
+            end
+        else
+            throw(ArgumentError("Unrecognized type of tensors"))
+        end
+    elseif all(x->isa(x,AbstractTensor),tensors)
+        TT=mapreduce(typeof,promote_type,tensors)
+        P=tensortype(TT)
+        spaces=Array(P,numtensors)
+        for n=1:numtensors
+            spaces[n]=space(tensors[n])
+        end
+        T=Float64
+    elseif all(x->isa(x,TensorSpace),tensors)
+        P=mapreduce(typeof,promote_type,tensors)
+        spaces=Array(P,numtensors)
+        for n=1:numtensors
+            spaces[n]=tensors[n]
+        end
+        T=Float64
     else
-        maxpoly=zeros(Int,maxcost==0 ? 101 : convert(Int,maxcost+1))
-        maxpoly[end]=1
-        maximalcost=Poly(maxpoly)
-        currentcost=(maxcost==0 ? one(Poly{Int}) : maximalcost)
+        throw(ArgumentError("Unrecognized type of tensors"))
     end
-        
-    # Build contraction graph via adjacency matrix and detect components
-    numtensors=length(spaces)
-    adjacencymatrix=BitArray(numtensors,numtensors)
-    for n1 = 1:numtensors
-        for n2 = n1+1:numtensors
-            adjacencymatrix[n1,n2] = !isempty(intersect(labels[n1],labels[n2]))
-            adjacencymatrix[n2,n1] = adjacencymatrix[n1,n2]
+    
+    # determine minimal and maximal cost
+    if maximalcost==-1
+        if T<:Poly
+            maxcost=T(1,typemax(Int))
+        else
+            maxcost=typemax(T)
+        end
+    else
+        maxcost=T(maximalcost)
+    end
+    if initialcost==0
+        initcost=T(0)
+    else
+        initcost=T(initialcost)
+    end
+    
+    return _optimizecontract(spaces,labels,initcost,maxcost)
+end
+
+# Auxiliary:
+type SubGraph{T}
+    tensorset::BitVector
+    labelset::BitVector
+    dualset::BitVector
+    tree::Union(Int,Tuple)
+    cost::T
+end
+
+function _optimizecontract{P,T}(spaces::Vector{P},labels::AbstractVector,initcost::T,maxcost::T)
+    numtensors=length(labels)
+    
+    # Analyze contraction graph and detect components via adjacency matrix
+    alllabels=unique(vcat(labels...))
+    numlabels=length(alllabels)
+    labelsets=Array(BitVector,numtensors) # map labels of tensor n to integers i and store in IntSet for faster set operations
+    dualsets=Array(BitVector,numtensors) # store whether labelspaces[i] holds the space or its dual for tensor n
+    
+    tabletensor=zeros(Int,(numlabels,2))
+    tableindex=zeros(Int,(numlabels,2))
+    
+    adjacencymatrix=falses(numtensors,numtensors)
+    
+    for n=1:numtensors
+        length(labels[n])==length(unique(labels[n])) || throw(ArgumentError("duplicate labels for tensor $n: handle inner contraction first with tensortrace"))
+        indn=findin(alllabels,labels[n])
+        labelsets[n]=falses(numlabels)
+        labelsets[n][indn]=true
+        dualsets[n]=falses(numlabels)
+        for i in indn
+            if tabletensor[i,1]==0
+                tabletensor[i,1]=n
+                tableindex[i,1]=findfirst(labels[n],alllabels[i])
+            elseif tabletensor[i,2]==0
+                tabletensor[i,2]=n
+                tableindex[i,2]=findfirst(labels[n],alllabels[i])
+                n1=tabletensor[i,1]
+                ind1=tableindex[i,1]
+                ind2=tableindex[i,2]
+                if isa(spaces[n1][ind1],Number) || isa(spaces[n1][ind1],Power)
+                    spaces[n1][ind1]==spaces[n][ind2] || throw(ArgumentError("spaces don't match for label $(alllabels[i])"))
+                else
+                    spaces[n1][ind1]==dual(spaces[n][ind2]) || throw(ArgumentError("spaces don't match for label $(alllabels[i])"))
+                end
+                adjacencymatrix[n1,n]=true
+                adjacencymatrix[n,n1]=true
+                dualsets[n][i]=true
+            else
+                throw(ArgumentError("no label should appear more than two times"))
+            end
         end
     end
     componentlist=connectedcomponents(adjacencymatrix)
     numcomponent=length(componentlist)
+    
+    # construct a list of the spaces of all labels
+    labelspaces=P(ntuple(numlabels,j->spaces[tabletensor[j,1]][tableindex[j]]))
 
     # generate output structures
-    costlist=Array(Float64,numcomponent)
+    costlist=Array(T,numcomponent)
     treelist=Array(Tuple,numcomponent)
+    labellist=Array(BitVector,numcomponent)
 
     # compute cost and optimal contraction order for every component
     for c=1:numcomponent
         # find optimal contraction for every component
-        component=IntSet(componentlist[c])
-        componentsize=length(component)
-        costdict=Array(Dict{IntSet,costT},componentsize)
-        treedict=Array(Dict{IntSet,Any},numtensors)
-        labeldict=Array(Dict{IntSet,Vector{L}},componentsize)
-        spacedict=Array(Dict{IntSet,spaceT},componentsize)
-        adjacentdict=Array(Dict{IntSet,IntSet},componentsize)
+        componentsize=length(componentlist[c])
+        setcost=Array(Dict{BitVector,SubGraph{T}},componentsize)
         for k=1:componentsize
-            costdict[k]=Dict{IntSet,costT}()
-            treedict[k]=Dict{IntSet,Any}()
-            labeldict[k]=Dict{IntSet,Vector{L}}()
-            spacedict[k]=Dict{IntSet,spaceT}()
-            adjacentdict[k]=Dict{IntSet,IntSet}()
+            setcost[k]=Dict{BitVector,SubGraph{T}}()
         end
 
-        for i in component
-            set=IntSet(i)
-            costdict[1][set]=zero(costT)
-            treedict[1][set]=i
-            labeldict[1][set]=labels[i]
-            spacedict[1][set]=spaces[i]
-            adjacentdict[1][set]=IntSet(find(adjacencymatrix[:,i]))
+        for n in componentlist[c]
+            tensorset=falses(numtensors)
+            tensorset[n]=true
+            setcost[1][tensorset]=SubGraph{T}(tensorset,labelsets[n],dualsets[n],n,T(0))
         end
-        nextcost=maximalcost
-        while nextcost<=maximalcost
-            nextcost=maximalcost
+        currentcost=initcost
+        while true
+            nextcost=maxcost+1 # corresponds to uninitialized value
             for n=2:componentsize
                 println("Component $c of $numcomponent: current cost = $currentcost, partition size $n out of $componentsize tensors")
                 for k=1:div(n,2)
-                    ksets=collect(keys(costdict[k])) # subset of k tensors
+                    ksets=collect(values(setcost[k])) # subset of k tensors
                     if n-k==k
                         nmksets=ksets
                     else
-                        nmksets=collect(keys(costdict[n-k])) # subset of n-k tensors
+                        nmksets=collect(values(setcost[n-k])) # subset of n-k tensors
                     end
                     for i=1:length(ksets)
                         for j=(n==2*k ? i+1 : 1):length(nmksets)
-                            if isempty(intersect(ksets[i],nmksets[j])) # only select subsets with no common tensors
-                                s1=ksets[i]
-                                s2=nmksets[j]
-                                if !isempty(intersect(s2,adjacentdict[k][s1])) # only select subsets with shared contraction lines
-                                    labels1=labeldict[k][s1]
-                                    labels2=labeldict[n-k][s2]
-                                    space1=spacedict[k][s1]
-                                    space2=spacedict[n-k][s2]
+                            sc1=ksets[i]
+                            sc2=nmksets[j]
+                            if !anyand(sc1.tensorset,sc2.tensorset) # only select subsets with no common tensors
+                                if anyand(sc1.labelset,sc2.labelset) # only select subsets with shared contraction lines
+                                    clabels=sc1.labelset & sc2.labelset
+                                    olabels1=sc1.labelset $ clabels
+                                    olabels2=sc2.labelset $ clabels
                                     
-                                    cost=costdict[k][s1]+costdict[n-k][s2]+contractcost(space1,labels1,space2,labels2)
+                                    cost=sc1.cost+sc2.cost+contractcost(labelspaces,olabels1,olabels2,clabels,sc1.dualset,sc2.dualset)
                                     if cost<=currentcost
-                                        selection=union(s1,s2)
-                                        if !haskey(costdict[n],selection) || costdict[n][selection]>cost
-                                            costdict[n][selection]=cost
-                                            treedict[n][selection]=(treedict[k][s1],treedict[n-k][s2])
-                                            
-                                            openlabels=symdiff(labels1,labels2)
-                                            labeldict[n][selection]=openlabels
-                                            spacedict[n][selection]=joinspaces(space1,space2)[indexin(openlabels,vcat(labels1,labels2))]
-                                            adjacentdict[n][selection]=union(adjacentdict[k][s1],adjacentdict[n-k][s2])
+                                        tensorset=sc1.tensorset | sc2.tensorset
+                                        if !haskey(setcost[n],tensorset)
+                                            labelset=olabels1 | olabels2
+                                            dualset=(sc1.dualset | sc2.dualset) & labelset
+                                            setcost[n][tensorset]=SubGraph{T}(tensorset,labelset,dualset,(sc1.tree,sc2.tree),cost)
+                                        else
+                                            sc=setcost[n][tensorset]
+                                            if sc.cost>cost
+                                                sc.tree=(sc1.tree,sc2.tree)
+                                                sc.cost=cost
+                                            end
                                         end
                                     elseif cost<nextcost
                                         nextcost=cost
@@ -116,57 +178,58 @@ function optimizecontract{P<:Union((Poly{Int}...),TensorSpace),X<:AbstractVector
                     end
                 end
             end
-            if !isempty(costdict[componentsize])
+            if nextcost>maxcost
+                error("no solution with cost < maximalcost = $maxcost was found")
+            end
+            if !isempty(setcost[componentsize])
                 break
             end
-            currentcost=min(2*nextcost,maximalcost)
+            currentcost=min(2*nextcost,maxcost)
         end
-        costlist[c]=costdict[componentsize][component]
-        treelist[c]=treedict[componentsize][component]
-        labellist[c]=labeldict[componentsize][component]
-        spacelist[c]=spacedict[componentsize][component]
+        component=falses(numtensors)
+        component[componentlist[c]]=true
+        sc=setcost[componentsize][component]
+        costlist[c]=sc.cost
+        treelist[c]=sc.tree
+        labellist[c]=sc.labelset
     end
     
     # collect different components
-    contracttree=treelist[1]
-    cost=costlist[1]
+    totaltree=treelist[1]
+    totalcost=costlist[1]
     outputlabels=labellist[1]
-    outputspace=spacelist[1]
+    
     for c=2:numcomponent
-        contracttree=(contracttree,treelist[c])
-        cost=cost+costlist[c]+contractcost(outputspace,outputlabels,spacelist[c],labellist[c])
-        outputlabels=vcat(outputlabels,labellist[c])
-        outputspace=outputspace ⊗ spacelist[c]
+        totaltree=(totaltree,treelist[c])
+        totalcost=totalcost+costlist[c]+contractcost(labelspaces,outputlabels,labellist[c],IntSet(),IntSet(),IntSet())
+        outputlabels=union(outputlabels,labellist[c])
     end
     
-    return contracttree, cost, outputspace, outputlabels
+    return totaltree, totalcost
 end
 
-# work with polynomial sizes
-Base.isless(p1::Poly,p2::Poly)=(length(p1)<length(p2) || length(p1)==length(p2) && p1[end]<p2[end])
-function contractcost{L}(space1::(Poly{Int}...),labels1::Vector{L},space2::(Poly{Int}...),labels2::Vector{L})
-    clabels=intersect(labels1,labels2)
-    cind1=indexin(clabels,labels1)
-    cind2=indexin(clabels,labels2)
-    oind1=setdiff(1:length(space1),cind1)
-    oind2=setdiff(1:length(space2),cind2)
-    cost=one(Poly{Int})
-    for i in oind1
-        cost*=space1[i]
+@inline function anyand(a::BitArray,b::BitArray)
+    for n in 1:length(a)
+        a[n] && b[n] && return true
     end
-    for i in cind1
-        cost*=space1[i]
+    return false
+end
+@inline function contractcost{D}(spaces::(Power{D,Int},Power{D,Int}...),olabels1::BitVector,olabels2::BitVector,clabels::BitVector,dualset1::BitVector,dualset2::BitVector)
+    cost=Power{D,Int}(1,0)
+    for n in find(olabels1 | olabels2 | clabels)
+        cost*=spaces[n]
     end
-    for i in oind2
-        cost*=space2[i]
+    return cost
+end
+@inline function contractcost{T<:Number}(spaces::(T,T...),olabels1::BitVector,olabels2::BitVector,clabels::BitVector,dualset1::BitVector,dualset2::BitVector)
+    cost=T(0)
+    for n in find(olabels1 | olabels2 | clabels)
+        cost*=spaces[n]
     end
     return cost
 end
 
-joinspaces{P<:TensorSpace}(space1::P,space2::P) = space1 ⊗ space2
-joinspaces(space1::(Poly{Int}...),space2::(Poly{Int}...)) = tuple(space1...,space2...)
 
-# Auxiliary:
 function connectedcomponents(A::AbstractMatrix{Bool})
     # connectedcomponents(A::AbstractMatrix{Bool})
     #
