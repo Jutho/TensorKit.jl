@@ -15,12 +15,12 @@ AbelianSpace{G<:Abelian}(dims::Dict{G,Int})=AbelianSpace{G}(dims, false)
 # Corresponding methods:
 sectors(V::AbelianSpace) = keys(V.dims)
 
-dim(V::AbelianSpace) = sum(values(V.dims))
+dim(V::AbelianSpace) = sum(values(V.dims))::Int
 dim{G<:Abelian}(V::AbelianSpace{G},c::G) = get(V.dims,c,0)
 dual(V::AbelianSpace) = AbelianSpace([conj(c)=>dim(V,c) for c in sectors(V)], !V.dual)
-cnumber{G}(V::AbelianSpace{G}) = AbelianSpace([one(G)=>1],V.dual)
-cnumber{G}(::Type{AbelianSpace{G}}) = AbelianSpace([one(G)=>1])
-iscnumber{G}(V::AbelianSpace{G}) = V.dims == [one(G)=>1]
+cnumber{G}(V::AbelianSpace{G}) = AbelianSpace(Dict{G,Int}(one(G)=>1),V.dual)
+cnumber{G}(::Type{AbelianSpace{G}}) = AbelianSpace(Dict{G,Int}(one(G)=>1))
+iscnumber{G}(V::AbelianSpace{G}) = V.dims == Dict{G,Int}(one(G)=>1)
 
 # Comparison
 ==(V1::AbelianSpace,V2::AbelianSpace)=(V1.dims==V2.dims && V1.dual==V2.dual)

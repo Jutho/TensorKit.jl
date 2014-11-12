@@ -10,34 +10,34 @@ ProductSpace{S<:ElementarySpace}(V::S,Vlist::S...) = ProductSpace(tuple(V,Vlist.
 ProductSpace(P::ProductSpace) = P
 
 # Corresponding methods
-dim(P::ProductSpace) = (d=1;for V in P;d*=dim(V);end;return d)
+dim(P::ProductSpace) = (d::Int=1;for V in P;d*=dim(V);end;return d)
 iscnumber(P::ProductSpace) = all(iscnumber,P)
 
 dim{S<:UnitaryRepresentationSpace,G<:Sector,N}(P::ProductSpace{S,N},s::NTuple{N,G})=_dim(P.spaces,s)
-sectors{S<:UnitaryRepresentationSpace,N}(P::ProductSpace{S,N})=_sectors(P.spaces)
-sectortype{S<:UnitaryRepresentationSpace,N}(P::ProductSpace{S,N})=sectortype(S)
+sectors{S<:UnitaryRepresentationSpace}(P::ProductSpace{S})=_sectors(P.spaces)
+sectortype{S<:UnitaryRepresentationSpace}(P::ProductSpace{S})=sectortype(S)
 sectortype{S<:UnitaryRepresentationSpace,N}(::Type{ProductSpace{S,N}})=sectortype(S)
 
 # Convention on dual, conj, transpose and ctranspose of tensor product spaces
 dual{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->dual(P[n])))
 Base.conj{S,N}(P::ProductSpace{S,N}) = ProductSpace{S,N}(ntuple(N,n->conj(P[n])))
 
-Base.transpose{S,N}(P::ProductSpace{S,N}) = reverse(P)
-Base.ctranspose{S,N}(P::ProductSpace{S,N}) = reverse(conj(P))
+Base.transpose(P::ProductSpace) = reverse(P)
+Base.ctranspose(P::ProductSpace) = reverse(conj(P))
 
 # Default construction from product of spaces:
-⊗{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace{S,2}((V1, V2))
-⊗{S<:ElementarySpace,N}(P1::ProductSpace{S,N}, V2::S) = ProductSpace{S,N+1}(tuple(P1.spaces..., V2))
-⊗{S<:ElementarySpace,N}(V1::S, P2::ProductSpace{S,N}) = ProductSpace{S,N+1}(tuple(V1, P2.spaces...))
-⊗{S,N1,N2}(P1::ProductSpace{S,N1}, P2::ProductSpace{S,N2}) = ProductSpace{S,N1+N2}(tuple(P1.spaces..., P2.spaces...))
+⊗{S<:ElementarySpace}(V1::S, V2::S) = ProductSpace((V1, V2))
+⊗{S<:ElementarySpace}(P1::ProductSpace{S}, V2::S) = ProductSpace(tuple(P1.spaces..., V2))
+⊗{S<:ElementarySpace}(V1::S, P2::ProductSpace{S}) = ProductSpace(tuple(V1, P2.spaces...))
+⊗{S<:ElementarySpace}(P1::ProductSpace{S}, P2::ProductSpace{S}) = ProductSpace(tuple(P1.spaces..., P2.spaces...))
 
 # Functionality for extracting and iterating over spaces
 Base.length{S,N}(P::ProductSpace{S,N}) = N
 Base.endof(P::ProductSpace) = length(P)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
-Base.getindex{S,N}(P::ProductSpace{S,N}, r)=ProductSpace{S,length(r)}(P.spaces[r])
+Base.getindex(P::ProductSpace, r)=ProductSpace(P.spaces[r])
 
-Base.reverse{S,N}(P::ProductSpace{S,N})=ProductSpace{S,N}(reverse(P.spaces))
+Base.reverse(P::ProductSpace)=ProductSpace(reverse(P.spaces))
 Base.map(f::Base.Callable,P::ProductSpace) = map(f,P.spaces) # required to make map(dim,P) efficient
 
 Base.start(P::ProductSpace) = start(P.spaces)

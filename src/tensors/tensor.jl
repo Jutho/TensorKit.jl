@@ -16,8 +16,8 @@ immutable Tensor{S,T,N} <: AbstractTensor{S,ProductSpace,T,N}
         if length(data)!=dim(space)
             throw(DimensionMismatch("data not of right size"))
         end
-        if promote_type(T,eltype(S)) != eltype(S)
-            error("For a tensor in $(space), the entries cannot be of type $(T)")
+        if promote_type(T,eltype(S))!=eltype(S)
+            warn("For a tensor in $(space), the entries should not be of type $(T)")
         end
         return new(reshape(data,map(dim,space)),space)
     end
@@ -327,8 +327,6 @@ function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,l
     spaceB=space(B)
     spaceC=space(C)
 
-    cspaceA=spaceA[cindA]
-    cspaceB=spaceB[cindB]
     ospaceA=spaceA[oindA]
     ospaceB=spaceB[oindB]
 
@@ -336,19 +334,19 @@ function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,l
     conjB=='C' || conjB=='N' || throw(ArgumentError("conjB should be 'C' or 'N'."))
 
     if conjA == conjB
-        for i=1:numcontract
-            cspaceA[i] == dual(cspaceB[i]) || throw(SpaceError("incompatible index space for label $(clabels[i])"))
+        for (i,j) in zip(cindA,cindB)
+            spaceA[i] == dual(spaceB[j]) || throw(SpaceError("incompatible index space for label $(ulabelsA[i])"))
         end
     else
-        for i=1:numcontract
-            cspaceA[i] == dual(conj(cspaceB[i])) || throw(SpaceError("incompatible index space for label $(clabels[i])"))
+        for (i,j) in zip(cindA,cindB)
+            spaceA[i] == dual(conj(spaceB[j])) || throw(SpaceError("incompatible index space for label $(ulabelsA[i])"))
         end
     end
-    for i=1:numopenA
-        spaceC[oindCA[i]] == (conjA=='C' ? conj(ospaceA[i]) : ospaceA[i]) || throw(SpaceError("incompatible index space for label $(olabelsA[i])"))
+    for (i,j) in zip(oindA,oindCA)
+        spaceC[j] == (conjA=='C' ? conj(spaceA[i]) : spaceA[i]) || throw(SpaceError("incompatible index space for label $(ulabelsA[i])"))
     end
-    for i=1:numopenB
-        spaceC[oindCB[i]] == (conjB=='C' ? conj(ospaceB[i]) : ospaceB[i]) || throw(SpaceError("incompatible index space for label $(olabelsB[i])"))
+    for (i,j) in zip(oindB,oindCB)
+        spaceC[j] == (conjB=='C' ? conj(spaceB[i]) : spaceB[i]) || throw(SpaceError("incompatible index space for label $(ulabelsB[i])"))
     end
 
     if method==:BLAS
@@ -651,16 +649,19 @@ for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
         if leftdim<rightdim
             newdim=leftdim
             tau=zeros(eltype(data),(newdim,))
-            Base.LinAlg.LAPACK.gelqf!(data,tau)
+            datat=transpose(data)
+            Base.LinAlg.LAPACK.geqrf!(datat,tau)
 
-            C=zeros(eltype(data),(newdim,newdim))
-            for j=1:newdim
-                for i=j:newdim
-                    @inbounds C[i,j]=data[i,j]
+            C=zeros(eltype(t),(newdim,newdim))
+            for j in 1:newdim
+                for i in 1:j
+                    @inbounds C[j,i]=datat[i,j]
                 end
             end
-            Base.LinAlg.LAPACK.orglq!(data,tau)
+            Base.LinAlg.LAPACK.orgqr!(datat,tau)
+            Base.transpose!(data,datat)
             U=data
+            
             for i=1:newdim
                 tau[i]=sign(C[i,i])
             end

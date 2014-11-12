@@ -18,8 +18,8 @@ immutable InvariantTensor{G,S,T,N} <: AbstractTensor{S,InvariantSpace,T,N}
         if length(data)!=dim(space)
             throw(DimensionMismatch("data not of right size"))
         end
-        if promote_type(T,eltype(S)) != eltype(S)
-            error("For a tensor in $(space), the entries cannot be of type $(T)")
+        if promote_type(T,eltype(S))!=eltype(S)
+            warn("For a tensor in $(space), the entries should not be of type $(T)")
         end
         _datasectors=Dict{NTuple{N,G},Array{T,N}}()
         ind=1

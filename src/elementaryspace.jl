@@ -17,9 +17,9 @@ Base.isfinite(::ElementarySpace) = true
 # The complex conjugate vector space of a real vector space is equal to itself
 Base.conj{F<:Real}(V::ElementarySpace{F}) = V
 
-abstract HilbertSpace{F} <: ElementarySpace{F}
-typealias InnerProductSpace HilbertSpace
-# An inner product space, has the possibility to raise or lower indices of tensors
+abstract InnerProductSpace{F} <: ElementarySpace{F}
+abstract HilbertSpace{F} <: InnerProductSpace{F}
+# An inner product space, has the possibility to raise or lower indices of tensors using the metric
 
 const ℝ=Real
 const ℂ=Complex{Real}

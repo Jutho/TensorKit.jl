@@ -31,7 +31,7 @@ invariant(V::UnitaryRepresentationSpace) = InvariantSpace(tuple(V))
 
 # Corresponding methods
 dim(P::InvariantSpace) = sum(values(P.dims))
-dim{G,S,N}(P::InvariantSpace{G,S,N},sector::NTuple{N,G})=get(P.dims,sector,0)
+dim{G,S,N}(P::InvariantSpace{G,S,N},sector::NTuple{N,G})=get(P.dims,sector,0)::Int
 iscnumber(P::InvariantSpace) = all(iscnumber,P)
 sectors(P::InvariantSpace) = keys(P.dims)
 sectortype{G}(P::InvariantSpace{G}) = G
