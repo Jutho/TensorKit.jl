@@ -9,788 +9,268 @@
 #++++++++++++++
 # Type definition and constructors:
 #-----------------------------------
-immutable Tensor{S,T,N} <: AbstractTensor{S,ProductSpace,T,N}
-    data::Array{T,N}
-    space::ProductSpace{S,N}
-    function Tensor(data::Array{T},space::ProductSpace{S,N})
-        if length(data)!=dim(space)
-            throw(DimensionMismatch("data not of right size"))
-        end
-        if promote_type(T,eltype(S))!=eltype(S)
-            warn("For a tensor in $(space), the entries should not be of type $(T)")
-        end
-        return new(reshape(data,map(dim,space)),space)
+struct TensorMap{T<:Number, S<:IndexSpace, N₁, N₂, A} <: AbstractTensorMap{T, S, N₁, N₂}
+    data::A
+    codom::ProductSpace{S,N₁}
+    dom::ProductSpace{S,N₂}
+    function TensorMap{T,S,N₁,N₂}(data, spaces::TensorMapSpace{S,N₁,N₂}) where {T<:Number, S<:IndexSpace, N₁, N₂}
+        codom = spaces[2]
+        dom = spaces[1]
+        data2 = validatedata(data, codom, dom, fieldtype(S), sectortype(S))
+        new{T,S,N₁,N₂,typeof(data2)}(data2, codom, dom)
+    end
+    function TensorMap{T,S,N,0}(data, space::TensorSpace{S,N}) where {T<:Number, S<:IndexSpace, N}
+        codom = space
+        dom = ProductSpace{S,0}(())
+        data2 = validatedata(data, codom, dom, fieldtype(S), sectortype(S))
+        new{T,S,N,0,typeof(data2)}(data2, codom, dom)
     end
 end
 
+const Tensor{T<:Number, S<:IndexSpace, N, A<:AbstractArray{T}} = TensorMap{T, S, N, 0, A}
+
+function validatedata(data::AbstractArray, codom, dom, k::Field, ::Type{Trivial})
+    size(data) == (dims(codom)..., dims(dom)...) || throw(DimensionMismatch())
+    eltype(data) ⊆ k || warn("eltype(data) = $(eltype(data)) ⊈ $k)")
+    return data
+end
+function validatedata(data::Dict{<:FusionTree{G,N₁,N₂},<:AbstractArray}, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₁}, k::Field, ::Type{G}) where {S<:IndexSpace, G<:Sector, N₁,N₂}
+    for tree in keys(data)
+        sectorcodom = tree.outgoing
+        sectordom = tree.incoming
+        size(data[tree]) == (dims(codom, sectorcodom)..., dims(dom, sectordom)...) || throw(DimensionMismatch())
+        eltype(data[tree]) ⊆ k || warn("eltype(data) = $(eltype(data)) ⊈ $k)")
+    end
+    return data
+end
+# TODO: allow to start from full data (a single AbstractArray) and create the dictionary, in the first place for Abelian sectors, or for e.g. SU₂ using Wigner 3j symbols
+
 # Show method:
 #-------------
-function Base.show{S,T,N}(io::IO,t::Tensor{S,T,N})
-    print(io," Tensor ∈ $T")
-    print(io,"[")
-    for n=1:N
-        n==1 || print(io, " ⊗ ")
-        show(io,space(t,n))
+function Base.show(io::IO, t::TensorMap{T,S,N₁,N₂}) where {T<:Number, S<:IndexSpace, N₁, N₂}
+    print(io, "TensorMap{", T, "}( ", codom(t), " ← ", dom(t), " )")
+    if !get(io, :compact, false)
+        println(":")
+        Base.showarray(io, t.data, false; header = false)
     end
-    println(io,"]:")
-    Base.showarray(io,t.data;header=false)
+end
+function Base.show(io::IO, t::Tensor{T,S,N}) where {T<:Number, S<:IndexSpace, N}
+    print(io," Tensor{", T, "}( ", codom(t), " )")
+    if !get(io, :compact, false)
+        println(":")
+        Base.showarray(io, t.data, false; header = false)
+    end
 end
 
 # Basic methods for characterising a tensor:
 #--------------------------------------------
-space(t::Tensor,ind::Integer)=t.space[ind]
-space(t::Tensor)=t.space
+codom(t::TensorMap) = t.codom
+dom(t::TensorMap) = t.dom
+space(t::TensorMap) = t.codom ⊗ dual(t.dom)
+space(t::TensorMap, n::Int) = space(t::TensorMap)[n]
 
-# General constructors
-#---------------------
+# General Tensor constructors
+#----------------------------
 # with data
-tensor{T<:Real,N}(data::Array{T,N})=Tensor{CartesianSpace,T,N}(data,mapreduce(CartesianSpace,⊗,size(data)))
-function tensor{T<:Complex}(data::Array{T,1})
-    warning("for complex array, consider specifying Euclidean index spaces")
-    Tensor{ComplexEuclideanSpace,T,1}(data,⊗(ComplexSpace(size(data,1))))
-end
-function tensor{T<:Complex}(data::Array{T,2})
-    warning("for complex array, consider specifying Euclidean index spaces")
-    Tensor{ComplexEuclideanSpace,T,2}(data,ComplexSpace(size(data,1))⊗ComplexSpace(size(data,2))')
-end
+Tensor{T}(data::AbstractArray{T}, P::TensorSpace{S,N}) where {T<:Number, S<:IndexSpace, N} = Tensor{T,S,N}(data, P)
 
-tensor{S,T,N}(data::Array{T},P::ProductSpace{S,N})=Tensor{S,T,N}(data,P)
-tensor(data::Array,V::ElementarySpace)=tensor(data,⊗(V))
+Tensor(data::AbstractArray{T}, P::TensorSpace) where {T<:Number} = Tensor{T}(data, P)
 
-# without data
-tensor{T}(::Type{T},P::ProductSpace)=tensor(Array(T,dim(P)),P)
-tensor{T}(::Type{T},V::IndexSpace)=tensor(T,⊗(V))
-tensor(V::Union(ProductSpace,IndexSpace))=tensor(Float64,V)
+# without data: uninitialized
+Tensor{T}(A::Type{<:AbstractArray{T}}, P::TensorSpace) where {T<:Number} = Tensor{T}(A(dims(P)), P)
+Tensor(A::Type{<:AbstractArray{T}}, P::TensorSpace) where {T<:Number} = Tensor{T}(A, P)
 
-Base.similar{S,T,N}(t::Tensor{S},::Type{T},P::ProductSpace{S,N}=space(t))=tensor(similar(t.data,T,dim(P)),P)
-Base.similar{S,T}(t::Tensor{S},::Type{T},V::S)=similar(t,T,⊗(V))
-Base.similar{S,N}(t::Tensor{S},P::ProductSpace{S,N}=space(t))=similar(t,eltype(t),P)
-Base.similar{S}(t::Tensor{S},V::S)=similar(t,eltype(t),V)
+Tensor{T}(P::TensorSpace) where {T<:Number} = Tensor(Array{T}, P)
+Tensor(P::TensorSpace) = Tensor{Float64}(P)
 
-Base.zero(t::Tensor)=tensor(zero(t.data),space(t))
+# generic constructor from callable:
+Tensor{T}(f, P::TensorSpace) where {T<:Number} = Tensor{T}(f(T, dims(P)), P)
+Tensor(f, P::TensorSpace) = Tensor(f(dims(P)), P)
 
-Base.zeros{T}(::Type{T},P::ProductSpace)=tensor(zeros(T,dim(P)),P)
-Base.zeros{T}(::Type{T},V::IndexSpace)=zeros(T,⊗(V))
-Base.zeros(V::Union(ProductSpace,IndexSpace))=zeros(Float64,V)
+# for a single `IndexSpace`
+Tensor{T}(arg, V::IndexSpace) where {T<:Number} = Tensor{T}(arg, TensorSpace(V))
+Tensor(arg, V::IndexSpace) = Tensor(arg, TensorSpace(V))
 
-Base.rand{T}(::Type{T},P::ProductSpace)=tensor(rand(T,dim(P)),P)
-Base.rand{T}(::Type{T},V::IndexSpace)=rand(T,⊗(V))
-Base.rand(V::Union(ProductSpace,IndexSpace))=rand(Float64,V)
+Tensor(data::AbstractArray{T,N}) where {T<:Real, N} =
+    Tensor{T}(data, TensorSpace{CartesianSpace,N}(map(CartesianSpace, size(data))))
+Tensor(data::AbstractArray{T,N}) where {T<:Complex, N} =
+    Tensor{T}(data, TensorSpace{ComplexSpace,N}(map(ComplexSpace, size(data))))
 
-Base.eye{S<:ElementarySpace,T}(::Type{T},::Type{ProductSpace},V::S)=tensor(eye(T,dim(V)),V⊗dual(V))
-Base.eye{S<:ElementarySpace}(::Type{ProductSpace},V::S)=eye(Float64,ProductSpace,V)
 
-Base.eye{S<:ElementarySpace,T}(::Type{T},P::ProductSpace{S,2})=(P[1]==dual(P[2]) ? eye(T,ProductSpace,P[1]) : throw(SpaceError("Cannot construct eye-tensor when second space is not the dual of the first space")))
-Base.eye{S<:ElementarySpace}(P::ProductSpace{S,2})=eye(Float64,P)
+# General TensorMap constructors
+#--------------------------------
+# with data
+TensorMap{T}(data::AbstractArray{T}, P::TensorMapSpace{S,N₁,N₂}) where {T<:Number, S<:IndexSpace, N₁, N₂} = TensorMap{T,S,N₁,N₂}(data, P)
+TensorMap(data::AbstractArray{T}, P::TensorMapSpace) where {T<:Number} = Tensor{T}(data, P)
 
-# tensors from concatenation
-function tensorcat{S}(catind, X::Tensor{S}...)
-    catind = collect(catind)
-    isempty(catind) && error("catind should not be empty")
-    # length(unique(catdims)) != length(catdims) && error("every dimension should appear only once")
+# without data: uninitialized
+TensorMap{T}(A::Type{<:AbstractArray{T}}, P::TensorMapSpace) where {T<:Number} = Tensor{T}(A(dims(P)), P)
+TensorMap(A::Type{<:AbstractArray{T}}, P::TensorMapSpace) where {T<:Number} = Tensor{T}(A, P)
 
-    nargs = length(X)
-    numindX = map(numind, X)
+TensorMap{T}(P::TensorMapSpace) where {T<:Number} = TensorMap{T}(Array{T}, P)
+TensorMap(P::TensorMapSpace) = TensorMap{Float64}(P)
 
-    all(n->(n == numindX[1]), numindX) || throw(SpaceError("all tensors should have the same number of indices for concatenation"))
+# generic constructor from callable:
+TensorMap{T}(f, P::TensorMapSpace) where {T<:Number} = Tensor{T}(f(T, dims(P)), P)
+TensorMap(f, P::TensorMapSpace) = Tensor(f(dims(P)), P)
 
-    numindC = numindX[1]
-    ncatind = setdiff(1:numindC,catind)
-    spaceCvec = Array(S, numindC)
-    for n = 1:numindC
-        spaceCvec[n] = space(X[1],n)
-    end
-    for i = 2:nargs
-        for n in catind
-            spaceCvec[n] = directsum(spaceCvec[n], space(X[i],n))
-        end
-        for n in ncatind
-            spaceCvec[n] == space(X[i],n) || throw(SpaceError("space mismatch for index $n"))
-        end
-    end
-    spaceC = ⊗(spaceCvec...)
-    typeC = mapreduce(eltype, promote_type, X)
-    dataC = zeros(typeC, map(dim,spaceC))
+# without spaces
+TensorMap(data::AbstractMatrix{T}) where {T<:Real} = Tensor{T}(data, CartesianSpace(size(data,1)) ← CartesianSpace(size(data,2)))
+TensorMap(data::AbstractMatrix{T}) where {T<:Complex} = Tensor{T}(data, ComplexSpace(size(data,1)) ← ComplexSpace(size(data,2)))
 
-    offset = zeros(Int,numindC)
-    for i=1:nargs
-        currentdims=ntuple(numindC,n->dim(space(X[i],n)))
-        currentrange=[offset[n]+(1:currentdims[n]) for n=1:numindC]
-        dataC[currentrange...] = X[i].data
-        for n in catind
-            offset[n]+=currentdims[n]
-        end
-    end
-    return tensor(dataC,spaceC)
-end
+# Similar
+#---------
+Base.similar(t::TensorMap{T1, S}, ::Type{T2}, P::TensorMapSpace{S} = (dom(t)=>codom(t))) where {T1,T2,S} = Tensor(similar(t.data, T, dims(P)), P)
+Base.similar(t::TensorMap{T1, S}, ::Type{T2}, P::TensorSpace{S}) where {T1,T2,S} = Tensor(similar(t.data, T, dims(P)), P)
+Base.similar(t::TensorMap{T1, S}, ::Type{T2}, V::S) where {T1,T2,S} = similar(t, T2, TensorSpace(V))
+
+Base.similar(t::TensorMap{T, S}, P::TensorMapSpace{S} = (dom(t)=>codom(t))) where {T,S} = similar(t, eltype(t), P)
+Base.similar(t::TensorMap{T, S}, P::TensorSpace{S}) where {T,S} = simlar(t, eltype(t), P)
+Base.similar(t::TensorMap{T, S}, V::S) where {T,S} = similar(t, eltype(t), V)
 
 # Copy and fill tensors:
 #------------------------
-function Base.copy!(tdest::Tensor,tsource::Tensor)
-    # Copies data of tensor tsource to tensor tdest if compatible
-    space(tdest)==space(tsource) || throw(SpaceError("tensor spaces don't match"))
-    copy!(tdest.data,tsource.data)
+function Base.copy!(tdest::TensorMap, tsource::TensorMap)
+    codom(tdest) == codom(tsource) && dom(tdest) == dom(tsource) || throw(SpaceError())
+    copy!(tdest.data, tsource.data)
     return tdest
 end
-Base.fill!{S,T}(tdest::Tensor{S,T},value::Number)=fill!(tdest.data,convert(T,value))
-
-# Vectorization:
-#----------------
-Base.vec(t::Tensor)=vec(t.data)
-# Convert the non-trivial degrees of freedom in a tensor to a vector to be passed to eigensolvers etc.
+Base.fill!(tdest::TensorMap, value::Number)=fill!(tdest.data, value)
 
 # Conversion and promotion:
 #---------------------------
-Base.full(t::Tensor)=t.data
+Base.promote_rule(::Type{<:TensorMap{T1,S}},::Type{<:TensorMap{T2,S}}) where {T1, T2, S} = TensorMap{promote_type(T1,T2),S}
 
-Base.promote_rule{S,T1,T2,N}(::Type{Tensor{S,T1,N}},::Type{Tensor{S,T2,N}})=Tensor{S,promote_type(T1,T2),N}
-Base.promote_rule{S,T1,T2,N1,N2}(::Type{Tensor{S,T1,N1}},::Type{Tensor{S,T2,N2}})=Tensor{S,promote_type(T1,T2)}
-Base.promote_rule{S,T1,T2}(::Type{Tensor{S,T1}},::Type{Tensor{S,T2}})=Tensor{S,promote_type(T1,T2)}
+Base.convert(::Type{TensorMap{T,S}}, t::Tensor{T,S}) where {T,S} = t
+Base.convert(::Type{TensorMap{T1,S}}, t::Tensor{T2,S}) where {T1,T2,S} = copy!(similar(t, T1), t)
 
-Base.promote_rule{S,T1,T2,N}(::Type{AbstractTensor{S,ProductSpace,T1,N}},::Type{Tensor{S,T2,N}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2),N}
-Base.promote_rule{S,T1,T2,N1,N2}(::Type{AbstractTensor{S,ProductSpace,T1,N1}},::Type{Tensor{S,T2,N2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
-Base.promote_rule{S,T1,T2}(::Type{AbstractTensor{S,ProductSpace,T1}},::Type{Tensor{S,T2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
+# TODO: Check whether we need anything of this old stuff
+# Base.promote_rule{S,T1,T2,N1,N2}(::Type{Tensor{S,T1,N1}},::Type{Tensor{S,T2,N2}})=Tensor{S,promote_type(T1,T2)}
+# Base.promote_rule{S,T1,T2}(::Type{Tensor{S,T1}},::Type{Tensor{S,T2}})=Tensor{S,promote_type(T1,T2)}
+#
+# Base.promote_rule{S,T1,T2,N}(::Type{AbstractTensor{S,ProductSpace,T1,N}},::Type{Tensor{S,T2,N}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2),N}
+# Base.promote_rule{S,T1,T2,N1,N2}(::Type{AbstractTensor{S,ProductSpace,T1,N1}},::Type{Tensor{S,T2,N2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
+# Base.promote_rule{S,T1,T2}(::Type{AbstractTensor{S,ProductSpace,T1}},::Type{Tensor{S,T2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
 
-Base.convert{S,T,N}(::Type{Tensor{S,T,N}},t::Tensor{S,T,N})=t
-Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=copy!(similar(t,T1),t)
-Base.convert{S,T}(::Type{Tensor{S,T}},t::Tensor{S,T})=t
-Base.convert{S,T1,T2}(::Type{Tensor{S,T1}},t::Tensor{S,T2})=copy!(similar(t,T1),t)
 
-Base.float{S,T<:FloatingPoint}(t::Tensor{S,T})=t
-Base.float(t::Tensor)=tensor(float(t.data),space(t))
-
-Base.real{S,T<:Real}(t::Tensor{S,T})=t
-Base.real(t::Tensor)=tensor(real(t.data),space(t))
-Base.complex{S,T<:Complex}(t::Tensor{S,T})=t
-Base.complex(t::Tensor)=tensor(complex(t.data),space(t))
-
-for (f,T) in ((:float32,    Float32),
-              (:float64,    Float64),
-              (:complex64,  Complex64),
-              (:complex128, Complex128))
-    @eval (Base.$f){S}(t::Tensor{S,$T}) = t
-    @eval (Base.$f)(t::Tensor) = tensor(($f)(t.data),space(t))
-end
-
-# Basic algebra:
-#----------------
-function Base.conj!(t1::Tensor,t2::Tensor)
-    space(t1)==conj(space(t2)) || throw(SpaceError())
-    copy!(t1.data,t2.data)
-    conj!(t1.data)
+# Base.convert{S,T,N}(::Type{Tensor{S,T,N}},t::Tensor{S,T,N})=t
+# Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=copy!(similar(t,T1),t)
+# Base.convert{S,T}(::Type{Tensor{S,T}},t::Tensor{S,T})=t
+# Base.convert{S,T1,T2}(::Type{Tensor{S,T1}},t::Tensor{S,T2})=copy!(similar(t,T1),t)
+#
+# Base.float{S,T<:FloatingPoint}(t::Tensor{S,T})=t
+# Base.float(t::Tensor)=tensor(float(t.data),space(t))
+#
+# Base.real{S,T<:Real}(t::Tensor{S,T})=t
+# Base.real(t::Tensor)=tensor(real(t.data),space(t))
+# Base.complex{S,T<:Complex}(t::Tensor{S,T})=t
+# Base.complex(t::Tensor)=tensor(complex(t.data),space(t))
+#
+# for (f,T) in ((:float32,    Float32),
+#               (:float64,    Float64),
+#               (:complex64,  Complex64),
+#               (:complex128, Complex128))
+#     @eval (Base.$f){S}(t::Tensor{S,$T}) = t
+#     @eval (Base.$f)(t::Tensor) = tensor(($f)(t.data),space(t))
+# end
+#
+# Basic vector space methods:
+# ---------------------------
+function Base.scale!(t1::TensorMap, t2::TensorMap, a::Number)
+    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceError())
+    t1.data .= a .* t2.data
     return t1
 end
 
-# transpose inverts order of indices, compatible with graphical notation
-function Base.transpose!(tdest::Tensor,tsource::Tensor)
-    space(tdest)==space(tsource).' || throw(SpaceError())
-    N=numind(tsource)
-    TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
-    return tdest
+function add!(t1::TensorMap, t2::TensorMap, a::Number)
+    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceError())
+    t1.data .+= a .* t2.data
 end
-function Base.ctranspose!(tdest::Tensor,tsource::Tensor)
-    space(tdest)==space(tsource)' || throw(SpaceError())
-    N=numind(tsource)
-    TensorOperations.tensorcopy!(tsource.data,1:N,tdest.data,reverse(1:N))
-    conj!(tdest.data)
-    return tdest
-end
-
-Base.scale!{S,T,N}(t1::Tensor{S,T,N},t2::Tensor{S,T,N},a::Number)=(space(t1)==space(t2) ? scale!(t1.data,t2.data,a) : throw(SpaceError());return t1)
-Base.scale!{S,T,N}(t1::Tensor{S,T,N},a::Number,t2::Tensor{S,T,N})=(space(t1)==space(t2) ? scale!(t1.data,a,t2.data) : throw(SpaceError());return t1)
-
-Base.LinAlg.axpy!(a::Number,x::Tensor,y::Tensor)=(space(x)==space(y) ? Base.LinAlg.axpy!(a,x.data,y.data) : throw(SpaceError()); return y)
-
--(t::Tensor)=tensor(-t.data,space(t))
-+(t1::Tensor,t2::Tensor)= space(t1)==space(t2) ? tensor(t1.data+t2.data,space(t1)) : throw(SpaceError())
--(t1::Tensor,t2::Tensor)= space(t1)==space(t2) ? tensor(t1.data-t2.data,space(t1)) : throw(SpaceError())
-
-# Scalar product and norm: only valid for EuclideanSpace
-Base.dot{S<:EuclideanSpace}(t1::Tensor{S},t2::Tensor{S})= (space(t1)==space(t2) ? dot(vec(t1),vec(t2)) : throw(SpaceError()))
-Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data) # frobenius norm
 
 # Indexing
 #----------
 # # linear indexing using ProductBasisVector
-# Base.getindex{S,T,N}(t::Tensor{S,T,N},b::ProductBasisVector{N,S})=getindex(t.data,Base.to_index(b))
-# Base.setindex!{S,T,N}(t::Tensor{S,T,N},value,b::ProductBasisVector{N,S})=setindex!(t.data,value,Base.to_index(b))
-
-@ngenerate N Array{T,N} function Base.getindex{G,T,N}(t::Tensor{AbelianSpace{G},T,N},s::NTuple{N,G})
-    @nexprs N n->(r_n=Base.to_range(s[n],space(t,n)))
-    return @ncall N slice t.data r
-end
-
-Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Array,s::NTuple{N,G})=(length(v)==length(t[s]) ? copy!(t[s],v) : throw(DimensionMismatch()))
-Base.setindex!{G,T,N}(t::Tensor{AbelianSpace{G},T,N},v::Number,s::NTuple{N,G})=fill!(t[s],v)
-
-# Tensor Operations
-#-------------------
-scalar(t::Tensor)=iscnumber(space(t)) ? t.data[1] : throw(SpaceError("Not a scalar"))
-
-function tensorcopy!(t1::Tensor,labels1,t2::Tensor,labels2)
-    # Replaces tensor t2 with t1
-    N1=numind(t1)
-    perm=indexin(labels2,labels1)
-
-    length(perm) == N1 || throw(TensorOperations.LabelError("invalid label specification"))
-    isperm(perm) || throw(TensorOperations.LabelError("invalid label specification"))
-    for i = 1:N1
-        space(t1,i) == space(t2,perm[i]) || throw(SpaceError())
-    end
-    N1==0 && (t2.data[1]=t1.data[1]; return t2)
-    perm==[1:N1] && return copy!(t2,t1)
-    TensorOperations.tensorcopy_native!(t1.data,t2.data,perm)
-    return t2
-end
-function tensoradd!(alpha::Number,t1::Tensor,labels1,beta::Number,t2::Tensor,labels2)
-    # Replaces tensor t2 with beta*t2+alpha*t1
-    N1=numind(t1)
-    perm=indexin(labels2,labels1)
-
-    length(perm) == N1 || throw(TensorOperations.LabelError("invalid label specification"))
-    isperm(perm) || throw(TensorOperations.LabelError("invalid label specification"))
-    for i = 1:N1
-        space(t1,perm[i]) == space(t2,i) || throw(SpaceError("incompatible index spaces of tensors"))
-    end
-    N1==0 && (t2.data[1]=beta*t2.data[1]+alpha*t1.data[1]; return t2)
-    perm==[1:N1] && return (beta==0 ? scale!(copy!(t2,t1),alpha) : Base.LinAlg.axpy!(alpha,t1,scale!(t2,beta)))
-    beta==0 && (TensorOperations.tensorcopy_native!(t1.data,t2.data,perm);return scale!(t2,alpha))
-    TensorOperations.tensoradd_native!(alpha,t1.data,beta,t2.data,perm)
-    return t2
-end
-function tensortrace!(alpha::Number,A::Tensor,labelsA,beta::Number,C::Tensor,labelsC)
-    NA=numind(A)
-    NC=numind(C)
-    (length(labelsA)==NA && length(labelsC)==NC) || throw(LabelError("invalid label specification"))
-    NA==NC && return tensoradd!(alpha,A,labelsA,beta,C,labelsC) # nothing to trace
-
-    oindA=indexin(labelsC,labelsA)
-    clabels=unique(setdiff(labelsA,labelsC))
-    NA==NC+2*length(clabels) || throw(LabelError("invalid label specification"))
-
-    cindA1=Array(Int,length(clabels))
-    cindA2=Array(Int,length(clabels))
-    for i=1:length(clabels)
-        cindA1[i]=findfirst(labelsA,clabels[i])
-        cindA2[i]=findnext(labelsA,clabels[i],cindA1[i]+1)
-    end
-    isperm(vcat(oindA,cindA1,cindA2)) || throw(LabelError("invalid label specification"))
-
-    for i = 1:NC
-        space(A,oindA[i]) == space(C,i) || throw(SpaceError("space mismatch"))
-    end
-    for i = 1:div(NA-NC,2)
-        space(A,cindA1[i]) == dual(space(A,cindA2[i])) || throw(SpaceError("space mismatch"))
-    end
-
-    TensorOperations.tensortrace_native!(alpha,A.data,beta,C.data,oindA,cindA1,cindA2)
-    return C
-end
-function tensorcontract!(alpha::Number,A::Tensor,labelsA,conjA::Char,B::Tensor,labelsB,conjB::Char,beta::Number,C::Tensor,labelsC;method=:BLAS,buffer::TCBuffer=defaultcontractbuffer)
-    # Get properties of input arrays
-    NA=numind(A)
-    NB=numind(B)
-    NC=numind(C)
-
-    # Process labels, do some error checking and analyse problem structure
-    if NA!=length(labelsA) || NB!=length(labelsB) || NC!=length(labelsC)
-        throw(TensorOperations.LabelError("invalid label specification"))
-    end
-    ulabelsA=unique(labelsA)
-    ulabelsB=unique(labelsB)
-    ulabelsC=unique(labelsC)
-    if NA!=length(ulabelsA) || NB!=length(ulabelsB) || NC!=length(ulabelsC)
-        throw(TensorOperations.LabelError("tensorcontract requires unique label for every index of the tensor, handle inner contraction first with tensortrace"))
-    end
-
-    clabels=intersect(ulabelsA,ulabelsB)
-    numcontract=length(clabels)
-    olabelsA=intersect(ulabelsA,ulabelsC)
-    numopenA=length(olabelsA)
-    olabelsB=intersect(ulabelsB,ulabelsC)
-    numopenB=length(olabelsB)
-
-    if numcontract+numopenA!=NA || numcontract+numopenB!=NB || numopenA+numopenB!=NC
-        throw(LabelError("invalid contraction pattern"))
-    end
-
-    # Compute and contraction indices and check size compatibility
-    cindA=indexin(clabels,ulabelsA)
-    oindA=indexin(olabelsA,ulabelsA)
-    oindCA=indexin(olabelsA,ulabelsC)
-    cindB=indexin(clabels,ulabelsB)
-    oindB=indexin(olabelsB,ulabelsB)
-    oindCB=indexin(olabelsB,ulabelsC)
-
-    # check size compatibility
-    spaceA=space(A)
-    spaceB=space(B)
-    spaceC=space(C)
-
-    ospaceA=spaceA[oindA]
-    ospaceB=spaceB[oindB]
-
-    conjA=='C' || conjA=='N' || throw(ArgumentError("conjA should be 'C' or 'N'."))
-    conjB=='C' || conjB=='N' || throw(ArgumentError("conjB should be 'C' or 'N'."))
-
-    if conjA == conjB
-        for (i,j) in zip(cindA,cindB)
-            spaceA[i] == dual(spaceB[j]) || throw(SpaceError("incompatible index space for label $(ulabelsA[i])"))
-        end
-    else
-        for (i,j) in zip(cindA,cindB)
-            spaceA[i] == dual(conj(spaceB[j])) || throw(SpaceError("incompatible index space for label $(ulabelsA[i])"))
-        end
-    end
-    for (i,j) in zip(oindA,oindCA)
-        spaceC[j] == (conjA=='C' ? conj(spaceA[i]) : spaceA[i]) || throw(SpaceError("incompatible index space for label $(ulabelsA[i])"))
-    end
-    for (i,j) in zip(oindB,oindCB)
-        spaceC[j] == (conjB=='C' ? conj(spaceB[i]) : spaceB[i]) || throw(SpaceError("incompatible index space for label $(ulabelsB[i])"))
-    end
-
-    if method==:BLAS
-        TensorOperations.tensorcontract_blas!(alpha,A.data,conjA,B.data,conjB,beta,C.data,buffer,oindA,cindA,oindB,cindB,oindCA,oindCB)
-    elseif method==:native
-        if NA>=NB
-            TensorOperations.tensorcontract_native!(alpha,A.data,conjA,B.data,conjB,beta,C.data,oindA,cindA,oindB,cindB,oindCA,oindCB)
-        else
-            TensorOperations.tensorcontract_native!(alpha,B.data,conjB,A.data,conjA,beta,C.data,oindB,cindB,oindA,cindA,oindCB,oindCA)
-        end
-    else
-        throw(ArgumentError("method should be :BLAS or :native"))
-    end
-    return C
-end
-
-function tensorproduct!(alpha::Number,A::Tensor,labelsA,B::Tensor,labelsB,beta::Number,C::Tensor,labelsC)
-    # Get properties of input arrays
-    NA=numind(A)
-    NB=numind(B)
-    NC=numind(C)
-
-    # Process labels, do some error checking and analyse problem structure
-    if NA!=length(labelsA) || NB!=length(labelsB) || NC!=length(labelsC)
-        throw(TensorOperations.LabelError("invalid label specification"))
-    end
-    NC==NA+NB || throw(TensorOperations.LabelError("invalid label specification for tensor product"))
-
-    tensorcontract!(alpha,A,labelsA,'N',B,labelsB,'N',beta,C,labelsC;method=:native)
-end
-
-# Methods below are only implemented for CartesianTensor or ComplexTensor:
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-typealias ComplexTensor{T,N} Tensor{ComplexSpace,T,N}
-typealias CartesianTensor{T,N} Tensor{CartesianSpace,T,N}
-
-# Index methods
-#---------------
-@eval function insertind{S}(t::Tensor{S},ind::Int,V::S)
-    N=numind(t)
-    0<=ind<=N || throw(IndexError("index out of range"))
-    iscnumber(V) || throw(SpaceError("can only insert index with c-number index space"))
-    spacet=space(t)
-    newspace=spacet[1:ind] ⊗ V ⊗ spacet[ind+1:N]
-    return tensor(t.data,newspace)
-end
-@eval function deleteind(t::Tensor,ind::Int)
-    N=numind(t)
-    1<=ind<=N || throw(IndexError("index out of range"))
-    iscnumber(space(t,ind)) || throw(SpaceError("can only delete index with c-number index space"))
-    spacet=space(t)
-    newspace=spacet[1:ind-1] ⊗ spacet[ind+1:N]
-    return tensor(t.data,newspace)
-end
-
-for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
-    @eval function fuseind(t::$TT,ind1::Int,ind2::Int,V::$S)
-        N=numind(t)
-        ind2==ind1+1 || throw(IndexError("only neighbouring indices can be fused"))
-        1<=ind1<=N-1 || throw(IndexError("index out of range"))
-        fuse(space(t,ind1),space(t,ind2),V) || throw(SpaceError("index spaces $(space(t,ind1)) and $(space(t,ind2)) cannot be fused to $V"))
-        spacet=space(t)
-        newspace=spacet[1:ind1-1]*V*spacet[ind2+1:N]
-        return tensor(t.data,newspace)
-    end
-    @eval function splitind(t::$TT,ind::Int,V1::$S,V2::$S)
-        1<=ind<=numind(t) || throw(IndexError("index out of range"))
-        fuse(V1,V2,space(t,ind)) || throw(SpaceError("index space $(space(t,ind)) cannot be split into $V1 and $V2"))
-        spacet=space(t)
-        newspace=spacet[1:ind-1]*V1*V2*spacet[ind+1:N]
-        return tensor(t.data,newspace)
-    end
-end
-
-# Factorizations:
-#-----------------
-for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
-    @eval function svd!(t::$TT,n::Int,::NoTruncation)
-        # Perform singular value decomposition corresponding to bipartion of the
-        # tensor indices into the left indices 1:n and remaining right indices,
-        # thereby destroying the original tensor.
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        data=reshape(t.data,(leftdim,rightdim))
-        F=svdfact!(data)
-        newdim=length(F[:S])
-        newspace=$S(newdim)
-        U=tensor(F[:U],leftspace*newspace')
-        S=tensor(diagm(F[:S]),newspace*newspace')
-        V=tensor(F[:Vt],newspace*rightspace)
-        return U,S,V,abs(zero(eltype(t)))
-    end
-
-    @eval function svd!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
-        # Truncate rank corresponding to bipartition into left indices 1:n
-        # and remain right indices, based on singular value decomposition,
-        # thereby destroying the original tensor.
-        # Truncation parameters are given as keyword arguments: trunctol should
-        # always be one of the possible arguments for specifying truncation, but
-        # truncdim can be replaced with different parameters for other types of tensors.
-
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        dim(trunc) >= min(leftdim,rightdim) && return svd!(t,n)
-        data=reshape(t.data,(leftdim,rightdim))
-        F=svdfact!(data)
-        sing=F[:S]
-
-        # compute truncation dimension
-        if eps(trunc)!=0
-            sing=F[:S]
-            normsing=vecnorm(sing)
-            truncdim=0
-            while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
-                truncdim+=1
-            end
-            truncdim=min(truncdim,dim(trunc))
-        else
-            truncdim=dim(trunc)
-        end
-        newspace=$S(truncdim)
-
-        # truncate
-        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-        S=tensor(diagm(sing[1:truncdim]),newspace*newspace')
-        V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-        return U,S,V,truncerr
-    end
-
-    @eval function svd!(t::$TT,n::Int,trunc::TruncationError)
-        # Truncate rank corresponding to bipartition into left indices 1:n
-        # and remain right indices, based on singular value decomposition,
-        # thereby destroying the original tensor.
-        # Truncation parameters are given as keyword arguments: trunctol should
-        # always be one of the possible arguments for specifying truncation, but
-        # truncdim can be replaced with different parameters for other types of tensors.
-
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        data=reshape(t.data,(leftdim,rightdim))
-        F=svdfact!(data)
-
-        # find truncdim based on trunctolinfo
-        sing=F[:S]
-        normsing=vecnorm(sing)
-        truncdim=0
-        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
-            truncdim+=1
-        end
-        newspace=$S(truncdim)
-
-        # truncate
-        truncerr=vecnorm(sing[(truncdim+1):end])/normsing
-        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-        S=tensor(diagm(sing[1:truncdim]),newspace*newspace')
-        V=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-        return U,S,V,truncerr
-    end
-
-    @eval function leftorth!(t::$TT,n::Int,::NoTruncation)
-        # Create orthogonal basis U for indices 1:n, and remainder C for right
-        # indices, thereby destroying the original tensor.
-        # Decomposition should be unique, such that it always returns the same
-        # result for the same input tensor t. UC = QR is fastest but only unique
-        # after correcting for phases.
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        data=reshape(t.data,(leftdim,rightdim))
-        if leftdim>rightdim
-            newdim=rightdim
-            tau=zeros(eltype(data),(newdim,))
-            Base.LinAlg.LAPACK.geqrf!(data,tau)
-
-            C=zeros(eltype(t),(newdim,newdim))
-            for j in 1:newdim
-                for i in 1:j
-                    @inbounds C[i,j]=data[i,j]
-                end
-            end
-            Base.LinAlg.LAPACK.orgqr!(data,tau)
-            U=data
-            for i=1:newdim
-                tau[i]=sign(C[i,i])
-            end
-            scale!(U,tau)
-            scale!(conj!(tau),C)
-        else
-            newdim=leftdim
-            C=data
-            U=eye(eltype(data),newdim)
-        end
-
-        newspace=$S(newdim)
-        return tensor(U,leftspace*newspace'), tensor(C,newspace*rightspace), abs(zero(eltype(t)))
-    end
-
-    @eval function leftorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
-        # Truncate rank corresponding to bipartition into left indices 1:n
-        # and remain right indices, based on singular value decomposition,
-        # thereby destroying the original tensor.
-        # Truncation parameters are given as keyword arguments: trunctol should
-        # always be one of the possible arguments for specifying truncation, but
-        # truncdim can be replaced with different parameters for other types of tensors.
-
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        dim(trunc) >= min(leftdim,rightdim) && return leftorth!(t,n)
-        data=reshape(t.data,(leftdim,rightdim))
-        F=svdfact!(data)
-        sing=F[:S]
-
-        # compute truncation dimension
-        if eps(trunc)!=0
-            sing=F[:S]
-            normsing=vecnorm(sing)
-            truncdim=0
-            while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
-                truncdim+=1
-            end
-            truncdim=min(truncdim,dim(trunc))
-        else
-            truncdim=dim(trunc)
-        end
-        newspace=$S(truncdim)
-
-        # truncate
-        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-        C=tensor(scale!(sing[1:truncdim],F[:Vt][1:truncdim,:]),newspace*rightspace)
-        return U,C,truncerr
-    end
-
-    @eval function leftorth!(t::$TT,n::Int,trunc::TruncationError)
-        # Truncate rank corresponding to bipartition into left indices 1:n
-        # and remain right indices, based on singular value decomposition,
-        # thereby destroying the original tensor.
-        # Truncation parameters are given as keyword arguments: trunctol should
-        # always be one of the possible arguments for specifying truncation, but
-        # truncdim can be replaced with different parameters for other types of tensors.
-
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        data=reshape(t.data,(leftdim,rightdim))
-        F=svdfact!(data)
-
-        # compute truncation dimension
-        sing=F[:S]
-        normsing=vecnorm(sing)
-        truncdim=0
-        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
-            truncdim+=1
-        end
-        newspace=$S(truncdim)
-
-        # truncate
-        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-        U=tensor(F[:U][:,1:truncdim],leftspace*newspace')
-        C=tensor(scale!(sing[1:truncdim],F[:Vt][1:truncdim,:]),newspace*rightspace)
-
-        return U,C,truncerr
-    end
-
-    @eval function rightorth!(t::$TT,n::Int,::NoTruncation)
-        # Create orthogonal basis U for right indices, and remainder C for left
-        # indices. Decomposition should be unique, such that it always returns the
-        # same result for the same input tensor t. CU = LQ is typically fastest but only
-        # unique after correcting for phases.
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        data=reshape(t.data,(leftdim,rightdim))
-        if leftdim<rightdim
-            newdim=leftdim
-            tau=zeros(eltype(data),(newdim,))
-            datat=transpose(data)
-            Base.LinAlg.LAPACK.geqrf!(datat,tau)
-
-            C=zeros(eltype(t),(newdim,newdim))
-            for j in 1:newdim
-                for i in 1:j
-                    @inbounds C[j,i]=datat[i,j]
-                end
-            end
-            Base.LinAlg.LAPACK.orgqr!(datat,tau)
-            Base.transpose!(data,datat)
-            U=data
-            
-            for i=1:newdim
-                tau[i]=sign(C[i,i])
-            end
-            scale!(tau,U)
-            scale!(C,conj!(tau))
-        else
-            newdim=rightdim
-            C=data
-            U=eye(eltype(data),newdim)
-        end
-
-        newspace=$S(newdim)
-        return tensor(C,leftspace ⊗ dual(newspace)), tensor(U,newspace ⊗ rightspace), abs(zero(eltype(t)))
-    end
-
-    @eval function rightorth!(t::$TT,n::Int,trunc::Union(TruncationDimension,TruncationSpace))
-        # Truncate rank corresponding to bipartition into left indices 1:n
-        # and remain right indices, based on singular value decomposition,
-        # thereby destroying the original tensor.
-        # Truncation parameters are given as keyword arguments: trunctol should
-        # always be one of the possible arguments for specifying truncation, but
-        # truncdim can be replaced with different parameters for other types of tensors.
-
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        dim(trunc) >= min(leftdim,rightdim) && return rightorth!(t,n)
-        data=reshape(t.data,(leftdim,rightdim))
-        F=svdfact!(data)
-        sing=F[:S]
-
-        # compute truncation dimension
-        if eps(trunc)!=0
-            sing=F[:S]
-            normsing=vecnorm(sing)
-            truncdim=0
-            while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
-                truncdim+=1
-            end
-            truncdim=min(truncdim,dim(trunc))
-        else
-            truncdim=dim(trunc)
-        end
-        newspace=$S(truncdim)
-
-        # truncate
-        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-        C=tensor(scale!(F[:U][:,1:truncdim],sing[1:truncdim]),leftspace*newspace')
-        U=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-        return C,U,truncerr
-    end
-
-    @eval function rightorth!(t::$TT,n::Int,trunc::TruncationError)
-        # Truncate rank corresponding to bipartition into left indices 1:n
-        # and remain right indices, based on singular value decomposition,
-        # thereby destroying the original tensor.
-        # Truncation parameters are given as keyword arguments: trunctol should
-        # always be one of the possible arguments for specifying truncation, but
-        # truncdim can be replaced with different parameters for other types of tensors.
-
-        N=numind(t)
-        spacet=space(t)
-        leftspace=spacet[1:n]
-        rightspace=spacet[n+1:N]
-        leftdim=dim(leftspace)
-        rightdim=dim(rightspace)
-        data=reshape(t.data,(leftdim,rightdim))
-        F=svdfact!(data)
-
-        # compute truncation dimension
-        sing=F[:S]
-        normsing=vecnorm(sing)
-        truncdim=0
-        while truncdim<length(sing) && vecnorm(sing[(truncdim+1):end])>eps(trunc)*normsing
-            truncdim+=1
-        end
-        newspace=$S(truncdim)
-
-        # truncate
-        truncerr=vecnorm(sing[(truncdim+1):end])/vecnorm(sing)
-        C=tensor(scale!(F[:U][:,1:truncdim],sing[1:truncdim]),leftspace*newspace')
-        U=tensor(F[:Vt][1:truncdim,:],newspace*rightspace)
-        return C,U,truncerr
-    end
-end
-
-# Methods below are only implemented for CartesianMatrix or ComplexMatrix:
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-typealias ComplexMatrix{T} ComplexTensor{T,2}
-typealias CartesianMatrix{T} CartesianTensor{T,2}
-
-function Base.pinv(t::Union(ComplexMatrix,CartesianMatrix))
-    # Compute pseudo-inverse
-    spacet=space(t)
-    data=copy(t.data)
-    leftdim=dim(spacet[1])
-    rightdim=dim(spacet[2])
-
-    F=svdfact!(data)
-    Sinv=F[:S]
-    for k=1:length(Sinv)
-        if Sinv[k]>eps(Sinv[1])*max(leftdim,rightdim)
-            Sinv[k]=one(Sinv[k])/Sinv[k]
-        end
-    end
-    data=F[:V]*scale(F[:S],F[:U]')
-    return tensor(data,spacet')
-end
-
-function Base.eig(t::Union(ComplexMatrix,CartesianMatrix))
-    # Compute eigenvalue decomposition.
-    spacet=space(t)
-    spacet[1] == spacet[2]' || throw(SpaceError("eigenvalue factorization only exists if left and right index space are dual"))
-    data=copy(t.data)
-
-    F=eigfact!(data)
-
-    Lambda=tensor(diagm(F[:values]),spacet)
-    V=tensor(F[:vectors],spacet)
-    return Lambda, V
-end
-
-function Base.inv(t::Union(ComplexMatrix,CartesianMatrix))
-    # Compute inverse.
-    spacet=space(t)
-    spacet[1] == spacet[2]' || throw(SpaceError("inverse only exists if left and right index space are dual"))
-
-    return tensor(inv(t.data),spacet)
-end
+Base.getindex(t::TensorMap, indices...)=getindex(t.data, indices...)
+Base.setindex!(t::TensorMap, value, indices...)=setindex!(t.data, value, indices...)
+
+# # Index methods
+# #---------------
+# @eval function insertind{S}(t::Tensor{S},ind::Int,V::S)
+#     N=numind(t)
+#     0<=ind<=N || throw(IndexError("index out of range"))
+#     iscnumber(V) || throw(SpaceError("can only insert index with c-number index space"))
+#     spacet=space(t)
+#     newspace=spacet[1:ind] ⊗ V ⊗ spacet[ind+1:N]
+#     return tensor(t.data,newspace)
+# end
+# @eval function deleteind(t::Tensor,ind::Int)
+#     N=numind(t)
+#     1<=ind<=N || throw(IndexError("index out of range"))
+#     iscnumber(space(t,ind)) || throw(SpaceError("can only delete index with c-number index space"))
+#     spacet=space(t)
+#     newspace=spacet[1:ind-1] ⊗ spacet[ind+1:N]
+#     return tensor(t.data,newspace)
+# end
+#
+# for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
+#     @eval function fuseind(t::$TT,ind1::Int,ind2::Int,V::$S)
+#         N=numind(t)
+#         ind2==ind1+1 || throw(IndexError("only neighbouring indices can be fused"))
+#         1<=ind1<=N-1 || throw(IndexError("index out of range"))
+#         fuse(space(t,ind1),space(t,ind2),V) || throw(SpaceError("index spaces $(space(t,ind1)) and $(space(t,ind2)) cannot be fused to $V"))
+#         spacet=space(t)
+#         newspace=spacet[1:ind1-1]*V*spacet[ind2+1:N]
+#         return tensor(t.data,newspace)
+#     end
+#     @eval function splitind(t::$TT,ind::Int,V1::$S,V2::$S)
+#         1<=ind<=numind(t) || throw(IndexError("index out of range"))
+#         fuse(V1,V2,space(t,ind)) || throw(SpaceError("index space $(space(t,ind)) cannot be split into $V1 and $V2"))
+#         spacet=space(t)
+#         newspace=spacet[1:ind-1]*V1*V2*spacet[ind+1:numind(t)]
+#         return tensor(t.data,newspace)
+#     end
+# end
+#
+
+
+## NOTE: Do we want this?
+# # tensors from concatenation
+# function tensorcat{S}(catind, X::Tensor{S}...)
+#     catind = collect(catind)
+#     isempty(catind) && error("catind should not be empty")
+#     # length(unique(catdims)) != length(catdims) && error("every dimension should appear only once")
+#
+#     nargs = length(X)
+#     numindX = map(numind, X)
+#
+#     all(n->(n == numindX[1]), numindX) || throw(SpaceError("all tensors should have the same number of indices for concatenation"))
+#
+#     numindC = numindX[1]
+#     ncatind = setdiff(1:numindC,catind)
+#     spaceCvec = Array(S, numindC)
+#     for n = 1:numindC
+#         spaceCvec[n] = space(X[1],n)
+#     end
+#     for i = 2:nargs
+#         for n in catind
+#             spaceCvec[n] = directsum(spaceCvec[n], space(X[i],n))
+#         end
+#         for n in ncatind
+#             spaceCvec[n] == space(X[i],n) || throw(SpaceError("space mismatch for index $n"))
+#         end
+#     end
+#     spaceC = ⊗(spaceCvec...)
+#     typeC = mapreduce(eltype, promote_type, X)
+#     dataC = zeros(typeC, map(dim,spaceC))
+#
+#     offset = zeros(Int,numindC)
+#     for i=1:nargs
+#         currentdims=ntuple(numindC,n->dim(space(X[i],n)))
+#         currentrange=[offset[n]+(1:currentdims[n]) for n=1:numindC]
+#         dataC[currentrange...] = X[i].data
+#         for n in catind
+#             offset[n]+=currentdims[n]
+#         end
+#     end
+#     return tensor(dataC,spaceC)
+# end

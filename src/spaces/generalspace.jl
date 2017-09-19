@@ -1,40 +1,34 @@
-# generalspace.jl
-#
-# Defines the immutible GeneralSpace for a general finite dimensional vector space over an arbitrary
-# field, characterized by its field, its dimension and whether or not it is the dual space and/or the
-# complex conjugate space. Tensors with GeneralSpace as index spaces make a distinction between covariant
-# and contravariant indices, and covariant and contravariant dotted/barred indices.
+"""
+    struct GeneralSpace{k} <: ElementarySpace{k}
 
-# GeneralSpace:
-#---------------
-immutable GeneralSpace{F} <: ElementarySpace{F}
-    field::Type{F}
+A GeneralSpace is finite-dimensional space over an arbitrary field `F` without
+additional structure. It is thus characterized by its dimension, and whether or
+not it is the dual and/or conjugate space. For a real field `F`, the space and
+its conjugate are the same.
+"""
+struct GeneralSpace{k} <: ElementarySpace{k}
     d::Int
     dual::Bool
     conj::Bool
-    GeneralSpace(d::Int,dual::Bool=false,conj::Bool=false) = (d>0 ? new(F, d, dual, !(F<:Real) && conj) : throw(ArgumentError("Dimension of a vector space should be bigger than zero")))
+    GeneralSpace{k}(d::Int; dual::Bool = false, conj::Bool = false) where {k} =
+        (d >= 0 ? new{k}(d, dual, conj) : throw(ArgumentError("Dimension of a vector space should be bigger than zero")))
 end
-GeneralSpace{F}(::Type{F},d::Int,dual::Bool=false,conj::Bool=false) = GeneralSpace{F}(d,dual,conj)
-GeneralSpace(d::Int,dual::Bool=false,conj::Bool=false) = GeneralSpace{Real}(d,dual,conj)
 
-# Corresponding methods:
 dim(V::GeneralSpace) = V.d
-dual(V::GeneralSpace) = GeneralSpace(V.field,V.d, !V.dual, V.conj)
-Base.conj(V::GeneralSpace) = GeneralSpace(V.field,V.d, V.dual, !V.conj)
-cnumber{F}(V::GeneralSpace{F}) = GeneralSpace(F,1,V.dual,V.conj)
-cnumber{F}(::Type{GeneralSpace{F}}) = GeneralSpace(F,1,false,false)
-iscnumber(V::ElementarySpace) = dim(V)==1 && V.field <: Number
+Base.indices(V::GeneralSpace) = Base.OneTo(dim(V))
 
-# Show methods
-function Base.show(io::IO, V::GeneralSpace)
+dual(V::GeneralSpace{k}) where {k} = GeneralSpace{k}(V.d, !V.dual, V.conj)
+Base.conj(V::GeneralSpace{k}) where {k} = GeneralSpace{k}(V.d, V.dual, !V.conj)
+
+function Base.show(io::IO, V::GeneralSpace{k}) where {k}
     if V.conj
-        print(io,"conj(")
+        print(io, "conj(")
     end
-    print(io,"$(V.field)($(V.d))")
+    print(io, "GeneralSpace{", k, "}(", V.d, ")")
     if V.dual
-        print(io,"*")
+        print(io, "'")
     end
     if V.conj
-        print(io,")")
+        print(io, ")")
     end
 end

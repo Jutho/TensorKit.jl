@@ -3,116 +3,107 @@
 # Main file for module TensorToolbox, a Julia package for working with
 # with tensors and tensor operations
 
-module TensorToolbox
+# module TensorToolbox
+#
+# # Exports
+# #---------
+# # Types:
+# export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace
+# export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace, ZNSpace
+# export Parity, ZNCharge, U1Charge
+# export CompositeSpace, ProductSpace, InvariantSpace
+# export IndexSpace, TensorSpace, AbstractTensor, Tensor, InvariantTensor
+# export TruncationScheme
+# export AbstractTensorMap
+# export SpaceError, IndexError
+#
+# # general vector space methods
+# export space, dim, dual, fieldtype, sectortype #, cnumber, iscnumber, directsum, fuse
+# export ⊗, ⊕, ℂ, ℝ # some unicode
+#
+# # vector spaces with symmetries
+# export sectors, invariant
+#
+# # tensor characteristics
+# export spacetype, tensortype, numind, order
+# # tensor constructors
+# export tensor, tensorcat
+# # index manipulations
+# export insertind, deleteind, fuseind, splitind
+# # tensor operations
+# export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
+# export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
+# # tensor factorizations
+# export leftorth, rightorth
+# export leftorth!, rightorth!, svd!
+#
+# # truncation schemes
+# export notrunc, truncerr, truncdim, truncspace
+#
+# # tensor maps
+# export domain, codomain, hermitian, posdef, tensormap
+#
+# # tensor networks
+# export AbstractTensorNetwork, TensorNetwork
+# export network, optimizecontract
 
-# Exports
-#---------
-# Types:
-export VectorSpace, ElementarySpace, ElementaryHilbertSpace, EuclideanSpace
-export ComplexSpace, CartesianSpace, GeneralSpace
-export UnitaryRepresentationSpace, AbelianSpace
-export U1Charge, ZNCharge, Parity
-export CompositeSpace, ProductSpace, InvariantSpace
-export IndexSpace, TensorSpace, AbstractTensor, Tensor, InvariantTensor
-export TruncationScheme
-export AbstractTensorMap
-export SpaceError, IndexError
-
-# general vector space methods
-export space, issubspace, dim, dual, cnumber, iscnumber, directsum, fuse, basis
-export ⊗, ℂ, ℝ # some unicode
-
-# vector spaces with symmetries
-export sectors, invariant
-
-# tensor characteristics
-export spacetype, tensortype, numind, order
-# tensor constructors
-export tensor, tensorcat
-# index manipulations
-export insertind, deleteind, fuseind, splitind
-# tensor operations
-export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
-export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
-# tensor factorizations
-export leftorth, rightorth
-export leftorth!, rightorth!, svd!
-
-# truncation schemes
-export notrunc, truncerr, truncdim, truncspace
-
-# tensor maps
-export domain, codomain, hermitian, posdef, tensormap
-
-# tensor networks
-export AbstractTensorNetwork, TensorNetwork
-export network, optimizecontract
-
-# General imports:
-#------------------
-using Cartesian
+using Base: tuple_type_head, tuple_type_tail, tuple_type_cons, tail, front, setindex,
+            Iterators.product, ImmutableDict
+include("auxiliary/auxiliary.jl")
 
 # Exception types:
 #------------------
-abstract TensorException <: Exception
+abstract type TensorException <: Exception end
 
-type SpaceError <: TensorException
-    message::String
+# Exception type for all errors related to sector mismatch
+struct SectorMismatch{S<:Union{Void,String}} <: TensorException
+    message::S
 end
-SpaceError()=SpaceError("Space mismatch")
+SectorMismatch()=SectorMismatch{Void}(nothing)
+Base.show(io::IO, ::SectorMismatch{Void}) = print(io, "SectorMismatch()")
+
 # Exception type for all errors related to vector space mismatch
-
-type IndexError <: TensorException
-    message::String
+struct SpaceMismatch{S<:Union{Void,String}} <: TensorException
+    message::S
 end
-IndexError()=IndexError("Invalid index specification")
+SpaceMismatch()=SpaceMismatch{Void}(nothing)
+Base.show(io::IO, ::SpaceMismatch{Void}) = print(io, "SpaceMismatch()")
+
 # Exception type for all errors related to invalid tensor index specification.
+struct IndexError{S<:Union{Void,String}} <: TensorException
+    message::S
+end
+IndexError()=IndexError{Void}(nothing)
+Base.show(io::IO, ::IndexError{Void}) = print(io, "IndexError()")
 
-# Types and methods for vector spaces
-#-------------------------------------
-abstract VectorSpace
-space(V::VectorSpace) = V # just returns the space
-issubspace(V1::VectorSpace,V2::VectorSpace) = V1==V2 # default, only identical spaces are subspaces
-⊗(a,b,c...)=⊗(a,⊗(b,c...)) # introduce ⊗ as operator
-*(V1::VectorSpace,V2::VectorSpace) = ⊗(V1,V2) # for convenience, product of vector spaces is tensor product
+# Tensor product operator
+#-------------------------
+⊗(a, b, c, d...)=⊗(a, ⊗(b, c, d...))
 
-#include("basis.jl") # basis: iterator over a set of basis vectors spanning the space
+# Definitions and methods for superselection sectors (quantum numbers)
+#----------------------------------------------------------------------
+include("sectors/sectors.jl")
 
-include("elementaryspace.jl") # elementary finite-dimensional vector spaces
-include("compositespace.jl") # composing elementary vector spaces
+# Definitions and methods for vector spaces
+#-------------------------------------------
+include("spaces/vectorspaces.jl")
 
-# Types and methods for tensors
-#-------------------------------
-import TensorOperations
-import TensorOperations: TCBuffer, defaultcontractbuffer
+# Constructing and manipulating fusion trees and iterators thereof
+#------------------------------------------------------------------
+include("fusiontrees/fusiontrees.jl")
+
+# # Definitions and methods for tensors
+# #-------------------------------------
+# import TensorOperations
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
 # define truncation schemes for tensors
-include("tensors/truncation.jl")
+# include("tensors/truncation.jl")
 
 # general definitions
-include("tensors/abstracttensor.jl")
+#include("tensors/abstracttensor.jl")
 
-# Implementations:
-include("tensors/tensor.jl") # generic tensor living in a ProductSpace without special properties
-include("tensors/invarianttensor.jl") # generic tensor living in a ProductSpace without special properties
+# specific implementation
+# include("tensors/tensor.jl")
 
-# Tensor networks: contract a network of tensors
-#------------------------------------------------
-include("tensornetworks/abstracttensornetwork.jl")
-include("tensornetworks/tensornetwork.jl")
-include("tensornetworks/optimize.jl")
-
-# Tensor maps: linear maps acting on tensors
-#--------------------------------------------
-include("tensormaps/abstracttensormap.jl")
-include("tensormaps/linearcombination.jl")
-include("tensormaps/composition.jl")
-include("tensormaps/shifted.jl")
-include("tensormaps/dual.jl")
-#include("tensormaps/adjoint.jl")
-include("tensormaps/hermitian.jl") # guaranteed self adjoint operator
-include("tensormaps/posdef.jl") # guaranteed positive definite operator
-include("tensormaps/tensormap.jl") # a dense tensor map implemented using a tensor
-
-end
+#end
