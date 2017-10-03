@@ -8,41 +8,48 @@
 Abstract supertype of all tensor maps, i.e. linear maps between tensor products
 of vector spaces of type `S<:IndexSpace`. An `AbstractTensorMap` maps from
 an input space of type `ProductSpace{S,N₂}` to an output space of type
-`ProductSpace{S,N₁}` and has entries (with respect to the canonical basis) of
-type `T`.
+`ProductSpace{S,N₁}`.
 """
-abstract type AbstractTensorMap{T<:Number, S<:IndexSpace, N₁, N₂} end
+abstract type AbstractTensorMap{S<:IndexSpace, N₁, N₂} end
 """
-    AbstractTensor{T<:Number, S<:IndexSpace, N} = AbstractTensorMap{T,S,N,0}
+    AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{T,S,N,0}
 
 Abstract supertype of all tensors, i.e. elements in the tensor product space
 of type `ProductSpace{S,N}`, built from elementary spaces of type `S<:IndexSpace`.
-The entries of the tensor are of type `T<:Number` (with respect to the canonical basis).
 
-An `AbstractTensor{T,S,N}` is actually a special case `AbstractTensorMap{T,S,N,0}`,
+An `AbstractTensor{S,N}` is actually a special case `AbstractTensorMap{S,N,0}`,
 i.e. a tensor map with only a non-trivial output space.
 """
-const AbstractTensor{T<:Number, S<:IndexSpace, N} = AbstractTensorMap{T, S, N, 0}
+const AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
 
 # tensor characteristics
 Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
 spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
+sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
 fieldtype(t::AbstractTensorMap) = fieldtype(typeof(t))
+numin(t::AbstractTensorMap) = numin(typeof(t))
+numout(t::AbstractTensorMap) = numout(typeof(t))
 numind(t::AbstractTensorMap) = numind(typeof(t))
 
-Base.eltype(::Type{<:AbstractTensorMap{T}}) where {T<:Number} = T
-spacetype(::Type{<:AbstractTensorMap{T,S}}) where {T<:Number, S<:IndexSpace} = S
-fieldtype(::Type{<:AbstractTensorMap{T,S}}) where {T<:Number, S<:IndexSpace} = fieldtype(S)
-numind(::Type{<:AbstractTensorMap{S,T,N₁,N₂}}) where {T<:Number, S<:IndexSpace, N₁, N₂} = N₁ + N₂
+spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
+sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
+fieldtype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = fieldtype(S)
+numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁
+numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₂
+numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁ + N₂
 
 const order = numind
 
-space(t::AbstractTensorMap) = codomain(t) ⊗ dual(domain(t))
+# tensormap implementation should provide codomain(t) and domain(t)
+codomain(t::AbstractTensorMap, i) = codomain(t)[i]
+domain(t::AbstractTensorMap, i) = domain(t)[i]
+space(t::AbstractTensor) = codomain(t)
+space(t::AbstractTensor, i) = space(t)[i]
 
 # Defining vector spaces:
 #------------------------
-const TensorSpace{S,N} = ProductSpace{S,N}
-const TensorMapSpace{S,N₁,N₂} = Pair{ProductSpace{S,N₂},ProductSpace{S,N₁}}
+const TensorSpace{S<:IndexSpace, N} = ProductSpace{S,N}
+const TensorMapSpace{S<:IndexSpace, N₁, N₂} = Pair{ProductSpace{S,N₂},ProductSpace{S,N₁}}
 
 # Little unicode hack to define TensorMapSpace
 →(dom::ProductSpace{S}, codom::ProductSpace{S}) where {S<:IndexSpace} = dom => codom
@@ -51,38 +58,34 @@ const TensorMapSpace{S,N₁,N₂} = Pair{ProductSpace{S,N₂},ProductSpace{S,N�
 →(dom::S, codom::S) where {S<:IndexSpace} = ProductSpace(dom) => ProductSpace(codom)
 
 ←(codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = dom => codom
-←(codom::S, dom::ProductSpace{S}) where {S<:IndexSpace} = ProductSpace(dom) => codom
-←(codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = dom => ProductSpace(codom)
+←(codom::S, dom::ProductSpace{S}) where {S<:IndexSpace} = dom => ProductSpace(codom)
+←(codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => codom
 ←(codom::S, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => ProductSpace(codom)
-
-# dims
-dims(P::TensorSpace) = map(dim, P.spaces)
-dims(P::TensorMapSpace) = (dims(P[2])..., dims(P[1])...)
 
 # Basic algebra
 #---------------
 Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
 
 Base.:-(t::AbstractTensorMap) = scale!(t, -one(eltype(t)))
-function Base.:+(t1::AbstractTensorMap{T1}, t2::AbstractTensorMap{T2}) where {T1,T2}
-    T = promote_type(T1,T2)
-    return add!(copy!(similar(t1,T), t1), t2, one(T))
+function Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    T = promote_type(eltype(t1), eltype(t2))
+    return add!(copy!(similar(t1, T), t1), t2, one(T))
 end
-function Base.:-(t1::AbstractTensorMap{T1}, t2::AbstractTensorMap{T2}) where {T1,T2}
-    T = promote_type(T1,T2)
+function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    T = promote_type(eltype(t1), eltype(t2))
     return add!(copy!(similar(t1,T), t1), t2, -one(T))
 end
 
-Base.:*(t::AbstractTensorMap, a::Number) = scale!(similar(t, promote_type(eltype(t),typeof(a))), t, a)
-Base.:*(a::Number, t::AbstractTensorMap) = *(t,a)
-Base.:/(t::AbstractTensorMap, a::Number) = *(t, one(a)/a)
-Base.:\(a::Number, t::AbstractTensorMap) = *(t, one(a)/a)
+Base.:*(t::AbstractTensorMap, α::Number) = scale!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
+Base.:*(α::Number, t::AbstractTensorMap) = *(t, α)
+Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(α)/α)
+Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(α)/α)
 
-Base.scale!(t::AbstractTensorMap, a::Number) = scale!(t, t, a)
-Base.scale!(a::Number, t::AbstractTensorMap) = scale!(t, t, a)
-Base.scale!(tdest::AbstractTensorMap, a::Number, tsrc::AbstractTensorMap) = scale!(tdest, tsrc, a)
+Base.scale!(t::AbstractTensorMap, α::Number) = scale!(t, t, α)
+Base.scale!(α::Number, t::AbstractTensorMap) = scale!(t, t, α)
+Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = scale!(tdest, tsrc, α)
 
-Base.LinAlg.axpy!(a::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = add!(ty, tx, a)
+Base.LinAlg.axpy!(α::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = add!(ty, 1, tx, α)
 
 # Base.conj(t::AbstractTensor) = Base.conj!(similar(t, conj(space(t))), t)
 # Base.transpose(t::AbstractTensor) = Base.transpose!(similar(t, space(t).'), t)

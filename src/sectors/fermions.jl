@@ -41,34 +41,6 @@ Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:AbelianFermion} =
     Int(Nsymbol(a,b,e)*Nsymbol(e,c,d)*Nsymbol(b,c,f)*Nsymbol(a,f,d))
 Rsymbol(a::G, b::G, c::G) where {G<:AbelianFermion} = fermionparity(a) && fermionparity(b) ? -Int(Nsymbol(a, b, c)) : Int(Nsymbol(a, b, c))
 
-struct FermionSpin <: Fermion
-    dim::Int
-    FermionSpin(j::Int) = j >= 0 ? new(2*j+1) : throw(SU2IrrepException)
-    function FermionSpin(j::Rational{Int})
-        if j.den == 2
-            new(j.num+1)
-        elseif j.den == 1
-            new(2*j.num+1)
-        else
-            throw(SU2IrrepException)
-        end
-    end
-end
-_getj(s::FermionSpin) = (s.dim-1)//2
-Base.one(::Type{FermionSpin}) = FermionSpin(0)
-Base.conj(s::FermionSpin) = s
-⊗(s1::FermionSpin, s2::FermionSpin) = SectorSet{FermionSpin}( abs(_getj(s1)-_getj(s2)):(_getj(s1)+_getj(s2)) )
-
-Base.@pure fusiontype(::Type{FermionSpin}) = SimpleNonAbelian
-
-Nsymbol(s1::FermionSpin, s2::FermionSpin, s::FermionSpin) = (abs(s1.dim-s2.dim)+1) <= s.dim <= (s1.dim+s2.dim-1) && isodd(s1.dim+s2.dim - s.dim)
-
-# TODO: Fsymbol -> 6j-symbols of SU(2), compute, cache, ... -> Recycle those of SU2Irrep
-
-const fSU₂ = FermionSpin
-Base.show(io::IO, ::Type{FermionSpin}) = print(io, "fSU₂")
-Base.show(io::IO, s::FermionSpin) = get(io, :compact, false) ? print(io, _getj(s)) : print(io, "fSU₂(", _getj(s), ")")
-
 """
     function fermionparity(s::Fermion) -> Bool
 
@@ -77,4 +49,35 @@ Returns the fermion parity of a sector `s` that is a subtype of `Fermion`, as a
 """
 fermionparity(p::FermionParity) = p.parity
 fermionparity(n::FermionNumber) = isodd(n.num)
-fermionparity(s::FermionSpin) = iseven(s.dim)
+
+if VERSION > v"0.6.0"
+    struct FermionSpin <: Fermion
+        dim::Int
+        FermionSpin(j::Int) = j >= 0 ? new(2*j+1) : throw(SU2IrrepException)
+        function FermionSpin(j::Rational{Int})
+            if j.den == 2
+                new(j.num+1)
+            elseif j.den == 1
+                new(2*j.num+1)
+            else
+                throw(SU2IrrepException)
+            end
+        end
+    end
+    _getj(s::FermionSpin) = (s.dim-1)//2
+    Base.one(::Type{FermionSpin}) = FermionSpin(0)
+    Base.conj(s::FermionSpin) = s
+    ⊗(s1::FermionSpin, s2::FermionSpin) = SectorSet{FermionSpin}( abs(_getj(s1)-_getj(s2)):(_getj(s1)+_getj(s2)) )
+
+    Base.@pure fusiontype(::Type{FermionSpin}) = SimpleNonAbelian
+
+    Nsymbol(s1::FermionSpin, s2::FermionSpin, s::FermionSpin) = (abs(s1.dim-s2.dim)+1) <= s.dim <= (s1.dim+s2.dim-1) && isodd(s1.dim+s2.dim - s.dim)
+
+    # TODO: Fsymbol -> 6j-symbols of SU(2), compute, cache, ... -> Recycle those of SU2Irrep
+
+    const fSU₂ = FermionSpin
+    Base.show(io::IO, ::Type{FermionSpin}) = print(io, "fSU₂")
+    Base.show(io::IO, s::FermionSpin) = get(io, :compact, false) ? print(io, _getj(s)) : print(io, "fSU₂(", _getj(s), ")")
+
+    fermionparity(s::FermionSpin) = iseven(s.dim)
+end

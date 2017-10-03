@@ -27,7 +27,6 @@ abstract type Sector end
 # Define a sector for ungraded vector spaces
 struct Trivial <: Sector
 end
-Base.show(io::IO, ::Trivial) = print(io, "I")
 
 """
     function one(::Sector) -> Sector
@@ -200,7 +199,7 @@ a -<-μ-<- c                                 a -<-ν-<- c
 ```
 If `fusiontype(G)` is `Abelian` or `SimpleNonAbelian`, the B-symbol is a number,
 and more specifically a pure phase with `abs == 1`. Otherwise it is a unitary matrix
-with row and column size `Nsymbol(a,b,c) == Nsymbol(c,dual(b),a)`.
+with row and column size `Nsymbol(a, b, c) == Nsymbol(c, dual(b), a)`.
 """
 Bsymbol(a::G, b::G, c::G) where {G<:Sector} = _Bsymbol(a,b,c, fusiontype(G))
 _Bsymbol(a,b,c, ::Type{Abelian}) = sign(Fsymbol(a, b, dual(b), a, c, one(a)))

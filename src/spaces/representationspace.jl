@@ -2,7 +2,7 @@
     struct RepresentationSpace{G<:Sector} <: AbstractRepresentationSpace{G}
 
 Generic implementation of a representation space, i.e. a complex Euclidean space
-with a direct sum structure corresponding to different superselection sections of
+with a direct sum structure corresponding to different superselection sectors of
 type `G<:Sector`, e.g. the irreps of a compact or finite group, or the labels of
 a unitary fusion category.
 """
@@ -11,13 +11,17 @@ struct RepresentationSpace{G<:Sector} <: AbstractRepresentationSpace{G}
     dual::Bool
 end
 RepresentationSpace(dims::Vararg{Pair{G,Int}}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(Dict{G,Int}(dims...), dual)
-RepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(Dict{G,Int}(convert(G,s)=>d for (s,d) in dims), dual)
+RepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(Dict{G,Int}(convert(G,s)=>d for (s,d) in dims if d!=0), dual)
 
 # Corresponding methods:
-function sectors(V::RepresentationSpace)
-    s = collect(keys(V.dims))
-    V.dual ? s : map!(conj,s,s)
-end
+"""
+    sectors(V::ElementarySpace) -> sectortype(V)
+    sectors(V::ProductSpace{S,N}) -> NTuple{N,sectortype{V}}
+
+Iterate over the different sectors in the vector space.
+"""
+sectors(V::RepresentationSpace) = keys(V.dims)
+checksectors(V::RepresentationSpace{G}, s::G) where {G<:Sector} = s in keys(V.dims) || throw(SectorMismatch())
 
 dim(V::RepresentationSpace) = sum(values(V.dims))
 dim(V::RepresentationSpace{G}, c::G) where {G<:Sector} = get(V.dims, c, 0)
@@ -27,15 +31,16 @@ Base.conj(V::RepresentationSpace) = RepresentationSpace(copy(V.dims), !V.dual)
 Base.getindex(::ComplexNumbers, G::Type{<:Sector}) = RepresentationSpace{G}
 Base.getindex(::ComplexNumbers, d1::Pair{G,Int}, dims::Vararg{Pair{G,Int}}) where {G<:Sector} = RepresentationSpace{G}(d1, dims...)
 
+Base.:(==)(V1::RepresentationSpace, V2::RepresentationSpace) = (V1.dims == V2.dims) && V1.dual == V2.dual
+
 # Show methods
 function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
     print(io, "RepresentationSpace{", G, "}(")
-    s = sectors(V)
-    c = s[1]
-    print(io, sprint(showcompact, c), "=>", dim(V,c))
-    for k = 2:length(s)
-        c = s[k]
-        print(io, ", ", sprint(showcompact, c), "=>", dim(V,c))
+    seperator = ""
+    comma = ", "
+    for c in sectors(V)
+        print(io, seperator, sprint(showcompact, c), "=>", dim(V, c))
+        seperator = comma
     end
     print(io, ")")
 end
@@ -54,9 +59,6 @@ end
 Base.indices(V::RepresentationSpace) = Base.OneTo(dim(V))
 function Base.indices(V::RepresentationSpace{G}, c::G) where {G}
     offset = 0
-    if V.dual
-        c = conj(c)
-    end
     for c′ in sectors(V)
         c′ == c && break
         offset += dim(V, c′)
@@ -87,22 +89,21 @@ ZNSpace(dims::NTuple{N,Int}) where {N} = ZNSpace{N}(dims)
 ZNSpace(dims::Vararg{Int,N}) where {N} = ZNSpace{N}(dims)
 
 ZNSpace{N}(dims::Vararg{Pair{<:Any,Int}}) where {N} = ZNSpace{N}((ZNIrrep{N}(c)=>d for (c,d) in dims)...)
-function ZNSpace{N}(dims::Vararg{Pair{ZNIrrep{N},Int}}) where {N}
-    newdims = zeros(Int, N)
-    @inbounds for (c,d) in dims
-        newdims[c.n+1] = d
+function ZNSpace{N}(args::Vararg{Pair{ZNIrrep{N},Int}}) where {N}
+    dims = ntuple(n->0, Val(N))
+    @inbounds for (c,d) in args
+        dims = setindex(dims, d, c.n+1)
     end
-    return ZNSpace{N}(ntuple(n->newdims[n], Val(N)))
+    return ZNSpace{N}(dims)
 end
+ZNSpace{N}(dims::Dict{<:Any,Int}) where {N} = ZNSpace{N}(dims...)
 
 Base.getindex(::ComplexNumbers, ::Type{ZNIrrep{N}}) where {N} = ZNSpace{N}
 Base.getindex(::ComplexNumbers, d1::Pair{ZNIrrep{N},Int}, dims::Vararg{Pair{ZNIrrep{N},Int}}) where {N} = ZNSpace{N}(d1, dims...)
 
 # properties
-function sectors(V::ZNSpace{N}) where {N}
-    s = ntuple(n->ZNIrrep{N}(n-1), Val(N))
-    V.dual ? map(conj, s) : s
-end
+sectors(V::ZNSpace{N}) where {N} = SectorSet{ZNIrrep{N}}(n-1 for n=1:N if V.dims[n] != 0)
+checksectors(V::ZNSpace{N}, c::ZNIrrep{N}) where {N} = V.dims[c.n+1] != 0 || throw(SectorMismatch())
 
 dim(V::ZNSpace) = sum(V.dims)
 dim(V::ZNSpace{N}, c::ZNIrrep{N}) where {N} = V.dims[c.n+1]
@@ -113,7 +114,7 @@ Base.conj(V::ZNSpace{N}) where {N} = ZNSpace{N}(V.dims, !V.dual)
 Base.indices(V::ZNSpace) = Base.OneTo(dim(V))
 function Base.indices(V::ZNSpace{N}, c::ZNIrrep{N}) where {N}
     dims = V.dims
-    n = V.dual ? conj(c).n : c.n
+    n = c.n
     offset = 0
     @inbounds for k = 1:n
         offset += dims[k]

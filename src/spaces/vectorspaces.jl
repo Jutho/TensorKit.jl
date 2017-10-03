@@ -67,7 +67,7 @@ Returns the dual space of `V`; also obtained via `V'`. It is assumed that
 function dual end
 
 # convenience definitions:
-Base.adjoint(V::VectorSpace) = dual(V)
+adjoint(V::VectorSpace) = dual(V)
 Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
 
 # Hierarchy of elementary vector spaces
@@ -136,6 +136,8 @@ sectortype(V::VectorSpace) = sectortype(typeof(V))
 sectortype(::Type{<:ElementarySpace}) = Trivial
 sectortype(::Type{<:AbstractRepresentationSpace{G}}) where {G} = G
 
+checksectors(::ElementarySpace, ::Trivial) = true
+
 """
     function sectors(a)
 
@@ -143,7 +145,7 @@ sectortype(::Type{<:AbstractRepresentationSpace{G}}) where {G} = G
     an invariant tensor).
 """
 sectors(::ElementarySpace) = (Trivial(),)
-dim(V::ElementarySpace, ::Trivial) = sectortype(V) == Type{Trivial} ? dim(V) : throw(SectorError())
+dim(V::ElementarySpace, ::Trivial) = sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())
 
 # Composite vector spaces
 #-------------------------

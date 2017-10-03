@@ -13,9 +13,9 @@ ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSpace{S
 
 # Corresponding methods
 #-----------------------
-dim(P::ProductSpace{<:ElementarySpace,0}) = 1
-dim(P::ProductSpace) = prod(dim, P.spaces)
-dim(P::ProductSpace, n::Int) = dim(P.spaces[n], args...)
+dims(P::ProductSpace) = map(dim, P.spaces)
+dim(P::ProductSpace, n::Int) = dim(P.spaces[n])
+dim(P::ProductSpace) = reduce(*, 1, dims(P))
 
 Base.indices(P::ProductSpace) = CartesianRange(map(indices, P.spaces))
 Base.indices(P::ProductSpace, n::Int) = indices(P.spaces[n])
@@ -27,6 +27,9 @@ dual(P::ProductSpace) = ProductSpace(map(dual, reverse(P.spaces)))
 
 function Base.show(io::IO, P::ProductSpace)
     spaces = P.spaces
+    if length(spaces) == 0
+        print(io,"ProductSpace{}(())")
+    end
     if length(spaces) == 1
         print(io,"ProductSpace")
     end
@@ -42,10 +45,16 @@ end
 sectors(P::ProductSpace) = _sectors(P, sectortype(P))
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} = (ntuple(n->Trivial(),Val{N}()),) # speed up sectors for ungraded spaces
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} = product(map(sectors, P.spaces)...)
-dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = prod(map(dim, P.spaces, sector))
+
+checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = reduce(&, true, map(checksectors, V.spaces, s))
+
+dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = map(dim, P.spaces, sector)
+dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = reduce(*, 1, dims(P, sector))
 
 Base.indices(P::ProductSpace{<:AbstractRepresentationSpace{G}, N}, sectors::NTuple{N, G}) where {G<:Sector, N} =
         CartesianRange(map(indices, P.spaces, sectors))
+
+Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
 
 # Default construction from product of spaces
 #---------------------------------------------
@@ -53,13 +62,21 @@ Base.indices(P::ProductSpace{<:AbstractRepresentationSpace{G}, N}, sectors::NTup
 ⊗(P1::ProductSpace{S}, V2::S) where {S<:ElementarySpace} = ProductSpace(tuple(P1.spaces..., V2))
 ⊗(V1::S, P2::ProductSpace{S}) where {S<:ElementarySpace} = ProductSpace(tuple(V1, P2.spaces...))
 ⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace} = ProductSpace(tuple(P1.spaces..., P2.spaces...))
-⊗(P::ProductSpace{S}, ::ProductSpace{S,0}) where {S<:ElementarySpace} = P1
+⊗(P::ProductSpace{S}, ::ProductSpace{S,0}) where {S<:ElementarySpace} = P
+⊗(::ProductSpace{S,0}, P::ProductSpace{S}) where {S<:ElementarySpace} = P
+⊗(V::ElementarySpace) = ProductSpace((V,))
+⊗(P::ProductSpace) = P
+
+# unit element with respect to the monoidal structure of taking tensor products
+Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
+Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
+Base.one(V::VectorSpace) = one(typeof(V))
 
 # Functionality for extracting and iterating over spaces
 #--------------------------------------------------------
 Base.length(P::ProductSpace) = length(P.spaces)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
-Base.getindex(P::ProductSpace, r::AbstractVector{<:Integer}) = ProductSpace(P.spaces[r])
+Base.getindex(P::ProductSpace, I::NTuple{N,Integer}) where {N} = ProductSpace(tselect(P.spaces,I))
 #
 Base.start(P::ProductSpace) = start(P.spaces)
 Base.next(P::ProductSpace, state) = next(P.spaces, state)

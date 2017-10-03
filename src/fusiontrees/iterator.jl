@@ -1,17 +1,18 @@
 # FusionTreeIterator:
 # iterate over fusion trees for fixed incoming and outgoing sector labels
 #==============================================================================#
+function fusiontrees(outgoing::NTuple{N,G}, incoming::G = one(G)) where {N,G<:Sector}
+    FusionTreeIterator{G,N}(outgoing, incoming)
+end
+
 struct FusionTreeIterator{G<:Sector,N}
     outgoing::NTuple{N,G}
     incoming::G
 end
 
-fusiontrees(outgoing::NTuple{N,G}, incoming::G = one(G)) where {N,G<:Sector} = FusionTreeIterator{G,N}(outgoing, incoming)
-
 Base.iteratorsize(::FusionTreeIterator) = Base.SizeUnknown()
 Base.iteratoreltype(::FusionTreeIterator) = Base.HasEltype()
-Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} = _eltype(T, valsub(Val(N),Val(2)), valsub(Val(N),Val(1)), vertex_labeltype(G))
-_eltype(::Type{FusionTreeIterator{G,N}}, ::Val{M}, ::Val{L}, ::Type{T}) where {G<:Sector,N,M,L,T} = FusionTree{G,N,M,L,T}
+Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} = fusiontreetype(G,Val(N))
 
 # * Iterator methods: start, next, done
 #   Start with special cases:
@@ -39,67 +40,6 @@ function Base.next(it::FusionTreeIterator{G,N} where {N}, state) where {G<:Secto
     return f, _nextstate(it.outgoing, it.incoming, state)
 end
 Base.done(it::FusionTreeIterator{G,N} where {N}, state) where {G<:Sector} = _done(it.outgoing, it.incoming, state)
-
-# NOTE: Alternative code below specializes to optimize Abelian case, but in practice the
-# speedup seems negligable
-#
-# Base.start(it::FusionTreeIterator{G,N₁,N₂} where {N₁,N₂}) where {G<:Sector} = _start(it, fusiontype(G))
-# Base.next(it::FusionTreeIterator{G,N₁,N₂} where {N₁,N₂}, state) where {G<:Sector} = _next(it, fusiontype(G), state)
-# Base.done(it::FusionTreeIterator{G,N₁,N₂} where {N₁,N₂}, state) where {G<:Sector} = _done(it, fusiontype(G), state)
-# #   - Optimized version for Abelian case
-# function _start(it::FusionTreeIterator,::Type{Abelian})
-#     slines = _abeliantree(it.outgoing)
-#     flines = _abeliantree(it.incoming)
-#     match = last(slines) == last(flines)
-#     return (!match, slines, flines)
-# end
-# function _next(it::FusionTreeIterator,::Type{Abelian}, state)
-#     _, slines, flines = state
-#     svertices = map(l->nothing, slines)
-#     fvertices = map(l->nothing, flines)
-#     tree = FusionTree(it.outgoing, it.incoming, slines, svertices, flines, fvertices)
-#     return tree, (true, slines, flines)
-# end
-# _done(it::FusionTreeIterator,::Type{Abelian}, state) = state[1]
-#
-# @inline _abeliantree(incoming::NTuple{2,G}) where {G<:Sector} = (first(incoming[1] × incoming[2]),)
-# @inline function _abeliantree(incoming::NTuple{N,G}) where {N,G<:Sector}
-#     a,b, = incoming
-#     c = first(a × b)
-#     return (c, _abeliantree(tuple(c, tail2(incoming)...))...)
-# end
-# #   - General non-abelian case
-# function _start(it::FusionTreeIterator,::Type{<:Fusion})
-#     si = _start(it.incoming, nothing)
-#     c = last(si) # last entry of state should be the outcoming line label
-#     so = _start(it.outgoing, c)
-#     while _done(it.outgoing, c, so)
-#         si = _nextstate(it.incoming, nothing, si)
-#         _done(it.incoming, nothing, si) && break
-#         c = last(si)
-#         so = _start(it.outgoing, c)
-#     end
-#     return (si, so)
-# end
-# function _next(it::FusionTreeIterator,::Type{<:Fusion}, state)
-#     si, so = state
-#     c = last(si)
-#     # create tree
-#     flines, fvertices = _nextval(it.incoming, nothing, si)
-#     slines, svertices = _nextval(it.outgoing, c, so)
-#     tree = FusionTree(it.outgoing, it.incoming, slines, svertices, flines, fvertices)
-#     # create next state
-#     c = last(si)
-#     so = _nextstate(it.outgoing, c, so)
-#     while _done(it.outgoing, c, so)
-#         si = _nextstate(it.incoming, nothing, si)
-#         _done(it.incoming, nothing, si) && break
-#         c = last(si)
-#         so = _start(it.outgoing, c)
-#     end
-#     return tree, (si, so)
-# end
-# _done(it::FusionTreeIterator,::Type{<:Fusion}, state) = _done(it.incoming, nothing, state[1])
 
 # Actual implementation
 function _start(outgoing::NTuple{2,G}, incoming::G) where {G<:Sector}

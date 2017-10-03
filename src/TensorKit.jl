@@ -1,9 +1,9 @@
-# tensortoolbox.jl
+# TensorKit.jl
 #
-# Main file for module TensorToolbox, a Julia package for working with
-# with tensors and tensor operations
+# Main file for module TensorKit, a Julia package for working with
+# with tensors, tensor operations and tensor facto
 
-# module TensorToolbox
+# module TensorKit
 #
 # # Exports
 # #---------
@@ -47,9 +47,29 @@
 # export AbstractTensorNetwork, TensorNetwork
 # export network, optimizecontract
 
-using Base: tuple_type_head, tuple_type_tail, tuple_type_cons, tail, front, setindex,
-            Iterators.product, ImmutableDict
+using Base: tuple_type_head, tuple_type_tail, tuple_type_cons, tail, front, setindex
+using Base: ImmutableDict
+
+if VERSION <= v"0.6.0"
+    include("auxiliary/product.jl")
+    using Product.product
+else
+    using Base: Iterators.product
+end
+
+if VERSION < v"0.7.0-DEV.843"
+    Base.@pure Base.Val(N) = Val{N}
+end
+
 include("auxiliary/auxiliary.jl")
+include("auxiliary/linalg.jl")
+include("auxiliary/stridedview.jl")
+
+if VERSION < v"0.7.0-DEV.1415"
+    const adjoint = Base.ctranspose
+else
+    import Base.adjoint
+end
 
 # Exception types:
 #------------------
@@ -98,10 +118,11 @@ include("fusiontrees/fusiontrees.jl")
 # intentionally shadow original TensorOperation methods for StridedArray objects
 
 # define truncation schemes for tensors
-# include("tensors/truncation.jl")
+include("tensors/truncation.jl")
 
 # general definitions
-#include("tensors/abstracttensor.jl")
+include("tensors/abstracttensor.jl")
+include("tensors/tensor.jl")
 
 # specific implementation
 # include("tensors/tensor.jl")

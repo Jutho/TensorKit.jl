@@ -11,18 +11,12 @@ FusionTree{G,N}(outgoing::NTuple{N}, incoming, innerlines::NTuple{M}, vertices::
 FusionTree{G,N}(outgoing, incoming, innerlines) where {G<:Sector,N} =
     FusionTree{G,N}(outgoing, incoming, innerlines, ntuple(n->nothing, valsub(Val(N),Val(1))))
 
-FusionTree{G}(outgoing::NTuple{N}, incoming, innerlines::NTuple{M}, vertices::NTuple{L}) where {G<:Sector,N,M,L} =
-    FusionTree{G,N,M,L,vertex_labeltype(G)}(outgoing, incoming, innerlines, vertices)
-FusionTree{G}(outgoing::NTuple{N}, incoming, innerlines) where {G<:Sector,N} =
-    FusionTree{G,N}(outgoing, incoming, innerlines, ntuple(n->nothing, valsub(Val(N),Val(1))))
-
 FusionTree(outgoing::NTuple{N,G}, incoming::G, innerlines::NTuple{M,G}) where {G<:Sector, N, M} = FusionTree{G,N}(outgoing, incoming, innerlines, ntuple(n->nothing,valsub(Val(N),Val(1))))
 
-function FusionTree(outgoing::NTuple{N,G}, incoming::G = first(⊗(outgoing...))) where {G<:Sector, N}
-    @assert fusiontype(G) == Abelian
-    FusionTree{G,N}(outgoing, incoming, _abelianinner((outgoing...,dual(incoming))))
+function FusionTree(outgoing::NTuple{N,G}, incoming::G) where {G<:Sector, N}
+    fusiontype(G) == Abelian || error("cannot create fusion tree without inner lines if `fusiontype(G) <: NonAbelian`")
+    FusionTree{G,N}(outgoing, incoming, _abelianinner((outgoing..., dual(incoming))))
 end
-
 
 # Properties
 sectortype(::Type{<:FusionTree{G}}) where {G<:Sector} = G
@@ -34,6 +28,11 @@ fusiontype(t::FusionTree) = fusiontype(typeof(t))
 Base.length(t::FusionTree) = length(typeof(t))
 
 # Fusion tree methods
+fusiontreetype(::Type{G}, ::Val{0}) where {G<:Sector} = FusionTree{G,0,0,0,vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::Val{1}) where {G<:Sector} = FusionTree{G,1,0,0,vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::Val{2}) where {G<:Sector} = FusionTree{G,2,0,1,vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::Val{N}) where {G<:Sector, N} = _fusiontreetype(G, Val(N), valsub(Val(N),Val(2)), valsub(Val(N),Val(1)))
+_fusiontreetype(::Type{G}, ::Val{N}, ::Val{M}, ::Val{L}) where {G<:Sector, N, M, L} = FusionTree{G,N,M,L,vertex_labeltype(G)}
 
 # permute fusion tree
 """
@@ -44,7 +43,6 @@ as a `Dict` (or `ImmutableDict`) of output trees and corresponding coefficients.
 """
 function Base.permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
     @assert braidingtype(G) <: SymmetricBraiding
-
     if fusiontype(G) == Abelian
         coeff = Rsymbol(one(G), one(G), one(G))
         for i = 1:N
@@ -121,8 +119,111 @@ function braid(t::FusionTree{<:Sector,N}, i) where {N}
         end
         return output
     else
-        # TODO: DegenerateNonAbelian case
+        # TODO: implement DegenerateNonAbelian case
+        throw(MethodError(braid, (t, i)))
     end
+end
+
+# repartition outgoing and incoming fusion tree tree
+"""
+    function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, ::Val{N}) where {G,N₁,N₂,N} -> (Immutable)Dict{Tuple{FusionTree{G,N}, FusionTree{G,N₁+N₂-N}},<:Number}
+
+Input is a double fusion tree that describes the fusion of a set of `N₂` incoming charges to
+a set of `N₁` outgoing charges, represented using the individual trees of outgoing (`t1`)
+and incoming charges (`t2`) respectively (with `t1.incoming==t2.incoming`). Computes new trees
+an corresponding coefficients obtained from repartitioning the tree by bending incoming
+to outgoing charges (or vice versa) in order to have `N` outgoing charges.
+"""
+function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::Val{N}) where {G<:Sector, N₁, N₂, N}
+    t1.incoming == t2.incoming || throw(SectorMismatch())
+    @assert 0 <= N <= N₁+N₂
+    V1 = V
+    V2 = valsub(valadd(Val(N₁),Val(N₂)),Val(N))
+
+    if fusiontype(t1) == Abelian || fusiontype(t1) == SimpleNonAbelian
+        coeff = Bsymbol(one(G), one(G), one(G))
+        outer = (t1.outgoing..., map(dual, reverse(t2.outgoing))...)
+        inner1ext = isa(Val(N₁), Val{0}) ? () : (isa(Val(N₁), Val{1}) ? (one(G),) : (one(G), first(outer), t1.innerlines...))
+        inner2ext = isa(Val(N₂), Val{0}) ? () : (isa(Val(N₂), Val{1}) ? (one(G),) : (one(G), first(outer), t2.innerlines...))
+        innerext = (inner1ext..., t1.incoming, reverse(inner2ext)...) # length N₁+N₂+1
+        for n = N₁+1:N
+             # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
+            b = dual(outer[n])
+            a = innerext[n+1]
+            c = innerext[n]
+            coeff *= inv(Bsymbol(c, dual(b), a))
+        end
+        for n = N₁:-1:N+1
+            # map splitting vertex (a,b)<-c to fusion vertex a<-(c,dual(b))
+            b = outer[n]
+            a = innerext[n]
+            c = innerext[n+1]
+            coeff *= Bsymbol(a,b,c)
+        end
+        outgoing1 = tselect(outer, ntuple(n->n, V1))
+        outgoing2 = tselect(map(dual,outer), ntuple(n->N₁+N₂+1-n, V2))
+        innerlines1 = tselect(innerext, ntuple(n->n+2, valsub(V1,Val(2))))
+        innerlines2 = tselect(innerext, ntuple(n->N₁+N₂-n, valsub(V2,Val(2))))
+        c = innerext[N+1]
+        t1′ = FusionTree(outgoing1, c, innerlines1)
+        t2′ = FusionTree(outgoing2, c, innerlines2)
+        return ImmutableDict((t1′,t2′)=>coeff)
+    else
+        # TODO: implement DegenerateNonAbelian case
+        throw(MethodError(repartition, (t1, t2, V)))
+    end
+end
+
+# permute double fusion tree
+"""
+    function permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G,N₁,N₂} -> (Immutable)Dict{Tuple{FusionTree{G,N₁}, FusionTree{G,N₂}},<:Number}
+
+Input is a double fusion tree that describes the fusion of a set of incoming charges to
+a set of outgoing charges, represented using the individual trees of outgoing (`t1`)
+and incoming charges (`t2`) respectively (with `t1.incoming==t2.incoming`). Computes new trees
+and corresponding coefficients obtained from repartitioning and permuting the tree
+such that charges `p1` become outgoing and charges `p2` become incoming.
+"""
+function Base.permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
+    @assert length(t1) + length(t2) == N₁ + N₂
+    p = _linearizepermutation(p1, p2, length(t1), length(t2))
+    @assert isperm(p)
+    if fusiontype(t1) == Abelian
+        (t,t0), coeff1 = first(repartition(t1, t2, valadd(Val(N₁),Val(N₂))))
+        t, coeff2 = first(permute(t, p))
+        (t1′,t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
+        return ImmutableDict((t1′,t2′)=>coeff1*coeff2*coeff3)
+    elseif fusiontype(t1) == SimpleNonAbelian
+        (t,t0), coeff1 = first(repartition(t1, t2, valadd(Val(N₁),Val(N₂))))
+        trees = permute(t, p)
+        s = start(trees)
+        (t,coeff2), s = next(trees, s)
+        (t1′, t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
+        newtrees = Dict((t1′,t2′)=>coeff1*coeff2*coeff3)
+        while !done(trees, s)
+            (t,coeff2), s = next(trees, s)
+            (t1′, t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
+            push!(newtrees, (t1′,t2′)=>coeff1*coeff2*coeff3)
+        end
+        return newtrees
+    else
+        # TODO: implement DegenerateNonAbelian case
+        throw(MethodError(permute, (t1, t2, p1, p2)))
+    end
+end
+function _simplerepartition(t1, t2, coeff1, coeff2, ::Val{N}) where {N}
+    (t1′,t2′), coeff3 = first(repartition(t1, t2, Val(N)))
+    return (t1′,t2′)=>coeff1*coeff2*coeff3
+end
+
+function _linearizepermutation(p1::NTuple{N₁,Int}, p2::NTuple{N₂}, n₁::Int, n₂::Int) where {N₁,N₂}
+    p1′ = ntuple(Val(N₁)) do n
+        p1[n] > n₁ ? n₂+2n₁+1-p1[n] : p1[n]
+    end
+    p2′ = ntuple(Val(N₂)) do n
+        p2[N₂+1-n] > n₁ ? n₂+2n₁+1-p2[N₂+1-n] : p2[N₂+1-n]
+    end
+    return (p1′..., p2′...)
 end
 
 # Fusion tree iterators
@@ -144,10 +245,10 @@ function Base.show(io::IO, t::FusionTree{G,N,M,K,Void}) where {G<:Sector,N,M,K}
     println(io, "FusionTree{", G, ", ", N, "}:")
     cprint = x->sprint(showcompact, x)
     outlabels = map(cprint, t.outgoing)
-    L = max(map(strwidth, outlabels)...)
+    L = max(map(textwidth, outlabels)...)
     up = lpad(rpad(" ∧ ", L>>1), L)
     down = lpad(rpad(" ∨ ", L>>1), L)
-    L = strwidth(up)
+    L = textwidth(up)
     f = lpad(rpad("⋅+-",L>>1,"-"), L, " ")
     m = lpad(rpad("-+-",L>>1,"-"), L, "-")
     a = "-<-"
@@ -170,17 +271,17 @@ function Base.show(io::IO, t::FusionTree{G,N,M,K,Void}) where {G<:Sector,N,M,K}
         # print inner label
         if n == 1
             label = cprint(t.outgoing[1])
-            label = lpad(rpad(label, 2), strwidth(a))
+            label = lpad(rpad(label, 2), textwidth(a))
             line1 *= label
-            ℓ = strwidth(label)
+            ℓ = textwidth(label)
             line2 *= lpad(rpad(a, ℓ>>1, "-"), ℓ, "-")
             line3 *= " "^ℓ
             line4 *= " "^ℓ
         elseif n < N
             label = cprint(t.innerlines[n-1])
-            label = lpad(rpad(label, 2), strwidth(a))
+            label = lpad(rpad(label, 2), textwidth(a))
             line1 *= label
-            ℓ = strwidth(label)
+            ℓ = textwidth(label)
             line2 *= lpad(rpad(a, ℓ>>1, "-"), ℓ, "-")
             line3 *= " "^ℓ
             line4 *= " "^ℓ
@@ -200,9 +301,9 @@ end
 
 # _abelianinner: generate the inner indices for given outer indices in the abelian case
 _abelianinner(outer::Tuple{}) = ()
-_abelianinner(outer::Tuple{G}) where {G<:Sector} = ()
-_abelianinner(outer::Tuple{G,G}) where {G<:Sector} = ()
-_abelianinner(outer::Tuple{G,G,G}) where {G<:Sector} = ()
+_abelianinner(outer::Tuple{G}) where {G<:Sector} = outer[1] == one(G) ? () : throw(SectorMismatch())
+_abelianinner(outer::Tuple{G,G}) where {G<:Sector} = outer[1] == dual(outer[2]) ? () : throw(SectorMismatch())
+_abelianinner(outer::Tuple{G,G,G}) where {G<:Sector} = first(⊗(outer...)) == one(G) ? () : throw(SectorMismatch())
 function _abelianinner(outer::NTuple{N,G}) where {G<:Sector,N}
     c = first(outer[1] ⊗ outer[2])
     return (c, _abelianinner((c, tail2(outer)...))...)
