@@ -144,7 +144,7 @@ function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::Val{N}) 
         coeff = Bsymbol(one(G), one(G), one(G))
         outer = (t1.outgoing..., map(dual, reverse(t2.outgoing))...)
         inner1ext = isa(Val(N₁), Val{0}) ? () : (isa(Val(N₁), Val{1}) ? (one(G),) : (one(G), first(outer), t1.innerlines...))
-        inner2ext = isa(Val(N₂), Val{0}) ? () : (isa(Val(N₂), Val{1}) ? (one(G),) : (one(G), first(outer), t2.innerlines...))
+        inner2ext = isa(Val(N₂), Val{0}) ? () : (isa(Val(N₂), Val{1}) ? (one(G),) : (one(G), dual(last(outer)), t2.innerlines...))
         innerext = (inner1ext..., t1.incoming, reverse(inner2ext)...) # length N₁+N₂+1
         for n = N₁+1:N
              # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
@@ -197,11 +197,11 @@ function Base.permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}
         (t,t0), coeff1 = first(repartition(t1, t2, valadd(Val(N₁),Val(N₂))))
         trees = permute(t, p)
         s = start(trees)
-        (t,coeff2), s = next(trees, s)
+        (t, coeff2), s = next(trees, s)
         (t1′, t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
         newtrees = Dict((t1′,t2′)=>coeff1*coeff2*coeff3)
         while !done(trees, s)
-            (t,coeff2), s = next(trees, s)
+            (t, coeff2), s = next(trees, s)
             (t1′, t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
             push!(newtrees, (t1′,t2′)=>coeff1*coeff2*coeff3)
         end
@@ -210,10 +210,6 @@ function Base.permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}
         # TODO: implement DegenerateNonAbelian case
         throw(MethodError(permute, (t1, t2, p1, p2)))
     end
-end
-function _simplerepartition(t1, t2, coeff1, coeff2, ::Val{N}) where {N}
-    (t1′,t2′), coeff3 = first(repartition(t1, t2, Val(N)))
-    return (t1′,t2′)=>coeff1*coeff2*coeff3
 end
 
 function _linearizepermutation(p1::NTuple{N₁,Int}, p2::NTuple{N₂}, n₁::Int, n₂::Int) where {N₁,N₂}
