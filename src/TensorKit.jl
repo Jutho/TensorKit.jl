@@ -1,52 +1,48 @@
 # TensorKit.jl
 #
 # Main file for module TensorKit, a Julia package for working with
-# with tensors, tensor operations and tensor facto
+# with tensors, tensor operations and tensor factorizations
 
-# module TensorKit
-#
-# # Exports
-# #---------
-# # Types:
-# export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace
-# export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace, ZNSpace
-# export Parity, ZNCharge, U1Charge
-# export CompositeSpace, ProductSpace, InvariantSpace
-# export IndexSpace, TensorSpace, AbstractTensor, Tensor, InvariantTensor
-# export TruncationScheme
-# export AbstractTensorMap
-# export SpaceError, IndexError
-#
-# # general vector space methods
-# export space, dim, dual, fieldtype, sectortype #, cnumber, iscnumber, directsum, fuse
-# export ⊗, ⊕, ℂ, ℝ # some unicode
-#
-# # vector spaces with symmetries
-# export sectors, invariant
-#
-# # tensor characteristics
-# export spacetype, tensortype, numind, order
-# # tensor constructors
-# export tensor, tensorcat
-# # index manipulations
-# export insertind, deleteind, fuseind, splitind
-# # tensor operations
+module TensorKit
+
+# Exports
+#---------
+# Types:
+export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
+export ComplexSpace, CartesianSpace, GeneralSpace, RepresentationSpace, ZNSpace # concrete spaces
+export CompositeSpace, ProductSpace # composite spaces
+export Sector, Irrep
+export Abelian, SimpleNonAbelian, DegenerateNonAbelian, SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
+export Parity, ZNIrrep, U1Irrep, SU2Irrep, FermionParity, FermionNumber, FermionSpin # specific sectors
+export FusionTree
+export IndexSpace, TensorSpace, AbstractTensorMap, AbstractTensor, TensorMap, Tensor # tensors and tensor properties
+export TruncationScheme
+export SpaceMismatch, SectorMismatch, IndexError # error types
+
+# general vector space methods
+export space, dual, dim, dims, fieldtype
+# methods for sectors and properties thereof
+export sectortype, fusiontype, braidingtype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
+export fusiontrees
+
+# some unicode
+export ⊕, ⊗, ×, ℂ, ℝ, ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
+
+# tensor operations: To be done
 # export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
 # export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
-# # tensor factorizations
-# export leftorth, rightorth
-# export leftorth!, rightorth!, svd!
-#
-# # truncation schemes
-# export notrunc, truncerr, truncdim, truncspace
-#
-# # tensor maps
-# export domain, codomain, hermitian, posdef, tensormap
-#
-# # tensor networks
-# export AbstractTensorNetwork, TensorNetwork
-# export network, optimizecontract
 
+# tensor factorizations
+export leftorth, rightorth, leftorth!, rightorth!, svd!
+
+# truncation schemes
+export notrunc, truncerr, truncdim, truncspace
+
+# tensor maps
+export domain, codomain
+
+# Imports
+#---------
 using Base: tuple_type_head, tuple_type_tail, tuple_type_cons, tail, front, setindex
 using Base: ImmutableDict
 
@@ -119,12 +115,8 @@ include("fusiontrees/fusiontrees.jl")
 
 # define truncation schemes for tensors
 include("tensors/truncation.jl")
-
 # general definitions
 include("tensors/abstracttensor.jl")
 include("tensors/tensor.jl")
 
-# specific implementation
-# include("tensors/tensor.jl")
-
-#end
+end
