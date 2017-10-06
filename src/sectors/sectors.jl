@@ -173,19 +173,28 @@ Base.:&(::Type{DegenerateNonAbelian},::Type{SimpleNonAbelian}) = DegenerateNonAb
 
 Returns the (quantum) dimension of the sector `a`.
 """
-dim(a::Sector) = _dim(a, fusiontype(typeof(a)))
-_dim(a::Sector, ::Type{Abelian}) = 1
-_dim(a::Sector, ::Type{SimpleNonAbelian}) = abs(1/Fsymbol(a,conj(a),a,a,one(a),one(a)))
-_dim(a::Sector, ::Type{DegenerateNonAbelian}) = abs(1/Fsymbol(a,conj(a),a,a,one(a),one(a))[1])
+function dim(a::Sector)
+    if fusiontype(a) == Abelian
+        1
+    elseif fusiontype(a) == SimpleNonAbelian
+        abs(1/Fsymbol(a,conj(a),a,a,one(a),one(a)))
+    else
+        abs(1/Fsymbol(a,conj(a),a,a,one(a),one(a))[1])
+    end
+end
 
 """
     function frobeniusschur(a::Sector)
 
 Returns the Frobenius-Schur indicator of a sector `a`.
 """
-frobeniusschur(a::Sector) = _frobeniusschur(a, fusiontype(a))
-_frobeniusschur(a::Sector, ::Union{Type{Abelian},Type{SimpleNonAbelian}}) = sign(Fsymbol(a,conj(a),a,a,one(a),one(a)))
-_frobeniusschur(a::Sector, ::Type{DegenerateNonAbelian}) = sign(Fsymbol(a,conj(a),a,a,one(a),one(a))[1])
+function frobeniusschur(a::Sector)
+    if fusiontype(a) == Abelian || fusiontype(a) == SimpleNonAbelian
+        sign(Fsymbol(a,conj(a),a,a,one(a),one(a)))
+    else
+        sign(Fsymbol(a,conj(a),a,a,one(a),one(a))[1])
+    end
+end
 
 """
     function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
@@ -197,20 +206,33 @@ a -<-μ-<- c                                 a -<-ν-<- c
      ∨          -> Bsymbol(a,b,c)[μ,ν]           ∧
      b                                         dual(b)
 ```
-If `fusiontype(G)` is `Abelian` or `SimpleNonAbelian`, the B-symbol is a number,
-and more specifically a pure phase with `abs == 1`. Otherwise it is a unitary matrix
-with row and column size `Nsymbol(a, b, c) == Nsymbol(c, dual(b), a)`.
+If `fusiontype(G)` is `Abelian` or `SimpleNonAbelian`, the B-symbol is a number.
+Otherwise it is a square matrix with row and column size
+`Nsymbol(a, b, c) == Nsymbol(c, dual(b), a)`.
 """
-Bsymbol(a::G, b::G, c::G) where {G<:Sector} = _Bsymbol(a,b,c, fusiontype(G))
-_Bsymbol(a,b,c, ::Type{Abelian}) = sign(Fsymbol(a, b, dual(b), a, c, one(a)))
-_Bsymbol(a,b,c, ::Type{SimpleNonAbelian}) = sign(sqrt(dim(a)*dim(b)/dim(c))*Fsymbol(a, b, dual(b), a, c, one(a))) # sign enforces this to be a pure phase (abs=1)
-_Bsymbol(a,b,c, ::Type{DegenerateNonAbelian}) = sqrt(dim(a)*dim(b)/dim(c))*reshape(Fsymbol(a,b,dual(b),a,c,one(a)), (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
+function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
+    if fusiontype(G) == Abelian || fusiontype(G) == SimpleNonAbelian
+        Fsymbol(a, b, dual(b), a, c, one(a))
+    else
+        reshape(Fsymbol(a,b,dual(b),a,c,one(a)), (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
+    end
+end
+# isotopic normalization convention
+# _Bsymbol(a,b,c, ::Type{SimpleNonAbelian}) = sign(sqrt(dim(a)*dim(b)/dim(c))*Fsymbol(a, b, dual(b), a, c, one(a))) # sign enforces this to be a pure phase (abs=1)
+# _Bsymbol(a,b,c, ::Type{DegenerateNonAbelian}) = sqrt(dim(a)*dim(b)/dim(c))*reshape(Fsymbol(a,b,dual(b),a,c,one(a)), (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
+
 
 # Not necessary
-Asymbol(a::G, b::G, c::G) where {G<:Sector} = _Asymbol(a,b,c, fusiontype(G))
-_Asymbol(a,b,c, ::Type{Abelian}) = conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c))
-_Asymbol(a,b,c, ::Type{SimpleNonAbelian}) = sqrt(dim(a)*dim(b)/dim(c))*conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c))
-_Asymbol(a,b,c, ::Type{DegenerateNonAbelian}) = sqrt(dim(a)*dim(b)/dim(c))*reshape(conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c)), (Nsymbol(a,b,c), Nsymbol(dual(a),c,b)))
+function Asymbol(a::G, b::G, c::G) where {G<:Sector}
+    if fusiontype(G) == Abelian || fusiontype(G) == SimpleNonAbelian
+        conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c))
+    else
+        reshape(conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c)), (Nsymbol(a,b,c), Nsymbol(dual(a),c,b)))
+    end
+end
+# isotopic normalization convention
+# _Asymbol(a,b,c, ::Type{SimpleNonAbelian}) = sqrt(dim(a)*dim(b)/dim(c))*conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c))
+# _Asymbol(a,b,c, ::Type{DegenerateNonAbelian}) = sqrt(dim(a)*dim(b)/dim(c))*reshape(conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c)), (Nsymbol(a,b,c), Nsymbol(dual(a),c,b)))
 
 # Braiding:
 #-------------------------------------------------

@@ -76,7 +76,7 @@ Base.one(V::VectorSpace) = one(typeof(V))
 #--------------------------------------------------------
 Base.length(P::ProductSpace) = length(P.spaces)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
-Base.getindex(P::ProductSpace, I::NTuple{N,Integer}) where {N} = ProductSpace(tselect(P.spaces,I))
+Base.getindex(P::ProductSpace{S}, I::NTuple{N,Integer}) where {S<:ElementarySpace,N} = ProductSpace{S,N}(tselect(P.spaces, I))
 #
 Base.start(P::ProductSpace) = start(P.spaces)
 Base.next(P::ProductSpace, state) = next(P.spaces, state)

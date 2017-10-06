@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 include("../src/TensorKit.jl")
 
 @testset "Testing groups and fusion trees" begin # mostly type inference tests
@@ -88,7 +88,69 @@ for G in (ℤ₂, U₁, SU₂)
                 @test isapprox(coeff2, 0; atol = eps())
             end
         end
-
     end
 end
+
+@testset "Testing norm preservation under permutations" begin
+    using Combinatorics
+    @testset "Trivial symmetries" begin
+        W = ℂ^2 ⊗ ℂ^3 ⊗ ℂ^4 ⊗ ℂ^5 ⊗ ℂ^6
+        t=Tensor(rand, W);
+        for k = 0:5
+            for p in permutations(1:5)
+                p1 = ntuple(n->p[n],Val(k))
+                p2 = ntuple(n->p[k+n],Val(5-k))
+                t2 = permuteind(t,p1,p2)
+                @test vecnorm(t2) ≈ vecnorm(t)
+            end
+        end
+    end
+    @testset "Abelian symmetries: ℤ₂ (self-dual)" begin
+        W = ℂ[ℤ₂](0=>1,1=>1) ⊗ ℂ[ℤ₂](0=>2,1=>1) ⊗ ℂ[ℤ₂](0=>3,1=>2) ⊗ ℂ[ℤ₂](0=>2,1=>3) ⊗ ℂ[ℤ₂](0=>1,1=>2)
+        t=Tensor(rand, W);
+        for k = 0:5
+            for p in permutations(1:5)
+                p1 = ntuple(n->p[n], Val(k))
+                p2 = ntuple(n->p[k+n], Val(5-k))
+                t2 = permuteind(t, p1, p2)
+                @test vecnorm(t2) ≈ vecnorm(t)
+            end
+        end
+    end
+    @testset "Abelian symmetries: ℤ₃ (not self-dual)" begin
+        W = ℂ[ℤ₃](0=>1,1=>1,2=>2) ⊗ ℂ[ℤ₃](0=>2,1=>1,2=>3) ⊗ ℂ[ℤ₃](0=>3,1=>2,2=>1) ⊗ ℂ[ℤ₃](0=>2,1=>3,2=>1) ⊗ ℂ[ℤ₃](0=>1,1=>2,2=>3)
+        t=Tensor(rand, W);
+        for k = 0:5
+            for p in permutations(1:5)
+                p1 = ntuple(n->p[n],Val(k))
+                p2 = ntuple(n->p[k+n],Val(5-k))
+                t2 = permuteind(t,p1,p2)
+                @test vecnorm(t2) ≈ vecnorm(t)
+            end
+        end
+    end
+    @testset "Abelian symmetries: U₁ (uses RepresentationSpace)" begin
+        W = ℂ[U₁](0=>1,1=>1,-1=>2) ⊗ ℂ[U₁](0=>2,1=>1,-1=>3) ⊗ ℂ[U₁](0=>3,1=>2,-1=>1) ⊗ ℂ[U₁](0=>2,1=>3,-1=>1) ⊗ ℂ[U₁](0=>1,1=>2,-1=>3)
+        t=Tensor(rand, W);
+        for k = 0:5
+            for p in permutations(1:5)
+                p1 = ntuple(n->p[n],Val(k))
+                p2 = ntuple(n->p[k+n],Val(5-k))
+                t2 = permuteind(t,p1,p2)
+                @test vecnorm(t2) ≈ vecnorm(t)
+            end
+        end
+    end
+    @testset "NonAbelian symmetries: SU₂" begin
+        W = ℂ[SU₂](0=>1,1//2=>1,1=>2) ⊗ ℂ[SU₂](0=>2,1//2=>1,1=>3) ⊗ ℂ[SU₂](0=>3,1//2=>2,1=>1) ⊗ ℂ[SU₂](0=>2,1//2=>3,1=>1) ⊗ ℂ[SU₂](0=>1,1//2=>2,1=>3)
+        t=Tensor(rand, W);
+        for k = 0:5
+            for p in permutations(1:5)
+                p1 = ntuple(n->p[n],Val(k))
+                p2 = ntuple(n->p[k+n],Val(5-k))
+                t2 = permuteind(t,p1,p2)
+                @test vecnorm(t2) ≈ vecnorm(t)
+            end
+        end
+    end
 end

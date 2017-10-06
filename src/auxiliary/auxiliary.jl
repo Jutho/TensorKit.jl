@@ -15,6 +15,16 @@ Base.@pure valadd(::Val{N1},::Val{N2}) where {N1,N2} = Val{N1+N2}()
 Base.@pure valsub(::Val{N1},::Val{N2}) where {N1,N2} = N1 > N2 ? Val{N1-N2}() : Val{0}()
 
 
+function linearizepermutation(p1::NTuple{N₁,Int}, p2::NTuple{N₂}, n₁::Int, n₂::Int) where {N₁,N₂}
+    p1′ = ntuple(Val(N₁)) do n
+        p1[n] > n₁ ? n₂+2n₁+1-p1[n] : p1[n]
+    end
+    p2′ = ntuple(Val(N₂)) do n
+        p2[N₂+1-n] > n₁ ? n₂+2n₁+1-p2[N₂+1-n] : p2[N₂+1-n]
+    end
+    return (p1′..., p2′...)
+end
+
 function permutation2swaps(perm)
     p = collect(perm)
     swaps = Vector{Int}()

@@ -1,8 +1,3 @@
-# Scalar product and norm: only valid for EuclideanSpace
-Base.dot{S<:EuclideanSpace}(t1::Tensor{S},t2::Tensor{S})= (space(t1)==space(t2) ? dot(vec(t1),vec(t2)) : throw(SpaceError()))
-Base.vecnorm{S<:EuclideanSpace}(t::Tensor{S})=vecnorm(t.data) # frobenius norm
-
-
 # # Factorizations:
 # #-----------------
 # for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))

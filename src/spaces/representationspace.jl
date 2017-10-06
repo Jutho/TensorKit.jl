@@ -23,10 +23,10 @@ Iterate over the different sectors in the vector space.
 sectors(V::RepresentationSpace) = keys(V.dims)
 checksectors(V::RepresentationSpace{G}, s::G) where {G<:Sector} = s in keys(V.dims) || throw(SectorMismatch())
 
-dim(V::RepresentationSpace) = sum(values(V.dims))
+dim(V::RepresentationSpace) = sum(dim(c)*V.dims[c] for c in keys(V.dims))
 dim(V::RepresentationSpace{G}, c::G) where {G<:Sector} = get(V.dims, c, 0)
 
-Base.conj(V::RepresentationSpace) = RepresentationSpace(copy(V.dims), !V.dual)
+Base.conj(V::RepresentationSpace) = RepresentationSpace(Dict(dual(c)=>dim(V,c) for c in sectors(V)), !V.dual)
 
 Base.getindex(::ComplexNumbers, G::Type{<:Sector}) = RepresentationSpace{G}
 Base.getindex(::ComplexNumbers, d1::Pair{G,Int}, dims::Vararg{Pair{G,Int}}) where {G<:Sector} = RepresentationSpace{G}(d1, dims...)
@@ -43,6 +43,7 @@ function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
         seperator = comma
     end
     print(io, ")")
+    V.dual && print(io, "'")
 end
 
 # direct sum of RepresentationSpaces
@@ -108,7 +109,7 @@ checksectors(V::ZNSpace{N}, c::ZNIrrep{N}) where {N} = V.dims[c.n+1] != 0 || thr
 dim(V::ZNSpace) = sum(V.dims)
 dim(V::ZNSpace{N}, c::ZNIrrep{N}) where {N} = V.dims[c.n+1]
 
-Base.conj(V::ZNSpace{N}) where {N} = ZNSpace{N}(V.dims, !V.dual)
+Base.conj(V::ZNSpace{N}) where {N} = ZNSpace{N}((V.dims[1], reverse(tail(V.dims))...), !V.dual)
 
 # indices
 Base.indices(V::ZNSpace) = Base.OneTo(dim(V))

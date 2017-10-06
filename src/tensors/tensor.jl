@@ -25,14 +25,16 @@ end
 
 const Tensor{S<:IndexSpace, N, A, F₁, F₂} = TensorMap{S, N, 0, A, F₁, F₂}
 
-blocksectors(t::TensorMap) = blocksectors(t.codom, t.dom)
+blocksectors(t::TensorMap{<:IndexSpace, N₁, N₂, <:AbstractArray}) where {N₁,N₂} = (Trivial(),)
+blocksectors(t::TensorMap{<:IndexSpace, N₁, N₂, <:Associative}) where {N₁,N₂} = keys(t.data)
+
 function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S,N₁,N₂}
     G = sectortype(S)
     if G == Trivial
         return (Trivial(),)
     end
     if N₁ == 0
-        c1 == Set{G}((one(G),))
+        c1 = Set{G}((one(G),))
     elseif N₁ == 1
         c1 = Set{G}(first(s) for s in sectors(codom))
     else
@@ -226,9 +228,9 @@ end
 # Similar
 #---------
 Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = TensorMap(d->similar(first(blocks(t)), T, d), P)
-Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S,N₁,N₂} = Tensor(d->similar(first(blocks(t)), T, d), P)
-Base.similar(t::TensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = TensorMap(d->similar(first(blocks(t)), d), P)
-Base.similar(t::TensorMap{S}, P::TensorSpace{S}) where {T,S,N₁,N₂} = Tensor(d->similar(first(blocks(t)), d), P)
+Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = Tensor(d->similar(first(blocks(t)), T, d), P)
+Base.similar(t::TensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = TensorMap(d->similar(first(blocks(t)), d), P)
+Base.similar(t::TensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->similar(first(blocks(t)), d), P)
 
 # Copy and fill tensors:
 # ------------------------
@@ -309,8 +311,8 @@ end
 
 Base.vecnorm(t::TensorMap, p::Real) = vecnorm((dim(c)^(1/p)*vecnorm(block(t,c), p) for c in blocksectors(t)), p)
 
-# Basic algebra methods:
-#------------------------
+# Basic algebra and factorization methods:
+#-----------------------------------------
 function mul!(tC::TensorMap, β::Number, tA::TensorMap,  tB::TensorMap, α::Number)
     (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
     if sectortype(tC) == Trivial
@@ -453,123 +455,59 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation()) where {
     end
 end
 
-# Index permutations
-#--------------------
-function Base.permutedims!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ()) where {S<:IndexSpace, N₁, N₂}
-    p = (p1..., p2...)
-    isperm(p) && length(p) == numind(tsrc) || throw(ArgumentError("not a valid permutation: $p1 & $p2"))
+# Index manipulations
+#---------------------
+using Base.Iterators.filter
+fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
 
-    N₁′, N₂′ = length(codomain(tsrc)), length(domain(tsrc))
-    for (i,j) in enumerate(p1)
-        if j <= N₁′
-            codomain(tdst, i) == codomain(tsrc, j) || throw(SpaceMismatch())
-        else
-            codomain(tdst, i) == dual(domain(tsrc, j-N₁′)) || throw(SpaceMismatch())
-        end
-    end
-    for (i,j) in enumerate(p2)
-        if j <= N₁′
-            domain(tdst, i) == dual(codomain(tsrc, j)) || throw(SpaceMismatch())
-        else
-            domain(tdst, i) == domain(tsrc, j-N₁′) || throw(SpaceMismatch())
-        end
-    end
+function repartitionind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S,N₁′,N₂′}) where {S,N₁,N₂,N₁′,N₂′}
+    space1 = codomain(tdst) ⊗ dual(domain(tdst))
+    space2 = codomain(tsrc) ⊗ dual(domain(tsrc))
+    space1 == space2 || throw(SpaceMismatch())
+    p = (ntuple(n->n, Val{N₁′})..., ntuple(n->N₁′+N₂′+1-n, Val{N₂′}))
+    p1 = tselect(p, ntuple(n->n, Val{N₁}))
+    p2 = reverse(tselect(p, ntuple(n->N₁+n, Val{N₂})))
+    pdata = (p1..., p2...)
+
     if sectortype(S) == Trivial
-        tdst[] .= permutedims(tsrc[], p)
+        tdst[] .= permutedims(tsrc[], pdata)
     else
         fill!(tdst, 0)
-        for c in blocksectors(tsrc)
-            for s1 in sectors(codomain(tsrc)), s2 in sectors(domain(tsrc))
-                for f1 in fusiontrees(s1,c), f2 in fusiontrees(s2,c)
-                    for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
-                        tdst[f1′,f2′] .+= coeff .* permutedims(tsrc[f1,f2], p)
-                    end
-                end
+        for (f1,f2) in fusiontrees(t)
+            for ((f1′,f2′), coeff) in repartition(f1, f2, Val{N₁})
+                tdst[f1′,f2′] .+= coeff .* permutedims(tsrc[f1,f2], pdata)
             end
         end
     end
+    return tdst
 end
 
+function permuteind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ()) where {S,N₁,N₂}
+    # TODO: Frobenius-Schur indicators!, and fermions!
+    space1 = codomain(tdst) ⊗ dual(domain(tdst))
+    space2 = codomain(tsrc) ⊗ dual(domain(tsrc))
 
+    N₁′, N₂′ = length(codomain(tsrc)), length(domain(tsrc))
+    p = linearizepermutation(p1, p2, N₁′, N₂′)
 
+    isperm(p) && length(p) == N₁′+N₂′ || throw(ArgumentError("not a valid permutation: $p1 & $p2"))
+    space1 == space2[p] || throw(SpaceMismatch())
 
+    pdata = (p1..., p2...)
+    if sectortype(S) == Trivial
+        tdst[] .= permutedims(tsrc[], pdata)
+    else
+        fill!(tdst, 0)
+        for (f1,f2) in fusiontrees(tsrc)
+            for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
+                tdst[f1′,f2′] .+= coeff .* permutedims(tsrc[f1,f2], pdata)
+            end
+        end
+    end
+    return tdst
+end
 
-# @eval function insertind{S}(t::Tensor{S},ind::Int,V::S)
-#     N=numind(t)
-#     0<=ind<=N || throw(IndexError("index out of range"))
-#     iscnumber(V) || throw(SpaceError("can only insert index with c-number index space"))
-#     spacet=space(t)
-#     newspace=spacet[1:ind] ⊗ V ⊗ spacet[ind+1:N]
-#     return tensor(t.data,newspace)
-# end
-# @eval function deleteind(t::Tensor,ind::Int)
-#     N=numind(t)
-#     1<=ind<=N || throw(IndexError("index out of range"))
-#     iscnumber(space(t,ind)) || throw(SpaceError("can only delete index with c-number index space"))
-#     spacet=space(t)
-#     newspace=spacet[1:ind-1] ⊗ spacet[ind+1:N]
-#     return tensor(t.data,newspace)
-# end
-#
-# for (S,TT) in ((CartesianSpace,CartesianTensor),(ComplexSpace,ComplexTensor))
-#     @eval function fuseind(t::$TT,ind1::Int,ind2::Int,V::$S)
-#         N=numind(t)
-#         ind2==ind1+1 || throw(IndexError("only neighbouring indices can be fused"))
-#         1<=ind1<=N-1 || throw(IndexError("index out of range"))
-#         fuse(space(t,ind1),space(t,ind2),V) || throw(SpaceError("index spaces $(space(t,ind1)) and $(space(t,ind2)) cannot be fused to $V"))
-#         spacet=space(t)
-#         newspace=spacet[1:ind1-1]*V*spacet[ind2+1:N]
-#         return tensor(t.data,newspace)
-#     end
-#     @eval function splitind(t::$TT,ind::Int,V1::$S,V2::$S)
-#         1<=ind<=numind(t) || throw(IndexError("index out of range"))
-#         fuse(V1,V2,space(t,ind)) || throw(SpaceError("index space $(space(t,ind)) cannot be split into $V1 and $V2"))
-#         spacet=space(t)
-#         newspace=spacet[1:ind-1]*V1*V2*spacet[ind+1:numind(t)]
-#         return tensor(t.data,newspace)
-#     end
-# end
-#
+# do we need those?
+function splitind! end#
 
-
-## NOTE: Do we want this?
-# # tensors from concatenation
-# function tensorcat{S}(catind, X::Tensor{S}...)
-#     catind = collect(catind)
-#     isempty(catind) && error("catind should not be empty")
-#     # length(unique(catdims)) != length(catdims) && error("every dimension should appear only once")
-#
-#     nargs = length(X)
-#     numindX = map(numind, X)
-#
-#     all(n->(n == numindX[1]), numindX) || throw(SpaceError("all tensors should have the same number of indices for concatenation"))
-#
-#     numindC = numindX[1]
-#     ncatind = setdiff(1:numindC,catind)
-#     spaceCvec = Array(S, numindC)
-#     for n = 1:numindC
-#         spaceCvec[n] = space(X[1],n)
-#     end
-#     for i = 2:nargs
-#         for n in catind
-#             spaceCvec[n] = directsum(spaceCvec[n], space(X[i],n))
-#         end
-#         for n in ncatind
-#             spaceCvec[n] == space(X[i],n) || throw(SpaceError("space mismatch for index $n"))
-#         end
-#     end
-#     spaceC = ⊗(spaceCvec...)
-#     typeC = mapreduce(eltype, promote_type, X)
-#     dataC = zeros(typeC, map(dim,spaceC))
-#
-#     offset = zeros(Int,numindC)
-#     for i=1:nargs
-#         currentdims=ntuple(numindC,n->dim(space(X[i],n)))
-#         currentrange=[offset[n]+(1:currentdims[n]) for n=1:numindC]
-#         dataC[currentrange...] = X[i].data
-#         for n in catind
-#             offset[n]+=currentdims[n]
-#         end
-#     end
-#     return tensor(dataC,spaceC)
-# end
+function fuseind! end

@@ -3,7 +3,10 @@ import Base.LinAlg: BlasFloat, Char, BlasInt, LAPACKException,
 import Base.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
 import Base.LAPACK: liblapack, chklapackerror
 
-# custom wrappers for linalg factorizations
+# custom wrappers for BLAS and LAPACK routines, together with some custom definitions
+
+
+
 
 # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
 # matrix size 100, which is the interesting region. => Investigate and fix
@@ -34,6 +37,18 @@ function qrpos!(A::StridedMatrix{<:BlasFloat})
     end
     return Q, R
 end
+function nullspace!(A::StridedMatrix{<:BlasFloat})
+    m, n = size(A)
+    m >= n || throw(ArgumentError("no null space if less rows than columns"))
+
+    A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
+    N = similar(A, m, m-n);
+    fill!(N, 0)
+    for k = 1:m-n
+        N[n+k,k] = 1
+    end
+    N = LAPACK.gemqrt!('L', 'N', A, T, N)
+end
 
 function lqpos!(A::StridedMatrix{<:BlasFloat})
     # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
@@ -41,16 +56,6 @@ function lqpos!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)
     k = min(m,n)
     At = ctranspose!(similar(A,n,m), A)
-
-    # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
-    # matrix size 100, which is the interesting region. => Investigate and fix
-    # At, τ = geqrfp!(At)
-    # fill!(A, 0)
-    # @inbounds for j = 1:k
-    #     A[j,j] = 1
-    # end
-    # Q = LAPACK.ormqr!('R',eltype(At) <: Real ? 'T' : 'C', At, τ, A)
-
     At, T = LAPACK.geqrt!(At, min(k, 36))
     fill!(A, 0)
     @inbounds for j = 1:k
@@ -74,6 +79,9 @@ function lqpos!(A::StridedMatrix{<:BlasFloat})
 end
 
 svd!(A::StridedMatrix{<:BlasFloat}) = LAPACK.gesdd!('S', A)
+
+
+
 
 # eig!(A::StridedMatrix{<:BlasFloat}) = LinAlg.LAPACK.gees!('V', A)
 #

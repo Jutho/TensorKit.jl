@@ -66,14 +66,14 @@ const TensorMapSpace{S<:IndexSpace, N₁, N₂} = Pair{ProductSpace{S,N₂},Prod
 #---------------
 Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
 
-Base.:-(t::AbstractTensorMap) = scale!(t, -one(eltype(t)))
+Base.:-(t::AbstractTensorMap) = scale!(copy(t), -one(eltype(t)))
 function Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap)
     T = promote_type(eltype(t1), eltype(t2))
-    return add!(copy!(similar(t1, T), t1), t2, one(T))
+    return add!(copy!(similar(t1, T), t1), one(T), t2, one(T))
 end
 function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
     T = promote_type(eltype(t1), eltype(t2))
-    return add!(copy!(similar(t1,T), t1), t2, -one(T))
+    return add!(copy!(similar(t1,T), t1), one(T), t2, -one(T))
 end
 
 Base.:*(t::AbstractTensorMap, α::Number) = scale!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
@@ -161,8 +161,41 @@ Base.LinAlg.axpy!(α::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = ad
 #     return C
 # end
 
+function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂,Int}=()) where {N₁,N₂}
+    cod = codomain(t)
+    dom = domain(t)
+    N₁ + N₂ == length(cod)+length(dom) || throw(ArgumentError("not a valid permutation of length $(numind(t)): $p1 & $p2"))
+    p = linearizepermutation(p1, p2, length(cod), length(dom))
+    isperm(p) || throw(ArgumentError("not a valid permutation of length $(N₁+N₂): $p1 & $p2"))
+
+    newspace = (cod ⊗ dual(dom))[p]
+    newcod = newspace[ntuple(n->n, Val(N₁))]
+    newdom = dual(newspace[ntuple(n->N₁+n, Val(N₂))])
+
+    permuteind!(similar(t, newdom=>newcod), t, p1, p2)
+end
+
+
+# function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂,Int}) where {N₁,N₂}
+#     cod = codomain(t)
+#     dom = domain(t)
+#     N₁ + N₂ == length(cod)+length(dom) || throw(ArgumentError())
+#     p = linearizepermutation(p1, p2, length(cod), length(dom))
+#     isperm(p) || throw(ArgumentError())
+#
+#     space = cod ⊗ dual(dom)
+#     newspace = space[p]
+#     newcod = tselect(newspace, ntuple(n->n, Val{N₁}))
+#     newdom = dual(tselect(newspace, ntuple(n->N₁+n, Val{N₂})))
+#
+#     permuteind!(similar(t, newdom=>newcod), p1, p2)
+# end
+
 # Factorization
 #---------------
+Base.svd(t::AbstractTensorMap, trunc::TruncationScheme = NoTruncation()) = svd!(copy(t), trunc)
+leftorth(t::AbstractTensorMap, p1::NTuple{}) = leftorth!(copy(t))
+
 # Base.svd{S,T}(t::AbstractTensor{S,T,2}, truncation::TruncationScheme = notrunc()) = svd(t, 1, 2, truncation)
 # leftorth{S,T}(t::AbstractTensor{S,T,2}, truncation::TruncationScheme = notrunc()) = leftorth(t, 1, 2, truncation)
 # rightorth{S,T}(t::AbstractTensor{S,T,2}, truncation::TruncationScheme = notrunc()) = rightorth(t, 1, 2, truncation)
