@@ -13,7 +13,33 @@ Base.one(::Type{ProductSector{T}}) where {G<:Sector, T<:Tuple{G,Vararg{Sector}}}
 
 Base.conj(p::ProductSector) = ProductSector(map(conj, p.sectors))
 ⊗(p1::P, p2::P) where {P<:ProductSector} = SectorSet{P}(product(map(⊗,p1.sectors,p2.sectors)...))
+
 Nsymbol(a::P, b::P, c::P) where {P<:ProductSector} = prod(map(Nsymbol, a.sectors, b.sectors, c.sectors))
+function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
+    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+        return prod(map(Fsymbol, a.sectors, b.sectors, c.sectors, d.sectors, e.sectors, f.sectors))
+    else
+        # TODO: use kron ?
+        throw(MethodError(Fsymbol,(a,b,c,d,e,f)))
+    end
+end
+function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
+    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+        return prod(map(Asymbol, a.sectors, b.sectors, c.sectors))
+    else
+        # TODO: use kron ?
+        throw(MethodError(Asymbol,(a,b,c)))
+    end
+end
+function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
+    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+        return prod(map(Bsymbol, a.sectors, b.sectors, c.sectors))
+    else
+        # TODO: use kron ?
+        throw(MethodError(Bsymbol,(a,b,c)))
+    end
+end
+frobeniusschur(p::ProductSector) = prod(map(frobeniusschur, p.sectors))
 
 fusiontype(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _fusiontype(T)
 _fusiontype(::Type{Tuple{}}) = Abelian

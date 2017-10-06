@@ -91,6 +91,119 @@ Base.LinAlg.axpy!(α::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = ad
 # Base.transpose(t::AbstractTensor) = Base.transpose!(similar(t, space(t).'), t)
 # Base.ctranspose(t::AbstractTensor) = Base.ctranspose!(similar(t, space(t)'), t)
 
+# Index manipulations
+#---------------------
+function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂,Int}=()) where {N₁,N₂}
+    cod = codomain(t)
+    dom = domain(t)
+    N₁ + N₂ == length(cod)+length(dom) || throw(ArgumentError("not a valid permutation of length $(numind(t)): $p1 & $p2"))
+    p = linearizepermutation(p1, p2, length(cod), length(dom))
+    isperm(p) || throw(ArgumentError("not a valid permutation of length $(N₁+N₂): $p1 & $p2"))
+
+    newspace = (cod ⊗ dual(dom))[p]
+    newcod = newspace[ntuple(n->n, Val(N₁))]
+    newdom = dual(newspace[ntuple(n->N₁+n, Val(N₂))])
+
+    permuteind!(similar(t, newdom→newcod), t, p1, p2)
+end
+
+# Factorization
+#---------------
+const IndexTuple{N} = NTuple{N,Int}
+
+"""
+    svd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple, truncation::TruncationScheme = notrunc()) -> U,S,V'
+
+Performs the singular value decomposition such that tensor `permute(t,leftind,rightind) = U * S *V`.
+
+If leftind and rightind are not specified, the current partition of left and right indices
+of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
+be destroyed/overwritten, by using `svd!(t, truncation = notrun())`.
+
+A truncation parameter can be specified for the new internal dimension, in which case
+a singular value decomposition will be performed. Choices are:
+*   `notrunc()`: no truncation (default)
+*   `truncerr(ϵ, p)`: truncates such that the p-norm of the truncated singular values is smaller than `ϵ`
+*   `truncdim(χ)`: truncates such that the equivalent total dimension of the internal vector space is no larger than `χ`
+*   `truncspace(V)`: truncates such that the dimension of the internal vector space is smaller than that of `V` in any sector
+"""
+Base.svd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, trunc::TruncationScheme = NoTruncation()) = svd!(permuteind(t, p1, p2), trunc)
+
+"""
+    leftorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple, truncation::TruncationScheme = notrunc()) -> Q, R
+
+Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
+`permute(t,leftind,rightind) = Q*R`.
+
+If leftind and rightind are not specified, the current partition of left and right indices
+of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
+be destroyed/overwritten, by using `leftorth!(t)`.
+
+This decomposition should be unique, such that it always returns the same result for the
+same input tensor `t`. This uses a QR decomposition with correction for making the diagonal
+elements of R positive.
+"""
+leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftorth!(permuteind(t, p1, p2))
+
+"""
+    rightorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple, truncation::TruncationScheme = notrunc()) -> L, Q
+
+Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
+`permute(t,leftind,rightind) = L*Q`.
+
+If leftind and rightind are not specified, the current partition of left and right indices
+of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
+be destroyed/overwritten, by using `rightorth!(t)`.
+
+This decomposition should be unique, such that it always returns the same result for the
+same input tensor `t`. This uses an LQ decomposition with correction for making the diagonal
+elements of R positive.
+"""
+rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = rightorth!(permuteind(t, p1, p2))
+
+"""
+    leftnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> N
+
+Create orthonormal basis for the orthogonal complement of the support of the indices in
+`leftind`, such that `N' * permute(t, leftind, rightind) = 0`.
+
+If leftind and rightind are not specified, the current partition of left and right indices
+of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
+be destroyed/overwritten, by using `leftnull!(t)`.
+"""
+leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftnull!(permuteind(t, p1, p2))
+
+"""
+    rightnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> N
+
+Create orthonormal basis for the orthogonal complement of the support of the indices in
+`rightind`, such that `permute(t, leftind, rightind)*N' = 0`.
+
+If leftind and rightind are not specified, the current partition of left and right indices
+of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
+be destroyed/overwritten, by using `rightnull!(t)`.
+"""
+rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = rightnull!(permuteind(t, p1, p2))
+
+"""
+    eig(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> D, V
+
+Create orthonormal basis for the orthogonal complement of the support of the indices in
+`rightind`, such that `permute(t, leftind, rightind)*N' = 0`.
+
+If leftind and rightind are not specified, the current partition of left and right indices
+of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
+be destroyed/overwritten, by using `rightnull!(t)`.
+"""
+Base.eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = eig!(permuteind(t, p1, p2))
+
+Base.svd(t::AbstractTensorMap, trunc::TruncationScheme = NoTruncation()) = svd!(copy(t), trunc)
+leftorth(t::AbstractTensorMap) = leftorth!(copy(t))
+rightorth(t::AbstractTensorMap) = rightorth!(copy(t))
+leftnull(t::AbstractTensorMap) = leftnull!(copy(t))
+rightnull(t::AbstractTensorMap) = rightnull!(copy(t))
+Base.eig(t::AbstractTensorMap) = eig!(copy(t))
+
 # Tensor operations
 #-------------------
 # convenience definition which works for vectors and matrices but also sometimes useful in general case
@@ -160,132 +273,3 @@ Base.LinAlg.axpy!(α::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = ad
 #     tensorproduct!(1,A,labelsA,B,labelsB,0,C,outputlabels)
 #     return C
 # end
-
-function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂,Int}=()) where {N₁,N₂}
-    cod = codomain(t)
-    dom = domain(t)
-    N₁ + N₂ == length(cod)+length(dom) || throw(ArgumentError("not a valid permutation of length $(numind(t)): $p1 & $p2"))
-    p = linearizepermutation(p1, p2, length(cod), length(dom))
-    isperm(p) || throw(ArgumentError("not a valid permutation of length $(N₁+N₂): $p1 & $p2"))
-
-    newspace = (cod ⊗ dual(dom))[p]
-    newcod = newspace[ntuple(n->n, Val(N₁))]
-    newdom = dual(newspace[ntuple(n->N₁+n, Val(N₂))])
-
-    permuteind!(similar(t, newdom=>newcod), t, p1, p2)
-end
-
-
-# function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂,Int}) where {N₁,N₂}
-#     cod = codomain(t)
-#     dom = domain(t)
-#     N₁ + N₂ == length(cod)+length(dom) || throw(ArgumentError())
-#     p = linearizepermutation(p1, p2, length(cod), length(dom))
-#     isperm(p) || throw(ArgumentError())
-#
-#     space = cod ⊗ dual(dom)
-#     newspace = space[p]
-#     newcod = tselect(newspace, ntuple(n->n, Val{N₁}))
-#     newdom = dual(tselect(newspace, ntuple(n->N₁+n, Val{N₂})))
-#
-#     permuteind!(similar(t, newdom=>newcod), p1, p2)
-# end
-
-# Factorization
-#---------------
-Base.svd(t::AbstractTensorMap, trunc::TruncationScheme = NoTruncation()) = svd!(copy(t), trunc)
-leftorth(t::AbstractTensorMap, p1::NTuple{}) = leftorth!(copy(t))
-
-# Base.svd{S,T}(t::AbstractTensor{S,T,2}, truncation::TruncationScheme = notrunc()) = svd(t, 1, 2, truncation)
-# leftorth{S,T}(t::AbstractTensor{S,T,2}, truncation::TruncationScheme = notrunc()) = leftorth(t, 1, 2, truncation)
-# rightorth{S,T}(t::AbstractTensor{S,T,2}, truncation::TruncationScheme = notrunc()) = rightorth(t, 1, 2, truncation)
-#
-# # general tensor factorizations: permute to correct order and pass to in place methods
-# """
-#     svd(t::AbstractTensor, leftind, rightind = setdiff(1:numind(t),leftind), truncation::TruncationScheme = notrunc()) -> U,S,V'
-#
-# Create orthonormal basis `U` for indices in `leftind` and orthonormal basis `V'`for indices in
-# `rightind`, and a diagonal tensor with singular values `S`, such that tensor `t`
-# (permuted into index order `vcat(leftind,rightind)`) can be written as `U*S*V'`.
-#
-# A truncation parameter can be specified for the new internal dimension, in which case
-# a singular value decomposition will be performed. See `svd(!)` for further information.
-# """
-# Base.svd(t::AbstractTensor,leftind,truncation::TruncationScheme=notrunc())=svd(t,leftind,setdiff(1:numind(t),leftind),truncation)
-# function Base.svd(t::AbstractTensor,leftind,rightind,truncation::TruncationScheme=notrunc())
-#     N = numind(t)
-#     p = vcat(leftind,rightind)
-#     (isperm(p) && length(p)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
-#     newt = tensorcopy(t, 1:N, p)
-#     return svd!(newt, length(leftind), truncation)
-# end
-#
-# """
-#     leftorth(t::AbstractTensor, leftind, rightind = setdiff(1:numind(t),leftind), truncation::TruncationScheme = notrunc()) -> Q,R
-#
-# Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that tensor `t`
-# (permuted into index order `vcat(leftind,rightind)`) can be written as `Q*R`.
-#
-# This decomposition should be unique, such that it always returns the same result for the
-# same input tensor `t`. The QR decomposition is fastest but only unique after correcting for
-# phases. A truncation parameter can be specified for the new internal dimension, in which case
-# a singular value decomposition will be performed. See `svd(!)` for further information.
-# """
-# leftorth(t::AbstractTensor, leftind, truncation::TruncationScheme) = leftorth(t, leftind, setdiff(1:numind(t),leftind), truncation)
-# function leftorth(t::AbstractTensor, leftind, rightind=setdiff(1:numind(t),leftind), truncation::TruncationScheme = notrunc())
-#     N = numind(t)
-#     p = vcat(leftind,rightind)
-#     (isperm(p) && length(p)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
-#     newt = tensorcopy(t, 1:N, p)
-#     return leftorth!(newt, length(leftind), truncation)
-# end
-#
-# """
-#     rightorth(t::AbstractTensor, leftind, rightind = setdiff(1:numind(t),leftind), truncation::TruncationScheme = notrunc()) -> L,Q
-#
-# Create orthonormal basis `Q'` for indices in `rightind`, and remainder `L` such that tensor `t`
-# (permuted into index order `vcat(leftind,rightind)`) can be written as `L*Q`.
-#
-# This decomposition should be unique, such that it always returns the same result for the
-# same input tensor `t`. The LQ decomposition is fastest but only unique after correcting for
-# phases. A truncation parameter can be specified for the new internal dimension, in which case
-# a singular value decomposition will be performed. See `svd(!)` for further information.
-# """
-# rightorth(t::AbstractTensor, leftind, truncation::TruncationScheme) = rightorth(t, leftind, setdiff(1:numind(t), leftind), truncation)
-# function rightorth(t::AbstractTensor, leftind, rightind = setdiff(1:numind(t), leftind), truncation::TruncationScheme = notrunc())
-#     N = numind(t)
-#     p = vcat(leftind, rightind)
-#     (isperm(p) && length(p)==N) || throw(IndexError("Not a valid bipartation of the tensor indices"))
-#     newt = tensorcopy(t, 1:N, p)
-#     return rightorth!(newt, length(leftind), truncation)
-# end
-#
-# svd!(t::AbstractTensor, n::Int) = svd!(t, n, notrunc())
-#
-# """
-#     leftorth!(t::AbstractTensor, n::Int, truncation::TruncationScheme = notrunc()) -> Q,R
-#
-# Create orthonormal basis `Q` for the first `n` indices and remainder `R` such that tensor `t` can be written as `Q*R`.
-#
-# This decomposition should be unique, such that it always returns the same result for the
-# same input tensor `t`. The QR decomposition is fastest but only unique after correcting for
-# phases. A truncation parameter can be specified for the new internal dimension, in which case
-# a singular value decomposition will be performed. See `svd(!)` for further information.
-#
-# The data in input tensor `t` is overwritten for the computation of `Q` and `R`.
-# """
-# leftorth!(t::AbstractTensor, n::Int) = leftorth!(t, n, notrunc())
-#
-# """
-#     rightorth!(t::AbstractTensor, n::Int, truncation::TruncationScheme = notrunc()) -> Q,R
-#
-# Create orthonormal basis `Q'` for the indices `n+1:numind(t)` and remainder `L` such that tensor `t` can be written as `L*Q`.
-#
-# This decomposition should be unique, such that it always returns the same result for the
-# same input tensor `t`. The LQ decomposition is fastest but only unique after correcting for
-# phases. A truncation parameter can be specified for the new internal dimension, in which case
-# a singular value decomposition will be performed. See `svd(!)` for further information.
-#
-# The data in input tensor `t` is overwritten for the computation of `L` and `Q`.
-# """
-# rightorth!(t::AbstractTensor, n::Int) = rightorth!(t, n, notrunc())

@@ -9,16 +9,17 @@ import Base.LAPACK: liblapack, chklapackerror
 
 
 # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
-# matrix size 100, which is the interesting region. => Investigate and fix
-# function qrpos!(A::StridedMatrix{<:BlasFloat})
+# matrix size 100, which is the interesting region. => Investigate and maybe fix
+# function leftorth!(A::StridedMatrix{<:BlasFloat})
 #     m, n = size(A)
 #     A, τ = geqrfp!(A)
 #     Q = LAPACK.ormqr!('L','N',A, τ, eye(eltype(A), m, min(m,n)))
 #     R = triu!(A[1:min(m,n), :])
 #     return Q, R
 # end
-function qrpos!(A::StridedMatrix{<:BlasFloat})
+function leftorth!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)
+    @assert stride(A,1) == 1
 
     A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
     Q = LAPACK.gemqrt!('L', 'N', A, T, eye(eltype(A), m, min(m,n)))
@@ -37,32 +38,31 @@ function qrpos!(A::StridedMatrix{<:BlasFloat})
     end
     return Q, R
 end
-function nullspace!(A::StridedMatrix{<:BlasFloat})
+function leftnull!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)
     m >= n || throw(ArgumentError("no null space if less rows than columns"))
 
     A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
-    N = similar(A, m, m-n);
+    N = similar(A, m, max(0, m-n));
     fill!(N, 0)
     for k = 1:m-n
         N[n+k,k] = 1
     end
     N = LAPACK.gemqrt!('L', 'N', A, T, N)
 end
-
-function lqpos!(A::StridedMatrix{<:BlasFloat})
+function rightorth!(A::StridedMatrix{<:BlasFloat})
     # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
     # matrix size 100, which is the interesting region. => Investigate and fix
     m, n = size(A)
     k = min(m,n)
-    At = ctranspose!(similar(A,n,m), A)
+    At = adjoint!(similar(A,n,m), A)
     At, T = LAPACK.geqrt!(At, min(k, 36))
     fill!(A, 0)
     @inbounds for j = 1:k
         A[j,j] = 1
     end
     Q = LAPACK.gemqrt!('R', eltype(At) <: Real ? 'T' : 'C', At, T, A)
-    L = tril!(ctranspose!(similar(At,k,k), view(At,1:k,1:k)))
+    L = tril!(adjoint!(similar(At,k,k), view(At,1:k,1:k)))
     # make positive
     @inbounds for j = 1:min(m,n)
         s = sign(R[j,j])
@@ -77,11 +77,24 @@ function lqpos!(A::StridedMatrix{<:BlasFloat})
     end
     return L, Q
 end
+function rightnull!(A::StridedMatrix{<:BlasFloat})
+    m, n = size(A)
+    k = min(m,n)
+    At = adjoint!(similar(A,n,m), A)
+    At, T = LAPACK.geqrt!(At, min(k, 36))
+    N = similar(A, max(n-m,0), n);
+    fill!(N, 0)
+    for k = 1:n-m
+        N[k,m+k] = 1
+    end
+    N = LAPACK.gemqrt!('R', eltype(At) <: Real ? 'T' : 'C', At, T, N)
+end
 
 svd!(A::StridedMatrix{<:BlasFloat}) = LAPACK.gesdd!('S', A)
 
 
 
+# TODO: override Julia's eig interface
 
 # eig!(A::StridedMatrix{<:BlasFloat}) = LinAlg.LAPACK.gees!('V', A)
 #

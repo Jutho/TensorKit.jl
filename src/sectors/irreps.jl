@@ -34,7 +34,6 @@ const Parity = ZNIrrep{2}
 Base.show(io::IO, ::Type{ZNIrrep{2}}) = print(io, "ℤ₂")
 Base.show(io::IO, ::Type{ZNIrrep{3}}) = print(io, "ℤ₃")
 Base.show(io::IO, ::Type{ZNIrrep{4}}) = print(io, "ℤ₄")
-Base.show(io::IO, ::Type{ZNIrrep{4}}) = print(io, "ℤ₄")
 Base.show(io::IO, c::ZNIrrep{2}) = get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₂(", c.n, ")")
 Base.show(io::IO, c::ZNIrrep{3}) = get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₃(", c.n, ")")
 Base.show(io::IO, c::ZNIrrep{4}) = get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₄(", c.n, ")")

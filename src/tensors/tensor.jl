@@ -248,44 +248,10 @@ function Base.fill!(t::TensorMap, value::Number)
     return t
 end
 
-#
-# # Conversion and promotion:
-# #---------------------------
-# Base.promote_rule(::Type{<:TensorMap{T1,S}},::Type{<:TensorMap{T2,S}}) where {T1, T2, S} = TensorMap{promote_type(T1,T2),S}
-#
-# Base.convert(::Type{TensorMap{T,S}}, t::Tensor{T,S}) where {T,S} = t
-# Base.convert(::Type{TensorMap{T1,S}}, t::Tensor{T2,S}) where {T1,T2,S} = copy!(similar(t, T1), t)
+# Conversion and promotion:
+#---------------------------
+# TODO
 
-# TODO: Check whether we need anything of this old stuff
-# Base.promote_rule{S,T1,T2,N1,N2}(::Type{Tensor{S,T1,N1}},::Type{Tensor{S,T2,N2}})=Tensor{S,promote_type(T1,T2)}
-# Base.promote_rule{S,T1,T2}(::Type{Tensor{S,T1}},::Type{Tensor{S,T2}})=Tensor{S,promote_type(T1,T2)}
-#
-# Base.promote_rule{S,T1,T2,N}(::Type{AbstractTensor{S,ProductSpace,T1,N}},::Type{Tensor{S,T2,N}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2),N}
-# Base.promote_rule{S,T1,T2,N1,N2}(::Type{AbstractTensor{S,ProductSpace,T1,N1}},::Type{Tensor{S,T2,N2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
-# Base.promote_rule{S,T1,T2}(::Type{AbstractTensor{S,ProductSpace,T1}},::Type{Tensor{S,T2}})=AbstractTensor{S,ProductSpace,promote_type(T1,T2)}
-
-
-# Base.convert{S,T,N}(::Type{Tensor{S,T,N}},t::Tensor{S,T,N})=t
-# Base.convert{S,T1,T2,N}(::Type{Tensor{S,T1,N}},t::Tensor{S,T2,N})=copy!(similar(t,T1),t)
-# Base.convert{S,T}(::Type{Tensor{S,T}},t::Tensor{S,T})=t
-# Base.convert{S,T1,T2}(::Type{Tensor{S,T1}},t::Tensor{S,T2})=copy!(similar(t,T1),t)
-#
-# Base.float{S,T<:FloatingPoint}(t::Tensor{S,T})=t
-# Base.float(t::Tensor)=tensor(float(t.data),space(t))
-#
-# Base.real{S,T<:Real}(t::Tensor{S,T})=t
-# Base.real(t::Tensor)=tensor(real(t.data),space(t))
-# Base.complex{S,T<:Complex}(t::Tensor{S,T})=t
-# Base.complex(t::Tensor)=tensor(complex(t.data),space(t))
-#
-# for (f,T) in ((:float32,    Float32),
-#               (:float64,    Float64),
-#               (:complex64,  Complex64),
-#               (:complex128, Complex128))
-#     @eval (Base.$f){S}(t::Tensor{S,$T}) = t
-#     @eval (Base.$f)(t::Tensor) = tensor(($f)(t.data),space(t))
-# end
-#
 # Basic vector space methods:
 # ---------------------------
 function Base.scale!(t1::TensorMap, t2::TensorMap, α::Number)
@@ -304,15 +270,21 @@ function add!(t1::TensorMap, α::Number, t2::TensorMap, β::Number)
     return t1
 end
 
-function Base.vecdot(t1::TensorMap, t2::TensorMap)
+# inner product and norm only valid for spaces with Euclidean inner product
+function Base.vecdot(t1::TensorMap{S}, t2::TensorMap{S}) where {S<:EuclideanSpace}
     (codomain(t1) == codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     return sum(dim(c)*vecdot(block(t1,c), block(t2,c)) for c in blocksectors(t1))
 end
 
-Base.vecnorm(t::TensorMap, p::Real) = vecnorm((dim(c)^(1/p)*vecnorm(block(t,c), p) for c in blocksectors(t)), p)
+Base.vecnorm(t::TensorMap{<:EuclideanSpace}, p::Real) = vecnorm((dim(c)^(1/p)*vecnorm(block(t,c), p) for c in blocksectors(t)), p)
 
-# Basic algebra and factorization methods:
-#-----------------------------------------
+# Complex / Hermitian conjugation?
+#----------------------------------
+# TODO
+
+
+# Multiplying maps:
+#------------------
 function mul!(tC::TensorMap, β::Number, tA::TensorMap,  tB::TensorMap, α::Number)
     (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
     if sectortype(tC) == Trivial
@@ -330,7 +302,10 @@ function mul!(tC::TensorMap, β::Number, tA::TensorMap,  tB::TensorMap, α::Numb
     end
     return tC
 end
-function leftorth!(t::TensorMap{S}) where {S<:ElementarySpace}
+
+# Orthogonal factorizations: only correct if Euclidean inner product
+#--------------------------------------------------------------------
+function leftorth!(t::TensorMap{<:EuclideanSpace})
     if isa(t.data, AbstractArray)
         Q, R = qrpos!(t.data)
         V = S(size(Q,2))
@@ -349,7 +324,25 @@ function leftorth!(t::TensorMap{S}) where {S<:ElementarySpace}
         return TensorMap(Qdata, codomain(t)←V), TensorMap(Rdata, V←domain(t))
     end
 end
-function rightorth!(t::TensorMap{S}) where {S<:ElementarySpace}
+function leftnull!(t::TensorMap{<:EuclideanSpace})
+    if isa(t.data, AbstractArray)
+        N = leftnull!(t.data)
+        V = S(size(Q, 2))
+        return TensorMap(N, codomain(t)←V)
+    else
+        it = blocksectors(t)
+        c, s = next(it, start(it))
+        N = leftnull!(t.data[c])
+        Ndata = Dict(c => N)
+        while !done(it, s)
+            c, s = next(it, s)
+            Ndata[c] = leftnull!(t.data[c])
+        end
+        V = S((c=>size(Ndata[c], 2) for c in it)...)
+        return TensorMap(Ndata, codomain(t)←V)
+    end
+end
+function rightorth!(t::TensorMap{<:EuclideanSpace})
     if isa(t.data, AbstractArray)
         L, Q = lqpos!(t.data)
         V = S(size(Q,1))
@@ -368,7 +361,25 @@ function rightorth!(t::TensorMap{S}) where {S<:ElementarySpace}
         return TensorMap(Ldata, codomain(t)←V), TensorMap(Qdata, V←domain(t))
     end
 end
-function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation()) where {S<:ElementarySpace}
+function rightnull!(t::TensorMap{<:EuclideanSpace})
+    if isa(t.data, AbstractArray)
+        N = rightnull!(t.data)
+        V = S(size(N, 2))
+        return TensorMap(N, V←domain(t))
+    else
+        it = blocksectors(t)
+        c, s = next(it, start(it))
+        N = rightnull!(t.data[c])
+        Ndata = Dict(c => N)
+        while !done(it, s)
+            c, s = next(it, s)
+            Ndata[c] = rightnull!(t.data[c])
+        end
+        V = S((c=>size(Ndata[c], 1) for c in it)...)
+        return TensorMap(Ndata, V←domain(t))
+    end
+end
+function svd!(t::TensorMap{<:EuclideanSpace}, trunc::TruncationScheme = NoTruncation())
     if isa(t.data, AbstractArray)
         U,Σ,V = svd!(t.data)
         dmax = length(Σ)

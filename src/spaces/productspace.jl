@@ -8,7 +8,6 @@ the same type are allowed.
 struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
     spaces::NTuple{N, S}
 end
-ProductSpace(spaces::NTuple{N,S}) where {S<:ElementarySpace, N} = ProductSpace{S,N}(spaces)
 ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSpace{S,N}(spaces)
 
 # Corresponding methods

@@ -33,7 +33,7 @@ export ⊕, ⊗, ×, ℂ, ℝ, ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
 # export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
 
 # tensor factorizations
-export leftorth, rightorth, leftorth!, rightorth!, svd!
+export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
 
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace
@@ -48,7 +48,7 @@ using Base: ImmutableDict
 
 if VERSION <= v"0.6.0"
     include("auxiliary/product.jl")
-    using Product.product
+    using .Product.product
 else
     using Base: Iterators.product
 end
@@ -63,8 +63,9 @@ include("auxiliary/stridedview.jl")
 
 if VERSION < v"0.7.0-DEV.1415"
     const adjoint = Base.ctranspose
+    const adjoint! = Base.ctranspose!
 else
-    import Base.adjoint
+    import Base: adjoint, adjoint!
 end
 
 # Exception types:
