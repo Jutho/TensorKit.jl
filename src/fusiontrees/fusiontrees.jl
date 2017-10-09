@@ -219,72 +219,80 @@ end
 include("iterator.jl")
 
 # Show methods
-function Base.show(io::IO, t::FusionTree{G,0}) where {G<:Sector}
-    # if get(io, :compact, false)
-        print(io, "FusionTree{", G, "}((),", t.incoming, ", ())")
-    # else
-    #     println(io, "FusionTree{", G, ", 0}: (empty fusion tree)")
-    # end
-end
 function Base.show(io::IO, t::FusionTree{G,N,M,K,Void}) where {G<:Sector,N,M,K}
-    # if get(io, :compact, false)
-        print(io, "FusionTree{", G, "}(", t.outgoing, ", ", t.incoming, ", ", t.innerlines, ")")
-    #     return
-    # end
-    # println(io, "FusionTree{", G, ", ", N, "}:")
-    # cprint = x->sprint(showcompact, x)
-    # outlabels = map(cprint, t.outgoing)
-    # L = max(map(textwidth, outlabels)...)
-    # up = lpad(rpad(" ∧ ", L>>1), L)
-    # down = lpad(rpad(" ∨ ", L>>1), L)
-    # L = textwidth(up)
-    # f = lpad(rpad("⋅+-",L>>1,"-"), L, " ")
-    # m = lpad(rpad("-+-",L>>1,"-"), L, "-")
-    # a = "-<-"
-    # pad = " "^L
-    # line1 = ""
-    # line2 = ""
-    # line3 = ""
-    # line4 = ""
-    # n = 1
-    # while n <= N
-    #     label = lpad(rpad(outlabels[n], 2), L)
-    #     line4 *= label
-    #     line3 *= down
-    #     if n == 1
-    #         line2 *= f
-    #     else
-    #         line2 *= m
-    #     end
-    #     line1 *= pad
-    #     # print inner label
-    #     if n == 1
-    #         label = cprint(t.outgoing[1])
-    #         label = lpad(rpad(label, 2), textwidth(a))
-    #         line1 *= label
-    #         ℓ = textwidth(label)
-    #         line2 *= lpad(rpad(a, ℓ>>1, "-"), ℓ, "-")
-    #         line3 *= " "^ℓ
-    #         line4 *= " "^ℓ
-    #     elseif n < N
-    #         label = cprint(t.innerlines[n-1])
-    #         label = lpad(rpad(label, 2), textwidth(a))
-    #         line1 *= label
-    #         ℓ = textwidth(label)
-    #         line2 *= lpad(rpad(a, ℓ>>1, "-"), ℓ, "-")
-    #         line3 *= " "^ℓ
-    #         line4 *= " "^ℓ
-    #     else
-    #         line2 *= a
-    #         line2 *= cprint(t.incoming)
-    #     end
-    #     n += 1
-    # end
-    # println(io, line1)
-    # println(io, line2)
-    # println(io, line3)
-    # println(io, line4)
+    print(io, "FusionTree{", G, "}(", t.outgoing, ", ", t.incoming, ", ", t.innerlines, ")")
 end
+function Base.show(io::IO, t::FusionTree{G}) where {G<:Sector}
+    print(io, "FusionTree{", G, "}(", t.outgoing, ", ", t.incoming, ", ", t.innerlines, ", ", t.vertices, ")")
+end
+
+# # Fancy print code
+# function Base.show(io::IO, t::FusionTree{G,0}) where {G<:Sector}
+#     if get(io, :compact, false)
+#         print(io, "FusionTree{", G, "}((),", t.incoming, ", ())")
+#     else
+#         println(io, "FusionTree{", G, ", 0}: (empty fusion tree)")
+#     end
+# end
+# function Base.show(io::IO, t::FusionTree{G,N,M,K,Void}) where {G<:Sector,N,M,K}
+#     if get(io, :compact, false)
+#         print(io, "FusionTree{", G, "}(", t.outgoing, ", ", t.incoming, ", ", t.innerlines, ")")
+#         return
+#     end
+#     println(io, "FusionTree{", G, ", ", N, "}:")
+#     cprint = x->sprint(showcompact, x)
+#     outlabels = map(cprint, t.outgoing)
+#     L = max(map(textwidth, outlabels)...)
+#     up = lpad(rpad(" ∧ ", L>>1), L)
+#     down = lpad(rpad(" ∨ ", L>>1), L)
+#     L = textwidth(up)
+#     f = lpad(rpad("⋅+-",L>>1,"-"), L, " ")
+#     m = lpad(rpad("-+-",L>>1,"-"), L, "-")
+#     a = "-<-"
+#     pad = " "^L
+#     line1 = ""
+#     line2 = ""
+#     line3 = ""
+#     line4 = ""
+#     n = 1
+#     while n <= N
+#         label = lpad(rpad(outlabels[n], 2), L)
+#         line4 *= label
+#         line3 *= down
+#         if n == 1
+#             line2 *= f
+#         else
+#             line2 *= m
+#         end
+#         line1 *= pad
+#         # print inner label
+#         if n == 1
+#             label = cprint(t.outgoing[1])
+#             label = lpad(rpad(label, 2), textwidth(a))
+#             line1 *= label
+#             ℓ = textwidth(label)
+#             line2 *= lpad(rpad(a, ℓ>>1, "-"), ℓ, "-")
+#             line3 *= " "^ℓ
+#             line4 *= " "^ℓ
+#         elseif n < N
+#             label = cprint(t.innerlines[n-1])
+#             label = lpad(rpad(label, 2), textwidth(a))
+#             line1 *= label
+#             ℓ = textwidth(label)
+#             line2 *= lpad(rpad(a, ℓ>>1, "-"), ℓ, "-")
+#             line3 *= " "^ℓ
+#             line4 *= " "^ℓ
+#         else
+#             line2 *= a
+#             line2 *= cprint(t.incoming)
+#         end
+#         n += 1
+#     end
+#     println(io, line1)
+#     println(io, line2)
+#     println(io, line3)
+#     println(io, line4)
+# end
 
 # auxiliary routines
 

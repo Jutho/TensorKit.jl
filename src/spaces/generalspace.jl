@@ -10,7 +10,7 @@ struct GeneralSpace{k} <: ElementarySpace{k}
     d::Int
     dual::Bool
     conj::Bool
-    GeneralSpace{k}(d::Int; dual::Bool = false, conj::Bool = false) where {k} =
+    GeneralSpace{k}(d::Int, dual::Bool = false, conj::Bool = false) where {k} =
         (d >= 0 ? new{k}(d, dual, conj) : throw(ArgumentError("Dimension of a vector space should be bigger than zero")))
 end
 

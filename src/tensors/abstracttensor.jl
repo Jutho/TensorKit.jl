@@ -87,12 +87,18 @@ Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = sca
 
 Base.LinAlg.axpy!(α::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = add!(ty, 1, tx, α)
 
-# Base.conj(t::AbstractTensor) = Base.conj!(similar(t, conj(space(t))), t)
-# Base.transpose(t::AbstractTensor) = Base.transpose!(similar(t, space(t).'), t)
-# Base.ctranspose(t::AbstractTensor) = Base.ctranspose!(similar(t, space(t)'), t)
+Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), 0, t1, t2, 1)
 
 # Index manipulations
 #---------------------
+"""
+    permuteind(tsrc::AbstractTensorMap, leftind::NTuple{N₁,Int}, rightind::NTuple{N₂,Int}) -> tdst
+
+Permutes the indices of `tsrc::AbstractTensorMap` such that a new tensor
+`tdst::AbstractTensorMap{spacetype(t),N₁,N₂}` is obtained, with indices in `leftind`
+playing the role of the codomain or range of the map, and indicies in `rightind` indicating
+the domain.
+"""
 function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂,Int}=()) where {N₁,N₂}
     cod = codomain(t)
     dom = domain(t)
@@ -104,7 +110,7 @@ function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂
     newcod = newspace[ntuple(n->n, Val(N₁))]
     newdom = dual(newspace[ntuple(n->N₁+n, Val(N₂))])
 
-    permuteind!(similar(t, newdom→newcod), t, p1, p2)
+    permuteind!(similar(t, newcod←newdom), t, p1, p2)
 end
 
 # Factorization
@@ -116,16 +122,19 @@ const IndexTuple{N} = NTuple{N,Int}
 
 Performs the singular value decomposition such that tensor `permute(t,leftind,rightind) = U * S *V`.
 
-If leftind and rightind are not specified, the current partition of left and right indices
+If `leftind` and `rightind` are not specified, the current partition of left and right indices
 of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
 be destroyed/overwritten, by using `svd!(t, truncation = notrun())`.
 
 A truncation parameter can be specified for the new internal dimension, in which case
 a singular value decomposition will be performed. Choices are:
-*   `notrunc()`: no truncation (default)
-*   `truncerr(ϵ, p)`: truncates such that the p-norm of the truncated singular values is smaller than `ϵ`
-*   `truncdim(χ)`: truncates such that the equivalent total dimension of the internal vector space is no larger than `χ`
-*   `truncspace(V)`: truncates such that the dimension of the internal vector space is smaller than that of `V` in any sector
+*   `notrunc()`: no truncation (default);
+*   `truncerr(ϵ, p)`: truncates such that the p-norm of the truncated singular values is smaller than `ϵ`;
+*   `truncdim(χ)`: truncates such that the equivalent total dimension of the internal vector space is no larger than `χ`;
+*   `truncspace(V)`: truncates such that the dimension of the internal vector space is smaller than that of `V` in any sector.
+
+Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `svd(!)` is currently
+only implemented for `spacetype(t)<:EuclideanSpace`.
 """
 Base.svd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, trunc::TruncationScheme = NoTruncation()) = svd!(permuteind(t, p1, p2), trunc)
 
@@ -135,13 +144,16 @@ Base.svd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, trunc::Truncation
 Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
 `permute(t,leftind,rightind) = Q*R`.
 
-If leftind and rightind are not specified, the current partition of left and right indices
+If `leftind` and `rightind` are not specified, the current partition of left and right indices
 of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
 be destroyed/overwritten, by using `leftorth!(t)`.
 
 This decomposition should be unique, such that it always returns the same result for the
 same input tensor `t`. This uses a QR decomposition with correction for making the diagonal
 elements of R positive.
+
+Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `leftorth(!)` is currently
+only implemented for `spacetype(t)<:EuclideanSpace`.
 """
 leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftorth!(permuteind(t, p1, p2))
 
@@ -151,13 +163,16 @@ leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftorth!(permu
 Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
 `permute(t,leftind,rightind) = L*Q`.
 
-If leftind and rightind are not specified, the current partition of left and right indices
+If `leftind` and `rightind` are not specified, the current partition of left and right indices
 of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
 be destroyed/overwritten, by using `rightorth!(t)`.
 
 This decomposition should be unique, such that it always returns the same result for the
 same input tensor `t`. This uses an LQ decomposition with correction for making the diagonal
 elements of R positive.
+
+Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `rightorth(!)` is currently
+only implemented for `spacetype(t)<:EuclideanSpace`.
 """
 rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = rightorth!(permuteind(t, p1, p2))
 
@@ -167,9 +182,12 @@ rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = rightorth!(per
 Create orthonormal basis for the orthogonal complement of the support of the indices in
 `leftind`, such that `N' * permute(t, leftind, rightind) = 0`.
 
-If leftind and rightind are not specified, the current partition of left and right indices
+If `leftind` and `rightind` are not specified, the current partition of left and right indices
 of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
 be destroyed/overwritten, by using `leftnull!(t)`.
+
+Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `leftnull(!)` is currently
+only implemented for `spacetype(t)<:EuclideanSpace`.
 """
 leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftnull!(permuteind(t, p1, p2))
 
@@ -179,21 +197,23 @@ leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftnull!(permu
 Create orthonormal basis for the orthogonal complement of the support of the indices in
 `rightind`, such that `permute(t, leftind, rightind)*N' = 0`.
 
-If leftind and rightind are not specified, the current partition of left and right indices
+If `leftind` and `rightind` are not specified, the current partition of left and right indices
 of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
 be destroyed/overwritten, by using `rightnull!(t)`.
+
+Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `rightnull(!)` is currently
+only implemented for `spacetype(t)<:EuclideanSpace`.
 """
 rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = rightnull!(permuteind(t, p1, p2))
 
 """
     eig(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> D, V
 
-Create orthonormal basis for the orthogonal complement of the support of the indices in
-`rightind`, such that `permute(t, leftind, rightind)*N' = 0`.
+Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 
-If leftind and rightind are not specified, the current partition of left and right indices
+If `leftind` and `rightind` are not specified, the current partition of left and right indices
 of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
-be destroyed/overwritten, by using `rightnull!(t)`.
+be destroyed/overwritten, by using `eig!(t)`.
 """
 Base.eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = eig!(permuteind(t, p1, p2))
 

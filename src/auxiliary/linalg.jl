@@ -19,20 +19,20 @@ import Base.LAPACK: liblapack, chklapackerror
 # end
 function leftorth!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)
-    @assert stride(A,1) == 1
+    k = min(m, n)
 
     A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
-    Q = LAPACK.gemqrt!('L', 'N', A, T, eye(eltype(A), m, min(m,n)))
-    R = triu!(A[1:min(m,n), :])
+    Q = LAPACK.gemqrt!('L', 'N', A, T, eye(eltype(A), m, k))
+    R = triu!(A[1:k, :])
     # make positive
-    @inbounds for j = 1:min(m,n)
+    @inbounds for j = 1:k
         s = sign(R[j,j])
         @simd for i = 1:m
             Q[i,j] *= s
         end
     end
     @inbounds for j = size(R,2):-1:1
-        for i = 1:j
+        for i = 1:min(k,j)
             R[i,j] = R[i,j]/sign(R[i,i])
         end
     end
@@ -55,27 +55,35 @@ function rightorth!(A::StridedMatrix{<:BlasFloat})
     # matrix size 100, which is the interesting region. => Investigate and fix
     m, n = size(A)
     k = min(m,n)
-    At = adjoint!(similar(A,n,m), A)
-    At, T = LAPACK.geqrt!(At, min(k, 36))
-    fill!(A, 0)
-    @inbounds for j = 1:k
-        A[j,j] = 1
-    end
-    Q = LAPACK.gemqrt!('R', eltype(At) <: Real ? 'T' : 'C', At, T, A)
-    L = tril!(adjoint!(similar(At,k,k), view(At,1:k,1:k)))
-    # make positive
-    @inbounds for j = 1:min(m,n)
-        s = sign(R[j,j])
-        @simd for i = 1:m
-            Q[i,j] *= s
+    At = transpose!(similar(A,n,m), A)
+    if m <= n
+        mhalf = div(m,2)
+        # swap columns in At
+        @inbounds for j = 1:mhalf, i = 1:n
+            At[i,j], At[i,m+1-j] = At[i,m+1-j], At[i,j]
         end
-    end
-    @inbounds for j = size(R,2):-1:1
-        for i = 1:j
-            R[i,j] = R[i,j]/sign(R[i,i])
+        Qt, Rt = leftorth!(At)
+
+        @inbounds for j = 1:mhalf, i = 1:n
+            Qt[i,j], Qt[i,m+1-j] = Qt[i,m+1-j], Qt[i,j]
         end
+        @inbounds for j = 1:mhalf, i = 1:m
+            Rt[i,j], Rt[m+1-i,m+1-j] = Rt[m+1-i,m+1-j], Rt[i,j]
+        end
+        if isodd(m)
+            j = mhalf+1
+            @inbounds for i = 1:mhalf
+                Rt[i,j], Rt[m+1-i,j] = Rt[m+1-i,j], Rt[i,j]
+            end
+        end
+        Q = transpose!(A, Qt)
+        R = transpose(Rt) # TODO: efficient in place
+        return R, Q
+    else
+        Qt, Lt = leftorth!(At)
+        L = transpose!(A, Lt)
+        return L, transpose(Qt)
     end
-    return L, Q
 end
 function rightnull!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)

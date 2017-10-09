@@ -23,6 +23,14 @@ function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
         throw(MethodError(Fsymbol,(a,b,c,d,e,f)))
     end
 end
+function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
+    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+        return prod(map(Rsymbol, a.sectors, b.sectors, c.sectors))
+    else
+        # TODO: use kron ?
+        throw(MethodError(Rsymbol,(a,b,c)))
+    end
+end
 function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
     if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
         return prod(map(Asymbol, a.sectors, b.sectors, c.sectors))
@@ -46,8 +54,8 @@ _fusiontype(::Type{Tuple{}}) = Abelian
 _fusiontype(::Type{T}) where {T<:SectorTuple} = fusiontype(tuple_type_head(T)) & _fusiontype(tuple_type_tail(T))
 
 braidingtype(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _braidingtype(T)
-_braidingtype(::Type{Tuple{}}) = Abelian
-_braidingtype(::Type{<:SectorTuple}) = fusiontype(tuple_type_head(T)) & _braidingtype(tuple_type_tail(T))
+_braidingtype(::Type{Tuple{}}) = Bosonic
+_braidingtype(::Type{T}) where {T<:SectorTuple} = braidingtype(tuple_type_head(T)) & _braidingtype(tuple_type_tail(T))
 
 fermionparity(P::ProductSector) = _fermionparity(P.sectors)
 _fermionparity(::Tuple{}) = false

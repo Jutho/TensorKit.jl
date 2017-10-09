@@ -23,7 +23,8 @@ export SpaceMismatch, SectorMismatch, IndexError # error types
 export space, dual, dim, dims, fieldtype
 # methods for sectors and properties thereof
 export sectortype, fusiontype, braidingtype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
-export fusiontrees
+export Trivial, ZNSpace, SU2Irrep, U1Irrep # Fermion
+export fusiontrees, braid, repartition
 
 # some unicode
 export ⊕, ⊗, ×, ℂ, ℝ, ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
@@ -34,6 +35,7 @@ export ⊕, ⊗, ×, ℂ, ℝ, ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
 
 # tensor factorizations
 export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
+export permuteind, fuseind, splitind
 
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace

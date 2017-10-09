@@ -27,4 +27,4 @@ Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "(ℂ^$(V.d))'" : "ℂ^$
 # direct sum
 ⊕(V1::ComplexSpace, V2::ComplexSpace) = (V1.dual==V2.dual ?
     ComplexSpace(V1.d+V2.d, V1.dual) :
-    throw(SpaceMismatch("Direct sum of a vector space and its dual do not exist")))
+    throw(SpaceMismatch("Direct sum of a vector space and its dual does not exist")))

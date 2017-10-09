@@ -52,11 +52,11 @@ function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
 end
 function validatedata(data::AbstractArray, codom, dom, k::Field, ::Type{Trivial})
     if ndims(data) == 2
-        size(data) == (dim(codom), dim(dom)) || size(data) == (dims(codom.spaces)..., dims(dom.spaces)...) || throw(DimensionMismatch())
+        size(data) == (dim(codom), dim(dom)) || size(data) == (dims(codom)..., dims(dom)...) || throw(DimensionMismatch())
     elseif ndims(data) == 1
         length(data) == dim(codom) * dim(dom) || throw(DimensionMismatch())
     else
-        size(data) == (dims(codom.spaces)..., dims(dom.spaces)...) || throw(DimensionMismatch())
+        size(data) == (dims(codom)..., dims(dom)...) || throw(DimensionMismatch())
     end
     eltype(data) ⊆ k || warn("eltype(data) = $(eltype(data)) ⊈ $k)")
     return reshape(data, (dim(codom), dim(dom)))
@@ -94,10 +94,9 @@ end
 #--------------------------------------------
 codomain(t::TensorMap) = t.codom
 domain(t::TensorMap) = t.dom
-space(t::TensorMap{<:Number,<:IndexSpace,N₁}, n::Int) where {N₁} = n < N₁ ? t.codom[n] : dual(t.dom[n-N₁])
 
-Base.eltype(::Type{TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray{T}}}) where {T,N₁,N₂} = T
-Base.eltype(::Type{TensorMap{<:IndexSpace,N₁,N₂,<:Associative{<:Any,<:AbstractArray{T}}}}) where {T,N₁,N₂} = T
+Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray{T}}}) where {T,N₁,N₂} = T
+Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:Associative{<:Any,<:AbstractArray{T}}}}) where {T,N₁,N₂} = T
 
 Base.length(t::TensorMap) = sum(length, blocks(t)) # total number of free parameters, in order to use e.g. KrylovKit
 
@@ -276,12 +275,7 @@ function Base.vecdot(t1::TensorMap{S}, t2::TensorMap{S}) where {S<:EuclideanSpac
     return sum(dim(c)*vecdot(block(t1,c), block(t2,c)) for c in blocksectors(t1))
 end
 
-Base.vecnorm(t::TensorMap{<:EuclideanSpace}, p::Real) = vecnorm((dim(c)^(1/p)*vecnorm(block(t,c), p) for c in blocksectors(t)), p)
-
-# Complex / Hermitian conjugation?
-#----------------------------------
-# TODO
-
+Base.vecnorm(t::TensorMap{<:EuclideanSpace}, p::Real) = vecnorm((convert(real(eltype(t)),dim(c)^(1/p)*vecnorm(block(t,c), p)) for c in blocksectors(t)), p)
 
 # Multiplying maps:
 #------------------
@@ -305,29 +299,29 @@ end
 
 # Orthogonal factorizations: only correct if Euclidean inner product
 #--------------------------------------------------------------------
-function leftorth!(t::TensorMap{<:EuclideanSpace})
+function leftorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
-        Q, R = qrpos!(t.data)
+        Q, R = leftorth!(t.data)
         V = S(size(Q,2))
         return TensorMap(Q, codomain(t)←V), TensorMap(R, V←domain(t))
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
-        Q,R = qrpos!(t.data[c])
+        Q,R = leftorth!(t.data[c])
         Qdata = Dict(c => Q)
         Rdata = Dict(c => R)
         while !done(it, s)
             c, s = next(it, s)
-            Qdata[c], Rdata[c] = qrpos!(t.data[c])
+            Qdata[c], Rdata[c] = leftorth!(t.data[c])
         end
         V = S((c=>size(Qdata[c], 2) for c in it)...)
         return TensorMap(Qdata, codomain(t)←V), TensorMap(Rdata, V←domain(t))
     end
 end
-function leftnull!(t::TensorMap{<:EuclideanSpace})
+function leftnull!(t::TensorMap{S}) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
         N = leftnull!(t.data)
-        V = S(size(Q, 2))
+        V = S(size(N, 2))
         return TensorMap(N, codomain(t)←V)
     else
         it = blocksectors(t)
@@ -342,29 +336,29 @@ function leftnull!(t::TensorMap{<:EuclideanSpace})
         return TensorMap(Ndata, codomain(t)←V)
     end
 end
-function rightorth!(t::TensorMap{<:EuclideanSpace})
+function rightorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
-        L, Q = lqpos!(t.data)
+        L, Q = rightorth!(t.data)
         V = S(size(Q,1))
         return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
-        L, Q = lqpos!(t.data[c])
+        L, Q = rightorth!(t.data[c])
         Ldata = Dict(c => L)
         Qdata = Dict(c => Q)
         while !done(it, s)
             c, s = next(it, s)
-            Ldata[c], Qdata[c] = lqpos!(t.data[c])
+            Ldata[c], Qdata[c] = rightorth!(t.data[c])
         end
         V = S((c=>size(Qdata[c], 1) for c in it)...)
         return TensorMap(Ldata, codomain(t)←V), TensorMap(Qdata, V←domain(t))
     end
 end
-function rightnull!(t::TensorMap{<:EuclideanSpace})
+function rightnull!(t::TensorMap{S}) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
         N = rightnull!(t.data)
-        V = S(size(N, 2))
+        V = S(size(N, 1))
         return TensorMap(N, V←domain(t))
     else
         it = blocksectors(t)
@@ -379,11 +373,14 @@ function rightnull!(t::TensorMap{<:EuclideanSpace})
         return TensorMap(Ndata, V←domain(t))
     end
 end
-function svd!(t::TensorMap{<:EuclideanSpace}, trunc::TruncationScheme = NoTruncation())
+function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation()) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
         U,Σ,V = svd!(t.data)
         dmax = length(Σ)
-        if isa(trunc, TruncationError)
+        if isa(trunc, NoTruncation)
+            dtrunc = dmax
+            # don't do anything
+        elseif isa(trunc, TruncationError)
             p = trunc.p
             normΣ = vecnorm(Σ, p)
             dtrunc = dmax
@@ -395,24 +392,25 @@ function svd!(t::TensorMap{<:EuclideanSpace}, trunc::TruncationScheme = NoTrunca
                 end
             end
         elseif isa(trunc, TruncationDimension)
-            dtrunc = min(d, trunc.dim)
+            dtrunc = min(dmax, trunc.dim)
         else
             error("unknown truncation scheme")
         end
-        truncnorm = vecnorm(view(Σ, dtrunc+1:dmax), p)
         W = S(dtrunc)
         if dtrunc < dmax
-            U = U[:,1:d]
-            V = V[1:d,:]
-            Σ = Σ[1:d]
+            U = U[:,1:dtrunc]
+            V = V[1:dtrunc,:]
+            Σ = Σ[1:dtrunc]
         end
-        return TensorMap(U, codomain(t)←W), TensorMap(Diagonal(Σ), W←W), TensorMap(W, W←domain(t)), normΣ, truncnorm
+        return TensorMap(U, codomain(t)←W), TensorMap(diagm(Σ), W←W), TensorMap(V, W←domain(t))
+        #TODO: make this work with Diagonal(Σ) in such a way that it is type stable and
+        # robust for all further operations on that tensor
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
         U,Σ,V = svd!(t.data[c])
         Udata = Dict(c => U)
-        Σdata = Dict(c => Diagonal(Σ))
+        Σdata = Dict(c => Σ)
         Vdata = Dict(c => V)
         maxdim = Dict(c=> length(Σ))
         truncdim = Dict(c=> length(Σ))
@@ -422,47 +420,46 @@ function svd!(t::TensorMap{<:EuclideanSpace}, trunc::TruncationScheme = NoTrunca
             Udata[c] = U
             Σdata[c] = Σ
             Vdata[c] = V
-            dmax[c] = length(Σ)
-            dtrunc[c] = length(Σ)
+            maxdim[c] = length(Σ)
+            truncdim[c] = length(Σ)
         end
 
-        normΣ = vecnorm(sqrt(dim(c))*vecnorm(Σdata[c]) for c in it)
         if isa(trunc, NoTruncation)
             # don't do anything
         elseif isa(trunc, TruncationError)
             p = trunc.p
+            normΣ = vecnorm((dim(c)^(1/p)*vecnorm(Σdata[c], p) for c in it), p)
             while true
-                cmin = mininum(c->sqrt(dim(c))*Σdata[c][dtrunc[c]], it)
-                dtrunc[cmin] -= 1
-                truncnorm = vecnorm((dim(c)*vecnorm(view(Σdata[c],dtrunc[c]+1:dmax[c]), p) for c in it), p)
+                cmin = mininum(c->sqrt(dim(c))*Σdata[c][truncdim[c]], it)
+                truncdim[cmin] -= 1
+                truncnorm = vecnorm((dim(c)^(1/p)*vecnorm(view(Σdata[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
                 if truncnorm/normΣ > trunc.ϵ
-                    dtrunc[cmin] += 1
+                    truncdim[cmin] += 1
                     break
                 end
             end
         elseif isa(trunc, TruncationDimension)
-            while sum(c->dim(c)*dtrunc[c], it) > trunc.dim
-                cmin = mininum(c->sqrt(dim(c))*Σdata[c][dtrunc[c]], it)
-                dtrunc[cmin] -= 1
+            while sum(c->dim(c)*truncdim[c], it) > trunc.dim
+                cmin = mininum(c->sqrt(dim(c))*Σdata[c][truncdim[c]], it)
+                truncdim[cmin] -= 1
             end
         elseif isa(trunc, TruncationSpace)
             for c in it
-                dtrunc[c] = min(dtrunc[c], dim(trunc.space, c))
+                truncdim[c] = min(truncdim[c], dim(trunc.space, c))
             end
         else
             error("unknown truncation scheme")
         end
-        truncnorm = vecnorm(sqrt(dim(c))*vecnorm(view(Σdata[c],dtrunc[c]+1:dmax[c])) for c in it)
 
         for c in it
-            if dtrunc[c] != dmax[c]
-                Udata[c] = Udata[c][:,1:dtrunc[c]]
-                Vdata[c] = Vdata[c][1:dtrunc[c],:]
-                Σdata[c] = Σdata[c][1:dtrunc[c]]
+            if truncdim[c] != maxdim[c]
+                Udata[c] = Udata[c][:,1:truncdim[c]]
+                Vdata[c] = Vdata[c][1:truncdim[c],:]
+                Σdata[c] = Σdata[c][1:truncdim[c]]
             end
         end
         V = S(dtrunc)
-        return TensorMap(Udata, codomain(t)←V), TensorMap(Dict(c=>Diagonal(Σdata[c]) for c in it), V←V), TensorMap(Vdata, V←domain(t)), normΣ, truncnorm
+        return TensorMap(Udata, codomain(t)←V), TensorMap(Dict(c=>diagm(Σdata[c]) for c in it), V←V), TensorMap(Vdata, V←domain(t))
     end
 end
 
@@ -522,3 +519,14 @@ end
 function splitind! end#
 
 function fuseind! end
+
+# Complex / Hermitian conjugation?
+#----------------------------------
+function adjoint!(tdst::TensorMap{<:EuclideanSpace}, tsrc::TensorMap{<:EuclideanSpace})
+    (codomain(tdst) == domain(tsrc) && domain(tdst) == codomain(tsrc)) || throw(SpaceMismatch())
+
+    for (f1,f2) in fusiontrees(tsrc)
+        adjoint!(tdst[f2,f1], tsrc[f1,f2])
+    end
+    return tdst
+end
