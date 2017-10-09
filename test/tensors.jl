@@ -35,7 +35,7 @@ end
 
 
 
-# @testset "Testing norm preservation under permutations" begin
+# @testset "Testing norm invariance under permutations" begin
 #     using Combinatorics
 #     @testset "Trivial symmetries" begin
 #         W = ℂ^2 ⊗ ℂ^3 ⊗ ℂ^4 ⊗ ℂ^5 ⊗ ℂ^6
