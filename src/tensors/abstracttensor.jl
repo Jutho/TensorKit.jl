@@ -118,25 +118,28 @@ end
 const IndexTuple{N} = NTuple{N,Int}
 
 """
-    svd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple, truncation::TruncationScheme = notrunc()) -> U,S,V'
+    svd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple, truncation::TruncationScheme = notrunc(), p::Real = 2) -> U,S,V,truncerr'
 
-Performs the singular value decomposition such that tensor `permute(t,leftind,rightind) = U * S *V`.
+Performs the singular value decomposition such that `permute(t,leftind,rightind) = U * S *V`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right indices
 of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
-be destroyed/overwritten, by using `svd!(t, truncation = notrun())`.
+be destroyed/overwritten, by using `svd!(t, truncation = notrunc(), p = 2)`.
 
 A truncation parameter can be specified for the new internal dimension, in which case
-a singular value decomposition will be performed. Choices are:
+a truncated singular value decomposition will be computed. Choices are:
 *   `notrunc()`: no truncation (default);
-*   `truncerr(ϵ, p)`: truncates such that the p-norm of the truncated singular values is smaller than `ϵ`;
+*   `truncerr(ϵ)`: truncates such that the p-norm of the truncated singular values is smaller than `ϵ` times the p-norm of all singular values;
 *   `truncdim(χ)`: truncates such that the equivalent total dimension of the internal vector space is no larger than `χ`;
 *   `truncspace(V)`: truncates such that the dimension of the internal vector space is smaller than that of `V` in any sector.
+
+The `svd` also returns the truncation error `truncerr`, computed as the `p` norm of the
+singular values that were truncated.
 
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `svd(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-Base.svd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, trunc::TruncationScheme = NoTruncation()) = svd!(permuteind(t, p1, p2), trunc)
+Base.svd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, trunc::TruncationScheme = NoTruncation(), p::Real = 2) = svd!(permuteind(t, p1, p2), trunc, p)
 
 """
     leftorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple, truncation::TruncationScheme = notrunc()) -> Q, R
@@ -217,7 +220,7 @@ be destroyed/overwritten, by using `eig!(t)`.
 """
 Base.eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = eig!(permuteind(t, p1, p2))
 
-Base.svd(t::AbstractTensorMap, trunc::TruncationScheme = NoTruncation()) = svd!(copy(t), trunc)
+Base.svd(t::AbstractTensorMap, trunc::TruncationScheme = NoTruncation(), p::Real = 2) = svd!(copy(t), trunc, p)
 leftorth(t::AbstractTensorMap) = leftorth!(copy(t))
 rightorth(t::AbstractTensorMap) = rightorth!(copy(t))
 leftnull(t::AbstractTensorMap) = leftnull!(copy(t))

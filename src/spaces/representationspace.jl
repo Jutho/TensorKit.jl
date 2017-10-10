@@ -10,8 +10,12 @@ struct RepresentationSpace{G<:Sector} <: AbstractRepresentationSpace{G}
     dims::Dict{G,Int}
     dual::Bool
 end
-RepresentationSpace(dims::Vararg{Pair{G,Int}}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(Dict{G,Int}(dims...), dual)
+RepresentationSpace{G}(dims::Dict{G,Int}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(dims, dual)
 RepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(Dict{G,Int}(convert(G,s)=>d for (s,d) in dims if d!=0), dual)
+
+RepresentationSpace(dims::Dict{G,Int}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(dims, dual)
+RepresentationSpace(dims::Vararg{Pair{G,Int}}; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(Dict{G,Int}(dims...), dual)
+
 
 # Corresponding methods:
 """

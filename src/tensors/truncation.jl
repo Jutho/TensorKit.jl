@@ -8,11 +8,10 @@ struct NoTruncation <: TruncationScheme
 end
 notrunc() = NoTruncation()
 
-struct TruncationError{T<:Real, S<:Real} <: TruncationScheme
+struct TruncationError{T<:Real} <: TruncationScheme
     ϵ::T
-    p::S
 end
-truncerr(epsilon::Real, p::Real = 2) = TruncationError(epsilon, p)
+truncerr(epsilon::Real) = TruncationError(epsilon)
 
 struct TruncationDimension <: TruncationScheme
     dim::Int

@@ -307,14 +307,18 @@ function leftorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
-        Q,R = leftorth!(t.data[c])
+        Q, R = leftorth!(t.data[c])
         Qdata = Dict(c => Q)
         Rdata = Dict(c => R)
+        dims = Dict(c => size(Q, 2))
         while !done(it, s)
             c, s = next(it, s)
-            Qdata[c], Rdata[c] = leftorth!(t.data[c])
+            Q, R = leftorth!(t.data[c])
+            Qdata[c] = Q
+            Rdata[c] = R
+            dims[c] = size(Q, 2)
         end
-        V = S((c=>size(Qdata[c], 2) for c in it)...)
+        V = S(dims)
         return TensorMap(Qdata, codomain(t)←V), TensorMap(Rdata, V←domain(t))
     end
 end
@@ -328,18 +332,20 @@ function leftnull!(t::TensorMap{S}) where {S<:EuclideanSpace}
         c, s = next(it, start(it))
         N = leftnull!(t.data[c])
         Ndata = Dict(c => N)
+        dims = Dict(c => size(N, 2))
         while !done(it, s)
             c, s = next(it, s)
-            Ndata[c] = leftnull!(t.data[c])
+            N = leftnull!(t.data[c])
+            Ndata[c] = N
         end
-        V = S((c=>size(Ndata[c], 2) for c in it)...)
+        V = S(dims)
         return TensorMap(Ndata, codomain(t)←V)
     end
 end
 function rightorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
         L, Q = rightorth!(t.data)
-        V = S(size(Q,1))
+        V = S(size(Q, 1))
         return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
     else
         it = blocksectors(t)
@@ -347,11 +353,15 @@ function rightorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
         L, Q = rightorth!(t.data[c])
         Ldata = Dict(c => L)
         Qdata = Dict(c => Q)
+        dims = Dict(c => size(Q, 1))
         while !done(it, s)
             c, s = next(it, s)
-            Ldata[c], Qdata[c] = rightorth!(t.data[c])
+            L, Q = rightorth!(t.data[c])
+            Ldata[c] = L
+            Qdata[c] = Q
+            dims[c] = size(Q, 1)
         end
-        V = S((c=>size(Qdata[c], 1) for c in it)...)
+        V = S(dims)
         return TensorMap(Ldata, codomain(t)←V), TensorMap(Qdata, V←domain(t))
     end
 end
@@ -365,44 +375,30 @@ function rightnull!(t::TensorMap{S}) where {S<:EuclideanSpace}
         c, s = next(it, start(it))
         N = rightnull!(t.data[c])
         Ndata = Dict(c => N)
+        dims = Dict(c => size(N, 1))
         while !done(it, s)
             c, s = next(it, s)
-            Ndata[c] = rightnull!(t.data[c])
+            N = rightnull!(t.data[c])
+            Ndata[c] = N
+            dims[c] = size(N, 1)
         end
-        V = S((c=>size(Ndata[c], 1) for c in it)...)
+        V = S(dims)
         return TensorMap(Ndata, V←domain(t))
     end
 end
-function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation()) where {S<:EuclideanSpace}
+function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real = 2) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
         U,Σ,V = svd!(t.data)
         dmax = length(Σ)
-        if isa(trunc, NoTruncation)
-            dtrunc = dmax
-            # don't do anything
-        elseif isa(trunc, TruncationError)
-            p = trunc.p
-            normΣ = vecnorm(Σ, p)
-            dtrunc = dmax
-            while true
-                dtrunc -= 1
-                if vecnorm(view(Σ, dtrunc+1:dmax), p) / normΣ > trunc.ϵ
-                    dtrunc += 1
-                    break
-                end
-            end
-        elseif isa(trunc, TruncationDimension)
-            dtrunc = min(dmax, trunc.dim)
-        else
-            error("unknown truncation scheme")
+        Σ, truncerr = _truncate!(Σ, trunc, p)
+        d = length(Σ)
+        W = S(d)
+        if d < dmax
+            U = U[:,1:d]
+            V = V[1:d,:]
+            Σ = Σ[1:d]
         end
-        W = S(dtrunc)
-        if dtrunc < dmax
-            U = U[:,1:dtrunc]
-            V = V[1:dtrunc,:]
-            Σ = Σ[1:dtrunc]
-        end
-        return TensorMap(U, codomain(t)←W), TensorMap(diagm(Σ), W←W), TensorMap(V, W←domain(t))
+        return TensorMap(U, codomain(t)←W), TensorMap(diagm(Σ), W←W), TensorMap(V, W←domain(t)), truncerr
         #TODO: make this work with Diagonal(Σ) in such a way that it is type stable and
         # robust for all further operations on that tensor
     else
@@ -412,55 +408,100 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation()) where {
         Udata = Dict(c => U)
         Σdata = Dict(c => Σ)
         Vdata = Dict(c => V)
-        maxdim = Dict(c=> length(Σ))
-        truncdim = Dict(c=> length(Σ))
+        dims = Dict{typeof(c),Int}(c=> length(Σ))
         while !done(it, s)
             c, s = next(it, s)
-            U,Σ,V = svd!(t.data)
+            U,Σ,V = svd!(t.data[c])
             Udata[c] = U
             Σdata[c] = Σ
             Vdata[c] = V
-            maxdim[c] = length(Σ)
-            truncdim[c] = length(Σ)
+            dims[c] = length(Σ)
         end
-
-        if isa(trunc, NoTruncation)
-            # don't do anything
-        elseif isa(trunc, TruncationError)
-            p = trunc.p
-            normΣ = vecnorm((dim(c)^(1/p)*vecnorm(Σdata[c], p) for c in it), p)
-            while true
-                cmin = mininum(c->sqrt(dim(c))*Σdata[c][truncdim[c]], it)
-                truncdim[cmin] -= 1
-                truncnorm = vecnorm((dim(c)^(1/p)*vecnorm(view(Σdata[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
-                if truncnorm/normΣ > trunc.ϵ
-                    truncdim[cmin] += 1
-                    break
-                end
-            end
-        elseif isa(trunc, TruncationDimension)
-            while sum(c->dim(c)*truncdim[c], it) > trunc.dim
-                cmin = mininum(c->sqrt(dim(c))*Σdata[c][truncdim[c]], it)
-                truncdim[cmin] -= 1
-            end
-        elseif isa(trunc, TruncationSpace)
-            for c in it
-                truncdim[c] = min(truncdim[c], dim(trunc.space, c))
-            end
-        else
-            error("unknown truncation scheme")
-        end
+        Σdata, truncerr = _truncate!(Σdata, trunc, p)
 
         for c in it
-            if truncdim[c] != maxdim[c]
-                Udata[c] = Udata[c][:,1:truncdim[c]]
-                Vdata[c] = Vdata[c][1:truncdim[c],:]
-                Σdata[c] = Σdata[c][1:truncdim[c]]
+            truncdim = length(Σdata[c])
+            if truncdim != dims[c]
+                dims[c] = truncdim
+                Udata[c] = Udata[c][:, 1:truncdim]
+                Vdata[c] = Vdata[c][1:truncdim, :]
             end
         end
-        V = S(dtrunc)
-        return TensorMap(Udata, codomain(t)←V), TensorMap(Dict(c=>diagm(Σdata[c]) for c in it), V←V), TensorMap(Vdata, V←domain(t))
+        W = S(dims)
+        return TensorMap(Udata, codomain(t)←W), TensorMap(Dict(c=>diagm(Σ) for (c,Σ) in Σdata), W←W), TensorMap(Vdata, W←domain(t)), truncerr
     end
+end
+
+function _truncate!(v::AbstractVector, trunc::TruncationScheme, p::Real = 2)
+    fullnorm = vecnorm(v, p)
+    truncerr = zero(fullnorm)
+    if isa(trunc, NoTruncation)
+        # don't do anything
+    elseif isa(trunc, TruncationError)
+        dmax = length(v)
+        dtrunc = dmax
+        while true
+            dtrunc -= 1
+            truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
+            if truncerr / fullnorm > trunc.ϵ
+                dtrunc += 1
+                break
+            end
+        end
+        truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
+        resize!(v, dtrunc)
+    elseif isa(trunc, TruncationDimension)
+        dmax = length(v)
+        dtrunc = min(dmax, trunc.dim)
+        truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
+        resize!(v, dtrunc)
+    else
+        error("unknown truncation scheme")
+    end
+    return v, truncerr
+end
+function _truncate!(V::Associative{G,<:AbstractVector}, trunc::TruncationScheme, p = 2) where {G<:Sector}
+    T = real(eltype(valtype(V)))
+    fullnorm::T = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(v, p) for (c,v) in V), p)
+    truncerr::T = zero(fullnorm)
+    it = keys(V)
+    if isa(trunc, NoTruncation)
+        # don't do anything
+    elseif isa(trunc, TruncationError)
+        truncdim = Dict{G,Int}(c=>length(v) for (c,v) in V)
+        while true
+            cmin = mininum(c->sqrt(dim(c))*V[c][truncdim[c]], keys(V))
+            truncdim[cmin] -= 1
+            truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(Σdata[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
+            if truncerr / fullnorm > trunc.ϵ
+                truncdim[cmin] += 1
+                break
+            end
+        end
+        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(Σdata[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
+        for c in it
+            resize!(V[c], truncdim[c])
+        end
+    elseif isa(trunc, TruncationDimension)
+        truncdim = Dict{G,Int}(c=>length(v) for (c,v) in V)
+        while sum(c->dim(c)*truncdim[c], it) > trunc.dim
+            cmin = mininum(c->dim(c)^(1/p)*V[c][truncdim[c]], it)
+            truncdim[cmin] -= 1
+        end
+        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(Σdata[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
+        for c in it
+            resize!(V[c], truncdim[c])
+        end
+    elseif isa(trunc, TruncationSpace)
+        for c in it
+            if length(V[c]) > dim(trunc.space, c)
+                resize!(V[c], dim(trunc.space, c))
+            end
+        end
+    else
+        error("unknown truncation scheme")
+    end
+    return V, truncerr
 end
 
 # Index manipulations

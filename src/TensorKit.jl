@@ -27,7 +27,9 @@ export Trivial, ZNSpace, SU2Irrep, U1Irrep # Fermion
 export fusiontrees, braid, repartition
 
 # some unicode
-export ⊕, ⊗, ×, ℂ, ℝ, ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
+export ⊕, ⊗, ×, ℂ, ℝ, ←, →
+export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
+export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU₂Space
 
 # tensor operations: To be done
 # export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
