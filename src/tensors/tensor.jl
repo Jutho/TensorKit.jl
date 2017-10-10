@@ -96,7 +96,7 @@ codomain(t::TensorMap) = t.codom
 domain(t::TensorMap) = t.dom
 
 Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray{T}}}) where {T,N₁,N₂} = T
-Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:Associative{<:Any,<:AbstractArray{T}}}}) where {T,N₁,N₂} = T
+Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:Associative{<:Any,<:AbstractMatrix{T}}}}) where {T,N₁,N₂} = T
 
 Base.length(t::TensorMap) = sum(length, blocks(t)) # total number of free parameters, in order to use e.g. KrylovKit
 
@@ -247,6 +247,26 @@ function Base.fill!(t::TensorMap, value::Number)
     return t
 end
 
+# Equality and approximality
+#----------------------------
+function Base.:(==)(t1::TensorMap, t2::TensorMap)
+    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || return false
+    for c in blocksectors(t1)
+        block(t1, c) == block(t2, c) || return false
+    end
+    return true
+end
+
+function Base.isapprox(t1::TensorMap, t2::TensorMap; atol::Real=0, rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
+    d = vecnorm(t1 - t2)
+    if isfinite(d)
+        return d <= max(atol, rtol*max(vecnorm(t1), vecnorm(t2)))
+    else
+        return false
+    end
+end
+
+
 # Conversion and promotion:
 #---------------------------
 # TODO
@@ -277,21 +297,15 @@ end
 
 Base.vecnorm(t::TensorMap{<:EuclideanSpace}, p::Real) = vecnorm((convert(real(eltype(t)),dim(c)^(1/p)*vecnorm(block(t,c), p)) for c in blocksectors(t)), p)
 
-# Multiplying maps:
-#------------------
-function mul!(tC::TensorMap, β::Number, tA::TensorMap,  tB::TensorMap, α::Number)
+# TensorMap multiplication:
+#--------------------------
+function Base.A_mul_B!(tC::TensorMap, tA::TensorMap,  tB::TensorMap)
     (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
-    if sectortype(tC) == Trivial
-        mul!(block(tC, Trivial()), β, block(tA, Trivial()), block(tB, Trivial()), α)
-    else
-        for c in blocksectors(tC)
-            if hasblock(tA, c) # then also tB should have such a block
-                mul!(block(tC, c), β, block(tA, c), block(tB, c), α)
-            elseif β == 0
-                fill!(block(tC, c), 0)
-            elseif β != 1
-                scale!(block(tC, c), β)
-            end
+    for c in blocksectors(tC)
+        if hasblock(tA, c) # then also tB should have such a block
+            A_mul_B!(block(tC, c), block(tA, c), block(tB, c))
+        else
+            fill!(block(tC, c), 0)
         end
     end
     return tC
@@ -566,8 +580,8 @@ function fuseind! end
 function adjoint!(tdst::TensorMap{<:EuclideanSpace}, tsrc::TensorMap{<:EuclideanSpace})
     (codomain(tdst) == domain(tsrc) && domain(tdst) == codomain(tsrc)) || throw(SpaceMismatch())
 
-    for (f1,f2) in fusiontrees(tsrc)
-        adjoint!(tdst[f2,f1], tsrc[f1,f2])
+    for c in blocksectors(t)
+        adjoint!(block(tdst, c), block(tsrc, c))
     end
     return tdst
 end

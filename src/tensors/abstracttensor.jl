@@ -87,7 +87,7 @@ Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = sca
 
 Base.LinAlg.axpy!(α::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = add!(ty, 1, tx, α)
 
-Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), 0, t1, t2, 1)
+Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = Base.A_mul_B!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
 
 # Index manipulations
 #---------------------

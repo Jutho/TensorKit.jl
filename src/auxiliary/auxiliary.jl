@@ -14,7 +14,6 @@ tselect(t::Tuple, ind::NTuple{N,Int}) where {N} = ntuple(n->t[ind[n]], Val(N))
 Base.@pure valadd(::Val{N1},::Val{N2}) where {N1,N2} = Val{N1+N2}()
 Base.@pure valsub(::Val{N1},::Val{N2}) where {N1,N2} = N1 > N2 ? Val{N1-N2}() : Val{0}()
 
-
 function linearizepermutation(p1::NTuple{N₁,Int}, p2::NTuple{N₂}, n₁::Int, n₂::Int) where {N₁,N₂}
     p1′ = ntuple(Val(N₁)) do n
         p1[n] > n₁ ? n₂+2n₁+1-p1[n] : p1[n]
@@ -40,6 +39,3 @@ function permutation2swaps(perm)
     end
     return swaps
 end
-
-mul!(C::StridedMatrix, β::Number, A::StridedMatrix, B::StridedMatrix, α::Number) =
-    LinAlg.BLAS.gemm!('N', 'N', convert(eltype(C), α), A, B, convert(eltype(C), β), C)

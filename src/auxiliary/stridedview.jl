@@ -3,8 +3,18 @@ struct StridedView{T,N,A<:DenseArray{T}} <: DenseArray{T,N}
     size::NTuple{N,Int}
     strides::NTuple{N,Int}
     offset::Int
+    conj::Bool
 end
-StridedView(a::A, size::NTuple{N,Int} = size(a), strides::NTuple{N,Int} = strides(a), offset::Int = 1) where {T,N,A<:DenseArray{T}} = StridedView{T,N,A}(a, size, strides, offset)
+StridedView(a::A,
+            size::NTuple{N,Int} = size(a),
+            strides::NTuple{N,Int} = strides(a),
+            offset::Int = 0, conj::Bool = false) where {T,N,A<:DenseArray{T}} =
+    StridedView{T,N,A}(a, size, strides, offset, conj)
+
+function StridedView(a::SubArray)
+    @assert isa(a, StridedArray)
+    return StridedView(parent(a), size(a), strides(a), Base.first_index(a)-1)
+end
 
 Base.parent(a::StridedView) = a.size
 Base.first_index(a::StridedView) = a.offset+1
@@ -20,6 +30,7 @@ end
     @inbounds a.data[a.offset+_computeind(I, a.strides)] = v
     return a
 end
+
 Base.similar(a::StridedView, args...) = similar(a.data, args...)
 Base.unsafe_convert(::Type{Ptr{T}}, a::StridedView{T}) where {T} = pointer(a.data, a.offset+1)
 
@@ -51,6 +62,7 @@ function splitdims(a::StridedView{<:Any,N}, newsizes::Vararg{SizeType,N}) where 
     newsize = _flatten(newsizes...)
     return StridedView(a.data, newsize, newstrides, a.offset)
 end
+
 
 using Base.tail
 

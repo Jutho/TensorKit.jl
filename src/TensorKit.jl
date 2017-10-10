@@ -61,6 +61,11 @@ if VERSION < v"0.7.0-DEV.843"
     Base.@pure Base.Val(N) = Val{N}
 end
 
+if VERSION < v"0.7.0"
+    Base.eye(s::Tuple{Integer,Integer}) = eye(s...)
+    Base.eye(::Type{T}, s::Tuple{Integer,Integer}) where {T} = eye(T, s...)
+end
+
 include("auxiliary/auxiliary.jl")
 include("auxiliary/linalg.jl")
 include("auxiliary/stridedview.jl")
@@ -123,5 +128,6 @@ include("tensors/truncation.jl")
 # general definitions
 include("tensors/abstracttensor.jl")
 include("tensors/tensor.jl")
+include("tensors/adjoint.jl")
 
 end
