@@ -5,18 +5,8 @@ import Base.LAPACK: liblapack, chklapackerror
 
 # custom wrappers for BLAS and LAPACK routines, together with some custom definitions
 
-
-
-
-# TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
-# matrix size 100, which is the interesting region. => Investigate and maybe fix
-# function leftorth!(A::StridedMatrix{<:BlasFloat})
-#     m, n = size(A)
-#     A, τ = geqrfp!(A)
-#     Q = LAPACK.ormqr!('L','N',A, τ, eye(eltype(A), m, min(m,n)))
-#     R = triu!(A[1:min(m,n), :])
-#     return Q, R
-# end
+# MATRIX factorizations
+#-----------------------
 function leftorth!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)
     k = min(m, n)
@@ -38,6 +28,17 @@ function leftorth!(A::StridedMatrix{<:BlasFloat})
     end
     return Q, R
 end
+# TODO: reconsider the following implementation
+# Unfortunately, geqrfp seems a bit slower than geqrt in the intermediate region
+# around matrix size 100, which is the interesting region. => Investigate and maybe fix
+# function leftorth!(A::StridedMatrix{<:BlasFloat})
+#     m, n = size(A)
+#     A, τ = geqrfp!(A)
+#     Q = LAPACK.ormqr!('L','N',A, τ, eye(eltype(A), m, min(m,n)))
+#     R = triu!(A[1:min(m,n), :])
+#     return Q, R
+# end
+
 function leftnull!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)
     m >= n || throw(ArgumentError("no null space if less rows than columns"))
@@ -50,6 +51,7 @@ function leftnull!(A::StridedMatrix{<:BlasFloat})
     end
     N = LAPACK.gemqrt!('L', 'N', A, T, N)
 end
+
 function rightorth!(A::StridedMatrix{<:BlasFloat})
     # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
     # matrix size 100, which is the interesting region. => Investigate and fix
@@ -85,6 +87,7 @@ function rightorth!(A::StridedMatrix{<:BlasFloat})
         return L, transpose(Qt)
     end
 end
+
 function rightnull!(A::StridedMatrix{<:BlasFloat})
     m, n = size(A)
     k = min(m,n)
@@ -145,11 +148,7 @@ svd!(A::StridedMatrix{<:BlasFloat}) = LAPACK.gesdd!('S', A)
 
 
 # Modified / missing Lapack wrappers
-
-
-
-
-
+#------------------------------------
 # geqrfp!: computes qrpos factorization, missing in Base
 geqrfp!(A::StridedMatrix{<:BlasFloat}) = ((m,n) = size(A); geqrfp!(A, similar(A, min(m, n))))
 
