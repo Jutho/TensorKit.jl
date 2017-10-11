@@ -59,3 +59,13 @@ function Base.A_mul_B!(tC::TensorMap, tA::AdjointTensorMap,  tB::AdjointTensorMa
     end
     return tC
 end
+
+# Index manipulation:
+#---------------------
+function permuteind!(tdst::AdjointTensorMap{S,N₁,N₂}, tsrc::AdjointTensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ()) where {S,N₁,N₂}
+    permuteind!(tdst.parent, tsrc.parent, p2, p1)
+    return tdst
+end
+
+permuteind(t::AdjointTensorMap, p1::IndexTuple,  p2::IndexTuple=()) = AdjointTensorMap(permuteind(t.parent, p2, p1))
+# TODO: implement proper direct index permutation permuteind!(::TensorMap, ::AdjointTensorMap)

@@ -523,6 +523,7 @@ end
 using Base.Iterators.filter
 fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
 
+# TODO: reconsider whether we need repartitionind!, or if we just want permuteind!
 function repartitionind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S,N₁′,N₂′}) where {S,N₁,N₂,N₁′,N₂′}
     space1 = codomain(tdst) ⊗ dual(domain(tdst))
     space2 = codomain(tsrc) ⊗ dual(domain(tsrc))
@@ -575,8 +576,8 @@ function splitind! end#
 
 function fuseind! end
 
-# Complex / Hermitian conjugation?
-#----------------------------------
+# Adjoint (complex/Hermitian conjugation)
+#-----------------------------------------
 function adjoint!(tdst::TensorMap{<:EuclideanSpace}, tsrc::TensorMap{<:EuclideanSpace})
     (codomain(tdst) == domain(tsrc) && domain(tdst) == codomain(tsrc)) || throw(SpaceMismatch())
 
