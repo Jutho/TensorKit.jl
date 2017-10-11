@@ -1,8 +1,3 @@
-randsector(::Type{ZNIrrep{N}}) where {N} = ZNIrrep{N}(rand(1:N))
-randsector(::Type{U₁}) = U₁(rand(-10:10))
-randsector(::Type{SU₂}) = SU₂(rand(0:1//2:2))
-randsector(P::Type{<:TensorKit.ProductSector}) = P(map(randsector, (P.parameters[1].parameters...)))
-
 @testset "Sectors and fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, SU₂, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂)
     @testset "Sector $G: Basic properties" begin
         s = (randsector(G), randsector(G), randsector(G))

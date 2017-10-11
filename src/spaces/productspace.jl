@@ -50,7 +50,7 @@ checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = red
 dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = map(dim, P.spaces, sector)
 dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = reduce(*, 1, dims(P, sector))
 
-Base.indices(P::ProductSpace{<:AbstractRepresentationSpace{G}, N}, sectors::NTuple{N, G}) where {G<:Sector, N} =
+Base.indices(P::ProductSpace{<:RepresentationSpace{G}, N}, sectors::NTuple{N, G}) where {G<:Sector, N} =
         CartesianRange(map(indices, P.spaces, sectors))
 
 Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)

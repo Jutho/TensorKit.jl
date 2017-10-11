@@ -118,13 +118,13 @@ dual(V::EuclideanSpace) = conj(V)
 
 # representation spaces: we restrict to complex Euclidean space supporting unitary representations
 """
-    abstract type AbstractRepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
+    abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 
 Complex Euclidean space with a direct sum structure corresponding to different
 different superselection sectors of type `G<:Sector`, e.g. the elements or
 irreps of a compact or finite group, or the labels of a unitary fusion category.
 """
-abstract type AbstractRepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
+abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 
 """
     function sectortype(a) -> Sector
@@ -134,7 +134,7 @@ an invariant tensor) is defined. Also works in type domain.
 """
 sectortype(V::VectorSpace) = sectortype(typeof(V))
 sectortype(::Type{<:ElementarySpace}) = Trivial
-sectortype(::Type{<:AbstractRepresentationSpace{G}}) where {G} = G
+sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 
 checksectors(::ElementarySpace, ::Trivial) = true
 
