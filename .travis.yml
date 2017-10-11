@@ -1,17 +1,34 @@
-language: cpp
-compiler:
-  - clang
+## Documentation: http://docs.travis-ci.com/user/languages/julia/
+language: julia
+os:
+  - linux
+  - osx
+julia:
+  - nightly
 notifications:
   email: false
-env:
-  matrix:
-#    - JULIAVERSION="juliareleases"
-    - JULIAVERSION="julianightlies"
-before_install:
-  - sudo add-apt-repository ppa:staticfloat/julia-deps -y
-  - sudo add-apt-repository ppa:staticfloat/${JULIAVERSION} -y
-  - sudo apt-get update -qq -y
-  - sudo apt-get install libpcre3-dev julia -y
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-script:
-  - julia -e 'Pkg.init(); Pkg.clone(pwd()); Pkg.test("TensorToolbox")'
+git:
+  depth: 99999999
+
+## uncomment the following lines to allow failures on nightly julia
+## (tests will run but not make your overall status red)
+#matrix:
+#  allow_failures:
+#  - julia: nightly
+
+## uncomment and modify the following lines to manually install system packages
+#addons:
+#  apt: # apt-get for linux
+#    packages:
+#    - gfortran
+#before_script: # homebrew for mac
+#  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
+
+## uncomment the following lines to override the default test script
+#script:
+#  - julia -e 'Pkg.clone(pwd()); Pkg.build("LinearAlgebra"); Pkg.test("LinearAlgebra"; coverage=true)'
+after_success:
+  # push coverage results to Coveralls
+  - julia -e 'cd(Pkg.dir("TensorKit")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+  # push coverage results to Codecov
+  - julia -e 'cd(Pkg.dir("TensorKit")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'

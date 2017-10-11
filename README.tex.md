@@ -1,4 +1,4 @@
-# TensorToolbox.jl
+# TensorKit.jl
 
 ***
 
