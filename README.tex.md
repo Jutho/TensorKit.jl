@@ -1,8 +1,4 @@
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 # TensorToolbox.jl
-
-[![Build Status](https://travis-ci.org/Jutho/TensorToolbox.jl.svg?branch=master)](https://travis-ci.org/Jutho/TensorToolbox.jl)
-
 
 ***
 
