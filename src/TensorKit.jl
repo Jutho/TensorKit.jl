@@ -20,7 +20,7 @@ export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
 # general vector space methods
-export space, dual, dim, dims, fieldtype
+export space, dual, dim, dims
 # methods for sectors and properties thereof
 export sectortype, fusiontype, braidingtype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep # Fermion
@@ -37,7 +37,7 @@ export RepresentationSpace, ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU
 
 # tensor factorizations
 export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
-export permuteind, fuseind, splitind
+export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace
