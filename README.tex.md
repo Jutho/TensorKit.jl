@@ -2,10 +2,6 @@
 
 ***
 
-*Note: the contents of this README might currently not reflect the actual status of the code*
-
-***
-
 ## Introduction
 
 TensorToolbox.jl is a Julia package for working with tensors, which are consistently treated as [the elements of a tensor product of vector spaces](http://en.m.wikipedia.org/wiki/Tensor#Using_tensor_products) or some subspace thereof. While tensors can typically be represented as multidimensional arrays with respect to a chosen basis, they have a richer mathematical structure depending on the type of vector spaces used in the tensor product construction.
