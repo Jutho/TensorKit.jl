@@ -1,3 +1,9 @@
+if VERSION < v"0.7.0-DEV.2005"
+    const Test = Base.Test
+else
+    import Test
+end
+
 using Test
 using TensorKit
 

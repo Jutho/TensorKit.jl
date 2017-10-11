@@ -66,16 +66,20 @@ if VERSION < v"0.7.0"
     Base.eye(::Type{T}, s::Tuple{Integer,Integer}) where {T} = eye(T, s...)
 end
 
-include("auxiliary/auxiliary.jl")
-include("auxiliary/linalg.jl")
-include("auxiliary/stridedview.jl")
-
 if VERSION < v"0.7.0-DEV.1415"
     const adjoint = Base.ctranspose
     const adjoint! = Base.ctranspose!
 else
     import Base: adjoint, adjoint!
 end
+
+import TensorOperations
+
+# Auxiliary files
+#-----------------
+include("auxiliary/auxiliary.jl")
+include("auxiliary/linalg.jl")
+include("auxiliary/stridedview.jl")
 
 # Exception types:
 #------------------

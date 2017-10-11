@@ -69,11 +69,11 @@ Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
 Base.:-(t::AbstractTensorMap) = scale!(copy(t), -one(eltype(t)))
 function Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap)
     T = promote_type(eltype(t1), eltype(t2))
-    return add!(copy!(similar(t1, T), t1), one(T), t2, one(T))
+    return Base.LinAlg.axpy!(one(T), t2, copy!(similar(t1, T), t1))
 end
 function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
     T = promote_type(eltype(t1), eltype(t2))
-    return add!(copy!(similar(t1,T), t1), one(T), t2, -one(T))
+    return Base.LinAlg.axpy!(-one(T), t2, copy!(similar(t1, T), t1))
 end
 
 Base.:*(t::AbstractTensorMap, α::Number) = scale!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
@@ -84,8 +84,6 @@ Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(α)/α)
 Base.scale!(t::AbstractTensorMap, α::Number) = scale!(t, t, α)
 Base.scale!(α::Number, t::AbstractTensorMap) = scale!(t, t, α)
 Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = scale!(tdest, tsrc, α)
-
-Base.LinAlg.axpy!(α::Number, tx::AbstractTensorMap, ty::AbstractTensorMap) = add!(ty, 1, tx, α)
 
 Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = Base.A_mul_B!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
 

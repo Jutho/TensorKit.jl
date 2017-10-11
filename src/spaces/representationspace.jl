@@ -93,7 +93,9 @@ const ℤ₂Space = ZNSpace{2}
 const ℤ₃Space = ZNSpace{3}
 const ℤ₄Space = ZNSpace{4}
 const U₁Space = RepresentationSpace{U₁}
-const SU₂Space = RepresentationSpace{SU₂}
+if VERSION >= v"0.7-"
+    const SU₂Space = RepresentationSpace{SU₂}
+end
 
 # Show methods
 function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}

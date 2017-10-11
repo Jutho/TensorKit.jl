@@ -56,7 +56,7 @@ Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge) :
 
 # NOTE: FractionalU1Charge?
 
-if VERSION > v"0.6.0"
+if VERSION >= v"0.7-"
     # Nob-abelian groups
     #------------------------------------------------------------------------------#
     # SU2Irrep: irreps of SU2 are labelled by half integers j, internally we use the integer dimension 2j+1 instead

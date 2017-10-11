@@ -276,17 +276,17 @@ end
 function Base.scale!(t1::TensorMap, t2::TensorMap, α::Number)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceError())
     for c in blocksectors(t1)
-        block(t1, c) .= α .* block(t2, c)
+        scale!(block(t1, c), block(t2, c), α)
     end
     return t1
 end
 
-function add!(t1::TensorMap, α::Number, t2::TensorMap, β::Number)
+function Base.LinAlg.axpy!(α::Number, t1::TensorMap, t2::TensorMap)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceError())
     for c in blocksectors(t1)
-        block(t1, c) .= α .* block(t1, c) + β .* block(t2, c)
+        Base.LinAlg.axpy!(α, block(t1, c), block(t2, c))
     end
-    return t1
+    return t2
 end
 
 # inner product and norm only valid for spaces with Euclidean inner product
@@ -534,12 +534,12 @@ function repartitionind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S,N₁′
     pdata = (p1..., p2...)
 
     if sectortype(S) == Trivial
-        tdst[] .= permutedims(tsrc[], pdata)
+        TensorOperations.add!(1, tsrc[], Val{:N}, 0, tdst[], pdata)
     else
         fill!(tdst, 0)
         for (f1,f2) in fusiontrees(t)
             for ((f1′,f2′), coeff) in repartition(f1, f2, Val{N₁})
-                tdst[f1′,f2′] .+= coeff .* permutedims(tsrc[f1,f2], pdata)
+                TensorOperations.add!(coeff, tsrc[f1,f2], Val{:N}, 1, tdst[f1′,f2′], pdata)
             end
         end
     end
@@ -559,12 +559,12 @@ function permuteind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S}, p1::NTupl
 
     pdata = (p1..., p2...)
     if sectortype(S) == Trivial
-        tdst[] .= permutedims(tsrc[], pdata)
+        TensorOperations.add!(1, tsrc[], Val{:N}, 0, tdst[], pdata)
     else
         fill!(tdst, 0)
         for (f1,f2) in fusiontrees(tsrc)
             for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
-                tdst[f1′,f2′] .+= coeff .* permutedims(tsrc[f1,f2], pdata)
+                TensorOperations.add!(coeff, tsrc[f1,f2], Val{:N}, 1, tdst[f1′,f2′], pdata)
             end
         end
     end

@@ -50,7 +50,7 @@ Returns the fermion parity of a sector `s` that is a subtype of `Fermion`, as a
 fermionparity(p::FermionParity) = p.parity
 fermionparity(n::FermionNumber) = isodd(n.num)
 
-if VERSION > v"0.6.0"
+if VERSION >= v"0.7-"
     struct FermionSpin <: Fermion
         dim::Int
         FermionSpin(j::Int) = j >= 0 ? new(2*j+1) : throw(SU2IrrepException)
