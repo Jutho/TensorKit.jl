@@ -183,6 +183,16 @@ function _generatedata(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}
     return data
 end
 
+# Special purpose constructors
+#------------------------------
+Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
+function Base.one(t::AbstractTensorMap)
+    domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
+    eye(eltype(t), domain(t))
+end
+Base.eye(T::Type{<:Number}, P::Union{IndexSpace,TensorSpace}) = TensorMap(eye, T, P←P)
+Base.eye(P::Union{IndexSpace,TensorSpace}) = TensorMap(eye, P←P)
+
 # Getting and setting the data
 #------------------------------
 hasblock(t::TensorMap{<:ElementarySpace,N₁,N₂,<:Associative}, s::Sector) where {N₁,N₂} = haskey(t.data, s)
