@@ -15,8 +15,8 @@ struct TensorMap{S<:IndexSpace, N₁, N₂, A, F₁, F₂} <: AbstractTensorMap{
             data2 = validatedata(data, codom, dom, fieldtype(S), sectortype(S))
             new{S,N₁,N₂,typeof(data2), Void, Void}(data2, codom, dom)
         else
-            F₁ = fusiontreetype(G,Val(N₁))
-            F₂ = fusiontreetype(G,Val(N₂))
+            F₁ = fusiontreetype(G, StaticLength(N₁))
+            F₂ = fusiontreetype(G, StaticLength(N₂))
             data2, rowr, colr = validatedata(data, codom, dom, fieldtype(S), sectortype(S))
             new{S,N₁,N₂,typeof(data2),F₁,F₂}(data2, codom, dom, rowr, colr)
         end
@@ -62,8 +62,8 @@ function validatedata(data::AbstractArray, codom, dom, k::Field, ::Type{Trivial}
     return reshape(data, (dim(codom), dim(dom)))
 end
 function validatedata(data::Associative{G, <:AbstractMatrix}, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}, k::Field, ::Type{G}) where {S<:IndexSpace, G<:Sector, N₁,N₂}
-    F₁ = fusiontreetype(G,Val(N₁))
-    F₂ = fusiontreetype(G,Val(N₂))
+    F₁ = fusiontreetype(G, StaticLength(N₁))
+    F₂ = fusiontreetype(G, StaticLength(N₂))
     rowr = Dict{F₁, UnitRange{Int}}()
     colr = Dict{F₂, UnitRange{Int}}()
     for c in blocksectors(codom, dom)
@@ -127,8 +127,8 @@ _generatedata(f, T::Type{<:Number}, codom::ProductSpace, dom::ProductSpace, ::Ty
 _generatedata(f, codom::ProductSpace, dom::ProductSpace, ::Type{Trivial}) = f((dim(codom), dim(dom)))
 
 function _generatedata(f, T::Type{<:Number}, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}, G::Type{<:Sector}) where {S,N₁,N₂}
-    F₁ = fusiontreetype(G, Val(N₁))
-    F₂ = fusiontreetype(G, Val(N₂))
+    F₁ = fusiontreetype(G, StaticLength(N₁))
+    F₂ = fusiontreetype(G, StaticLength(N₂))
     rowr = Dict{F₁, UnitRange{Int}}()
     colr = Dict{F₂, UnitRange{Int}}()
     A = typeof(f(T,(1,1)))
@@ -155,8 +155,8 @@ function _generatedata(f, T::Type{<:Number}, codom::ProductSpace{S,N₁}, dom::P
     return data
 end
 function _generatedata(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}, G::Type{<:Sector}) where {S,N₁,N₂}
-    F₁ = fusiontreetype(G, Val(N₁))
-    F₂ = fusiontreetype(G, Val(N₂))
+    F₁ = fusiontreetype(G, StaticLength(N₁))
+    F₂ = fusiontreetype(G, StaticLength(N₂))
     rowr = Dict{F₁, UnitRange{Int}}()
     colr = Dict{F₂, UnitRange{Int}}()
     A = typeof(f((1,1)))
@@ -538,9 +538,9 @@ function repartitionind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S,N₁′
     space1 = codomain(tdst) ⊗ dual(domain(tdst))
     space2 = codomain(tsrc) ⊗ dual(domain(tsrc))
     space1 == space2 || throw(SpaceMismatch())
-    p = (ntuple(n->n, Val{N₁′})..., ntuple(n->N₁′+N₂′+1-n, Val{N₂′}))
-    p1 = tselect(p, ntuple(n->n, Val{N₁}))
-    p2 = reverse(tselect(p, ntuple(n->N₁+n, Val{N₂})))
+    p = (ntuple(n->n, StaticLength(N₁′))..., ntuple(n->N₁′+N₂′+1-n, StaticLength(N₂′)))
+    p1 = tselect(p, ntuple(n->n, StaticLength(N₁)))
+    p2 = reverse(tselect(p, ntuple(n->N₁+n, StaticLength(N₂))))
     pdata = (p1..., p2...)
 
     if sectortype(S) == Trivial
@@ -548,7 +548,7 @@ function repartitionind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S,N₁′
     else
         fill!(tdst, 0)
         for (f1,f2) in fusiontrees(t)
-            for ((f1′,f2′), coeff) in repartition(f1, f2, Val{N₁})
+            for ((f1′,f2′), coeff) in repartition(f1, f2, StaticLength(N₁))
                 TensorOperations.add!(coeff, tsrc[f1,f2], Val{:N}, 1, tdst[f1′,f2′], pdata)
             end
         end

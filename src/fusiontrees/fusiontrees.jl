@@ -6,10 +6,10 @@ struct FusionTree{G<:Sector,N,M,L,T}
     innerlines::NTuple{M,G} # M = N-2
     vertices::NTuple{L,T} # L = N-1
 end
-FusionTree{G}(outgoing::NTuple{N}, incoming, innerlines, vertices = ntuple(n->nothing, valsub(Val(N),Val(1)))) where {G<:Sector,N} =
-    fusiontreetype(G, Val(N))(outgoing, incoming, innerlines, vertices)
-FusionTree(outgoing::NTuple{N,G}, incoming::G, innerlines, vertices = ntuple(n->nothing, valsub(Val(N),Val(1)))) where {G<:Sector,N} =
-    fusiontreetype(G, Val(N))(outgoing, incoming, innerlines, vertices)
+FusionTree{G}(outgoing::NTuple{N}, incoming, innerlines, vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))) where {G<:Sector,N} =
+    fusiontreetype(G, StaticLength(N))(outgoing, incoming, innerlines, vertices)
+FusionTree(outgoing::NTuple{N,G}, incoming::G, innerlines, vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))) where {G<:Sector,N} =
+    fusiontreetype(G, StaticLength(N))(outgoing, incoming, innerlines, vertices)
 
 
 function FusionTree{G}(outgoing::NTuple{N,G}, incoming::G = one(G)) where {G<:Sector, N}
@@ -31,11 +31,11 @@ fusiontype(t::FusionTree) = fusiontype(typeof(t))
 Base.length(t::FusionTree) = length(typeof(t))
 
 # Fusion tree methods
-fusiontreetype(::Type{G}, ::Val{0}) where {G<:Sector} = FusionTree{G,0,0,0,vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::Val{1}) where {G<:Sector} = FusionTree{G,1,0,0,vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::Val{2}) where {G<:Sector} = FusionTree{G,2,0,1,vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::Val{N}) where {G<:Sector, N} = _fusiontreetype(G, Val(N), valsub(Val(N),Val(2)), valsub(Val(N),Val(1)))
-_fusiontreetype(::Type{G}, ::Val{N}, ::Val{M}, ::Val{L}) where {G<:Sector, N, M, L} = FusionTree{G,N,M,L,vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} = FusionTree{G,0,0,0,vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} = FusionTree{G,1,0,0,vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} = FusionTree{G,2,0,1,vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} = _fusiontreetype(G, StaticLength(N), StaticLength(N)-StaticLength(2), StaticLength(N)-StaticLength(1))
+_fusiontreetype(::Type{G}, ::StaticLength{N}, ::StaticLength{M}, ::StaticLength{L}) where {G<:Sector, N, M, L} = FusionTree{G,N,M,L,vertex_labeltype(G)}
 
 # permute fusion tree
 """
@@ -129,7 +129,7 @@ end
 
 # repartition outgoing and incoming fusion tree
 """
-    function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, ::Val{N}) where {G,N₁,N₂,N} -> (Immutable)Dict{Tuple{FusionTree{G,N}, FusionTree{G,N₁+N₂-N}},<:Number}
+    function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, ::StaticLength{N}) where {G,N₁,N₂,N} -> (Immutable)Dict{Tuple{FusionTree{G,N}, FusionTree{G,N₁+N₂-N}},<:Number}
 
 Input is a double fusion tree that describes the fusion of a set of `N₂` incoming charges to
 a set of `N₁` outgoing charges, represented using the individual trees of outgoing (`t1`)
@@ -137,17 +137,17 @@ and incoming charges (`t2`) respectively (with `t1.incoming==t2.incoming`). Comp
 an corresponding coefficients obtained from repartitioning the tree by bending incoming
 to outgoing charges (or vice versa) in order to have `N` outgoing charges.
 """
-function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::Val{N}) where {G<:Sector, N₁, N₂, N}
+function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::StaticLength{N}) where {G<:Sector, N₁, N₂, N}
     t1.incoming == t2.incoming || throw(SectorMismatch())
     @assert 0 <= N <= N₁+N₂
     V1 = V
-    V2 = valsub(valadd(Val(N₁),Val(N₂)),Val(N))
+    V2 = StaticLength(N₁)+StaticLength(N₂)-V
 
     if fusiontype(t1) == Abelian || fusiontype(t1) == SimpleNonAbelian
         coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
         outer = (t1.outgoing..., map(dual, reverse(t2.outgoing))...)
-        inner1ext = isa(Val(N₁), Val{0}) ? () : (isa(Val(N₁), Val{1}) ? (one(G),) : (one(G), first(outer), t1.innerlines...))
-        inner2ext = isa(Val(N₂), Val{0}) ? () : (isa(Val(N₂), Val{1}) ? (one(G),) : (one(G), dual(last(outer)), t2.innerlines...))
+        inner1ext = isa(StaticLength(N₁), StaticLength{0}) ? () : (isa(StaticLength(N₁), StaticLength{1}) ? (one(G),) : (one(G), first(outer), t1.innerlines...))
+        inner2ext = isa(StaticLength(N₂), StaticLength{0}) ? () : (isa(StaticLength(N₂), StaticLength{1}) ? (one(G),) : (one(G), dual(last(outer)), t2.innerlines...))
         innerext = (inner1ext..., t1.incoming, reverse(inner2ext)...) # length N₁+N₂+1
         for n = N₁+1:N
              # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
@@ -165,8 +165,8 @@ function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::Val{N}) 
         end
         outgoing1 = tselect(outer, ntuple(n->n, V1))
         outgoing2 = tselect(map(dual,outer), ntuple(n->N₁+N₂+1-n, V2))
-        innerlines1 = tselect(innerext, ntuple(n->n+2, valsub(V1,Val(2))))
-        innerlines2 = tselect(innerext, ntuple(n->N₁+N₂-n, valsub(V2,Val(2))))
+        innerlines1 = tselect(innerext, ntuple(n->n+2, V1 - StaticLength(2)))
+        innerlines2 = tselect(innerext, ntuple(n->N₁+N₂-n, V2 - StaticLength(2)))
         c = innerext[N+1]
         t1′ = FusionTree{G}(outgoing1, c, innerlines1)
         t2′ = FusionTree{G}(outgoing2, c, innerlines2)
@@ -192,20 +192,20 @@ function Base.permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}
     p = linearizepermutation(p1, p2, length(t1), length(t2))
     @assert isperm(p)
     if fusiontype(t1) == Abelian
-        (t,t0), coeff1 = first(repartition(t1, t2, valadd(Val(N₁),Val(N₂))))
+        (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
         t, coeff2 = first(permute(t, p))
-        (t1′,t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
+        (t1′,t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
         return ImmutableDict((t1′,t2′)=>coeff1*coeff2*coeff3)
     elseif fusiontype(t1) == SimpleNonAbelian
-        (t,t0), coeff1 = first(repartition(t1, t2, valadd(Val(N₁),Val(N₂))))
+        (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
         trees = permute(t, p)
         s = start(trees)
         (t, coeff2), s = next(trees, s)
-        (t1′, t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
+        (t1′, t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
         newtrees = Dict((t1′,t2′)=>coeff1*coeff2*coeff3)
         while !done(trees, s)
             (t, coeff2), s = next(trees, s)
-            (t1′, t2′), coeff3 = first(repartition(t, t0, Val(N₁)))
+            (t1′, t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
             push!(newtrees, (t1′,t2′)=>coeff1*coeff2*coeff3)
         end
         return newtrees

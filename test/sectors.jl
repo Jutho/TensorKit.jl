@@ -43,7 +43,7 @@
 
     @testset "Sector $G: Fusion trees" begin
         N = 3
-        s = ntuple(n->randsector(G), Val(N-1))
+        s = ntuple(n->randsector(G), StaticLength(N-1))
         out = (s..., dual(first(⊗(s...))))
 
         it = @inferred fusiontrees(out)
@@ -74,10 +74,10 @@
         f1 = f
         f2, = first(d)
         for n = 0:2*N
-            d = @inferred repartition(f1, f2, Val(n))
+            d = @inferred repartition(f1, f2, StaticLength(n))
             d2 = Dict{typeof((f1,f2)), valtype(d)}()
             for ((f1′,f2′),coeff) in d
-                for ((f1′′,f2′′),coeff2) in repartition(f1′,f2′, Val(N))
+                for ((f1′′,f2′′),coeff2) in repartition(f1′,f2′, StaticLength(N))
                     d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
                 end
             end

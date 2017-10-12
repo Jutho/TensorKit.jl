@@ -44,8 +44,8 @@
         t′ = Tensor(rand, W);
         for k = 0:5
             for p in permutations(1:5)
-                p1 = ntuple(n->p[n], Val(k))
-                p2 = ntuple(n->p[k+n], Val(5-k))
+                p1 = ntuple(n->p[n], StaticLength(k))
+                p2 = ntuple(n->p[k+n], StaticLength(5-k))
                 t2 = @inferred permuteind(t, p1, p2)
                 @test vecnorm(t2) ≈ vecnorm(t)
                 t2′= permuteind(t′, p1, p2)
@@ -117,8 +117,8 @@ end
         t′ = Tensor(rand, W);
         for k = 0:5
             for p in permutations(1:5)
-                p1 = ntuple(n->p[n], Val(k))
-                p2 = ntuple(n->p[k+n], Val(5-k))
+                p1 = ntuple(n->p[n], StaticLength(k))
+                p2 = ntuple(n->p[k+n], StaticLength(5-k))
                 t2 = @inferred permuteind(t, p1, p2)
                 @test vecnorm(t2) ≈ vecnorm(t)
                 t2′= permuteind(t′, p1, p2)
@@ -190,8 +190,8 @@ end
         t′ = Tensor(rand, W);
         for k = 0:5
             for p in permutations(1:5)
-                p1 = ntuple(n->p[n], Val(k))
-                p2 = ntuple(n->p[k+n], Val(5-k))
+                p1 = ntuple(n->p[n], StaticLength(k))
+                p2 = ntuple(n->p[k+n], StaticLength(5-k))
                 t2 = @inferred permuteind(t, p1, p2)
                 @test vecnorm(t2) ≈ vecnorm(t)
                 t2′= permuteind(t′, p1, p2)
@@ -263,8 +263,8 @@ end
         t′ = Tensor(rand, W);
         for k = 0:5
             for p in permutations(1:5)
-                p1 = ntuple(n->p[n], Val(k))
-                p2 = ntuple(n->p[k+n], Val(5-k))
+                p1 = ntuple(n->p[n], StaticLength(k))
+                p2 = ntuple(n->p[k+n], StaticLength(5-k))
                 t2 = @inferred permuteind(t, p1, p2)
                 @test vecnorm(t2) ≈ vecnorm(t)
                 t2′= permuteind(t′, p1, p2)
@@ -336,8 +336,8 @@ end
         t′ = Tensor(rand, W);
         for k = 0:5
             for p in permutations(1:5)
-                p1 = ntuple(n->p[n], Val(k))
-                p2 = ntuple(n->p[k+n], Val(5-k))
+                p1 = ntuple(n->p[n], StaticLength(k))
+                p2 = ntuple(n->p[k+n], StaticLength(5-k))
                 t2 = @inferred permuteind(t, p1, p2)
                 @test vecnorm(t2) ≈ vecnorm(t)
                 t2′= permuteind(t′, p1, p2)

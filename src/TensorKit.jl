@@ -8,6 +8,7 @@ module TensorKit
 # Exports
 #---------
 # Types:
+export StaticLength
 export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
 export ComplexSpace, CartesianSpace, GeneralSpace, RepresentationSpace, ZNSpace # concrete spaces
 export CompositeSpace, ProductSpace # composite spaces
@@ -55,10 +56,6 @@ if VERSION <= v"0.6.0"
     using .Product.product
 else
     using Base: Iterators.product
-end
-
-if VERSION < v"0.7.0-DEV.843"
-    Base.@pure Base.Val(N) = Val{N}
 end
 
 if VERSION < v"0.7.0"

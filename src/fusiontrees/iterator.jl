@@ -12,7 +12,7 @@ end
 
 Base.iteratorsize(::FusionTreeIterator) = Base.SizeUnknown()
 Base.iteratoreltype(::FusionTreeIterator) = Base.HasEltype()
-Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} = fusiontreetype(G,Val(N))
+Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} = fusiontreetype(G, StaticLength(N))
 
 # * Iterator methods: start, next, done
 #   Start with special cases:

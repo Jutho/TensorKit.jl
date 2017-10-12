@@ -42,7 +42,7 @@ end
 
 # more specific methods
 sectors(P::ProductSpace) = _sectors(P, sectortype(P))
-_sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} = (ntuple(n->Trivial(),Val{N}()),) # speed up sectors for ungraded spaces
+_sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} = (ntuple(n->Trivial(), StaticLength{N}()),) # speed up sectors for ungraded spaces
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} = product(map(sectors, P.spaces)...)
 
 checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = reduce(&, true, map(checksectors, V.spaces, s))

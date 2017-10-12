@@ -36,8 +36,8 @@ Base.unsafe_convert(::Type{Ptr{T}}, a::StridedView{T}) where {T} = pointer(a.par
 
 function Base.permutedims(a::StridedView{<:Any,N}, p) where {N}
     (length(p) == N && isperm(p)) || throw(ArgumentError("Invalid permutation of length $N: $p"))
-    newsize = ntuple(n->a.size[p[n]], Val(N))
-    newstrides = ntuple(n->a.strides[p[n]], Val(N))
+    newsize = ntuple(n->a.size[p[n]], StaticLength(N))
+    newstrides = ntuple(n->a.strides[p[n]], StaticLength(N))
     return StridedView(a.parent, newsize, newstrides, a.offset)
 end
 

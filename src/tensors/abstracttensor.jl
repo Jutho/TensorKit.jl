@@ -31,12 +31,12 @@ numin(t::AbstractTensorMap) = numin(typeof(t))
 numout(t::AbstractTensorMap) = numout(typeof(t))
 numind(t::AbstractTensorMap) = numind(typeof(t))
 
-spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
-sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
-fieldtype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = fieldtype(S)
-numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁
-numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₂
-numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁ + N₂
+Base.@pure spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
+Base.@pure sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
+Base.@pure fieldtype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = fieldtype(S)
+Base.@pure numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁
+Base.@pure numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₂
+Base.@pure numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁ + N₂
 
 const order = numind
 
@@ -105,8 +105,8 @@ function permuteind(t::AbstractTensorMap, p1::NTuple{N₁,Int},  p2::NTuple{N₂
     isperm(p) || throw(ArgumentError("not a valid permutation of length $(N₁+N₂): $p1 & $p2"))
 
     newspace = (cod ⊗ dual(dom))[p]
-    newcod = newspace[ntuple(n->n, Val(N₁))]
-    newdom = dual(newspace[ntuple(n->N₁+n, Val(N₂))])
+    newcod = newspace[ntuple(n->n, StaticLength(N₁))]
+    newdom = dual(newspace[ntuple(n->N₁+n, StaticLength(N₂))])
 
     permuteind!(similar(t, newcod←newdom), t, p1, p2)
 end

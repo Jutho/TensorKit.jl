@@ -37,7 +37,7 @@ ZNSpace(dims::Vararg{Int,N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, du
 ZNSpace{N}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {N} = ZNSpace{N}((ZNIrrep{N}(c)=>d for (c,d) in dims)...; dual = dual)
 ZNSpace{N}(dims::Dict{<:Any,Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
 function ZNSpace{N}(args::Vararg{Pair{ZNIrrep{N},Int}}; dual::Bool = false) where {N}
-    dims = ntuple(n->0, Val(N))
+    dims = ntuple(n->0, StaticLength(N))
     @inbounds for (c,d) in args
         dims = setindex(dims, d, c.n+1)
     end
