@@ -85,7 +85,9 @@ Returns the type of fusion behavior of sectors of type G, which can be either
 fusiontype(::Type{Trivial}) = Abelian
 fusiontype(a::Sector) = fusiontype(typeof(a))
 
-function ⊗(a::G, b::G, c::G, rest::Vararg{G}) where {G<:Sector}
+# NOTE: the following inline is extremely important for performance, especially
+# in the case of Abelian, because ⊗(...) is computed very often
+@inline function ⊗(a::G, b::G, c::G, rest::Vararg{G}) where {G<:Sector}
     if fusiontype(G) == Abelian
         return a ⊗ first(⊗(b, c, rest...))
     else

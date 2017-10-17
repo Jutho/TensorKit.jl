@@ -30,6 +30,28 @@ sectortype(t::FusionTree) = sectortype(typeof(t))
 fusiontype(t::FusionTree) = fusiontype(typeof(t))
 Base.length(t::FusionTree) = length(typeof(t))
 
+# Hashing, important for using fusion trees as key in Dict
+function Base.hash(f::FusionTree{G}, h::UInt) where {G}
+    if fusiontype(G) == Abelian
+        hash(f.outgoing, hash(f.incoming, h))
+    elseif fusiontype(G) == SimpleNonAbelian
+        hash(f.innerlines, hash(f.outgoing, hash(f.incoming, h)))
+    else
+        hash(f.vertices, hash(f.innerlines, hash(f.outgoing, hash(f.incoming, h))))
+    end
+end
+function Base.isequal(f1::FusionTree, f2::FusionTree)
+    sectortype(f1) == sectortype(f2) || return false
+    G = sectortype(f1)
+    if fusiontype(G) == Abelian
+        f1.incoming == f2.incoming && f1.outgoing == f2.outgoing
+    elseif fusiontype(G) == SimpleNonAbelian
+        f1.incoming == f2.incoming && f1.outgoing == f2.outgoing && f1.innerlines == f2.innerlines
+    else
+        f1.incoming == f2.incoming && f1.outgoing == f2.outgoing && f1.innerlines == f2.innerlines && f1.vertices == f2.vertices
+    end
+end
+
 # Fusion tree methods
 fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} = FusionTree{G,0,0,0,vertex_labeltype(G)}
 fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} = FusionTree{G,1,0,0,vertex_labeltype(G)}

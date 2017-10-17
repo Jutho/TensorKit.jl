@@ -56,51 +56,49 @@ Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge) :
 
 # NOTE: FractionalU1Charge?
 
-if VERSION >= v"0.7-"
-    # Nob-abelian groups
-    #------------------------------------------------------------------------------#
-    # SU2Irrep: irreps of SU2 are labelled by half integers j, internally we use the integer dimension 2j+1 instead
-    import WignerSymbols
+# Nob-abelian groups
+#------------------------------------------------------------------------------#
+# SU2Irrep: irreps of SU2 are labelled by half integers j, internally we use the integer dimension 2j+1 instead
+import WignerSymbols
 
-    struct SU2IrrepException <: Exception end
-    Base.show(io::IO, ::SU2IrrepException) = print(io, "Irreps of (bosonic or fermionic) `SU₂` should be labelled by non-negative half integers, i.e. elements of `Rational{Int}` with denominator 1 or 2")
+struct SU2IrrepException <: Exception end
+Base.show(io::IO, ::SU2IrrepException) = print(io, "Irreps of (bosonic or fermionic) `SU₂` should be labelled by non-negative half integers, i.e. elements of `Rational{Int}` with denominator 1 or 2")
 
-    struct SU2Irrep <: Sector
-        dim::Int
-        # Let constructor take the actual half integer value j
-        SU2Irrep(j::Int) = j >= 0 ? new(2*j+1) : throw(SU2IrrepException)
-        function SU2Irrep(j::Rational{Int})
-            if j.den == 2
-                new(j.num+1)
-            elseif j.den == 1
-                new(2*j.num+1)
-            else
-                throw(SU2IrrepException)
-            end
+struct SU2Irrep <: Sector
+    dim::Int
+    # Let constructor take the actual half integer value j
+    SU2Irrep(j::Int) = j >= 0 ? new(2*j+1) : throw(SU2IrrepException)
+    function SU2Irrep(j::Rational{Int})
+        if j.den == 2
+            new(j.num+1)
+        elseif j.den == 1
+            new(2*j.num+1)
+        else
+            throw(SU2IrrepException)
         end
     end
-    _getj(s::SU2Irrep) = (s.dim-1)//2
-
-    Base.one(::Type{SU2Irrep}) = SU2Irrep(0)
-    Base.conj(s::SU2Irrep) = s
-    ⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}( abs(_getj(s1)-_getj(s2)):(_getj(s1)+_getj(s2)) )
-
-    Base.convert(::Type{SU2Irrep}, s::Real) = SU2Irrep(convert(Int, 2*s)//2)
-
-    dim(s::SU2Irrep) = s.dim
-
-    Base.@pure fusiontype(::Type{SU2Irrep}) = SimpleNonAbelian
-    Base.@pure braidingtype(::Type{SU2Irrep}) = Bosonic
-
-    Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(_getj(sa), _getj(sb), _getj(sc))
-    Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
-        WignerSymbols.racahW(map(_getj,(s1,s2,s4,s3,s5,s6))...)*sqrt(dim(s5)*dim(s6))
-    function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
-        Nsymbol(sa, sb, sc) || return 0.
-        iseven(convert(Int, _getj(sa)+_getj(sb)-_getj(sc))) ? 1.0 : -1.0
-    end
-
-    const SU₂ = SU2Irrep
-    Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
-    Base.show(io::IO, s::SU2Irrep) = get(io, :compact, false) ? print(io, _getj(s)) : print(io, "SU₂(", _getj(s), ")")
 end
+_getj(s::SU2Irrep) = (s.dim-1)//2
+
+Base.one(::Type{SU2Irrep}) = SU2Irrep(0)
+Base.conj(s::SU2Irrep) = s
+⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}( abs(_getj(s1)-_getj(s2)):(_getj(s1)+_getj(s2)) )
+
+Base.convert(::Type{SU2Irrep}, s::Real) = SU2Irrep(convert(Int, 2*s)//2)
+
+dim(s::SU2Irrep) = s.dim
+
+Base.@pure fusiontype(::Type{SU2Irrep}) = SimpleNonAbelian
+Base.@pure braidingtype(::Type{SU2Irrep}) = Bosonic
+
+Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(_getj(sa), _getj(sb), _getj(sc))
+Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
+    WignerSymbols.racahW(map(_getj,(s1,s2,s4,s3,s5,s6))...)*sqrt(dim(s5)*dim(s6))
+function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
+    Nsymbol(sa, sb, sc) || return 0.
+    iseven(convert(Int, _getj(sa)+_getj(sb)-_getj(sc))) ? 1.0 : -1.0
+end
+
+const SU₂ = SU2Irrep
+Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
+Base.show(io::IO, s::SU2Irrep) = get(io, :compact, false) ? print(io, _getj(s)) : print(io, "SU₂(", _getj(s), ")")

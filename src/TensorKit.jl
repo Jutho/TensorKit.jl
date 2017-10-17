@@ -66,6 +66,7 @@ end
 if VERSION < v"0.7.0-DEV.1415"
     const adjoint = Base.ctranspose
     const adjoint! = Base.ctranspose!
+    export adjoint, adjoint!
 else
     import Base: adjoint, adjoint!
 end
@@ -130,5 +131,6 @@ include("tensors/truncation.jl")
 include("tensors/abstracttensor.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
+include("tensors/tensoroperations.jl")
 
 end
