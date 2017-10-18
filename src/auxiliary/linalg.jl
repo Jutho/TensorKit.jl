@@ -7,23 +7,47 @@ import Base.LAPACK: liblapack, chklapackerror
 
 # MATRIX factorizations
 #-----------------------
-function leftorth!(A::StridedMatrix{<:BlasFloat})
+abstract type FactorizationAlgorithm end
+abstract type OrthogonalFactorizationAlgorithm <: FactorizationAlgorithm end
+
+struct QRpos <: OrthogonalFactorizationAlgorithm
+end
+struct QR <: OrthogonalFactorizationAlgorithm
+end
+struct LQ <: OrthogonalFactorizationAlgorithm
+end
+struct LQpos <: OrthogonalFactorizationAlgorithm
+end
+struct RQ <: OrthogonalFactorizationAlgorithm
+end
+struct RQpos <: OrthogonalFactorizationAlgorithm
+end
+struct SVD{T<:Real} <: OrthogonalFactorizationAlgorithm
+    tol::T
+end
+SVD() = SVD(0)
+struct Polar <: OrthogonalFactorizationAlgorithm
+end
+
+function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos} = QRpos())
     m, n = size(A)
     k = min(m, n)
 
     A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
     Q = LAPACK.gemqrt!('L', 'N', A, T, eye(eltype(A), m, k))
     R = triu!(A[1:k, :])
-    # make positive
-    @inbounds for j = 1:k
-        s = sign(R[j,j])
-        @simd for i = 1:m
-            Q[i,j] *= s
+
+    if isa(alg, QRpos)
+        @inbounds for j = 1:k
+            s = sign(R[j,j])
+            @simd for i = 1:m
+                Q[i,j] *= s
+            end
         end
-    end
-    @inbounds for j = size(R,2):-1:1
-        for i = 1:min(k,j)
-            R[i,j] = R[i,j]/sign(R[i,i])
+        @inbounds for j = size(R,2):-1:1
+            for i = 1:min(k,j)
+                R[i,j] = R[i,j]/sign(R[i,i])
+            end
         end
     end
     return Q, R
@@ -39,7 +63,18 @@ end
 #     return Q, R
 # end
 
-function leftnull!(A::StridedMatrix{<:BlasFloat})
+function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,Polar})
+    U, S, V = LAPACK.gesdd!('S', A)
+    if isa(alg, SVD)
+        # TODO: implement truncation based on tol in SVD
+        return U, scale!(S, V)
+    else
+        # TODO: check Lapack to see if we can recycle memory of A
+        return U*V, V'*scale!(S,V)
+    end
+end
+
+function leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos} = QR())
     m, n = size(A)
     m >= n || throw(ArgumentError("no null space if less rows than columns"))
 
@@ -52,19 +87,27 @@ function leftnull!(A::StridedMatrix{<:BlasFloat})
     N = LAPACK.gemqrt!('L', 'N', A, T, N)
 end
 
-function rightorth!(A::StridedMatrix{<:BlasFloat})
+function leftnull!(A::StridedMatrix{<:BlasFloat}, alg::SVD)
+    U, S, V = LAPACK.gesdd!('A', A)
+    # TODO
+end
+
+function rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQpos} = LQpos())
     # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
     # matrix size 100, which is the interesting region. => Investigate and fix
     m, n = size(A)
     k = min(m,n)
     At = transpose!(similar(A,n,m), A)
-    if m <= n
+
+    if isa(alg, RQ) || isa(alg, RQpos)
+        @assert m <= n
+
         mhalf = div(m,2)
         # swap columns in At
         @inbounds for j = 1:mhalf, i = 1:n
             At[i,j], At[i,m+1-j] = At[i,m+1-j], At[i,j]
         end
-        Qt, Rt = leftorth!(At)
+        Qt, Rt = leftorth!(At, isa(alg, RQ) ? QR() : QRpos())
 
         @inbounds for j = 1:mhalf, i = 1:n
             Qt[i,j], Qt[i,m+1-j] = Qt[i,m+1-j], Qt[i,j]
@@ -82,13 +125,30 @@ function rightorth!(A::StridedMatrix{<:BlasFloat})
         R = transpose(Rt) # TODO: efficient in place
         return R, Q
     else
-        Qt, Lt = leftorth!(At)
-        L = transpose!(A, Lt)
-        return L, transpose(Qt)
+        Qt, Lt = leftorth!(At, isa(alg, LQ) ? QR() : QRpos())
+        if m > n
+            L = transpose!(A, Lt)
+            Q = transpose(Qt)
+        else
+            Q = transpose!(A, Qt)
+            L = transpose(Lt) # TODO: efficient in place
+        end
+        return L, Q
     end
 end
 
-function rightnull!(A::StridedMatrix{<:BlasFloat})
+function rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,Polar})
+    U, S, V = LAPACK.gesdd!('S', A)
+    if isa(alg, SVD)
+        # TODO: implement truncation based on tol in SVD
+        return scale!(U, S), V
+    else
+        # TODO: check Lapack to see if we can recycle memory of A
+        return scale!(U,S)*U', U*V
+    end
+end
+
+function rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos} = LQpos())
     m, n = size(A)
     k = min(m,n)
     At = adjoint!(similar(A,n,m), A)
@@ -101,9 +161,17 @@ function rightnull!(A::StridedMatrix{<:BlasFloat})
     N = LAPACK.gemqrt!('R', eltype(At) <: Real ? 'T' : 'C', At, T, N)
 end
 
-svd!(A::StridedMatrix{<:BlasFloat}) = LAPACK.gesdd!('S', A)
+function rightnull!(A::StridedMatrix{<:BlasFloat}, alg::SVD)
+    U, S, V = LAPACK.gesdd!('A', A)
+    # TODO
+end
 
 
+function svd!(A::StridedMatrix{<:BlasFloat}, alg::SVD = SVD(0))
+    U, S, V = LAPACK.gesdd!('S', A)
+    # TODO: implement truncation based on tol
+    return U, S, V
+end
 
 # TODO: override Julia's eig interface
 
