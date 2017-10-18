@@ -131,6 +131,6 @@ include("tensors/truncation.jl")
 include("tensors/abstracttensor.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
-include("tensors/tensoroperations.jl")
+# include("tensors/tensoroperations.jl")
 
 end
