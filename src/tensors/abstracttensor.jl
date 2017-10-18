@@ -179,7 +179,7 @@ elements of R positive.
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `leftorth(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftorth!(permuteind(t, p1, p2))
+leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, alg::OrthogonalFactorizationAlgorithm = QRpos()) = leftorth!(permuteind(t, p1, p2), alg)
 
 """
     rightorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple, truncation::TruncationScheme = notrunc()) -> L, Q
@@ -198,7 +198,7 @@ elements of R positive.
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `rightorth(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = rightorth!(permuteind(t, p1, p2))
+rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, alg::OrthogonalFactorizationAlgorithm = LQpos()) = rightorth!(permuteind(t, p1, p2), alg)
 
 """
     leftnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> N
@@ -213,7 +213,7 @@ be destroyed/overwritten, by using `leftnull!(t)`.
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `leftnull(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = leftnull!(permuteind(t, p1, p2))
+leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, alg::OrthogonalFactorizationAlgorithm = QRpos()) = leftnull!(permuteind(t, p1, p2), alg)
 
 """
     rightnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> N
@@ -228,7 +228,7 @@ be destroyed/overwritten, by using `rightnull!(t)`.
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `rightnull(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = rightnull!(permuteind(t, p1, p2))
+rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, alg::OrthogonalFactorizationAlgorithm = LQpos()) = rightnull!(permuteind(t, p1, p2), alg)
 
 """
     eig(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> D, V
@@ -242,10 +242,10 @@ be destroyed/overwritten, by using `eig!(t)`.
 Base.eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = eig!(permuteind(t, p1, p2))
 
 Base.svd(t::AbstractTensorMap, trunc::TruncationScheme = NoTruncation(), p::Real = 2) = svd!(copy(t), trunc, p)
-leftorth(t::AbstractTensorMap) = leftorth!(copy(t))
-rightorth(t::AbstractTensorMap) = rightorth!(copy(t))
-leftnull(t::AbstractTensorMap) = leftnull!(copy(t))
-rightnull(t::AbstractTensorMap) = rightnull!(copy(t))
+leftorth(t::AbstractTensorMap, alg::OrthogonalFactorizationAlgorithm = QRpos()) = leftorth!(copy(t), alg)
+rightorth(t::AbstractTensorMap, alg::OrthogonalFactorizationAlgorithm = LQpos()) = rightorth!(copy(t), alg)
+leftnull(t::AbstractTensorMap, alg::OrthogonalFactorizationAlgorithm = QRpos()) = leftnull!(copy(t), alg)
+rightnull(t::AbstractTensorMap, alg::OrthogonalFactorizationAlgorithm = LQpos()) = rightnull!(copy(t), alg)
 Base.eig(t::AbstractTensorMap) = eig!(copy(t))
 
 # Tensor operations

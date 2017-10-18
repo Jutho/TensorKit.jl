@@ -285,21 +285,21 @@ end
 
 # Orthogonal factorizations: only correct if Euclidean inner product
 #--------------------------------------------------------------------
-function leftorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
+function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
-        Q, R = leftorth!(t.data)
+        Q, R = leftorth!(t.data, alg)
         V = S(size(Q,2))
         return TensorMap(Q, codomain(t)←V), TensorMap(R, V←domain(t))
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
-        Q, R = leftorth!(t.data[c])
+        Q, R = leftorth!(t.data[c], alg)
         Qdata = Dict(c => Q)
         Rdata = Dict(c => R)
         dims = Dict(c => size(Q, 2))
         while !done(it, s)
             c, s = next(it, s)
-            Q, R = leftorth!(t.data[c])
+            Q, R = leftorth!(t.data[c], alg)
             Qdata[c] = Q
             Rdata[c] = R
             dims[c] = size(Q, 2)
@@ -308,41 +308,41 @@ function leftorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
         return TensorMap(Qdata, codomain(t)←V), TensorMap(Rdata, V←domain(t))
     end
 end
-function leftnull!(t::TensorMap{S}) where {S<:EuclideanSpace}
+function leftnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
-        N = leftnull!(t.data)
+        N = leftnull!(t.data, alg)
         V = S(size(N, 2))
         return TensorMap(N, codomain(t)←V)
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
-        N = leftnull!(t.data[c])
+        N = leftnull!(t.data[c], alg)
         Ndata = Dict(c => N)
         dims = Dict(c => size(N, 2))
         while !done(it, s)
             c, s = next(it, s)
-            N = leftnull!(t.data[c])
+            N = leftnull!(t.data[c], alg)
             Ndata[c] = N
         end
         V = S(dims)
         return TensorMap(Ndata, codomain(t)←V)
     end
 end
-function rightorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
+function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
-        L, Q = rightorth!(t.data)
+        L, Q = rightorth!(t.data, alg)
         V = S(size(Q, 1))
         return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
-        L, Q = rightorth!(t.data[c])
+        L, Q = rightorth!(t.data[c], alg)
         Ldata = Dict(c => L)
         Qdata = Dict(c => Q)
         dims = Dict(c => size(Q, 1))
         while !done(it, s)
             c, s = next(it, s)
-            L, Q = rightorth!(t.data[c])
+            L, Q = rightorth!(t.data[c], alg)
             Ldata[c] = L
             Qdata[c] = Q
             dims[c] = size(Q, 1)
@@ -351,20 +351,20 @@ function rightorth!(t::TensorMap{S}) where {S<:EuclideanSpace}
         return TensorMap(Ldata, codomain(t)←V), TensorMap(Qdata, V←domain(t))
     end
 end
-function rightnull!(t::TensorMap{S}) where {S<:EuclideanSpace}
+function rightnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
-        N = rightnull!(t.data)
+        N = rightnull!(t.data, alg)
         V = S(size(N, 1))
         return TensorMap(N, V←domain(t))
     else
         it = blocksectors(t)
         c, s = next(it, start(it))
-        N = rightnull!(t.data[c])
+        N = rightnull!(t.data[c], alg)
         Ndata = Dict(c => N)
         dims = Dict(c => size(N, 1))
         while !done(it, s)
             c, s = next(it, s)
-            N = rightnull!(t.data[c])
+            N = rightnull!(t.data[c], alg)
             Ndata[c] = N
             dims[c] = size(N, 1)
         end
