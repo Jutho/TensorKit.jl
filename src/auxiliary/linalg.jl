@@ -14,7 +14,7 @@ struct QRpos <: OrthogonalFactorizationAlgorithm
 end
 struct QR <: OrthogonalFactorizationAlgorithm
 end
-# TODO: QL and QLpos ? 
+# TODO: QL and QLpos ?
 struct LQ <: OrthogonalFactorizationAlgorithm
 end
 struct LQpos <: OrthogonalFactorizationAlgorithm
@@ -30,6 +30,9 @@ SVD() = SVD(0)
 struct Polar <: OrthogonalFactorizationAlgorithm
 end
 
+_safesign(s::Real) = ifelse(s<zero(s), -one(s), +one(s))
+_safesign(s::Complex) = ifelse(iszero(s), one(s), s/abs(s))
+
 function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos} = QRpos())
     m, n = size(A)
     k = min(m, n)
@@ -40,14 +43,14 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos} = QRpos()
 
     if isa(alg, QRpos)
         @inbounds for j = 1:k
-            s = sign(R[j,j])
+            s = _safesign(R[j,j])
             @simd for i = 1:m
                 Q[i,j] *= s
             end
         end
         @inbounds for j = size(R,2):-1:1
             for i = 1:min(k,j)
-                R[i,j] = R[i,j]/sign(R[i,i])
+                R[i,j] = R[i,j]*conj(_safesign(R[i,i]))
             end
         end
     end

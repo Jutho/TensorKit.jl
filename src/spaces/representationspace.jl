@@ -39,7 +39,7 @@ ZNSpace{N}(dims::Dict{<:Any,Int}; dual::Bool = false) where {N} = ZNSpace{N}(dim
 function ZNSpace{N}(args::Vararg{Pair{ZNIrrep{N},Int}}; dual::Bool = false) where {N}
     dims = ntuple(n->0, StaticLength(N))
     @inbounds for (c,d) in args
-        dims = setindex(dims, d, c.n+1)
+        dims = TupleTools.setindex(dims, d, c.n+1)
     end
     return ZNSpace{N}(dims, dual)
 end
@@ -58,21 +58,21 @@ Base.getindex(::ComplexNumbers, d1::Pair{G,Int}, dims::Vararg{Pair{G,Int}}) wher
 
 Iterate over the different sectors in the vector space.
 """
-sectors(V::GenericRepresentationSpace) = keys(V.dims)
-sectors(V::ZNSpace{N}) where {N} = SectorSet{ZNIrrep{N}}(n-1 for n=1:N if V.dims[n] != 0)
+sectors(V::GenericRepresentationSpace{G}) where {G<:Sector} = SectorSet{G}(s->isdual(V) ? dual(s) : s, keys(V.dims))
+sectors(V::ZNSpace{N}) where {N} = SectorSet{ZNIrrep{N}}(n->isdual(V) ? -(n-1) : (n-1), Iterators.filter(n->V.dims[n]!=0, 1:N))
 
-checksectors(V::GenericRepresentationSpace{G}, s::G) where {G<:Sector} = s in keys(V.dims) || throw(SectorMismatch())
-checksectors(V::ZNSpace{N}, c::ZNIrrep{N}) where {N} = V.dims[c.n+1] != 0 || throw(SectorMismatch())
+checksectors(V::RepresentationSpace{G}, s::G) where {G<:Sector} = dim(V, s) != 0
 
 # properties
 dim(V::GenericRepresentationSpace) = sum(dim(c)*V.dims[c] for c in keys(V.dims))
-dim(V::GenericRepresentationSpace{G}, c::G) where {G<:Sector} = get(V.dims, c, 0)
+dim(V::GenericRepresentationSpace{G}, c::G) where {G<:Sector} = get(V.dims, isdual(V) ? dual(c) : c, 0)
 
 dim(V::ZNSpace) = sum(V.dims)
-dim(V::ZNSpace{N}, c::ZNIrrep{N}) where {N} = V.dims[c.n+1]
+dim(V::ZNSpace{N}, c::ZNIrrep{N}) where {N} = V.dims[(isdual(V) ? dual(c).n : c.n)+1]
 
-Base.conj(V::GenericRepresentationSpace) = GenericRepresentationSpace(Dict(dual(c)=>dim(V,c) for c in sectors(V)), !V.dual)
-Base.conj(V::ZNSpace{N}) where {N} = ZNSpace{N}((V.dims[1], reverse(tail(V.dims))...), !V.dual)
+Base.conj(V::GenericRepresentationSpace) = GenericRepresentationSpace(V.dims, !V.dual)
+Base.conj(V::ZNSpace{N}) where {N} = ZNSpace{N}(V.dims, !V.dual)
+isdual(V::RepresentationSpace) = V.dual
 
 # equality / comparison
 Base.:(==)(V1::RepresentationSpace, V2::RepresentationSpace) = (V1.dims == V2.dims) && V1.dual == V2.dual

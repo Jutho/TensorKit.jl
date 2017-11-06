@@ -55,13 +55,13 @@ function _start(outgoing::NTuple{N,G}, incoming::G) where {N, G<:Sector}
     it = a ⊗ b
     s = start(it) # done(it1,s1) == false: there should always be at least one fusion output
     c, snext = next(it, s)
-    resttree = tuple(c, tail2(outgoing)...)
+    resttree = tuple(c, TupleTools.tail2(outgoing)...)
     reststate = _start(resttree, incoming)
     while _done(resttree, incoming, reststate)
         s = snext
         done(it, s) && break
         c, snext = next(it, s)
-        resttree = tuple(c, tail2(outgoing)...)
+        resttree = tuple(c, TupleTools.tail2(outgoing)...)
         reststate = _start(resttree, incoming)
     end
     return tuple((1, s), reststate...)
@@ -71,8 +71,8 @@ function _nextstate(outgoing::NTuple{N,G}, incoming::G, state) where {N, G<:Sect
     it = a ⊗ b
     n, s = state[1]
     c, snext = next(it, s)
-    resttree = tuple(c, tail2(outgoing)...)
-    reststate = _nextstate(resttree, incoming, tail(state))
+    resttree = tuple(c, TupleTools.tail2(outgoing)...)
+    reststate = _nextstate(resttree, incoming, TupleTools.tail(state))
     while _done(resttree, incoming, reststate)
         if n < Nsymbol(a, b, c)
             n += 1
@@ -80,7 +80,7 @@ function _nextstate(outgoing::NTuple{N,G}, incoming::G, state) where {N, G<:Sect
             s = snext
             done(it, s) && break
             c, snext = next(it, s)
-            resttree = tuple(c, tail2(outgoing)...)
+            resttree = tuple(c, TupleTools.tail2(outgoing)...)
         end
         reststate = _start(resttree, incoming)
     end
@@ -91,8 +91,8 @@ function _nextval(outgoing::NTuple{N,G}, incoming::G, state) where {N,G<:Sector}
     it = a ⊗ b
     n, s = state[1]
     c, = next(it, s)
-    resttree = tuple(c, tail2(outgoing)...)
-    reststate = tail(state)
+    resttree = tuple(c, TupleTools.tail2(outgoing)...)
+    reststate = TupleTools.tail(state)
     lines, vertices = _nextval(resttree, incoming, reststate)
     return tuple(c, lines...), tuple(vertex_ind2label(n, outgoing[1], outgoing[2],c), vertices...)
 end

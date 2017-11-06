@@ -32,10 +32,6 @@ export ⊕, ⊗, ×, ℂ, ℝ, ←, →
 export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
 export RepresentationSpace, ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU₂Space
 
-# tensor operations: To be done
-# export tensorcopy, tensoradd, tensortrace, tensorcontract, tensorproduct
-# export tensorcopy!, tensoradd!, tensortrace!, tensorcontract!, tensorproduct!
-
 # tensor factorizations
 export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
@@ -48,8 +44,15 @@ export domain, codomain
 
 # Imports
 #---------
-using Base: tuple_type_head, tuple_type_tail, tuple_type_cons, tail, front, setindex
+using TupleTools
+using TupleTools: StaticLength
+
+using Strided
+
+using Base: @boundscheck, @propagate_inbounds
 using Base: ImmutableDict
+
+import Base: permute
 
 if VERSION <= v"0.6.0"
     include("auxiliary/product.jl")
@@ -72,12 +75,15 @@ else
 end
 
 import TensorOperations
+import TensorOperations: @tensor, @tensoropt
+export @tensor, @tensoropt
+
+const IndexTuple{N} = NTuple{N,Int}
 
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/linalg.jl")
-include("auxiliary/stridedview.jl")
 
 # Exception types:
 #------------------
@@ -122,15 +128,14 @@ include("fusiontrees/fusiontrees.jl")
 
 # # Definitions and methods for tensors
 # #-------------------------------------
-# import TensorOperations
-# intentionally shadow original TensorOperation methods for StridedArray objects
-
 # define truncation schemes for tensors
 include("tensors/truncation.jl")
 # general definitions
 include("tensors/abstracttensor.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
-# include("tensors/tensoroperations.jl")
+include("tensors/tensoroperations.jl")
+include("tensors/indexmanipulations.jl")
+include("tensors/factorizations.jl")
 
 end

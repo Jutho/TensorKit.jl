@@ -270,23 +270,24 @@ braidingtype(a::Sector) = braidingtype(typeof(a))
 
 # SectorSet:
 #-------------------------------------------------------------------------------
-# wrapper type to represent a subset of sectors, e.g. as output of a fusion of
-# two sectors. It is used as iterator but should be a set, i.e. unique elements
-struct SectorSet{G<:Sector,S}
+# Custum generator to represent sets of sectors with type inference
+struct SectorSet{G<:Sector,F,S}
+    f::F
     set::S
 end
-SectorSet{T}(set::S) where {T<:Sector,S} = SectorSet{T,S}(set)
+SectorSet{G}(set::S) where {G<:Sector,S} = SectorSet{G,typeof(identity),S}(identity,set)
+SectorSet{G}(f::F, set::S) where {G<:Sector,F,S} = SectorSet{G,F,S}(f,set)
 
 Base.iteratoreltype(::Type{<:SectorSet}) = Base.HasEltype()
 Base.eltype(::SectorSet{G}) where {G<:Sector} = G
-Base.iteratorsize(::Type{SectorSet{G,S}}) where {G<:Sector,S} = Base.iteratorsize(S)
+Base.iteratorsize(::Type{SectorSet{G,F,S}}) where {G<:Sector,F,S} = Base.iteratorsize(S)
 Base.length(s::SectorSet) = length(s.set)
 Base.size(s::SectorSet) = size(s.set)
 
 Base.start(s::SectorSet) = start(s.set)
 function Base.next(s::SectorSet{G}, state) where {G<:Sector}
     v, nextstate = next(s.set, state)
-    return G(v), nextstate
+    return convert(G,s.f(v)), nextstate
 end
 Base.done(s::SectorSet, state) = done(s.set, state)
 

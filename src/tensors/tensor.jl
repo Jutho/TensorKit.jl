@@ -154,23 +154,32 @@ block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} 
 blocks(t::TensorMap{S,N₁,N₂,<:Associative}) where {S,N₁,N₂} = (c=>t.data[c] for c in blocksectors(t))
 blocks(t::TensorMap{S,N₁,N₂,<:AbstractArray}) where {S,N₁,N₂} = (Trivial()=>t.data,)
 
+using Base.Iterators.filter
+fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
+
 function Base.getindex(t::TensorMap{S,N₁,N₂}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
     c = f1.incoming
-    c == f2.incoming || throw(SectorMismatch())
-    checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
-    return splitdims(view(t.data[c], t.rowr[f1], t.colr[f2]), dims(codomain(t), f1.outgoing), dims(domain(t), f2.outgoing))
+    @boundscheck begin
+        c == f2.incoming || throw(SectorMismatch())
+        checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
+    end
+    return splitdims(sview(t.data[c], t.rowr[f1], t.colr[f2]), dims(codomain(t), f1.outgoing), dims(domain(t), f2.outgoing))
 end
-Base.setindex!(t::TensorMap{S,N₁,N₂}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} = copy!(getindex(t, f1, f2), v)
+@propagate_inbounds Base.setindex!(t::TensorMap{S,N₁,N₂}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} = copy!(getindex(t, f1, f2), v)
 
 function Base.getindex(t::Tensor{S,N}, f::FusionTree{G,N}) where {S,N,G}
-    f.incoming == one(G) || throw(SectorMismatch())
-    checksectors(codomain(t), f.outgoing)
-    return splitdims(view(t.data[one(G)], t.rowr[f], :), dims(codomain(t), f.outgoing), ())
+    @boundscheck begin
+        f.incoming == one(G) || throw(SectorMismatch())
+        checksectors(codomain(t), f.outgoing)
+    end
+    return splitdims(sview(t.data[one(G)], t.rowr[f], :), dims(codomain(t), f.outgoing), ())
 end
-Base.setindex!(t::TensorMap{S,N}, v, f::FusionTree{G,N}) where {S,N,G} = copy!(getindex(t, f), v)
+@propagate_inbounds Base.setindex!(t::TensorMap{S,N}, v, f::FusionTree{G,N}) where {S,N,G} = copy!(getindex(t, f), v)
 
 # For a tensor with trivial symmetry, allow direct indexing
-@inline Base.getindex(t::TensorMap{<:Any,N₁,N₂,<:AbstractArray}) where {N₁,N₂} = splitdims(t.data, dims(codomain(t)), dims(domain(t)))
+Base.getindex(t::TensorMap{<:Any,N₁,N₂,<:AbstractArray}) where {N₁,N₂} = splitdims(t.data, dims(codomain(t)), dims(domain(t)))
+Base.setindex!(t::TensorMap{<:Any,N₁,N₂,<:AbstractArray}, v) where {N₁,N₂} = copy!(splitdims(t.data, dims(codomain(t)), dims(domain(t))), v)
+
 @inline function Base.getindex(t::TensorMap{<:Any,N₁,N₂,<:AbstractArray}, I::Vararg{Int}) where {N₁,N₂}
     data = splitdims(t.data, dims(codom), dims(dom))
     @boundscheck checkbounds(data, I)
@@ -183,6 +192,7 @@ end
     @inbounds data[I...] = v
     return v
 end
+
 
 # Similar
 #---------
@@ -488,64 +498,6 @@ function _truncate!(V::Associative{G,<:AbstractVector}, trunc::TruncationScheme,
     end
     return V, truncerr
 end
-
-# Index manipulations
-#---------------------
-using Base.Iterators.filter
-fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
-
-# TODO: reconsider whether we need repartitionind!, or if we just want permuteind!
-function repartitionind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S,N₁′,N₂′}) where {S,N₁,N₂,N₁′,N₂′}
-    space1 = codomain(tdst) ⊗ dual(domain(tdst))
-    space2 = codomain(tsrc) ⊗ dual(domain(tsrc))
-    space1 == space2 || throw(SpaceMismatch())
-    p = (ntuple(n->n, StaticLength(N₁′))..., ntuple(n->N₁′+N₂′+1-n, StaticLength(N₂′)))
-    p1 = tselect(p, ntuple(n->n, StaticLength(N₁)))
-    p2 = reverse(tselect(p, ntuple(n->N₁+n, StaticLength(N₂))))
-    pdata = (p1..., p2...)
-
-    if sectortype(S) == Trivial
-        TensorOperations.add!(1, tsrc[], Val{:N}, 0, tdst[], pdata)
-    else
-        fill!(tdst, 0)
-        for (f1,f2) in fusiontrees(t)
-            for ((f1′,f2′), coeff) in repartition(f1, f2, StaticLength(N₁))
-                TensorOperations.add!(coeff, tsrc[f1,f2], Val{:N}, 1, tdst[f1′,f2′], pdata)
-            end
-        end
-    end
-    return tdst
-end
-
-function permuteind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ()) where {S,N₁,N₂}
-    # TODO: Frobenius-Schur indicators!, and fermions!
-    space1 = codomain(tdst) ⊗ dual(domain(tdst))
-    space2 = codomain(tsrc) ⊗ dual(domain(tsrc))
-
-    N₁′, N₂′ = length(codomain(tsrc)), length(domain(tsrc))
-    p = linearizepermutation(p1, p2, N₁′, N₂′)
-
-    isperm(p) && length(p) == N₁′+N₂′ || throw(ArgumentError("not a valid permutation: $p1 & $p2"))
-    space1 == space2[p] || throw(SpaceMismatch())
-
-    pdata = (p1..., p2...)
-    if sectortype(S) == Trivial
-        TensorOperations.add!(1, tsrc[], Val{:N}, 0, tdst[], pdata)
-    else
-        fill!(tdst, 0)
-        for (f1,f2) in fusiontrees(tsrc)
-            for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
-                TensorOperations.add!(coeff, tsrc[f1,f2], Val{:N}, 1, tdst[f1′,f2′], pdata)
-            end
-        end
-    end
-    return tdst
-end
-
-# do we need those?
-function splitind! end#
-
-function fuseind! end
 
 # Adjoint (complex/Hermitian conjugation)
 #-----------------------------------------

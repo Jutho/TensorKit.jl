@@ -7,14 +7,14 @@ struct FusionTree{G<:Sector,N,M,L,T}
     vertices::NTuple{L,T} # L = N-1
 end
 FusionTree{G}(outgoing::NTuple{N}, incoming, innerlines, vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))) where {G<:Sector,N} =
-    fusiontreetype(G, StaticLength(N))(outgoing, incoming, innerlines, vertices)
+    fusiontreetype(G, StaticLength(N))(map(s->convert(G,s),outgoing), convert(G,incoming), map(s->convert(G,s),innerlines), vertices)
 FusionTree(outgoing::NTuple{N,G}, incoming::G, innerlines, vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))) where {G<:Sector,N} =
     fusiontreetype(G, StaticLength(N))(outgoing, incoming, innerlines, vertices)
 
 
-function FusionTree{G}(outgoing::NTuple{N,G}, incoming::G = one(G)) where {G<:Sector, N}
+function FusionTree{G}(outgoing::NTuple{N}, incoming = one(G)) where {G<:Sector, N}
     fusiontype(G) == Abelian || error("cannot create fusion tree without inner lines if `fusiontype(G) <: NonAbelian`")
-    FusionTree{G}(outgoing, incoming, _abelianinner((outgoing..., dual(incoming))))
+    FusionTree{G}(map(s->convert(G,s), outgoing), convert(G, incoming), _abelianinner(map(s->convert(G,s),(outgoing..., dual(incoming)))))
 end
 function FusionTree(outgoing::NTuple{N,G}, incoming::G = one(G)) where {G<:Sector, N}
     fusiontype(G) == Abelian || error("cannot create fusion tree without inner lines if `fusiontype(G) <: NonAbelian`")
@@ -78,7 +78,7 @@ function Base.permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
                 end
             end
         end
-        t = FusionTree{G}(tpermute(t.outgoing, p), t.incoming)
+        t = FusionTree{G}(TupleTools.permute(t.outgoing, p), t.incoming)
         return ImmutableDict(t=>coeff)
     else
         coeff = Rsymbol(one(G), one(G), one(G))
@@ -110,8 +110,8 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
     if i == 1
         a, b = outer[1], outer[2]
         c = N > 2 ? inner[1] : t.incoming
-        outer = setindex(outer, b, 1)
-        outer = setindex(outer, a, 2)
+        outer = TupleTools.setindex(outer, b, 1)
+        outer = TupleTools.setindex(outer, a, 2)
         return ImmutableDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
     end
     # case i > 1:
@@ -120,10 +120,10 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
     a = i == 2 ? outer[1] : inner[i-2]
     c = inner[i-1]
     e = i == N-1 ? t.incoming : inner[i]
-    outer′ = setindex(outer, d, i)
-    outer′ = setindex(outer′, b, i+1)
+    outer′ = TupleTools.setindex(outer, d, i)
+    outer′ = TupleTools.setindex(outer′, b, i+1)
     if fusiontype(G) == Abelian
-        inner′ = setindex(inner, first(a ⊗ d), i-1)
+        inner′ = TupleTools.setindex(inner, first(a ⊗ d), i-1)
         return ImmutableDict(FusionTree{G}(outer′, t.incoming, inner′) => Rsymbol(b, d, first(b ⊗ d)))
     elseif fusiontype(G) == SimpleNonAbelian
         iter = a ⊗ d
@@ -133,13 +133,13 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
             c′, s = next(iter, s)
         end
         coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
-        inner′ = setindex(inner, c′, i-1)
+        inner′ = TupleTools.setindex(inner, c′, i-1)
         output = ImmutableDict(FusionTree{G}(outer′, t.incoming, inner′, t.vertices)=>coeff)
         while !done(iter, s)
             c′, s = next(iter, s)
             iszero(Nsymbol(b, c′, e)) && continue
             coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
-            inner′ = setindex(inner, c′, i-1)
+            inner′ = TupleTools.setindex(inner, c′, i-1)
             output = ImmutableDict(output, FusionTree{G}(outer′, t.incoming, inner′, t.vertices) => coeff)
         end
         return output
@@ -185,10 +185,10 @@ function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::StaticLe
             c = innerext[n+1]
             coeff *= sqrt(dim(b))*Bsymbol(a,b,c) # for Abelian: sqrt(dim(b)) = sqrt(1) is optimized out
         end
-        outgoing1 = tselect(outer, ntuple(n->n, V1))
-        outgoing2 = tselect(map(dual,outer), ntuple(n->N₁+N₂+1-n, V2))
-        innerlines1 = tselect(innerext, ntuple(n->n+2, V1 - StaticLength(2)))
-        innerlines2 = tselect(innerext, ntuple(n->N₁+N₂-n, V2 - StaticLength(2)))
+        outgoing1 = TupleTools.getindices(outer, ntuple(n->n, V1))
+        outgoing2 = TupleTools.getindices(map(dual,outer), ntuple(n->N₁+N₂+1-n, V2))
+        innerlines1 = TupleTools.getindices(innerext, ntuple(n->n+2, V1 - StaticLength(2)))
+        innerlines2 = TupleTools.getindices(innerext, ntuple(n->N₁+N₂-n, V2 - StaticLength(2)))
         c = innerext[N+1]
         t1′ = FusionTree{G}(outgoing1, c, innerlines1)
         t2′ = FusionTree{G}(outgoing2, c, innerlines2)
@@ -325,5 +325,5 @@ _abelianinner(outer::Tuple{G,G}) where {G<:Sector} = outer[1] == dual(outer[2]) 
 _abelianinner(outer::Tuple{G,G,G}) where {G<:Sector} = first(⊗(outer...)) == one(G) ? () : throw(SectorMismatch())
 function _abelianinner(outer::NTuple{N,G}) where {G<:Sector,N}
     c = first(outer[1] ⊗ outer[2])
-    return (c, _abelianinner((c, tail2(outer)...))...)
+    return (c, _abelianinner((c, TupleTools.tail2(outer)...))...)
 end

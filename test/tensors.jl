@@ -72,11 +72,11 @@
 end
 
 @testset "Tensors with abelian symmetries: ℤ₂ (self-dual)" begin
-    V1 = ℂ[ℤ₂](0=>1,1=>1)
-    V2 = ℂ[ℤ₂](0=>2,1=>5)
-    V3 = ℂ[ℤ₂](0=>3,1=>2)
-    V4 = ℂ[ℤ₂](0=>2,1=>3)
-    V5 = ℂ[ℤ₂](0=>1,1=>2)
+    V1 = ℂ[ℤ₂](0=>1, 1=>1)
+    V2 = ℂ[ℤ₂](0=>2, 1=>5)
+    V3 = ℂ[ℤ₂](0=>3, 1=>2)
+    V4 = ℂ[ℤ₂](0=>2, 1=>3)
+    V5 = ℂ[ℤ₂](0=>1, 1=>2)
     @testset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, Complex64, Complex128, BigFloat)
@@ -145,11 +145,11 @@ end
 end
 
 @testset "Tensors with abelian symmetries: ℤ₃ (not self-dual)" begin
-    V1 = ℂ[ℤ₃](0=>1,1=>1,2=>2)
-    V2 = ℂ[ℤ₃](0=>2,1=>4,2=>3)
-    V3 = ℂ[ℤ₃](0=>3,1=>2,2=>1)
-    V4 = ℂ[ℤ₃](0=>2,1=>3,2=>1)
-    V5 = ℂ[ℤ₃](0=>1,1=>2,2=>3)
+    V1 = ℂ[ℤ₃](0=>1, 1=>1, 2=>2)
+    V2 = ℂ[ℤ₃](0=>2, 1=>4, 2=>3)
+    V3 = ℂ[ℤ₃](0=>3, 1=>2, 2=>1)
+    V4 = ℂ[ℤ₃](0=>2, 1=>3, 2=>1)
+    V5 = ℂ[ℤ₃](0=>1, 1=>2, 2=>3)
     @testset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, Complex64, Complex128, BigFloat)
@@ -217,12 +217,12 @@ end
     end
 end
 
-@testset "Tensors with abelian symmetries: U₁ (uses RepresentationSpace)" begin
-    V1 = ℂ[U₁](0=>1,1=>1,-1=>2)
-    V2 = ℂ[U₁](0=>2,1=>4,-1=>3)
-    V3 = ℂ[U₁](0=>3,1=>2,-1=>1)
-    V4 = ℂ[U₁](0=>2,1=>3,-1=>1)
-    V5 = ℂ[U₁](0=>1,1=>2,-1=>3)
+@testset "Tensors with abelian symmetries: U₁ (uses GenericRepresentationSpace)" begin
+    V1 = ℂ[U₁](0=>1, 1=>1, -1=>2)
+    V2 = ℂ[U₁](0=>2, 1=>4, -1=>3)
+    V3 = ℂ[U₁](0=>3, 1=>2, -1=>1)
+    V4 = ℂ[U₁](0=>2, 1=>3, -1=>1)
+    V5 = ℂ[U₁](0=>1, 1=>2, -1=>3)
     @testset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, Complex64, Complex128, BigFloat)
@@ -291,11 +291,11 @@ end
 end
 
 @testset "Tensors with non-abelian symmetries: SU₂" begin
-    V1 = ℂ[SU₂](0=>1,1//2=>1,1=>2)
-    V2 = ℂ[SU₂](0=>2,1//2=>4,1=>3)
-    V3 = ℂ[SU₂](0=>3,1//2=>2,1=>1)
-    V4 = ℂ[SU₂](0=>2,1//2=>3,1=>1)
-    V5 = ℂ[SU₂](0=>1,1//2=>2,1=>3)
+    V1 = ℂ[SU₂](0=>1, 1//2=>1, 1=>2)
+    V2 = ℂ[SU₂](0=>2, 1//2=>4, 1=>3)
+    V3 = ℂ[SU₂](0=>3, 1//2=>2, 1=>1)
+    V4 = ℂ[SU₂](0=>2, 1//2=>3, 1=>1)
+    V5 = ℂ[SU₂](0=>1, 1//2=>2, 1=>3)
     @testset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, Complex64, Complex128, BigFloat)

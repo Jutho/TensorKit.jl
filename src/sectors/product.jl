@@ -9,7 +9,7 @@ ProductSector{T}(args...) where {T<:SectorTuple} = ProductSector{T}(args)
 Base.convert(::Type{ProductSector{T}}, t::Tuple) where {T<:SectorTuple} = ProductSector{T}(convert(T, t))
 
 Base.one(::Type{ProductSector{T}}) where {G<:Sector, T<:Tuple{G}} = ProductSector((one(G),))
-Base.one(::Type{ProductSector{T}}) where {G<:Sector, T<:Tuple{G,Vararg{Sector}}} = one(G) × one(ProductSector{tuple_type_tail(T)})
+Base.one(::Type{ProductSector{T}}) where {G<:Sector, T<:Tuple{G,Vararg{Sector}}} = one(G) × one(ProductSector{Base.tuple_type_tail(T)})
 
 Base.conj(p::ProductSector) = ProductSector(map(conj, p.sectors))
 ⊗(p1::P, p2::P) where {P<:ProductSector} = SectorSet{P}(product(map(⊗,p1.sectors,p2.sectors)...))
@@ -51,11 +51,11 @@ frobeniusschur(p::ProductSector) = prod(map(frobeniusschur, p.sectors))
 
 fusiontype(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _fusiontype(T)
 _fusiontype(::Type{Tuple{}}) = Abelian
-_fusiontype(::Type{T}) where {T<:SectorTuple} = fusiontype(tuple_type_head(T)) & _fusiontype(tuple_type_tail(T))
+_fusiontype(::Type{T}) where {T<:SectorTuple} = fusiontype(Base.tuple_type_head(T)) & _fusiontype(Base.tuple_type_tail(T))
 
 braidingtype(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _braidingtype(T)
 _braidingtype(::Type{Tuple{}}) = Bosonic
-_braidingtype(::Type{T}) where {T<:SectorTuple} = braidingtype(tuple_type_head(T)) & _braidingtype(tuple_type_tail(T))
+_braidingtype(::Type{T}) where {T<:SectorTuple} = braidingtype(Base.tuple_type_head(T)) & _braidingtype(Base.tuple_type_tail(T))
 
 fermionparity(P::ProductSector) = _fermionparity(P.sectors)
 _fermionparity(::Tuple{}) = false
@@ -74,8 +74,8 @@ Base.:×(G1::Type{ProductSector{Tuple{}}}, G2::Type{ProductSector{T}}) where {T<
 Base.:×(G1::Type{ProductSector{T1}}, G2::Type{ProductSector{T2}}) where {T1<:SectorTuple,T2<:SectorTuple} =
     tuple_type_head(T1) × (ProductSector{tuple_type_tail(T1)} × G2)
 Base.:×(G1::Type{ProductSector{Tuple{}}}, G2::Type{<:Sector}) = ProductSector{Tuple{G2}}
-Base.:×(G1::Type{ProductSector{T}}, G2::Type{<:Sector}) where {T<:SectorTuple} = tuple_type_head(T) × (ProductSector{tuple_type_tail(T)} × G2)
-Base.:×(G1::Type{<:Sector}, G2::Type{ProductSector{T}}) where {T<:SectorTuple} = ProductSector{tuple_type_cons(G1,T)}
+Base.:×(G1::Type{ProductSector{T}}, G2::Type{<:Sector}) where {T<:SectorTuple} = Base.tuple_type_head(T) × (ProductSector{Base.tuple_type_tail(T)} × G2)
+Base.:×(G1::Type{<:Sector}, G2::Type{ProductSector{T}}) where {T<:SectorTuple} = ProductSector{Base.tuple_type_cons(G1,T)}
 Base.:×(G1::Type{<:Sector}, G2::Type{<:Sector}) = ProductSector{Tuple{G1,G2}}
 
 function Base.show(io::IO, P::ProductSector)

@@ -66,6 +66,14 @@ Returns the dual space of `V`; also obtained via `V'`. It is assumed that
 """
 function dual end
 
+"""
+    isdual(V::ElementarySpace) -> Bool
+Returns wether an ElementarySpace `V` is normal or rather a dual space. Always
+returns `false` for spaces where `V==dual(V)`.
+"""
+function isdual end
+
+
 # convenience definitions:
 adjoint(V::VectorSpace) = dual(V)
 Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
@@ -114,6 +122,7 @@ space itself (in the real case)
 abstract type EuclideanSpace{k} <: InnerProductSpace{k} end # k should be ℝ or ℂ
 
 dual(V::EuclideanSpace) = conj(V)
+isdual(V::EuclideanSpace{ℝ}) = false
 # dual space is naturally isomorphic to conjugate space for inner product spaces
 
 # representation spaces: we restrict to complex Euclidean space supporting unitary representations

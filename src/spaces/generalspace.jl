@@ -18,6 +18,7 @@ dim(V::GeneralSpace) = V.d
 Base.indices(V::GeneralSpace) = Base.OneTo(dim(V))
 
 dual(V::GeneralSpace{k}) where {k} = GeneralSpace{k}(V.d, !V.dual, V.conj)
+isdual(V::GeneralSpace) = V.dual
 Base.conj(V::GeneralSpace{k}) where {k} = GeneralSpace{k}(V.d, V.dual, !V.conj)
 
 function Base.show(io::IO, V::GeneralSpace{k}) where {k}

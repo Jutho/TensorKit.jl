@@ -21,6 +21,7 @@ dim(V::ComplexSpace) = V.d
 Base.indices(V::ComplexSpace) = Base.OneTo(dim(V))
 
 Base.conj(V::ComplexSpace) = ComplexSpace(V.d, !V.dual)
+isdual(V::ComplexSpace) = V.dual
 
 Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")
 

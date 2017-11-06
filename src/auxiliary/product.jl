@@ -68,7 +68,7 @@ end
 
 eltype(P::ProductIterator) = _prod_eltype(P.iterators)
 _prod_eltype(::Tuple{}) = Tuple{}
-_prod_eltype(t::Tuple) = Base.tuple_type_cons(eltype(t[1]),_prod_eltype(tail(t)))
+_prod_eltype(t::Tuple) = tuple_type_cons(eltype(t[1]),_prod_eltype(tail(t)))
 
 start(::ProductIterator{Tuple{}}) = false
 next(::ProductIterator{Tuple{}}, state) = (), true

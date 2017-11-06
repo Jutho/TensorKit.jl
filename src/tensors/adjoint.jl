@@ -24,6 +24,23 @@ Base.copy!(tdst::AdjointTensorMap, tsrc::AdjointTensorMap) = copy!(tdst.parent, 
 
 Base.vecnorm(t::AdjointTensorMap, p::Real) = vecnorm(t.parent, p)
 
+# Indexing
+#----------
+fusiontrees(t::AdjointTensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.parent.colr), keys(t.parent.rowr)))
+
+function Base.getindex(t::AdjointTensorMap{S,N₁,N₂}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
+    c = f1.incoming
+    @boundscheck begin
+        c == f2.incoming || throw(SectorMismatch())
+        checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
+    end
+    return splitdims(sview(t.parent.data[c], t.parent.rowr[f2], t.parent.colr[f1])', dims(codomain(t), f1.outgoing), dims(domain(t), f2.outgoing))
+end
+@propagate_inbounds Base.setindex!(t::AdjointTensorMap{S,N₁,N₂}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} = copy!(getindex(t, f1, f2), v)
+
+Base.getindex(t::AdjointTensorMap{<:Any,N₁,N₂,<:AbstractArray}) where {N₁,N₂} = splitdims(sview(t.parent.data,:,:)', dims(codomain(t)), dims(domain(t)))
+Base.setindex!(t::AdjointTensorMap{<:Any,N₁,N₂,<:AbstractArray}, v) where {N₁,N₂} = copy!(splitdims(sview(t.parent.data,:,:)', dims(codomain(t)), dims(domain(t))), v)
+
 # TensorMap multiplication:
 #--------------------------
 function Base.A_mul_B!(tC::TensorMap, tA::AdjointTensorMap,  tB::TensorMap)
@@ -59,13 +76,3 @@ function Base.A_mul_B!(tC::TensorMap, tA::AdjointTensorMap,  tB::AdjointTensorMa
     end
     return tC
 end
-
-# Index manipulation:
-#---------------------
-function permuteind!(tdst::AdjointTensorMap{S,N₁,N₂}, tsrc::AdjointTensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ()) where {S,N₁,N₂}
-    permuteind!(tdst.parent, tsrc.parent, p2, p1)
-    return tdst
-end
-
-permuteind(t::AdjointTensorMap, p1::IndexTuple,  p2::IndexTuple=()) = AdjointTensorMap(permuteind(t.parent, p2, p1))
-# TODO: implement proper direct index permutation permuteind!(::TensorMap, ::AdjointTensorMap)
