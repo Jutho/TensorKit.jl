@@ -5,7 +5,7 @@ function similar_from_indices(T::Type, p1::IndexTuple, p2::IndexTuple, t::Abstra
     dom = dual(s[map(n->tensor2spaceindex(t,n), reverse(p2))])
     return similar(t, T, cod←dom)
 end
-function similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p1::IndexTuple, p2::IndexTuple, tA::AbstractTensorMap, tB::AbstractTensorMap)
+function similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p1::IndexTuple, p2::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}) where {S<:IndexSpace}
     sA = codomain(tA) ⊗ dual(domain(tA))
     sB = codomain(tB) ⊗ dual(domain(tB))
     s = sA[map(n->tensor2spaceindex(tA,n), oindA)] ⊗ sB[map(n->tensor2spaceindex(tB,n), oindB)]
@@ -14,10 +14,14 @@ function similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p1:
     return similar(tA, T, cod←dom)
 end
 
+scalar(t::AbstractTensorMap{S,0,0}) where {S<:IndexSpace} = block(t, one(sectortype(S)))[1,1]
+
 function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
     # TODO: Frobenius-Schur indicators!, and fermions!
-    all(i->space(tsrc, p1[i]) == space(tdst,i), 1:N₁) || throw(SpaceMismatch())
-    all(i->space(tsrc, p2[i]) == space(tdst,N₁+i), 1:N₂) || throw(SpaceMismatch())
+    @boundscheck begin
+        all(i->space(tsrc, p1[i]) == space(tdst,i), 1:N₁) || throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)), tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
+        all(i->space(tsrc, p2[i]) == space(tdst,N₁+i), 1:N₂) || throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)), tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
+    end
 
     pdata = (p1...,p2...)
     if sectortype(S) == Trivial
@@ -44,10 +48,15 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
     return tdst
 end
 
-function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S}
+function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S}, oindA::IndexTuple{N₁}, cindA::IndexTuple, oindB::IndexTuple{N₂}, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
     A′ = permuteind(A, oindA, cindA)
     B′ = permuteind(B, cindB, oindB)
-    return add!(α, A′ * B′, β, C, p1, p2)
+    if α == 1 && β == 0 && p1 == ntuple(n->n, StaticLength(N₁)) && p2 == ntuple(n->(N₁+n), StaticLength(N₂))
+        A_mul_B!(C, A′, B′)
+    else
+        add!(α, A′ * B′, β, C, p1, p2)
+    end
+    return C
 end
 
 # Compatibility layer for working with the `@tensor` macro from TensorOperations
@@ -78,6 +87,8 @@ function TensorOperations.similar_from_indices(T::Type, oindA::IndexTuple, oindB
         similar_from_indices(T, oindA, oindB, p1, p2, adjoint(tA), adjoint(tB))
     end
 end
+
+TensorOperations.scalar(t::AbstractTensorMap) = scalar(t)
 
 function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
     if V == Val{:N}

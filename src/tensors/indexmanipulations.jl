@@ -13,15 +13,17 @@ function permuteind(t::AbstractTensorMap, p1::IndexTuple{N₁},  p2::IndexTuple{
     if (p1..., p2...) == ntuple(n->n, StaticLength(N₁)+StaticLength(N₂))
         if sectortype(t) == Trivial && isa(t, TensorMap) # share data: plain reshape
             spacet = codomain(t) ⊗ dual(domain(t))
-            cod = spacet[p1]
-            dom = dual(spacet[reverse(p2)])
+            cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
+            dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
             return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
         end
     end
-    permuteind!(similar_from_indices(eltype(t), p1, p2, t), t, p1, p2)
+    # @inbounds begin
+        return permuteind!(similar_from_indices(eltype(t), p1, p2, t), t, p1, p2)
+    # end
 end
 
-permuteind!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂} = add!(1,tsrc,0,tdst,p1,p2)
+@propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂} = add!(1,tsrc,0,tdst,p1,p2)
 
 # do we need those?
 function splitind end#

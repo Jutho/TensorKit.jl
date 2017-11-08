@@ -33,7 +33,7 @@ Base.length(t::TensorMap) = sum(length(b) for (c,b) in blocks(t)) # total number
 # General TensorMap constructors
 #--------------------------------
 # with data
-function TensorMap(data::A, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}) where {A<:AbstractArray, S<:IndexSpace, N₁, N₂}
+function TensorMap(data::AbstractArray, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
     if sectortype(S) == Trivial # For now, we can only accept array data for Trivial sectortype
         if ndims(data) == 2
             size(data) == (dim(codom), dim(dom)) || size(data) == (dims(codom)..., dims(dom)...) || throw(DimensionMismatch())
@@ -43,7 +43,9 @@ function TensorMap(data::A, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}
             size(data) == (dims(codom)..., dims(dom)...) || throw(DimensionMismatch())
         end
         eltype(data) ⊆ fieldtype(S) || warn("eltype(data) = $(eltype(data)) ⊈ $(fieldtype(S)))")
-        return TensorMap{S,N₁,N₂,A,Void,Void}(reshape(data, (dim(codom), dim(dom))), codom, dom)
+        data2 = reshape(data, (dim(codom), dim(dom)))
+        A = typeof(data2)
+        return TensorMap{S,N₁,N₂,A,Void,Void}(data2, codom, dom)
     else
         # TODO: allow to start from full data (a single AbstractArray) and create the dictionary, in the first place for Abelian sectors, or for e.g. SU₂ using Wigner 3j symbols
         throw(SectorMismatch())
@@ -282,7 +284,12 @@ end
 # TensorMap multiplication:
 #--------------------------
 function Base.A_mul_B!(tC::TensorMap, tA::TensorMap,  tB::TensorMap)
-    (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
+    if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB))
+        @show codomain(tA), domain(tA)
+        @show codomain(tB), domain(tB)
+        @show codomain(tC), domain(tC)
+        throw(SpaceMismatch())
+    end
     for c in blocksectors(tC)
         if hasblock(tA, c) # then also tB should have such a block
             A_mul_B!(block(tC, c), block(tA, c), block(tB, c))
