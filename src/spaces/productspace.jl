@@ -9,6 +9,7 @@ struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
     spaces::NTuple{N, S}
 end
 ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSpace{S,N}(spaces)
+ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSpace{S,N}(spaces)
 
 # Corresponding methods
 #-----------------------
@@ -16,7 +17,7 @@ dims(P::ProductSpace) = map(dim, P.spaces)
 dim(P::ProductSpace, n::Int) = dim(P.spaces[n])
 dim(P::ProductSpace) = reduce(*, 1, dims(P))
 
-Base.indices(P::ProductSpace) = CartesianRange(map(indices, P.spaces))
+Base.indices(P::ProductSpace) = map(indices, P.spaces)
 Base.indices(P::ProductSpace, n::Int) = indices(P.spaces[n])
 
 dual(P::ProductSpace{<:ElementarySpace,0}) = P
@@ -24,10 +25,10 @@ dual(P::ProductSpace) = ProductSpace(map(dual, reverse(P.spaces)))
 
 # Base.conj(P::ProductSpace) = ProductSpace(map(conj, P.spaces))
 
-function Base.show(io::IO, P::ProductSpace)
+function Base.show(io::IO, P::ProductSpace{S}) where {S<:ElementarySpace}
     spaces = P.spaces
     if length(spaces) == 0
-        print(io,"ProductSpace{}(())")
+        print(io,"ProductSpace{", S, ",0}")
     end
     if length(spaces) == 1
         print(io,"ProductSpace")
@@ -50,8 +51,7 @@ checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = red
 dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = map(dim, P.spaces, sector)
 dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = reduce(*, 1, dims(P, sector))
 
-Base.indices(P::ProductSpace{<:RepresentationSpace{G}, N}, sectors::NTuple{N, G}) where {G<:Sector, N} =
-        CartesianRange(map(indices, P.spaces, sectors))
+Base.indices(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N, <:Sector}) where {N} = map(indices, P.spaces, sectors)
 
 Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
 

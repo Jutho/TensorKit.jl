@@ -3,7 +3,7 @@
 """
     abstract type Field end
 
-abstract type at the top of the type hierarchy for denoting fields over which
+Abstract type at the top of the type hierarchy for denoting fields over which
 vector spaces can be defined. Two common fields are `ℝ` and `ℂ`, representing the
 field of real or complex numbers respectively.
 """
@@ -32,7 +32,7 @@ Base.@pure Base.issubset(::RealNumbers, ::ComplexNumbers) = true
 """
     abstract type VectorSpace end
 
-abstract type at the top of the type hierarchy for denoting vector spaces
+Abstract type at the top of the type hierarchy for denoting vector spaces.
 """
 abstract type VectorSpace end
 
@@ -106,18 +106,19 @@ Base.conj(V::ElementarySpace{ℝ}) = V
 """
     abstract type InnerProductSpace{k} <: ElementarySpace{k} end
 
-abstract type for denoting vector with an inner product and a corresponding
-metric, which can be used to raise or lower indices of tensors
+Abstract type for denoting vector with an inner product and a corresponding
+metric, which can be used to raise or lower indices of tensors.
 """
 abstract type InnerProductSpace{k} <: ElementarySpace{k} end
 
 """
     abstract type EuclideanSpace{k<:Union{ℝ,ℂ}} <: InnerProductSpace{k} end
 
-abstract type for denoting real or complex spaces with a standard (Euclidean)
+Abstract type for denoting real or complex spaces with a standard (Euclidean)
 inner product (i.e. orthonormal basis), such that the dual space is naturally
 isomorphic to the conjugate space (in the complex case) or even to the
-space itself (in the real case)
+space itself (in the real case), also known as the category of finite-dimensional
+Hilbert spaces FdHilb.
 """
 abstract type EuclideanSpace{k} <: InnerProductSpace{k} end # k should be ℝ or ℂ
 
@@ -130,8 +131,8 @@ isdual(V::EuclideanSpace{ℝ}) = false
     abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 
 Complex Euclidean space with a direct sum structure corresponding to different
-different superselection sectors of type `G<:Sector`, e.g. the elements or
-irreps of a compact or finite group, or the labels of a unitary fusion category.
+superselection sectors of type `G<:Sector`, e.g. the elements or irreps of a
+compact or finite group, or the labels of a unitary fusion category.
 """
 abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 
@@ -146,12 +147,13 @@ sectortype(::Type{<:ElementarySpace}) = Trivial
 sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 
 checksectors(::ElementarySpace, ::Trivial) = true
+Base.indices(V::ElementarySpace, ::Trivial) = indices(V)
 
 """
     function sectors(a)
 
-    Returns the different sectors of object `a`( e.g. a representation space or
-    an invariant tensor).
+Returns the different sectors of object `a`( e.g. a representation space or an
+invariant tensor).
 """
 sectors(::ElementarySpace) = (Trivial(),)
 dim(V::ElementarySpace, ::Trivial) = sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())

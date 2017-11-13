@@ -14,6 +14,8 @@ frobeniusschur(a::AbelianIrrep) = 1
 Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 
+fusiontensor(a::G, b::G, c::G, v::Void = nothing) where {G<:AbelianIrrep} = fill(1, (1,1,1))
+
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 127?
 struct ZNIrrep{N} <: AbelianIrrep
     n::Int8
@@ -97,6 +99,16 @@ Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6
 function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
     Nsymbol(sa, sb, sc) || return 0.
     iseven(convert(Int, _getj(sa)+_getj(sb)-_getj(sc))) ? 1.0 : -1.0
+end
+
+function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Void = nothing)
+    C = Array{Float64}(dim(a), dim(b), dim(c))
+    ja, jb, jc = map(_getj, (a, b, c))
+
+    for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
+        C[ka,kb,kc] = WignerSymbols.clebschgordan(ja, ka-ja-1, jb, kb-jb-1, jc, kc-jc-1)
+    end
+    return C
 end
 
 const SU₂ = SU2Irrep

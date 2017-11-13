@@ -59,6 +59,23 @@ fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} = FusionTree{G,2,
 fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} = _fusiontreetype(G, StaticLength(N), StaticLength(N)-StaticLength(2), StaticLength(N)-StaticLength(1))
 _fusiontreetype(::Type{G}, ::StaticLength{N}, ::StaticLength{M}, ::StaticLength{L}) where {G<:Sector, N, M, L} = FusionTree{G,N,M,L,vertex_labeltype(G)}
 
+# converting to actual array
+function Base.convert(::Type{Array}, f::FusionTree{G,1}) where {G}
+    T = eltype(fusiontensor(one(G), one(G), one(G)))
+    return copy!(Matrix{T}(dim(f.incoming), dim(f.incoming)), I)
+end
+Base.convert(::Type{Array}, f::FusionTree{G,2}) where {G} = fusiontensor(f.outgoing[1], f.outgoing[2], f.incoming, f.vertices[1])
+function Base.convert(::Type{Array}, f::FusionTree{G}) where {G}
+    tailout = (f.innerlines[1], TupleTools.tail2(f.outgoing)...)
+    ftail = FusionTree(tailout, f.incoming, TupleTools.tail(f.innerlines), TupleTools.tail(f.vertices))
+    Ctail = convert(Array, ftail)
+    C1 = fusiontensor(f.outgoing[1], f.outgoing[2], f.innerlines[1], f.vertices[1])
+    dtail = size(Ctail)
+    d1 = size(C1)
+    C = reshape(C1, d1[1]*d1[2], d1[3])*reshape(Ctail, dtail[1], TupleTools.prod(TupleTools.tail(dtail)))
+    return reshape(C, (d1[1], d1[2], TupleTools.tail(dtail)...))
+end
+
 # permute fusion tree
 """
     function permute(t::FusionTree{<:Sector,N}, i) where {N} -> (Immutable)Dict{typeof(t),<:Number}

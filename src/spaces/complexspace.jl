@@ -24,6 +24,7 @@ Base.conj(V::ComplexSpace) = ComplexSpace(V.d, !V.dual)
 isdual(V::ComplexSpace) = V.dual
 
 Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")
+Base.show(io::IO, ::Type{ComplexSpace}) = print(io, "ComplexSpace")
 
 # direct sum
 ⊕(V1::ComplexSpace, V2::ComplexSpace) = (V1.dual==V2.dual ?

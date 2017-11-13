@@ -19,6 +19,7 @@ dim(V::CartesianSpace) = V.d
 Base.indices(V::CartesianSpace) = Base.OneTo(dim(V))
 
 Base.show(io::IO, V::CartesianSpace) = print(io, "ℝ^$(V.d)")
+Base.show(io::IO, ::Type{CartesianSpace}) = print(io, "CartesianSpace")
 
 # direct sum
 ⊕(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(V1.d+V2.d)

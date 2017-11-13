@@ -33,3 +33,4 @@ function Base.show(io::IO, V::GeneralSpace{k}) where {k}
         print(io, ")")
     end
 end
+Base.show(io::IO, ::Type{GeneralSpace}) = print(io, "GeneralSpace")

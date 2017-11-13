@@ -18,9 +18,9 @@ function permuteind(t::AbstractTensorMap, p1::IndexTuple{N₁},  p2::IndexTuple{
             return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
         end
     end
-    # @inbounds begin
+    @inbounds begin
         return permuteind!(similar_from_indices(eltype(t), p1, p2, t), t, p1, p2)
-    # end
+    end
 end
 
 @propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂} = add!(1,tsrc,0,tdst,p1,p2)

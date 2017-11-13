@@ -156,7 +156,6 @@ block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} 
 blocks(t::TensorMap{S,N₁,N₂,<:Associative}) where {S,N₁,N₂} = (c=>t.data[c] for c in blocksectors(t))
 blocks(t::TensorMap{S,N₁,N₂,<:AbstractArray}) where {S,N₁,N₂} = (Trivial()=>t.data,)
 
-using Base.Iterators.filter
 fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
 
 function Base.getindex(t::TensorMap{S,N₁,N₂}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
@@ -195,6 +194,30 @@ end
     return v
 end
 
+# Show
+#------
+function Base.showcompact(io::IO, t::TensorMap)
+    print(io, "TensorMap(", codomain(t), " ← ", domain(t), ")")
+end
+function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
+    println(io, "TensorMap(", codomain(t), " ← ", domain(t), "):")
+    if sectortype(S) == Trivial && isa(t.data, AbstractArray)
+        Base.showarray(io, t[], false; header = false)
+        println(io)
+    elseif fusiontype(sectortype(S)) == Abelian
+        for (f1,f2) in fusiontrees(t)
+            println(io, "* Data for sector ", f1.outgoing, " ← ", f2.outgoing, ":")
+            Base.showarray(io, t[f1,f2], false; header = false)
+            println(io)
+        end
+    else
+        for (f1,f2) in fusiontrees(t)
+            println(io, "* Data for fusiontree ", f1, " ← ", f2, ":")
+            Base.showarray(io, t[f1,f2], false; header = false)
+            println(io)
+        end
+    end
+end
 
 # Similar
 #---------

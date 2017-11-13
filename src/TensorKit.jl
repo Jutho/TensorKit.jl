@@ -54,11 +54,14 @@ using Base: ImmutableDict
 
 import Base: permute
 
+include("auxiliary/filter.jl")
+using .Filter.filter
+
 if VERSION <= v"0.6.0"
     include("auxiliary/product.jl")
     using .Product.product
 else
-    using Base: Iterators.product
+    using Base.Iterators.product
 end
 
 if VERSION < v"0.7.0"

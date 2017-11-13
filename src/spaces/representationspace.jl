@@ -83,19 +83,23 @@ function Base.indices(V::RepresentationSpace{G}, c::G) where {G}
     offset = 0
     for c′ in sectors(V)
         c′ == c && break
-        offset += dim(V, c′)
+        offset += dim(c′)*dim(V, c′)
     end
-    return offset + (1:dim(V, c))
+    return (offset+1):(offset+dim(c)*dim(V, c))
 end
 
 const ParitySpace = ZNSpace{2}
 const ℤ₂Space = ZNSpace{2}
 const ℤ₃Space = ZNSpace{3}
 const ℤ₄Space = ZNSpace{4}
-const U₁Space = RepresentationSpace{U₁}
-if VERSION >= v"0.7-"
-    const SU₂Space = RepresentationSpace{SU₂}
-end
+const U₁Space = GenericRepresentationSpace{U₁}
+const SU₂Space = GenericRepresentationSpace{SU₂}
+
+Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
+Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
+Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
+Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
+Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
 
 # Show methods
 function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
