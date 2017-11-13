@@ -115,3 +115,42 @@ Base.scale!(α::Number, t::AbstractTensorMap) = scale!(t, t, α)
 Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = scale!(tdest, tsrc, α)
 
 Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = Base.A_mul_B!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
+
+# Convert to Array
+function Base.convert(::Type{Array}, t::AbstractTensorMap)
+    G = sectortype(t)
+    if G == Trivial
+        convert(Array, t[])
+    else
+        # TODO: Frobenius-Schur indicators!, and fermions!
+        cod = codomain(t)
+        dom = domain(t)
+        A = fill(zero(eltype(t)), (dims(cod)..., dims(dom)...))
+        for (f1,f2) in fusiontrees(t)
+            F1 = convert(Array, f1)
+            F2 = convert(Array, f2)
+            sz1 = size(F1)
+            sz2 = size(F2)
+            d1 = TupleTools.front(sz1)
+            d2 = TupleTools.front(sz2)
+            F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1...,d2...))
+            Aslice = sview(A, indices(cod, f1.outgoing)..., indices(dom, f2.outgoing)...)
+            Base.LinAlg.axpy!(1, StridedView(_kron(convert(Array,t[f1,f2]), F)), Aslice)
+        end
+        return A
+    end
+end
+
+function _kron(A, B)
+    sA = size(A)
+    sB = size(B)
+    s = map(*, sA, sB)
+    C = Array{promote_type(eltype(A),eltype(B))}(s)
+    for IA in eachindex(IndexCartesian(), A)
+        for IB in eachindex(IndexCartesian(), B)
+            I = CartesianIndex(IB.I .+ (IA.I .- 1) .* sB)
+            C[I] = A[IA]*B[IB]
+        end
+    end
+    return C
+end
