@@ -94,8 +94,8 @@ function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, �
     if V == Val{:N}
         add!(α, tsrc, β, tdst, p1, p2)
     else
-        p1 = map(n->adjointtensorindex(t,n), p1)
-        p2 = map(n->adjointtensorindex(t,n), p2)
+        p1 = map(n->adjointtensorindex(tsrc,n), p1)
+        p2 = map(n->adjointtensorindex(tsrc,n), p2)
         add!(α, adjoint(tsrc), β, tdst, p1, p2)
     end
     return tdst
