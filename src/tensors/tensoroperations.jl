@@ -48,16 +48,13 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
     return tdst
 end
 
-function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
-    p = (p1..., p2...)
+function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S<:IndexSpace,N₁,N₂}
     A′ = permuteind(A, oindA, cindA)
     B′ = permuteind(B, cindB, oindB)
-    if α == 1 && β == 0 && p == ntuple(n->n, StaticLength(N₁)+StaticLength(N₂)) && length(oindA) == N₁ && length(oindB) == N₂
+    if α == 1 && β == 0 && p1 == ntuple(n->n, StaticLength(N₁)) && p2 == ntuple(n->(N₁+n), StaticLength(N₂))
         A_mul_B!(C, A′, B′)
     else
-        pl = ntuple(n->p[n], StaticLength(N₁))
-        pr = ntuple(n->p[N₁+n], StaticLength(N₂))
-        add!(α, A′ * B′, β, C, pl, pr)
+        add!(α, A′ * B′, β, C, p1, p2)
     end
     return C
 end
@@ -107,23 +104,26 @@ function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, �
     return tdst
 end
 
-function TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S}, oindA, cindA, oindB, cindB, p1, p2) where {S}
+function TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S,N₁,N₂}
+    p = (p1..., p2...)
+    pl = ntuple(n->p[n], StaticLength(N₁))
+    pr = ntuple(n->p[N₁+n], StaticLength(N₂))
     if VA == Val{:N} && VB == Val{:N}
-        contract!(α, tA, tB, β, tC, oindA, cindA, oindB, cindB, p1, p2)
+        contract!(α, tA, tB, β, tC, oindA, cindA, oindB, cindB, pl, pr)
     elseif VA == Val{:N} && VB == Val{:C}
         oindB = map(n->adjointtensorindex(tB,n), oindB)
         cindB = map(n->adjointtensorindex(tB,n), cindB)
-        contract!(α, tA, adjoint(tB), β, tC, oindA, cindA, oindB, cindB, p1, p2)
+        contract!(α, tA, adjoint(tB), β, tC, oindA, cindA, oindB, cindB, pl, pr)
     elseif VA == Val{:C} && VB == Val{:N}
         oindA = map(n->adjointtensorindex(tA,n), oindA)
         cindA = map(n->adjointtensorindex(tA,n), cindA)
-        contract!(α, adjoint(tA), tB, β, tC, oindA, cindA, oindB, cindB, p1, p2)
+        contract!(α, adjoint(tA), tB, β, tC, oindA, cindA, oindB, cindB, pl, pr)
     else
         oindA = map(n->adjointtensorindex(tA,n), oindA)
         cindA = map(n->adjointtensorindex(tA,n), cindA)
         oindB = map(n->adjointtensorindex(tB,n), oindB)
         cindB = map(n->adjointtensorindex(tB,n), cindB)
-        contract!(α, adjoint(tA), adjoint(tB), β, tC, oindA, cindA, oindB, cindB, p1, p2)
+        contract!(α, adjoint(tA), adjoint(tB), β, tC, oindA, cindA, oindB, cindB, pl, pr)
     end
     return tC
 end

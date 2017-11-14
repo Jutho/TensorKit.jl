@@ -9,15 +9,22 @@ the codomain or range of the map, and indices in `p2` indicating the domain.
 
 To permute into an existing `tdst`, use `permuteind!(tdst, tsrc, p1, p2)`.
 """
-function permuteind(t::AbstractTensorMap, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {N₁,N₂}
-    if (p1..., p2...) == ntuple(n->n, StaticLength(N₁)+StaticLength(N₂))
-        if sectortype(t) == Trivial && isa(t, TensorMap) # share data: plain reshape
-            spacet = codomain(t) ⊗ dual(domain(t))
-            cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
-            dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
-            return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
+function permuteind(t::AbstractTensorMap, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy = false) where {N₁,N₂}
+    if !copy
+        # share data if possible
+        if isa(t, TensorMap)
+            if sectortype(t) == Trivial &&
+                (p1..., p2...) == ntuple(n->n, StaticLength(N₁)+StaticLength(N₂))
+                spacet = codomain(t) ⊗ dual(domain(t))
+                cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
+                dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
+                return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
+            end
+        elseif isa(t, AdjointTensorMap)
+            # TODO: can we share data for AdjointTensorMap?
         end
     end
+    # general case
     @inbounds begin
         return permuteind!(similar_from_indices(eltype(t), p1, p2, t), t, p1, p2)
     end
