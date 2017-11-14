@@ -48,13 +48,16 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
     return tdst
 end
 
-function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S}, oindA::IndexTuple{N₁}, cindA::IndexTuple, oindB::IndexTuple{N₂}, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
+function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
+    p = (p1..., p2...)
     A′ = permuteind(A, oindA, cindA)
     B′ = permuteind(B, cindB, oindB)
-    if α == 1 && β == 0 && p1 == ntuple(n->n, StaticLength(N₁)) && p2 == ntuple(n->(N₁+n), StaticLength(N₂))
+    if α == 1 && β == 0 && p == ntuple(n->n, StaticLength(N₁)+StaticLength(N₂)) && length(oindA) == N₁ && length(oindB) == N₂
         A_mul_B!(C, A′, B′)
     else
-        add!(α, A′ * B′, β, C, p1, p2)
+        pl = ntuple(n->p[n], StaticLength(N₁))
+        pr = ntuple(n->p[N₁+n], StaticLength(N₂))
+        add!(α, A′ * B′, β, C, pl, pr)
     end
     return C
 end
@@ -93,13 +96,13 @@ TensorOperations.scalar(t::AbstractTensorMap) = scalar(t)
 function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple) where {S,N₁,N₂}
     p = (p1..., p2...)
     if V == Val{:N}
-        p1 = ntuple(n->p[n], StaticLength(N₁))
-        p2 = ntuple(n->p[N₁+n], StaticLength(N₂))
-        add!(α, tsrc, β, tdst, p1, p2)
+        pl = ntuple(n->p[n], StaticLength(N₁))
+        pr = ntuple(n->p[N₁+n], StaticLength(N₂))
+        add!(α, tsrc, β, tdst, pl, pr)
     else
-        p1 = ntuple(n->adjointtensorindex(tsrc, p[n]), StaticLength(N₁))
-        p2 = ntuple(n->adjointtensorindex(tsrc, p[N₁+n]), StaticLength(N₂))
-        add!(α, adjoint(tsrc), β, tdst, p1, p2)
+        pl = ntuple(n->adjointtensorindex(tsrc, p[n]), StaticLength(N₁))
+        pr = ntuple(n->adjointtensorindex(tsrc, p[N₁+n]), StaticLength(N₂))
+        add!(α, adjoint(tsrc), β, tdst, pl, pr)
     end
     return tdst
 end
