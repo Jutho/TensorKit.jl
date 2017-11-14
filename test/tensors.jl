@@ -131,7 +131,7 @@ end
         for T in (Float32, Float64, Complex64, Complex128)
             t = Tensor(rand, T, W)
             Q , R = @inferred leftorth(t, (3,4,2),(1,5))
-            @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
+            @test Q*R ≈ permuteind(t, (3,4,2), (1,5))
             N = @inferred leftnull(t, (3,4,2),(1,5))
             @test vecnorm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(vecnorm(t))
             L, Q = @inferred rightorth(t, (3,4),(2,1,5))

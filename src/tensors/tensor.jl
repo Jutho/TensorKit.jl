@@ -229,7 +229,7 @@ Base.similar(t::TensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->similar(f
 # Copy and fill tensors:
 # ------------------------
 function Base.copy!(tdest::TensorMap, tsource::TensorMap)
-    codomain(tdest) == codomain(tsource) && domain(tdest) == domain(tsource) || throw(SpaceError())
+    codomain(tdest) == codomain(tsource) && domain(tdest) == domain(tsource) || throw(SpaceMismatch())
     for c in blocksectors(tdest)
         copy!(block(tdest, c), block(tsource, c))
     end
@@ -269,7 +269,7 @@ end
 # Basic vector space methods:
 # ---------------------------
 function Base.scale!(t1::TensorMap, t2::TensorMap, α::Number)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceError())
+    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         scale!(block(t1, c), block(t2, c), α)
     end
@@ -277,7 +277,7 @@ function Base.scale!(t1::TensorMap, t2::TensorMap, α::Number)
 end
 
 function Base.LinAlg.axpy!(α::Number, t1::TensorMap, t2::TensorMap)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceError())
+    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMisMatch())
     for c in blocksectors(t1)
         Base.LinAlg.axpy!(α, block(t1, c), block(t2, c))
     end

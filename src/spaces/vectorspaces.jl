@@ -182,8 +182,6 @@ include("representationspace.jl")
 # # Specific realizations of CompositeSpace types
 # #-----------------------------------------------
 include("productspace.jl")
-# include("superspace.jl")
-# include("invariantspace.jl")
 
 # Other examples might include:
 # braidedspace and fermionspace

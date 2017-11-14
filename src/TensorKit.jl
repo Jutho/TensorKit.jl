@@ -57,12 +57,12 @@ import Base: permute
 include("auxiliary/filter.jl")
 using .Filter.filter
 
-if VERSION <= v"0.6.0"
+# if VERSION <= v"0.6.1"
     include("auxiliary/product.jl")
     using .Product.product
-else
-    using Base.Iterators.product
-end
+# else
+#     using Base.Iterators.product
+# end
 
 if VERSION < v"0.7.0"
     Base.eye(s::Tuple{Integer,Integer}) = eye(s...)
