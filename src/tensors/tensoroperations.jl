@@ -90,12 +90,15 @@ end
 
 TensorOperations.scalar(t::AbstractTensorMap) = scalar(t)
 
-function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
+function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple) where {S,N₁,N₂}
+    p = (p1..., p2...)
     if V == Val{:N}
+        p1 = ntuple(n->p[n], StaticLength(N₁))
+        p2 = ntuple(n->p[N₁+n], StaticLength(N₂))
         add!(α, tsrc, β, tdst, p1, p2)
     else
-        p1 = map(n->adjointtensorindex(tsrc,n), p1)
-        p2 = map(n->adjointtensorindex(tsrc,n), p2)
+        p1 = ntuple(n->adjointtensorindex(tsrc, p[n]), StaticLength(N₁))
+        p2 = ntuple(n->adjointtensorindex(tsrc, p[N₁+n]), StaticLength(N₂))
         add!(α, adjoint(tsrc), β, tdst, p1, p2)
     end
     return tdst
