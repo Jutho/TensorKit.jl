@@ -51,7 +51,7 @@ end
 function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S<:IndexSpace,N₁,N₂}
     A′ = permuteind(A, oindA, cindA)
     B′ = permuteind(B, cindB, oindB)
-    if α == 1 && β == 0 && p1 == ntuple(n->n, StaticLength(N₁)) && p2 == ntuple(n->(N₁+n), StaticLength(N₂))
+    if α == 1 && β == 0 && length(oindA) == N₁ && p1 == ntuple(n->n, StaticLength(N₁)) && p2 == ntuple(n->(N₁+n), StaticLength(N₂))
         A_mul_B!(C, A′, B′)
     else
         add!(α, A′ * B′, β, C, p1, p2)
