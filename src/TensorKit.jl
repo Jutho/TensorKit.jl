@@ -40,7 +40,7 @@ export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 export notrunc, truncerr, truncdim, truncspace
 
 # tensor maps
-export domain, codomain
+export domain, codomain, spaceat
 
 # Imports
 #---------
