@@ -21,7 +21,16 @@ const Tensor{S<:IndexSpace, N, A, F₁, F₂} = TensorMap{S, N, 0, A, F₁, F₂
 #--------------------------------------------
 codomain(t::TensorMap) = t.codom
 domain(t::TensorMap) = t.dom
-
+#the spaceat function returns the vector space that lives on a given leg (and in doing so acts as if that leg were in the codomain)
+function spaceat(t::TensorMap, leg::Int64)
+    if leg <= length(t.codom)
+        return t.codom[leg]
+    elseif leg <= length(t.codom) + length(t.dom)
+        return (t.dom[leg - length(t.codom)])'
+    else
+        throw(DimensionMismatch())
+    end
+end
 blocksectors(t::TensorMap{<:IndexSpace, N₁, N₂, <:AbstractArray}) where {N₁,N₂} = (Trivial(),)
 blocksectors(t::TensorMap{<:IndexSpace, N₁, N₂, <:Associative}) where {N₁,N₂} = keys(t.data)
 
@@ -138,6 +147,7 @@ Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
 # Special purpose constructors
 #------------------------------
 Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
+Base.zero(P::Union{IndexSpace,TensorSpace}) = fill!(similar(TensorMap(eye, P←P)),0)
 function Base.one(t::AbstractTensorMap)
     domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
     eye(eltype(t), domain(t))
