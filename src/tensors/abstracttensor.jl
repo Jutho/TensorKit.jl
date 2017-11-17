@@ -54,7 +54,7 @@ adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,
 
 # Defining vector spaces:
 #------------------------
-const TensorSpace{S<:IndexSpace, N} = ProductSpace{S,N}
+const TensorSpace{S<:IndexSpace} = Union{S, ProductSpace{S}}
 const TensorMapSpace{S<:IndexSpace, N₁, N₂} = Pair{ProductSpace{S,N₂},ProductSpace{S,N₁}}
 
 # Little unicode hack to define TensorMapSpace

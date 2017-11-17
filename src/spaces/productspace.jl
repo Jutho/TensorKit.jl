@@ -72,6 +72,8 @@ Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,
 Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 Base.one(V::VectorSpace) = one(typeof(V))
 
+Base.convert(::Type{ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
+
 # Functionality for extracting and iterating over spaces
 #--------------------------------------------------------
 Base.length(P::ProductSpace) = length(P.spaces)

@@ -33,7 +33,7 @@ Base.length(t::TensorMap) = sum(length(b) for (c,b) in blocks(t)) # total number
 # General TensorMap constructors
 #--------------------------------
 # with data
-function TensorMap(data::AbstractArray, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
+function TensorMap(data::AbstractArray, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
     if sectortype(S) == Trivial # For now, we can only accept array data for Trivial sectortype
         if ndims(data) == 2
             size(data) == (dim(codom), dim(dom)) || size(data) == (dims(codom)..., dims(dom)...) || throw(DimensionMismatch())
@@ -52,7 +52,7 @@ function TensorMap(data::AbstractArray, codom::TensorSpace{S,N₁}, dom::TensorS
     end
 end
 
-function TensorMap(data::A, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}) where {A<:Associative, S<:IndexSpace, N₁, N₂}
+function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {A<:Associative, S<:IndexSpace, N₁, N₂}
     G = sectortype(S)
     G == keytype(data) || throw(SectorMismatch())
     F₁ = fusiontreetype(G, StaticLength(N₁))
@@ -83,7 +83,7 @@ function TensorMap(data::A, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}
 end
 
 # without data: generic constructor from callable:
-function TensorMap(f, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
+function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
     G = sectortype(S)
     if G == Trivial
         data = f((dim(codom), dim(dom)))
@@ -119,10 +119,15 @@ function TensorMap(f, codom::TensorSpace{S,N₁}, dom::TensorSpace{S,N₂}) wher
         return TensorMap{S, N₁, N₂, typeof(data), F₁, F₂}(data, codom, dom, rowr, colr)
     end
 end
+
+TensorMap(dataorf, codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = TensorMap(dataorf, codom, convert(ProductSpace, dom))
+TensorMap(dataorf, codom::S, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), dom)
+TensorMap(dataorf, codom::S, dom::S) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
+
 TensorMap(f, T::Type{<:Number}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} =
-    TensorMap(d->f(T, d), codom, dom)
+    TensorMap(d->f(T, d), convert(ProductSpace, codom), convert(ProductSpace, dom))
 TensorMap(T::Type{<:Number}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} =
-    TensorMap(d->Array{T}(d), codom, dom)
+    TensorMap(d->Array{T}(d), convert(ProductSpace, codom), convert(ProductSpace, dom))
 TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(Float64, codom, dom)
 
 TensorMap(dataorf, T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, T, P[2], P[1])
@@ -142,8 +147,8 @@ function Base.one(t::AbstractTensorMap)
     domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
     eye(eltype(t), domain(t))
 end
-Base.eye(T::Type{<:Number}, P::Union{IndexSpace,TensorSpace}) = TensorMap(eye, T, P←P)
-Base.eye(P::Union{IndexSpace,TensorSpace}) = TensorMap(eye, P←P)
+Base.eye(T::Type{<:Number}, P::TensorSpace) = TensorMap(eye, T, P←P)
+Base.eye(P::TensorSpace) = TensorMap(eye, P←P)
 
 # Getting and setting the data
 #------------------------------
