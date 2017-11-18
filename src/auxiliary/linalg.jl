@@ -71,10 +71,10 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,Polar})
     U, S, V = LAPACK.gesdd!('S', A)
     if isa(alg, SVD)
         # TODO: implement truncation based on tol in SVD
-        return U, scale!(S, V)
+        return U, Diagonal(S)*V
     else
         # TODO: check Lapack to see if we can recycle memory of A
-        return U*V, V'*scale!(S,V)
+        return U*V, V'*Diagonal(S)*V
     end
 end
 
