@@ -124,9 +124,9 @@ TensorMap(dataorf, codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = Tenso
 TensorMap(dataorf, codom::S, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), dom)
 TensorMap(dataorf, codom::S, dom::S) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
 
-TensorMap(f, T::Type{<:Number}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} =
+TensorMap(f, ::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace, T<:Number} =
     TensorMap(d->f(T, d), convert(ProductSpace, codom), convert(ProductSpace, dom))
-TensorMap(T::Type{<:Number}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} =
+TensorMap(::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace, T<:Number} =
     TensorMap(d->Array{T}(d), convert(ProductSpace, codom), convert(ProductSpace, dom))
 TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(Float64, codom, dom)
 
