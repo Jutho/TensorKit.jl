@@ -114,6 +114,9 @@ Base.scale!(t::AbstractTensorMap, α::Number) = scale!(t, t, α)
 Base.scale!(α::Number, t::AbstractTensorMap) = scale!(t, t, α)
 Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = scale!(tdest, tsrc, α)
 
+Base.normalize!(t::AbstractTensorMap, p::Real = 2) = scale!(t, inv(vecnorm(t,p)))
+normalize(t::AbstractTensorMap, p::Real = 2) = normalize!(copy(t), p)
+
 Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = Base.A_mul_B!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
 
 # Convert to Array

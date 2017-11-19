@@ -32,18 +32,25 @@ export ⊕, ⊗, ×, ℂ, ℝ, ←, →
 export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
 export RepresentationSpace, ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU₂Space
 
+# tensor maps
+export domain, codomain
+
+# random methods for constructor
+export randuniform, randnormal, randisometry
+export one!
+
 # tensor factorizations
 export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
-export scalar, add!, contract!
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, LQ, LQpos, SVD, Polar
 
+# tensor operations
+export @tensor, @tensoropt
+export scalar, add!, contract!
+
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace
-
-# tensor maps
-export domain, codomain
 
 # Imports
 #---------
@@ -82,7 +89,6 @@ end
 
 import TensorOperations
 import TensorOperations: @tensor, @tensoropt
-export @tensor, @tensoropt
 
 const IndexTuple{N} = NTuple{N,Int}
 
@@ -90,6 +96,7 @@ const IndexTuple{N} = NTuple{N,Int}
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/linalg.jl")
+include("auxiliary/random.jl")
 
 # Exception types:
 #------------------

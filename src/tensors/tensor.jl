@@ -147,6 +147,13 @@ function Base.one(t::AbstractTensorMap)
     domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
     eye(eltype(t), domain(t))
 end
+function one!(t::AbstractTensorMap)
+    domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
+    for (c,b) in blocks(t)
+        copy!(b, I)
+    end
+    return t
+end
 Base.eye(T::Type{<:Number}, P::TensorSpace) = TensorMap(eye, T, P←P)
 Base.eye(P::TensorSpace) = TensorMap(eye, P←P)
 
