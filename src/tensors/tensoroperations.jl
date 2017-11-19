@@ -14,7 +14,7 @@ function similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p1:
     return similar(tA, T, cod←dom)
 end
 
-scalar(t::AbstractTensorMap{S,0,0}) where {S<:IndexSpace} = block(t, one(sectortype(S)))[1,1]
+scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} = dim(codomain(t)) == dim(domain(t)) == 1 ? first(blocks(t))[2][1,1] : throw(SpaceMismatch())
 
 function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
     # TODO: Frobenius-Schur indicators!, and fermions!

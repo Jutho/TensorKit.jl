@@ -72,7 +72,12 @@ Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,
 Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 Base.one(V::VectorSpace) = one(typeof(V))
 
-Base.convert(::Type{ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
+Base.convert(::Type{<:ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
+if VERSION <= v"0.6.99"
+    Base.literal_pow(::typeof(^), V::ElementarySpace, p::Type{Val{N}}) where {N} = ProductSpace(ntuple(n->V, p))
+else
+    Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val) = ProductSpace(ntuple(n->V, p))
+end
 
 # Functionality for extracting and iterating over spaces
 #--------------------------------------------------------

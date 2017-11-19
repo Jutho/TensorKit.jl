@@ -35,6 +35,7 @@ export RepresentationSpace, ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU
 # tensor factorizations
 export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
+export scalar, add!, contract!
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, LQ, LQpos, SVD, Polar
 
