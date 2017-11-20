@@ -44,13 +44,13 @@ Base.show(io::IO, c::ZNIrrep{N}) where {N} = get(io, :compact, false) ? print(io
 
 # U1Irrep: irreps of U1 are labelled by integers
 struct U1Irrep <: AbelianIrrep
-    charge::Int
+    charge::Rational{Int}
 end
 Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 ⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
 
-Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(Int, c))
+Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(Rational{Int}, c))
 
 const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
