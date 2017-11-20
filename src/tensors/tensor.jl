@@ -119,15 +119,15 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
         return TensorMap{S, N₁, N₂, typeof(data), F₁, F₂}(data, codom, dom, rowr, colr)
     end
 end
+TensorMap(::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
+    TensorMap(d->Array{T}(d), codom, dom)
 
-TensorMap(dataorf, codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = TensorMap(dataorf, codom, convert(ProductSpace, dom))
-TensorMap(dataorf, codom::S, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), dom)
-TensorMap(dataorf, codom::S, dom::S) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
+TensorMap(dataorf, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
 
 TensorMap(f, ::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->f(T, d), convert(ProductSpace, codom), convert(ProductSpace, dom))
+    TensorMap(d->f(T, d), codom, dom)
 TensorMap(::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(d), convert(ProductSpace, codom), convert(ProductSpace, dom))
+    TensorMap(d->Array{T}(d), codom, dom)
 TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(Float64, codom, dom)
 
 TensorMap(dataorf, T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, T, P[2], P[1])

@@ -11,6 +11,7 @@ struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
     dual::Bool
 end
 GenericRepresentationSpace{G}(dims::Dict{G,Int}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(dims, dual)
+GenericRepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(Dict{G,Int}(convert(G,s)=>d for (s,d) in dims if d!=0), dual)
 
 """
     struct ZNSpace{N} <: AbstractRepresentationSpace{ZNIrrep{N}}
