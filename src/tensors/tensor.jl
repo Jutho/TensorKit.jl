@@ -159,16 +159,33 @@ Base.eye(P::TensorSpace) = TensorMap(eye, P←P)
 
 # Getting and setting the data
 #------------------------------
-hasblock(t::TensorMap{<:ElementarySpace,N₁,N₂,<:Associative}, s::Sector) where {N₁,N₂} = haskey(t.data, s)
-hasblock(t::TensorMap{<:ElementarySpace,N₁,N₂,<:AbstractArray}, ::Trivial) where {N₁,N₂} = true
+hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:Associative}, s::Sector) where {N₁,N₂} = haskey(t.data, s)
+hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray}, ::Trivial) where {N₁,N₂} = true
 
 block(t::TensorMap{S,N₁,N₂,<:Associative}, s::Sector) where {S,N₁,N₂} = sectortype(S) == typeof(s) ? t.data[s] : throw(SectorMismatch())
 block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} = t.data
 
-blocks(t::TensorMap{S,N₁,N₂,<:Associative}) where {S,N₁,N₂} = (c=>t.data[c] for c in blocksectors(t))
-blocks(t::TensorMap{S,N₁,N₂,<:AbstractArray}) where {S,N₁,N₂} = (Trivial()=>t.data,)
+blocks(t::TensorMap{S,N₁,N₂,<:Associative}) where {S<:IndexSpace,N₁,N₂} = (c=>t.data[c] for c in blocksectors(t))
+blocks(t::TensorMap{S,N₁,N₂,<:AbstractArray}) where {S<:IndexSpace,N₁,N₂} = (Trivial()=>t.data,)
 
 fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
+
+function Base.getindex(t::TensorMap{S,N₁,N₂}, sectors::Tuple{Vararg{G}}) where {S<:IndexSpace,N₁,N₂,G<:Sector}
+    (N₁+N₂ == length(sectors) && sectortype(S) == G) || throw(SectorMismatch("Sectors $sectors not valid for tensor in $(codomain(t))←$(domain(t))"))
+    fusiontype(G) == Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
+    s1 = ntuple(n->sectors[n], StaticLength(N₁))
+    s2 = ntuple(n->sectors[N₁+n], StaticLength(N₂))
+    c1 = length(s1) == 0 ? one(G) : (length(s1) == 1 ? s1[1] : first(⊗(s1...)))
+    @boundscheck begin
+        c2 = length(s2) == 0 ? one(G) : (length(s2) == 1 ? s2[1] : first(⊗(s1...)))
+        c2 == c1 || throw(SectorMismatch())
+        checksectors(codomain(t), s1) && checksectors(domain(t), s2)
+    end
+    f1 = FusionTree(s1,c1)
+    f2 = FusionTree(s2,c1)
+    return t[f1,f2]
+end
+Base.getindex(t::TensorMap, sectors::Tuple) = t[map(sectortype(t), sectors)]
 
 function Base.getindex(t::TensorMap{S,N₁,N₂}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
     c = f1.incoming
