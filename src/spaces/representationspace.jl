@@ -108,7 +108,11 @@ function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
     seperator = ""
     comma = ", "
     for c in sectors(V)
-        print(io, seperator, sprint(showcompact, c), "=>", dim(V, c))
+        if isdual(V)
+            print(io, seperator, sprint(showcompact, dual(c)), "=>", dim(V, c))
+        else
+            print(io, seperator, sprint(showcompact, c), "=>", dim(V, c))
+        end
         seperator = comma
     end
     print(io, ")")

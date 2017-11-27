@@ -10,7 +10,7 @@ using TensorKit
 randsector(::Type{ZNIrrep{N}}) where {N} = ZNIrrep{N}(rand(1:N))
 randsector(::Type{U₁}) = U₁(rand(-10:10))
 randsector(::Type{SU₂}) = SU₂(rand(0:1//2:2))
-randsector(P::Type{<:TensorKit.ProductSector}) = P(map(randsector, (P.parameters[1].parameters...)))
+randsector(P::Type{<:TensorKit.ProductSector}) = P(map(randsector, (P.parameters[1].parameters...,)))
 
 include("sectors.jl")
 include("spaces.jl")

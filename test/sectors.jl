@@ -53,7 +53,7 @@
 
         @inferred braid(f, 2)
 
-        p = tuple(randperm(N)...)
+        p = tuple(randperm(N)...,)
         ip = invperm(p)
 
         d = @inferred TensorKit.permute(f, p)
@@ -90,7 +90,7 @@
             end
         end
 
-        p = (randperm(2*N)...)
+        p = (randperm(2*N)...,)
         p1, p2 = p[1:3], p[4:2N]
         ip = invperm(p)
         ip1, ip2 = ip[1:N], ip[N+1:2N]
