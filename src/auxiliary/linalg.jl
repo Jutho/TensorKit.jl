@@ -38,7 +38,7 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos} = QRpos()
     k = min(m, n)
 
     A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
-    Q = LAPACK.gemqrt!('L', 'N', A, T, eye(eltype(A), m, k))
+    Q = LAPACK.gemqrt!('L', 'N', A, T, Matrix{eltype(A)}(I, m, k))
     R = triu!(A[1:k, :])
 
     if isa(alg, QRpos)

@@ -53,6 +53,31 @@ dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} 
 
 Base.indices(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N, <:Sector}) where {N} = map(indices, P.spaces, sectors)
 
+function blocksectors(P::ProductSpace{S,N}) where {S,N}
+    G = sectortype(S)
+    if G == Trivial
+        return (Trivial(),)
+    end
+    if N == 0
+        return Set{G}((one(G),))
+    elseif N == 1
+        return Set{G}(first(s) for s in sectors(P))
+    else
+        return foldl(union!, Set{G}(), (⊗(s...) for s in sectors(P)))
+    end
+end
+function blockdim(P::ProductSpace, c::Sector)
+    sectortype(P) == typeof(c) || throw(SectorMismatch())
+    d = 0
+    for s in sectors(P)
+        ds = dim(P, s)
+        for f in fusiontrees(s, c)
+            d += ds
+        end
+    end
+    return d
+end
+
 Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
 
 # Default construction from product of spaces

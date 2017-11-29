@@ -74,18 +74,51 @@ using .Filter.filter
 #     using Base.Iterators.product
 # end
 
-if VERSION < v"0.7.0"
-    Base.eye(s::Tuple{Integer,Integer}) = eye(s...)
-    Base.eye(::Type{T}, s::Tuple{Integer,Integer}) where {T} = eye(T, s...)
+#--------------------------------------------------------------------
+# ALL OF THIS CAN GO ON JULIA 0.7 or 1.0
+if VERSION < v"0.7.0-DEV.2377"
+    Base.Matrix{T}(s::UniformScaling, dims::Base.Dims{2}) where {T}= setindex!(zeros(T, dims), T(s.λ), diagind(dims...))
+    Base.Matrix{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, Dims((m, n)))
+end
+if VERSION < v"0.7.0-DEV.2543"
+    Base.Array{T}(s::UniformScaling, dims::Base.Dims{2}) where {T} = Matrix{T}(s, dims)
+    Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
 end
 
-if VERSION < v"0.7.0-DEV.1415"
+@static if !isdefined(Base, :adjoint)
     const adjoint = Base.ctranspose
     const adjoint! = Base.ctranspose!
     export adjoint, adjoint!
 else
     import Base: adjoint, adjoint!
 end
+
+@static if !isdefined(Base, Symbol("@__MODULE__"))
+    # 0.7
+    export @__MODULE__
+    macro __MODULE__()
+        return current_module()
+    end
+    Base.expand(mod::Module, x::ANY) = eval(mod, :(expand($(QuoteNode(x)))))
+    Base.macroexpand(mod::Module, x::ANY) = eval(mod, :(macroexpand($(QuoteNode(x)))))
+    Base.include_string(mod::Module, code::String, fname::String) =
+        eval(mod, :(include_string($code, $fname)))
+    Base.include_string(mod::Module, code::AbstractString, fname::AbstractString="string") =
+        eval(mod, :(include_string($code, $fname)))
+end
+
+@static if !isdefined(Base, :Uninitialized)
+    include_string(@__MODULE__, """
+        struct Uninitialized end
+        Base.Array{T}(::Uninitialized, args...) where {T} = Array{T}(args...)
+        Base.Array{T,N}(::Uninitialized, args...) where {T,N} = Array{T,N}(args...)
+        Base.Vector(::Uninitialized, args...) = Vector(args...)
+        Base.Matrix(::Uninitialized, args...) = Matrix(args...)
+    """)
+    const uninitialized = Uninitialized()
+    export Uninitialized, uninitialized
+end
+#--------------------------------------------------------------------
 
 import TensorOperations
 import TensorOperations: @tensor, @tensoropt

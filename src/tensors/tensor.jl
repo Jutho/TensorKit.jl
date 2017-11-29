@@ -162,7 +162,15 @@ Base.eye(P::TensorSpace) = TensorMap(eye, P←P)
 hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:Associative}, s::Sector) where {N₁,N₂} = haskey(t.data, s)
 hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray}, ::Trivial) where {N₁,N₂} = true
 
-block(t::TensorMap{S,N₁,N₂,<:Associative}, s::Sector) where {S,N₁,N₂} = sectortype(S) == typeof(s) ? t.data[s] : throw(SectorMismatch())
+function block(t::TensorMap{S,N₁,N₂,<:Associative}, s::Sector) where {S,N₁,N₂}
+    sectortype(S) == typeof(s) || throw(SectorMismatch())
+    A = valtype(t.data)
+    if haskey(t.data, s)
+        return t.data[s]
+    else # at least one of the two matrix dimensions will be zero
+        return A((blockdim(codomain(t),s), blockdim(domain(t), s)))
+    end
+end
 block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} = t.data
 
 blocks(t::TensorMap{S,N₁,N₂,<:Associative}) where {S<:IndexSpace,N₁,N₂} = (c=>t.data[c] for c in blocksectors(t))
@@ -343,11 +351,7 @@ function Base.A_mul_B!(tC::TensorMap, tA::TensorMap,  tB::TensorMap)
         throw(SpaceMismatch())
     end
     for c in blocksectors(tC)
-        if hasblock(tA, c) # then also tB should have such a block
-            A_mul_B!(block(tC, c), block(tA, c), block(tB, c))
-        else
-            fill!(block(tC, c), 0)
-        end
+        A_mul_B!(block(tC, c), block(tA, c), block(tB, c))
     end
     return tC
 end
@@ -360,15 +364,11 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
         V = S(size(Q,2))
         return TensorMap(Q, codomain(t)←V), TensorMap(R, V←domain(t))
     else
-        it = blocksectors(t)
-        c, s = next(it, start(it))
-        Q, R = leftorth!(t.data[c], alg)
-        Qdata = Dict(c => Q)
-        Rdata = Dict(c => R)
-        dims = Dict(c => size(Q, 2))
-        while !done(it, s)
-            c, s = next(it, s)
-            Q, R = leftorth!(t.data[c], alg)
+        Qdata = similar(t.data)
+        Rdata = similar(t.data)
+        dims = Dict{sectortype(t), Int}()
+        for c in blocksectors(t)
+            Q, R = leftorth!(block(t,c), alg)
             Qdata[c] = Q
             Rdata[c] = R
             dims[c] = size(Q, 2)
@@ -380,21 +380,19 @@ end
 function leftnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
         N = leftnull!(t.data, alg)
-        V = S(size(N, 2))
-        return TensorMap(N, codomain(t)←V)
+        W = S(size(N, 2))
+        return TensorMap(N, codomain(t)←W)
     else
-        it = blocksectors(t)
-        c, s = next(it, start(it))
-        N = leftnull!(t.data[c], alg)
-        Ndata = Dict(c => N)
-        dims = Dict(c => size(N, 2))
-        while !done(it, s)
-            c, s = next(it, s)
-            N = leftnull!(t.data[c], alg)
+        V = codomain(t)
+        Ndata = similar(t.data)
+        dims = Dict{sectortype(t), Int}()
+        for c in blocksectors(V)
+            N = leftnull!(block(t,c), alg)
             Ndata[c] = N
+            dims[c] = size(N,2)
         end
-        V = S(dims)
-        return TensorMap(Ndata, codomain(t)←V)
+        W = S(dims)
+        return TensorMap(Ndata, V←W)
     end
 end
 function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
@@ -403,15 +401,11 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
         V = S(size(Q, 1))
         return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
     else
-        it = blocksectors(t)
-        c, s = next(it, start(it))
-        L, Q = rightorth!(t.data[c], alg)
-        Ldata = Dict(c => L)
-        Qdata = Dict(c => Q)
-        dims = Dict(c => size(Q, 1))
-        while !done(it, s)
-            c, s = next(it, s)
-            L, Q = rightorth!(t.data[c], alg)
+        Ldata = similar(t.data)
+        Qdata = similar(t.data)
+        dims = Dict{sectortype(t), Int}()
+        for c in blocksectors(t)
+            L, Q = rightorth!(block(t,c), alg)
             Ldata[c] = L
             Qdata[c] = Q
             dims[c] = size(Q, 1)
@@ -423,22 +417,20 @@ end
 function rightnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
     if isa(t.data, AbstractArray)
         N = rightnull!(t.data, alg)
-        V = S(size(N, 1))
-        return TensorMap(N, V←domain(t))
+        W = S(size(N, 1))
+        return TensorMap(N, W←domain(t))
     else
-        it = blocksectors(t)
-        c, s = next(it, start(it))
-        N = rightnull!(t.data[c], alg)
-        Ndata = Dict(c => N)
-        dims = Dict(c => size(N, 1))
-        while !done(it, s)
-            c, s = next(it, s)
-            N = rightnull!(t.data[c], alg)
+        V = domain(t)
+        Ndata = similar(t.data)
+        A = valtype(Ndata)
+        dims = Dict{sectortype(t), Int}()
+        for c in blocksectors(V)
+            N = rightnull!(block(t,c), alg)
             Ndata[c] = N
-            dims[c] = size(N, 1)
+            dims[c] = size(N,1)
         end
-        V = S(dims)
-        return TensorMap(Ndata, V←domain(t))
+        W = S(dims)
+        return TensorMap(Ndata, W←V)
     end
 end
 function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real = 2) where {S<:EuclideanSpace}

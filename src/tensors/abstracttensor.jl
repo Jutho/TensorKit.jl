@@ -68,27 +68,10 @@ const TensorMapSpace{S<:IndexSpace, N₁, N₂} = Pair{ProductSpace{S,N₂},Prod
 ←(codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => codom
 ←(codom::S, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => ProductSpace(codom)
 
+# do we still need this
 function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S,N₁,N₂}
-    G = sectortype(S)
-    if G == Trivial
-        return (Trivial(),)
-    end
-    if N₁ == 0
-        c1 = Set{G}((one(G),))
-    elseif N₁ == 1
-        c1 = Set{G}(first(s) for s in sectors(codom))
-    else
-        c1 = foldl(union!, Set{G}(), (⊗(s...) for s in sectors(codom)))
-    end
-    if N₂ == 0
-        c2 = Set{G}((one(G),))
-    elseif N₂ == 1
-        c2 = Set{G}(first(s) for s in sectors(dom))
-    else
-        c2 = foldl(union!, Set{G}(), (⊗(s...) for s in sectors(dom)))
-    end
-
-    return intersect(c1,c2)
+    sectortype(S) == Trivial && return (Trivial(),)
+    return intersect(blocksectors(codom), blocksectors(dom))
 end
 
 # Basic algebra
