@@ -120,15 +120,18 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
     end
 end
 TensorMap(::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(d), codom, dom)
+    TensorMap(d->Array{T}(uninitalized, d), codom, dom)
+TensorMap(I::UniformScaling, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
+    TensorMap(d->Array{T}(I, d), codom, dom)
+TensorMap(I::UniformScaling, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(I, Float64, codom, dom)
+TensorMap(::Uninitialized, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
+    TensorMap(d->Array{T}(uninitialized, d), codom, dom)
+TensorMap(::Uninitialized, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(uninitialized, Float64, codom, dom)
 
+TensorMap(::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {T<:Number, S<:IndexSpace} = TensorMap(T, convert(ProductSpace, codom), convert(ProductSpace, dom))
 TensorMap(dataorf, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
-
-TensorMap(f, ::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->f(T, d), codom, dom)
-TensorMap(::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(d), codom, dom)
-TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(Float64, codom, dom)
+TensorMap(dataorf, ::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {T<:Number, S<:IndexSpace} = TensorMap(dataorf, T, convert(ProductSpace, codom), convert(ProductSpace, dom))
+TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(Float64, convert(ProductSpace, codom), convert(ProductSpace, dom))
 
 TensorMap(dataorf, T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, T, P[2], P[1])
 TensorMap(dataorf, P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, P[2], P[1])
@@ -139,7 +142,6 @@ Tensor(dataorf, T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = Te
 Tensor(dataorf, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, P, one(P))
 Tensor(T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(T, P, one(P))
 Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
-
 # Special purpose constructors
 #------------------------------
 Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
