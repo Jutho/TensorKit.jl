@@ -76,6 +76,12 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos,QL,QLpos} 
         @inbounds for j = 1:nhalf, i = 1:m
             R[i,j], R[n+1-i,n+1-j] = R[n+1-i,n+1-j], R[i,j]
         end
+        if isodd(n)
+            j = nhalf+1
+            @inbounds for i = 1:nhalf
+                R[i,j], R[m+1-i,j] = R[m+1-i,j], R[i,j]
+            end
+        end
         return Q, R
     end
 end
