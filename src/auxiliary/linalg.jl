@@ -14,7 +14,10 @@ struct QRpos <: OrthogonalFactorizationAlgorithm
 end
 struct QR <: OrthogonalFactorizationAlgorithm
 end
-# TODO: QL and QLpos ?
+struct QL <: OrthogonalFactorizationAlgorithm
+end
+struct LQ <: OrthogonalFactorizationAlgorithm
+end
 struct LQ <: OrthogonalFactorizationAlgorithm
 end
 struct LQpos <: OrthogonalFactorizationAlgorithm
@@ -33,28 +36,48 @@ end
 _safesign(s::Real) = ifelse(s<zero(s), -one(s), +one(s))
 _safesign(s::Complex) = ifelse(iszero(s), one(s), s/abs(s))
 
-function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos} = QRpos())
+function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos,QL,QLpos} = QRpos())
     m, n = size(A)
     k = min(m, n)
 
-    A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
-    Q = LAPACK.gemqrt!('L', 'N', A, T, Matrix{eltype(A)}(I, m, k))
-    R = triu!(A[1:k, :])
+    if isa(alg, QR) || isa(alg, QRpos)
+        A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
+        Q = LAPACK.gemqrt!('L', 'N', A, T, eye(eltype(A), m, k))
+        R = triu!(A[1:k, :])
 
-    if isa(alg, QRpos)
-        @inbounds for j = 1:k
-            s = _safesign(R[j,j])
-            @simd for i = 1:m
-                Q[i,j] *= s
+        if isa(alg, QRpos)
+            @inbounds for j = 1:k
+                s = _safesign(R[j,j])
+                @simd for i = 1:m
+                    Q[i,j] *= s
+                end
+            end
+            @inbounds for j = size(R,2):-1:1
+                for i = 1:min(k,j)
+                    R[i,j] = R[i,j]*conj(_safesign(R[i,i]))
+                end
             end
         end
-        @inbounds for j = size(R,2):-1:1
-            for i = 1:min(k,j)
-                R[i,j] = R[i,j]*conj(_safesign(R[i,i]))
-            end
+        return Q, R
+    else
+        @assert m >= n
+
+        nhalf = div(n,2)
+        #swap colomns in A
+        @inbounds for j = 1:nhalf, i = 1:m
+            A[i,j], A[i,n+1-j] = A[i,n+1-j], A[i,j]
         end
+        Q, R = leftorth!(A, isa(alg, QL) ? QR() : QRpos() )
+        #swap comumns in Q
+        @inbounds for j = 1:nhalf, i = 1:m
+            Q[i,j], Q[i,n+1-j] = Q[i,n+1-j], Q[i,j]
+        end
+        #swap rows and columns in R
+        @inbounds for j = 1:nhalf, i = 1:m
+            R[i,j], R[n+1-i,n+1-j] = R[n+1-i,n+1-j], R[i,j]
+        end
+        return Q, R
     end
-    return Q, R
 end
 # TODO: reconsider the following implementation
 # Unfortunately, geqrfp seems a bit slower than geqrt in the intermediate region
