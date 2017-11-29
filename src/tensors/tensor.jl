@@ -142,6 +142,7 @@ Tensor(dataorf, T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = Te
 Tensor(dataorf, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, P, one(P))
 Tensor(T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(T, P, one(P))
 Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
+
 # Special purpose constructors
 #------------------------------
 Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
@@ -156,8 +157,6 @@ function one!(t::AbstractTensorMap)
     end
     return t
 end
-Base.eye(T::Type{<:Number}, P::TensorSpace) = TensorMap(eye, T, P←P)
-Base.eye(P::TensorSpace) = TensorMap(eye, P←P)
 
 # Getting and setting the data
 #------------------------------
