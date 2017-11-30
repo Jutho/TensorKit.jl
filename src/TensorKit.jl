@@ -43,7 +43,7 @@ export one!
 export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 
-export OrthogonalFactorizationAlgorithm, QR, QRpos, LQ, LQpos, SVD, Polar
+export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, SVD, Polar
 
 # tensor operations
 export @tensor, @tensoropt
