@@ -14,9 +14,9 @@ struct QRpos <: OrthogonalFactorizationAlgorithm
 end
 struct QR <: OrthogonalFactorizationAlgorithm
 end
-struct QLPos <: OrthogonalFactorizationAlgorithm
-end
 struct QL <: OrthogonalFactorizationAlgorithm
+end
+struct QLpos <: OrthogonalFactorizationAlgorithm
 end
 struct LQ <: OrthogonalFactorizationAlgorithm
 end
