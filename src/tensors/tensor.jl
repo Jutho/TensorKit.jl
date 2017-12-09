@@ -171,7 +171,7 @@ function block(t::TensorMap{S,N₁,N₂,<:Associative}, s::Sector) where {S,N₁
     if haskey(t.data, s)
         return t.data[s]
     else # at least one of the two matrix dimensions will be zero
-        return A((blockdim(codomain(t),s), blockdim(domain(t), s)))
+        return A(uninitialized, (blockdim(codomain(t),s), blockdim(domain(t), s)))
     end
 end
 block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} = t.data
@@ -367,8 +367,8 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
         V = S(size(Q,2))
         return TensorMap(Q, codomain(t)←V), TensorMap(R, V←domain(t))
     else
-        Qdata = similar(t.data)
-        Rdata = similar(t.data)
+        Qdata = empty(t.data)
+        Rdata = empty(t.data)
         dims = Dict{sectortype(t), Int}()
         for c in blocksectors(t)
             Q, R = leftorth!(block(t,c), alg)
@@ -387,7 +387,7 @@ function leftnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
         return TensorMap(N, codomain(t)←W)
     else
         V = codomain(t)
-        Ndata = similar(t.data)
+        Ndata = empty(t.data)
         dims = Dict{sectortype(t), Int}()
         for c in blocksectors(V)
             N = leftnull!(block(t,c), alg)
@@ -404,8 +404,8 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
         V = S(size(Q, 1))
         return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
     else
-        Ldata = similar(t.data)
-        Qdata = similar(t.data)
+        Ldata = empty(t.data)
+        Qdata = empty(t.data)
         dims = Dict{sectortype(t), Int}()
         for c in blocksectors(t)
             L, Q = rightorth!(block(t,c), alg)
@@ -424,7 +424,7 @@ function rightnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
         return TensorMap(N, W←domain(t))
     else
         V = domain(t)
-        Ndata = similar(t.data)
+        Ndata = empty(t.data)
         A = valtype(Ndata)
         dims = Dict{sectortype(t), Int}()
         for c in blocksectors(V)

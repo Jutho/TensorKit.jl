@@ -104,7 +104,7 @@ function Base.permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
     else
         coeff = Rsymbol(one(G), one(G), one(G))
         trees = Dict(t=>coeff)
-        newtrees = similar(trees)
+        newtrees = empty(trees)
         for s in permutation2swaps(p)
             for (t, c) in trees
                 for (t′,c′) in braid(t, s)

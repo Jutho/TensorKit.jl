@@ -1,11 +1,11 @@
 # Add support for TensorOperations.jl
-function similar_from_indices(T::Type, p1::IndexTuple, p2::IndexTuple, t::AbstractTensorMap)
+function similar_from_indices(::Type{T}, p1::IndexTuple, p2::IndexTuple, t::AbstractTensorMap) where {T}
     s = codomain(t) ⊗ dual(domain(t))
     cod = s[map(n->tensor2spaceindex(t,n), p1)]
     dom = dual(s[map(n->tensor2spaceindex(t,n), reverse(p2))])
     return similar(t, T, cod←dom)
 end
-function similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p1::IndexTuple, p2::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}) where {S<:IndexSpace}
+function similar_from_indices(::Type{T}, oindA::IndexTuple, oindB::IndexTuple, p1::IndexTuple, p2::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}) where {T, S<:IndexSpace}
     sA = codomain(tA) ⊗ dual(domain(tA))
     sB = codomain(tB) ⊗ dual(domain(tB))
     s = sA[map(n->tensor2spaceindex(tA,n), oindA)] ⊗ sB[map(n->tensor2spaceindex(tB,n), oindB)]

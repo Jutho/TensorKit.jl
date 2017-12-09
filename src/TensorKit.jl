@@ -43,7 +43,7 @@ export one!
 export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 
-export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, SVD, Polar
+export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos, SVD, Polar
 
 # tensor operations
 export @tensor, @tensoropt
@@ -83,6 +83,12 @@ end
 if VERSION < v"0.7.0-DEV.2543"
     Base.Array{T}(s::UniformScaling, dims::Base.Dims{2}) where {T} = Matrix{T}(s, dims)
     Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
+end
+
+@static if !isdefined(Base, :empty)
+    empty(a::Associative) = empty(a, keytype(a), valtype(a))
+    empty(a::Associative, ::Type{V}) where {V} = empty(a, keytype(a), V)
+    empty(a::Associative, ::Type{K}, ::Type{V}) where {K, V} = Dict{K, V}()
 end
 
 @static if !isdefined(Base, :adjoint)
