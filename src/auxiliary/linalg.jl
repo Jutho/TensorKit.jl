@@ -74,24 +74,24 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL,QLpos})
     @assert m >= n
 
     nhalf = div(n,2)
-    #swap colomns in A
+    #swap columns in A
     @inbounds for j = 1:nhalf, i = 1:m
         A[i,j], A[i,n+1-j] = A[i,n+1-j], A[i,j]
     end
     Q, R = leftorth!(A, isa(alg, QL) ? QR() : QRpos() )
 
-    #swap comumns in Q
+    #swap columns in Q
     @inbounds for j = 1:nhalf, i = 1:m
         Q[i,j], Q[i,n+1-j] = Q[i,n+1-j], Q[i,j]
     end
     #swap rows and columns in R
-    @inbounds for j = 1:nhalf, i = 1:m
+    @inbounds for j = 1:nhalf, i = 1:n
         R[i,j], R[n+1-i,n+1-j] = R[n+1-i,n+1-j], R[i,j]
     end
     if isodd(n)
         j = nhalf+1
         @inbounds for i = 1:nhalf
-            R[i,j], R[m+1-i,j] = R[m+1-i,j], R[i,j]
+            R[i,j], R[n+1-i,j] = R[n+1-i,j], R[i,j]
         end
     end
     return Q, R
@@ -101,10 +101,14 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,Polar})
     U, S, V = LAPACK.gesdd!('S', A)
     if isa(alg, SVD)
         # TODO: implement truncation based on tol in SVD
-        return U, Diagonal(S)*V
+        return U, scale!(S,V)
     else
         # TODO: check Lapack to see if we can recycle memory of A
-        return U*V, V'*Diagonal(S)*V
+        Q = U*V
+        Sq = map!(sqrt,S,S)
+        SqV = scale!(Sq, V)
+        R = SqV'*SqV
+        return Q, R
     end
 end
 
@@ -178,7 +182,11 @@ function rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,Polar})
         return scale!(U, S), V
     else
         # TODO: check Lapack to see if we can recycle memory of A
-        return scale!(U,S)*U', U*V
+        Q = U*V
+        Sq = map!(sqrt, S, S)
+        USq = scale!(U, Sq)
+        L = USq*USq'
+        return L, Q
     end
 end
 

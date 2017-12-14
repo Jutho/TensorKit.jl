@@ -57,14 +57,22 @@
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Float32, Float64, Complex64, Complex128)
             t = Tensor(rand, T, W)
-            Q , R = @inferred leftorth(t, (3,4,2),(1,5))
-            @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
-            N = @inferred leftnull(t, (3,4,2),(1,5))
-            @test vecnorm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(vecnorm(t))
-            L, Q = @inferred rightorth(t, (3,4),(2,1,5))
-            @test L*Q ≈ permuteind(t, (3,4),(2,1,5))
-            M = @inferred rightnull(t, (3,4),(2,1,5))
-            @test vecnorm(permuteind(t, (3,4),(2,1,5))*M') < 100*eps(vecnorm(t))
+            @testset "leftorth with $alg" for alg in (QR(), QRpos(), QL(), QLpos(), Polar(), SVD())
+                Q , R = @inferred leftorth(t, (3,4,2),(1,5), alg)
+                @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
+            end
+            @testset "leftnull with $alg" for alg in (QR(), QRpos())
+                N = @inferred leftnull(t, (3,4,2),(1,5), alg)
+                @test vecnorm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(vecnorm(t))
+            end
+            @testset "rightorth with $alg" for alg in (RQ(), RQpos(), LQ(), LQpos(), Polar(), SVD())
+                L, Q = @inferred rightorth(t, (3,4),(2,1,5), alg)
+                @test L*Q ≈ permuteind(t, (3,4),(2,1,5))
+            end
+            @testset "rightnull with $alg" for alg in (LQ(), LQpos())
+                M = @inferred rightnull(t, (3,4),(2,1,5), alg)
+                @test vecnorm(permuteind(t, (3,4),(2,1,5))*M') < 100*eps(vecnorm(t))
+            end
             U, S, V = @inferred svd(t, (3,4,2),(1,5))
             @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
         end
