@@ -16,7 +16,7 @@ Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} = fusiontreet
 
 # * Iterator methods: start, next, done
 #   Start with special cases:
-Base.start(it::FusionTreeIterator{G,0} where {G<:Sector}) = false
+Base.start(it::FusionTreeIterator{G,0}) where {G<:Sector} = it.incoming != one(G)
 function Base.next(it::FusionTreeIterator{G,0}, state) where {G<:Sector}
     T = vertex_labeltype(G)
     tree = FusionTree{G,0,0,0,T}((), one(G), (), ())
