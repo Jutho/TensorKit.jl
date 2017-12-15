@@ -85,6 +85,21 @@ if VERSION < v"0.7.0-DEV.2543"
     Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
 end
 
+@static if !isdefined(Base, :AbstractDict)
+    const AbstractDict = Base.Associative
+end
+
+@static if !isdefined(Base, :ComplexF32)
+    const ComplexF32 = Complex64
+    const ComplexF64 = Complex128
+end
+
+@static if isdefined(Base.LinAlg, :mul!)
+    import Base.LinAlg.mul!
+else
+    const mul! = Base.A_mul_B!
+end
+
 @static if !isdefined(Base, :empty)
     empty(a::Associative) = empty(a, keytype(a), valtype(a))
     empty(a::Associative, ::Type{V}) where {V} = empty(a, keytype(a), V)

@@ -7,7 +7,7 @@ struct TensorMap{S<:IndexSpace, N₁, N₂, A, F₁, F₂} <: AbstractTensorMap{
     dom::ProductSpace{S,N₂}
     rowr::Dict{F₁,UnitRange{Int}}
     colr::Dict{F₂,UnitRange{Int}}
-    function TensorMap{S, N₁, N₂, A, F₁, F₂}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}, rowr::Dict{F₁,UnitRange{Int}}, colr::Dict{F₂,UnitRange{Int}}) where {S<:IndexSpace, N₁, N₂, A<:Associative, F₁, F₂}
+    function TensorMap{S, N₁, N₂, A, F₁, F₂}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}, rowr::Dict{F₁,UnitRange{Int}}, colr::Dict{F₂,UnitRange{Int}}) where {S<:IndexSpace, N₁, N₂, A<:AbstractDict, F₁, F₂}
         new{S, N₁, N₂, A, F₁, F₂}(data, codom, dom, rowr, colr)
     end
     function TensorMap{S, N₁, N₂, A, Void, Void}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂, A<:AbstractMatrix}
@@ -23,10 +23,10 @@ codomain(t::TensorMap) = t.codom
 domain(t::TensorMap) = t.dom
 
 blocksectors(t::TensorMap{<:IndexSpace, N₁, N₂, <:AbstractArray}) where {N₁,N₂} = (Trivial(),)
-blocksectors(t::TensorMap{<:IndexSpace, N₁, N₂, <:Associative}) where {N₁,N₂} = keys(t.data)
+blocksectors(t::TensorMap{<:IndexSpace, N₁, N₂, <:AbstractDict}) where {N₁,N₂} = keys(t.data)
 
 Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray{T}}}) where {T,N₁,N₂} = T
-Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:Associative{<:Any,<:AbstractMatrix{T}}}}) where {T,N₁,N₂} = T
+Base.eltype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,<:AbstractDict{<:Any,<:AbstractMatrix{T}}}}) where {T,N₁,N₂} = T
 
 Base.length(t::TensorMap) = sum(length(b) for (c,b) in blocks(t)) # total number of free parameters, in order to use e.g. KrylovKit
 
@@ -52,7 +52,7 @@ function TensorMap(data::AbstractArray, codom::ProductSpace{S,N₁}, dom::Produc
     end
 end
 
-function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {A<:Associative, S<:IndexSpace, N₁, N₂}
+function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {A<:AbstractDict, S<:IndexSpace, N₁, N₂}
     G = sectortype(S)
     G == keytype(data) || throw(SectorMismatch())
     F₁ = fusiontreetype(G, StaticLength(N₁))
@@ -150,7 +150,7 @@ Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
 Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
 function Base.one(t::AbstractTensorMap)
     domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
-    eye(eltype(t), domain(t))
+    TensorMap(I, eltype(t), domain(t), domain(t))
 end
 function one!(t::AbstractTensorMap)
     domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
@@ -162,10 +162,10 @@ end
 
 # Getting and setting the data
 #------------------------------
-hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:Associative}, s::Sector) where {N₁,N₂} = haskey(t.data, s)
+hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractDict}, s::Sector) where {N₁,N₂} = haskey(t.data, s)
 hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray}, ::Trivial) where {N₁,N₂} = true
 
-function block(t::TensorMap{S,N₁,N₂,<:Associative}, s::Sector) where {S,N₁,N₂}
+function block(t::TensorMap{S,N₁,N₂,<:AbstractDict}, s::Sector) where {S,N₁,N₂}
     sectortype(S) == typeof(s) || throw(SectorMismatch())
     A = valtype(t.data)
     if haskey(t.data, s)
@@ -176,7 +176,7 @@ function block(t::TensorMap{S,N₁,N₂,<:Associative}, s::Sector) where {S,N₁
 end
 block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} = t.data
 
-blocks(t::TensorMap{S,N₁,N₂,<:Associative}) where {S<:IndexSpace,N₁,N₂} = (c=>t.data[c] for c in blocksectors(t))
+blocks(t::TensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = (c=>t.data[c] for c in blocksectors(t))
 blocks(t::TensorMap{S,N₁,N₂,<:AbstractArray}) where {S<:IndexSpace,N₁,N₂} = (Trivial()=>t.data,)
 
 fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
@@ -346,15 +346,12 @@ end
 
 # TensorMap multiplication:
 #--------------------------
-function Base.A_mul_B!(tC::TensorMap, tA::TensorMap,  tB::TensorMap)
+function mul!(tC::TensorMap, tA::TensorMap,  tB::TensorMap)
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB))
-        @show codomain(tA), domain(tA)
-        @show codomain(tB), domain(tB)
-        @show codomain(tC), domain(tC)
         throw(SpaceMismatch())
     end
     for c in blocksectors(tC)
-        A_mul_B!(block(tC, c), block(tA, c), block(tB, c))
+        mul!(block(tC, c), block(tA, c), block(tB, c))
     end
     return tC
 end
@@ -510,7 +507,7 @@ function _truncate!(v::AbstractVector, trunc::TruncationScheme, p::Real = 2)
     end
     return v, truncerr
 end
-function _truncate!(V::Associative{G,<:AbstractVector}, trunc::TruncationScheme, p = 2) where {G<:Sector}
+function _truncate!(V::AbstractDict{G,<:AbstractVector}, trunc::TruncationScheme, p = 2) where {G<:Sector}
     it = keys(V)
     fullnorm = _vecnorm((c=>V[c] for c in it), p)
     truncerr = zero(fullnorm)

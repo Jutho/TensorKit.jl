@@ -12,7 +12,7 @@ codomain(t::AdjointTensorMap) = domain(t.parent)
 domain(t::AdjointTensorMap) = codomain(t.parent)
 
 Base.eltype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray{T}}}) where {T,N₁,N₂} = T
-Base.eltype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,<:Associative{<:Any,<:AbstractArray{T}}}}) where {T,N₁,N₂} = T
+Base.eltype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,<:AbstractDict{<:Any,<:AbstractArray{T}}}}) where {T,N₁,N₂} = T
 
 Base.length(t::AdjointTensorMap) = length(t.parent)
 Base.similar(t::AdjointTensorMap, args...) = similar(t.parent, args...)
@@ -43,7 +43,7 @@ Base.setindex!(t::AdjointTensorMap{<:Any,N₁,N₂,<:AbstractArray}, v) where {N
 
 # TensorMap multiplication:
 #--------------------------
-function Base.A_mul_B!(tC::TensorMap, tA::AdjointTensorMap,  tB::TensorMap)
+function mul!(tC::TensorMap, tA::AdjointTensorMap,  tB::TensorMap)
     (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
     for c in blocksectors(tC)
         if hasblock(tA.parent, c) # then also tB should have such a block
@@ -54,7 +54,7 @@ function Base.A_mul_B!(tC::TensorMap, tA::AdjointTensorMap,  tB::TensorMap)
     end
     return tC
 end
-function Base.A_mul_B!(tC::TensorMap, tA::TensorMap,  tB::AdjointTensorMap)
+function mul!(tC::TensorMap, tA::TensorMap,  tB::AdjointTensorMap)
     (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
     for c in blocksectors(tC)
         if hasblock(tA, c) # then also tB should have such a block
@@ -65,7 +65,7 @@ function Base.A_mul_B!(tC::TensorMap, tA::TensorMap,  tB::AdjointTensorMap)
     end
     return tC
 end
-function Base.A_mul_B!(tC::TensorMap, tA::AdjointTensorMap,  tB::AdjointTensorMap)
+function mul!(tC::TensorMap, tA::AdjointTensorMap,  tB::AdjointTensorMap)
     (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
     for c in blocksectors(tC)
         if hasblock(tA.parent, c) # then also tB should have such a block

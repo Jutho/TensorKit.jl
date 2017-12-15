@@ -4,6 +4,12 @@ else
     import Test
 end
 
+@static if !isdefined(Base, :ComplexF32)
+    const ComplexF32 = Complex64
+    const ComplexF64 = Complex128
+end
+
+
 using Test
 using TensorKit
 

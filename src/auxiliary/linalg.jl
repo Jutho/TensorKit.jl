@@ -263,7 +263,7 @@ end
 geqrfp!(A::StridedMatrix{<:BlasFloat}) = ((m,n) = size(A); geqrfp!(A, similar(A, min(m, n))))
 
 for (geqrfp, elty, relty) in
-    ((:dgeqrfp_,:Float64,:Float64), (:sgeqrfp_,:Float32,:Float32), (:zgeqrfp_,:Complex128,:Float64), (:cgeqrfp_,:Complex64,:Float32))
+    ((:dgeqrfp_,:Float64,:Float64), (:sgeqrfp_,:Float32,:Float32), (:zgeqrfp_,:ComplexF64,:Float64), (:cgeqrfp_,:ComplexF32,:Float32))
     @eval begin
         function geqrfp!(A::StridedMatrix{$elty}, tau::StridedVector{$elty})
             chkstride1(A,tau)

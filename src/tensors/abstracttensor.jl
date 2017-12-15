@@ -22,6 +22,10 @@ i.e. a tensor map with only a non-trivial output space.
 """
 const AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
 
+@static if isdefined(Base.LinAlg, :Adjoint)
+    Base.LinAlg.Adjoint(t::AbstractTensorMap) = adjoint(t)
+end
+
 # tensor characteristics
 Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
 spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
@@ -100,7 +104,7 @@ Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = sca
 Base.normalize!(t::AbstractTensorMap, p::Real = 2) = scale!(t, inv(vecnorm(t,p)))
 normalize(t::AbstractTensorMap, p::Real = 2) = normalize!(copy(t), p)
 
-Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = Base.A_mul_B!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
+Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
 
 # Convert to Array
 function Base.convert(::Type{Array}, t::AbstractTensorMap)
