@@ -1,3 +1,5 @@
+using Base: ImmutableDict
+
 """
     struct GenericRepresentationSpace{G<:Sector} <: AbstractRepresentationSpace{G}
 
@@ -7,11 +9,23 @@ type `G<:Sector`, e.g. the irreps of a compact or finite group, or the labels of
 a unitary fusion category.
 """
 struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
-    dims::Dict{G,Int}
+    dims::ImmutableDict{G,Int}
     dual::Bool
 end
-GenericRepresentationSpace{G}(dims::Dict{G,Int}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(dims, dual)
-GenericRepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(Dict{G,Int}(convert(G,s)=>d for (s,d) in dims if d!=0), dual)
+GenericRepresentationSpace{G}(dims::ImmutableDict{G,Int}) where {G<:Sector} = GenericRepresentationSpace{G}(dims, false)
+
+function GenericRepresentationSpace{G}(dims::Tuple{Vararg{Pair{G,Int}}}, dual::Bool) where {G<:Sector}
+    d = ImmutableDict{G,Int}()
+    @inbounds for k = length(dims):-1:1
+        if dims[k][2] != 0
+            d = ImmutableDict(d, dims[k])
+        end
+    end
+    GenericRepresentationSpace{G}(d, dual)
+end
+
+GenericRepresentationSpace{G}(dims::Tuple{Vararg{Pair{<:Any,Int}}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
+GenericRepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
 
 """
     struct ZNSpace{N} <: AbstractRepresentationSpace{ZNIrrep{N}}
@@ -25,9 +39,9 @@ struct ZNSpace{N} <: RepresentationSpace{ZNIrrep{N}}
 end
 
 # Never write GenericRepresentationSpace, just use RepresentationSpace
-RepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(Dict{G,Int}(convert(G,s)=>d for (s,d) in dims if d!=0), dual)
-RepresentationSpace(dims::Dict{G,Int}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(dims, dual)
-RepresentationSpace(dims::Vararg{Pair{G,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(Dict{G,Int}(dims...), dual)
+RepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(dims; dual = dual)
+RepresentationSpace(dims::AbstractDict{G,Int}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(dims...; dual = dual)
+RepresentationSpace(dims::Vararg{Pair{G,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(dims; dual = dual)
 
 # You might want to write ZNSpace
 ZNSpace{N}(dims::NTuple{N,Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
@@ -36,7 +50,7 @@ ZNSpace(dims::NTuple{N,Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, du
 ZNSpace(dims::Vararg{Int,N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
 
 ZNSpace{N}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {N} = ZNSpace{N}((ZNIrrep{N}(c)=>d for (c,d) in dims)...; dual = dual)
-ZNSpace{N}(dims::Dict{<:Any,Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
+ZNSpace{N}(dims::AbstractDict{<:Any,Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
 function ZNSpace{N}(args::Vararg{Pair{ZNIrrep{N},Int}}; dual::Bool = false) where {N}
     dims = ntuple(n->0, StaticLength(N))
     @inbounds for (c,d) in args
@@ -46,7 +60,7 @@ function ZNSpace{N}(args::Vararg{Pair{ZNIrrep{N},Int}}; dual::Bool = false) wher
 end
 
 RepresentationSpace{ZNIrrep{N}}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {N} = ZNSpace{N}((ZNIrrep{N}(c)=>d for (c,d) in dims)...; dual = dual)
-RepresentationSpace(dims::Dict{ZNIrrep{N},Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
+RepresentationSpace(dims::AbstractDict{ZNIrrep{N},Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
 RepresentationSpace(dims::Vararg{Pair{ZNIrrep{N},Int}}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
 
 Base.getindex(::ComplexNumbers, G::Type{<:Sector}) = RepresentationSpace{G}
@@ -117,6 +131,7 @@ function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
     end
     print(io, ")")
     V.dual && print(io, "'")
+    return nothing
 end
 
 # direct sum of RepresentationSpaces

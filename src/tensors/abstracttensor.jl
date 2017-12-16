@@ -130,12 +130,13 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap)
         return A
     end
 end
+# TODO: Reverse conversion
 
 function _kron(A, B)
     sA = size(A)
     sB = size(B)
     s = map(*, sA, sB)
-    C = Array{promote_type(eltype(A),eltype(B))}(s)
+    C = Array{promote_type(eltype(A),eltype(B))}(uninitialized, s)
     for IA in eachindex(IndexCartesian(), A)
         for IB in eachindex(IndexCartesian(), B)
             I = CartesianIndex(IB.I .+ (IA.I .- 1) .* sB)

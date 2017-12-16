@@ -66,7 +66,7 @@ function Base.convert(::Type{Array}, f::FusionTree{G,0}) where {G}
 end
 function Base.convert(::Type{Array}, f::FusionTree{G,1}) where {G}
     T = eltype(fusiontensor(one(G), one(G), one(G)))
-    return copy!(Matrix{T}(dim(f.incoming), dim(f.incoming)), I)
+    return copy!(Matrix{T}(uninitialized, dim(f.incoming), dim(f.incoming)), I)
 end
 Base.convert(::Type{Array}, f::FusionTree{G,2}) where {G} = fusiontensor(f.outgoing[1], f.outgoing[2], f.incoming, f.vertices[1])
 function Base.convert(::Type{Array}, f::FusionTree{G}) where {G}

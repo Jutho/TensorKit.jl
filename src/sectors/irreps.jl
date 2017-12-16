@@ -102,7 +102,7 @@ function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
 end
 
 function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Void = nothing)
-    C = Array{Float64}(dim(a), dim(b), dim(c))
+    C = Array{Float64}(uninitialized, dim(a), dim(b), dim(c))
     ja, jb, jc = map(_getj, (a, b, c))
 
     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)

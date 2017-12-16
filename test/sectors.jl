@@ -42,11 +42,17 @@
     end
 
     @testset "Sector $G: Fusion trees" begin
-        N = 3
-        s = ntuple(n->randsector(G), StaticLength(N-1))
-        out = (s..., dual(first(⊗(s...))))
+        N = 5
+        out = ntuple(n->randsector(G), StaticLength(N))
+        in = rand(collect(⊗(out...)))
+        numtrees = count(n->true, fusiontrees(out, in))
+        while !(0 < numtrees < 30)
+            out = ntuple(n->randsector(G), StaticLength(N))
+            in = rand(collect(⊗(out...)))
+            numtrees = count(n->true, fusiontrees(out, in))
+        end
 
-        it = @inferred fusiontrees(out)
+        it = @inferred fusiontrees(out, in)
         state = @inferred start(it)
         f, state = @inferred next(it, state)
         @inferred done(it, state)
@@ -71,8 +77,33 @@
             end
         end
 
-        f1 = f
-        f2, = first(d)
+        if method_exists(TensorKit.fusiontensor, Tuple{G,G,G})
+            Af = convert(Array, f)
+            Afp = permutedims(Af, (p..., N+1))
+            Afp2 = zero(Afp)
+            for (f1, coeff) in d
+                Afp2 += coeff * convert(Array, f1)
+            end
+            @test Afp ≈ Afp2
+        end
+    end
+    @testset "Sector $G: Double fusion trees" begin
+        if G == SU₂ × SU₂
+            N = 3
+        else
+            N = 4
+        end
+        out = ntuple(n->randsector(G), StaticLength(N))
+        numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
+        while !(0 < numtrees < 100)
+            @show numtrees
+            out = ntuple(n->randsector(G), StaticLength(N))
+            numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
+        end
+        in = rand(collect(⊗(out...)))
+        f1 = rand(collect(fusiontrees(out, in)))
+        f2 = rand(collect(fusiontrees(out[randperm(N)], in)))
+
         for n = 0:2*N
             d = @inferred repartition(f1, f2, StaticLength(n))
             d2 = Dict{typeof((f1,f2)), valtype(d)}()
@@ -91,7 +122,7 @@
         end
 
         p = (randperm(2*N)...,)
-        p1, p2 = p[1:3], p[4:2N]
+        p1, p2 = p[1:2], p[3:2N]
         ip = invperm(p)
         ip1, ip2 = ip[1:N], ip[N+1:2N]
 

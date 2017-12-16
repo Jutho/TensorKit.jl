@@ -15,8 +15,8 @@ struct ComplexNumbers <: Field end
 const ℝ = RealNumbers()
 const ℂ = ComplexNumbers()
 
-Base.show(io::IO, ::RealNumbers) = print(io,"ℝ")
-Base.show(io::IO, ::ComplexNumbers) = print(io,"ℂ")
+Base.show(io::IO, ::RealNumbers) = print(io, "ℝ")
+Base.show(io::IO, ::ComplexNumbers) = print(io, "ℂ")
 
 Base.in(::Any, ::Field) = false
 Base.in(::Real, ::RealNumbers) = true

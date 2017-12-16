@@ -248,7 +248,7 @@ Linear maps between tensor spaces with possible efficient implementation.
 
 ## Tensor Networks
 
-  ***
+***
 
 ## Bibliography
 [^tung]:  Wu-Ki Tung. Group Theory in Physics: Introduction to Symmetry Principles, Group Representations, and Special Functions in Classical and Quantum Physics. World Scientific Publishing Company, 1985.  

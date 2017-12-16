@@ -19,7 +19,7 @@ function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
     if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
         return prod(map(Fsymbol, a.sectors, b.sectors, c.sectors, d.sectors, e.sectors, f.sectors))
     else
-        # TODO: use kron ?
+        # TODO: DegenerateNonAbelian case, use kron ?
         throw(MethodError(Fsymbol,(a,b,c,d,e,f)))
     end
 end
@@ -27,7 +27,7 @@ function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
     if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
         return prod(map(Rsymbol, a.sectors, b.sectors, c.sectors))
     else
-        # TODO: use kron ?
+        # TODO: DegenerateNonAbelian case, use kron ?
         throw(MethodError(Rsymbol,(a,b,c)))
     end
 end
@@ -35,7 +35,7 @@ function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
     if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
         return prod(map(Asymbol, a.sectors, b.sectors, c.sectors))
     else
-        # TODO: use kron ?
+        # TODO: DegenerateNonAbelian case, use kron ?
         throw(MethodError(Asymbol,(a,b,c)))
     end
 end
@@ -43,7 +43,7 @@ function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
     if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
         return prod(map(Bsymbol, a.sectors, b.sectors, c.sectors))
     else
-        # TODO: use kron ?
+        # TODO: DegenerateNonAbelian case, use kron ?
         throw(MethodError(Bsymbol,(a,b,c)))
     end
 end

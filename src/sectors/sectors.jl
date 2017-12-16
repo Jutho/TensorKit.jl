@@ -27,6 +27,8 @@ abstract type Sector end
 # Define a sector for ungraded vector spaces
 struct Trivial <: Sector
 end
+Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
+Base.show(io::IO, ::Type{Trivial}) = print(io, "Trivial")
 
 """
     function one(::Sector) -> Sector

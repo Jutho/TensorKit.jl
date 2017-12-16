@@ -34,6 +34,7 @@ export RepresentationSpace, ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU
 
 # tensor maps
 export domain, codomain
+export blocksectors, block, blocks
 
 # random methods for constructor
 export randuniform, randnormal, randisometry
@@ -139,6 +140,13 @@ end
     const uninitialized = Uninitialized()
     export Uninitialized, uninitialized
 end
+
+@static if isdefined(Base, :print_array)
+    using Base.print_array
+else
+    print_array(io, a) = Base.showarray(io, a, false; header=false)
+end
+
 #--------------------------------------------------------------------
 
 import TensorOperations

@@ -122,7 +122,7 @@ end
 TensorMap(f, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
     TensorMap(d->f(T, d), codom, dom)
 TensorMap(::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(uninitalized, d), codom, dom)
+    TensorMap(d->Array{T}(uninitialized, d), codom, dom)
 TensorMap(I::UniformScaling, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
     TensorMap(d->Array{T}(I, d), codom, dom)
 TensorMap(I::UniformScaling, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(I, Float64, codom, dom)
@@ -236,24 +236,28 @@ end
 
 # Show
 #------
-function Base.showcompact(io::IO, t::TensorMap)
-    print(io, "TensorMap(", codomain(t), " ← ", domain(t), ")")
+function Base.summary(t::TensorMap)
+    print("TensorMap(", codomain(t), " ← ", domain(t), ")")
 end
 function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
+    if get(io, :compact, false)
+        print(io, "TensorMap(", codomain(t), " ← ", domain(t), ")")
+        return
+    end
     println(io, "TensorMap(", codomain(t), " ← ", domain(t), "):")
     if sectortype(S) == Trivial && isa(t.data, AbstractArray)
-        Base.showarray(io, t[], false; header = false)
+        print_array(io, t[])
         println(io)
     elseif fusiontype(sectortype(S)) == Abelian
         for (f1,f2) in fusiontrees(t)
             println(io, "* Data for sector ", f1.outgoing, " ← ", f2.outgoing, ":")
-            Base.showarray(io, t[f1,f2], false; header = false)
+            print_array(io, t[f1,f2])
             println(io)
         end
     else
         for (f1,f2) in fusiontrees(t)
             println(io, "* Data for fusiontree ", f1, " ← ", f2, ":")
-            Base.showarray(io, t[f1,f2], false; header = false)
+            print_array(io, t[f1,f2])
             println(io)
         end
     end
@@ -366,12 +370,12 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
     else
         Qdata = empty(t.data)
         Rdata = empty(t.data)
-        dims = Dict{sectortype(t), Int}()
+        dims = ImmutableDict{sectortype(t), Int}()
         for c in blocksectors(t)
             Q, R = leftorth!(block(t,c), alg)
             Qdata[c] = Q
             Rdata[c] = R
-            dims[c] = size(Q, 2)
+            dims = ImmutableDict(dims, c=>size(Q,2))
         end
         V = S(dims)
         return TensorMap(Qdata, codomain(t)←V), TensorMap(Rdata, V←domain(t))
@@ -385,11 +389,11 @@ function leftnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
     else
         V = codomain(t)
         Ndata = empty(t.data)
-        dims = Dict{sectortype(t), Int}()
+        dims = ImmutableDict{sectortype(t), Int}()
         for c in blocksectors(V)
             N = leftnull!(block(t,c), alg)
             Ndata[c] = N
-            dims[c] = size(N,2)
+            dims = ImmutableDict(dims, c=>size(N,2))
         end
         W = S(dims)
         return TensorMap(Ndata, V←W)
@@ -403,12 +407,12 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
     else
         Ldata = empty(t.data)
         Qdata = empty(t.data)
-        dims = Dict{sectortype(t), Int}()
+        dims = ImmutableDict{sectortype(t), Int}()
         for c in blocksectors(t)
             L, Q = rightorth!(block(t,c), alg)
             Ldata[c] = L
             Qdata[c] = Q
-            dims[c] = size(Q, 1)
+            dims = ImmutableDict(dims, c=>size(Q,1))
         end
         V = S(dims)
         return TensorMap(Ldata, codomain(t)←V), TensorMap(Qdata, V←domain(t))
@@ -423,11 +427,11 @@ function rightnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
         V = domain(t)
         Ndata = empty(t.data)
         A = valtype(Ndata)
-        dims = Dict{sectortype(t), Int}()
+        dims = ImmutableDict{sectortype(t), Int}()
         for c in blocksectors(V)
             N = rightnull!(block(t,c), alg)
             Ndata[c] = N
-            dims[c] = size(N,1)
+            dims = ImmutableDict(dims, c=>size(N,1))
         end
         W = S(dims)
         return TensorMap(Ndata, W←V)
@@ -449,30 +453,45 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
         #TODO: make this work with Diagonal(Σ) in such a way that it is type stable and
         # robust for all further operations on that tensor
     else
+        G = sectortype(t)
         it = blocksectors(t)
-        c, s = next(it, start(it))
-        U,Σ,V = svd!(t.data[c])
-        Udata = Dict(c => U)
-        Σdata = Dict(c => Σ)
-        Vdata = Dict(c => V)
-        dims = Dict{typeof(c),Int}(c=> length(Σ))
+        dims = ImmutableDict{sectortype(t), Int}()
+        s = start(it)
+        if done(it, s)
+            emptydata = empty(t.data)
+            emptyrealdata = Dict(c=>real(v) for (c,v) in emptydata)
+            W = S(dims)
+            truncerr = abs(zero(eltype(t)))
+            return TensorMap(emptydata, codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(emptydata, W←domain(t)), truncerr
+        end
+        c, s = next(it, s)
+        U,Σ,V = svd!(block(t,c))
+        Udata = Dict(c=>U)
+        Σdata = Dict(c=>Σ)
+        Vdata = Dict(c=>V)
+        dims = ImmutableDict(dims, c=>length(Σ))
         while !done(it, s)
             c, s = next(it, s)
-            U,Σ,V = svd!(t.data[c])
+            U,Σ,V = svd!(block(t,c))
             Udata[c] = U
             Σdata[c] = Σ
             Vdata[c] = V
-            dims[c] = length(Σ)
+            dims = ImmutableDict(dims, c=>length(Σ))
         end
-        Σdata, truncerr = _truncate!(Σdata, trunc, p)
-
-        for c in it
-            truncdim = length(Σdata[c])
-            if truncdim != dims[c]
-                dims[c] = truncdim
-                Udata[c] = Udata[c][:, 1:truncdim]
-                Vdata[c] = Vdata[c][1:truncdim, :]
+        if !isa(trunc, NoTruncation)
+            Σdata, truncerr = _truncate!(Σdata, trunc, p)
+            truncdims = ImmutableDict{sectortype(t), Int}()
+            for c in blocksectors(t)
+                truncdim = length(Σdata[c])
+                truncdims = ImmutableDict(truncdims, c=>truncdim)
+                if truncdim != dims[c]
+                    Udata[c] = Udata[c][:, 1:truncdim]
+                    Vdata[c] = Vdata[c][1:truncdim, :]
+                end
             end
+            dims = truncdims
+        else
+            truncerr = abs(zero(eltype(t)))
         end
         W = S(dims)
         return TensorMap(Udata, codomain(t)←W), TensorMap(Dict(c=>Matrix(Diagonal(Σ)) for (c,Σ) in Σdata), W←W), TensorMap(Vdata, W←domain(t)), truncerr
