@@ -63,6 +63,9 @@ end
 TensorOperations.numind(t::AbstractTensorMap) = numind(t)
 TensorOperations.numind(T::Type{<:AbstractTensorMap}) = numind(T)
 
+TensorOperations.similar_from_indices(T::Type, p::IndexTuple, t::AbstractTensorMap, V::Type{<:Val}) = TensorOperations.similar_from_indices(T, p, (), t, V)
+TensorOperations.similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}, VA::Type{<:Val}, VB::Type{<:Val}) where {S} = TensorOperations.similar_from_indices(T, oindA, oindB, p, (), ta, tb, VA, VB)
+
 function TensorOperations.similar_from_indices(T::Type, p1::IndexTuple, p2::IndexTuple, t::AbstractTensorMap, V::Type{<:Val})
     if V == Val{:N}
         similar_from_indices(T, p1, p2, t)
@@ -90,7 +93,7 @@ end
 
 TensorOperations.scalar(t::AbstractTensorMap) = scalar(t)
 
-function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple) where {S,N₁,N₂}
+function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple = ()) where {S,N₁,N₂}
     p = (p1..., p2...)
     if V == Val{:N}
         pl = ntuple(n->p[n], StaticLength(N₁))
@@ -104,7 +107,9 @@ function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, �
     return tdst
 end
 
-function TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S,N₁,N₂}
+TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p::IndexTuple, ::Type{Val{:BLAS}}) where {S} = TensorOperations.contract!(α, tA, VA, tB, VB, β, tC, oindA, cindA, oindB, cindB, p)
+
+function TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple = ()) where {S,N₁,N₂}
     p = (p1..., p2...)
     pl = ntuple(n->p[n], StaticLength(N₁))
     pr = ntuple(n->p[N₁+n], StaticLength(N₂))

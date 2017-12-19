@@ -136,10 +136,32 @@ end
 
 # direct sum of RepresentationSpaces
 function ⊕(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
-    V1.dual == V2.dual || throw(SpaceMismatch("Direct sum of a vector space and its dual do not exist"))
+    dual1 = isdual(V1)
+    dual1 == isdual(V2) || throw(SpaceMismatch("Direct sum of a vector space and a dual space does not exist"))
     dims = Dict{G,Int}()
     for c in union(sectors(V1), sectors(V2))
-        dims[c] = dim(V1,c) + dim(V2,c)
+        cout = ifelse(dual1, dual(c), c)
+        dims[cout] = dim(V1,c) + dim(V2,c)
     end
-    return RepresentationSpace(dims; dual = V1.dual)
+    return RepresentationSpace(dims; dual = dual1)
+end
+
+# Flip the duality of a space, resulting in an equivalent space (this is different from dual(V))
+function flip(V::RepresentationSpace)
+    if isdual(V)
+        typeof(V)((c=>dim(V,c) for c in sectors(V))...)
+    else
+        typeof(V)((dual(c)=>dim(V,c) for c in sectors(V))...)'
+    end
+end
+
+# Fuse the tensor product of two spaces
+function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
+    dims = Dict{G,Int}()
+    for c1 in sectors(V1), c2 in sectors(V2)
+        for c in c1 ⊗ c2
+            dims[c] = get(dims, c, 0) + dim(V1,c1)*dim(V2,c2)
+        end
+    end
+    return RepresentationSpace(dims)
 end
