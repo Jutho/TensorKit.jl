@@ -377,7 +377,13 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
             Rdata[c] = R
             dims = ImmutableDict(dims, c=>size(Q,2))
         end
-        V = S(dims)
+        if length(domain(t)) == 1
+            V = domain(t)
+        elseif length(codomain(t)) == 1
+            V = codomain(t)
+        else
+            V = S(dims)
+        end
         return TensorMap(Qdata, codomain(t)←V), TensorMap(Rdata, V←domain(t))
     end
 end
@@ -414,7 +420,13 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
             Qdata[c] = Q
             dims = ImmutableDict(dims, c=>size(Q,1))
         end
-        V = S(dims)
+        if length(domain(t)) == 1
+            V = domain(t)
+        elseif length(codomain(t)) == 1
+            V = codomain(t)
+        else
+            V = S(dims)
+        end
         return TensorMap(Ldata, codomain(t)←V), TensorMap(Qdata, V←domain(t))
     end
 end
@@ -490,10 +502,17 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
                 end
             end
             dims = truncdims
+            W = S(dims)
         else
+            if length(domain(t)) == 1
+                W = domain(t)
+            elseif length(codomain(t)) == 1
+                W = codomain(t)
+            else
+                W = S(dims)
+            end
             truncerr = abs(zero(eltype(t)))
         end
-        W = S(dims)
         return TensorMap(Udata, codomain(t)←W), TensorMap(Dict(c=>Matrix(Diagonal(Σ)) for (c,Σ) in Σdata), W←W), TensorMap(Vdata, W←domain(t)), truncerr
     end
 end
