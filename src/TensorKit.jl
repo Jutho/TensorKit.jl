@@ -24,12 +24,12 @@ export SpaceMismatch, SectorMismatch, IndexError # error types
 export space, dual, dim, dims
 # methods for sectors and properties thereof
 export sectortype, fusiontype, braidingtype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
-export Trivial, ZNSpace, SU2Irrep, U1Irrep # Fermion
+export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 export fusiontrees, braid, repartition
 
 # some unicode
 export ⊕, ⊗, ×, ℂ, ℝ, ←, →
-export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂
+export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂, CU₁
 export RepresentationSpace, ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU₂Space
 
 # tensor maps

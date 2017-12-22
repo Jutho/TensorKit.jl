@@ -114,3 +114,62 @@ end
 const SU₂ = SU2Irrep
 Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
 Base.show(io::IO, s::SU2Irrep) = get(io, :compact, false) ? print(io, _getj(s)) : print(io, "SU₂(", _getj(s), ")")
+
+# U₁ ⋉ C (U₁ and charge conjugation)
+struct CU1Irrep <: Sector
+    n2::Int
+    # Let constructor take the actual half integer value j
+    CU1Irrep(n::Int) = n >= 0 ? new(2*n) : error("Not a valid CU₁ irrep label")
+    function CU1Irrep(n::Rational{Int})
+        if n.den == 2
+            new(n.num)
+        elseif n.den == 1
+            new(2*n.num)
+        else
+            error("Not a valid CU₁ irrep label")
+        end
+    end
+end
+_getn(s::CU1Irrep) = (s.n2)//2
+
+Base.one(::Type{CU1Irrep}) = CU1Irrep(0)
+Base.conj(c::CU1Irrep) = c
+function ⊗(a::CU1Irrep, b::CU1Irrep)
+    nmin = abs(_getn(a)-_getn(b))
+    nmax = _getn(a)+_getn(b)
+    nstep = max(1, nmax-nmin)
+    return SectorSet{CU1Irrep}(nmin:nstep:nmax)
+end
+
+Base.convert(::Type{CU1Irrep}, s::Real) = CU1Irrep(convert(Int, 2*s)//2)
+
+dim(c::CU1Irrep) = ifelse(c.n2==0, 1, 2)
+
+Base.@pure fusiontype(::Type{CU1Irrep}) = DegenerateNonAbelian
+Base.@pure braidingtype(::Type{CU1Irrep}) = Bosonic
+
+function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
+    ifelse(c.n2 == 0,
+        ifelse(a.n2 == b.n2, ifelse(a.n2 == 0, 1, 2), 0),
+        ifelse((c.n2 == a.n2 + b.n2) | (c.n2 == abs(a.n2 - b.n2)), 1, 0))
+end
+# Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
+#     WignerSymbols.racahW(map(_getj,(s1,s2,s4,s3,s5,s6))...)*sqrt(dim(s5)*dim(s6))
+# function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
+#     Nsymbol(sa, sb, sc) || return 0.
+#     iseven(convert(Int, _getj(sa)+_getj(sb)-_getj(sc))) ? 1.0 : -1.0
+# end
+#
+# function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Void = nothing)
+#     C = Array{Float64}(uninitialized, dim(a), dim(b), dim(c))
+#     ja, jb, jc = map(_getj, (a, b, c))
+#
+#     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
+#         C[ka,kb,kc] = WignerSymbols.clebschgordan(ja, ka-ja-1, jb, kb-jb-1, jc, kc-jc-1)
+#     end
+#     return C
+# end
+
+const CU₁ = CU1Irrep
+Base.show(io::IO, ::Type{CU1Irrep}) = print(io, "CU₁")
+Base.show(io::IO, c::CU1Irrep) = get(io, :compact, false) ? print(io, _getn(c)) : print(io, "CU₁(", _getn(c), ")")

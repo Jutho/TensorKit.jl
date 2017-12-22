@@ -32,7 +32,8 @@ end
 
 @propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂} = add!(1,tsrc,0,tdst,p1,p2)
 
-# do we need those?
+# Index manipulations that increase or decrease the number of indices
+
 function splitind end#
 
 function fuseind end

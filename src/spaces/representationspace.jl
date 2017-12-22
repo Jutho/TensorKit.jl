@@ -27,6 +27,8 @@ end
 GenericRepresentationSpace{G}(dims::Tuple{Vararg{Pair{<:Any,Int}}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
 GenericRepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
 
+Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) = V1.dims === V2.dims && V1.dual == V2.dual
+
 """
     struct ZNSpace{N} <: AbstractRepresentationSpace{ZNIrrep{N}}
 
@@ -158,9 +160,9 @@ end
 # Fuse the tensor product of two spaces
 function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
     dims = Dict{G,Int}()
-    for c1 in sectors(V1), c2 in sectors(V2)
-        for c in c1 ⊗ c2
-            dims[c] = get(dims, c, 0) + dim(V1,c1)*dim(V2,c2)
+    for a in sectors(V1), b in sectors(V2)
+        for c in a ⊗ b
+            dims[c] = get(dims, c, 0) + Nsymbol(a,b,c)*dim(V1,a)*dim(V2,b)
         end
     end
     return RepresentationSpace(dims)
