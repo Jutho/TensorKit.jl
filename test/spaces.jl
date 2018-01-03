@@ -84,7 +84,7 @@ end
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(indices(V)) == Base.OneTo(d)
 end
-@testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, U₁, SU₂, ℤ₂ × ℤ₂ × ℤ₂, U₁ × SU₂, SU₂ × SU₂)
+@testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, U₁, CU₁, SU₂, ℤ₂ × ℤ₂ × ℤ₂, U₁ × SU₂, SU₂ × SU₂)
     V = @inferred RepresentationSpace((randsector(G)=>rand(1:10) for k in 1:5)...)
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)

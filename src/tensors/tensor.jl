@@ -378,9 +378,9 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
             dims = ImmutableDict(dims, c=>size(Q,2))
         end
         if length(domain(t)) == 1
-            V = domain(t)
+            V = domain(t)[1]
         elseif length(codomain(t)) == 1
-            V = codomain(t)
+            V = codomain(t)[1]
         else
             V = S(dims)
         end
@@ -421,9 +421,9 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
             dims = ImmutableDict(dims, c=>size(Q,1))
         end
         if length(domain(t)) == 1
-            V = domain(t)
+            V = domain(t)[1]
         elseif length(codomain(t)) == 1
-            V = codomain(t)
+            V = codomain(t)[1]
         else
             V = S(dims)
         end
@@ -505,9 +505,9 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
             W = S(dims)
         else
             if length(domain(t)) == 1
-                W = domain(t)
+                W = domain(t)[1]
             elseif length(codomain(t)) == 1
-                W = codomain(t)
+                W = codomain(t)[1]
             else
                 W = S(dims)
             end

@@ -1,4 +1,4 @@
-@testset "Sectors and fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, SU₂, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂)
+@testset "Sectors and fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂)
     @testset "Sector $G: Basic properties" begin
         s = (randsector(G), randsector(G), randsector(G))
         @test @inferred(one(s[1])) == @inferred(one(G))
@@ -9,8 +9,49 @@
         @inferred Rsymbol(s...)
         @inferred Bsymbol(s...)
         @inferred Fsymbol(s..., s...)
-        @inferred s[1] ⊗ s[2]
+        it = @inferred s[1] ⊗ s[2]
+        state = @inferred start(it)
+        @inferred next(it, state)
+        @inferred done(it, state)
         @inferred ⊗(s..., s...)
+    end
+    if G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂)
+        @testset "Sector $G: fusion tensor and F-move and R-move" begin
+            using TensorKit: fusiontensor
+            for a in smallset(G), b in smallset(G)
+                for c in ⊗(a,b)
+                    @test permutedims(fusiontensor(a,b,c),(2,1,3)) ≈ Rsymbol(a,b,c)*fusiontensor(b,a,c)
+                end
+            end
+            for a in smallset(G), b in smallset(G), c in smallset(G)
+                for e in ⊗(a,b), f in ⊗(b,c)
+                    for d in intersect(⊗(e,c), ⊗(a,f))
+                        X1 = fusiontensor(a,b,e)
+                        X2 = fusiontensor(e,c,d)
+                        Y1 = fusiontensor(b,c,f)
+                        Y2 = fusiontensor(a,f,d)
+                        @tensor f1 = conj(Y2[a,f,d])*conj(Y1[b,c,f])*X1[a,b,e]*X2[e,c,d]
+                        f2 = Fsymbol(a,b,c,d,e,f)*dim(d)
+                        @test f1≈f2 atol=1e-12
+                        if !(isapprox(f1,f2;atol=1e-12))
+                            @show a,b,c,d,e,f
+                            @show f1, f2
+                        end
+                    end
+                end
+            end
+        end
+        @testset "Sector $G: Unitarity of F-move" begin
+            for a in smallset(G), b in smallset(G), c in smallset(G)
+                for d in ⊗(a,b,c)
+                    es = collect(intersect(⊗(a,b), map(dual, ⊗(c,dual(d)))))
+                    fs = collect(intersect(⊗(b,c), map(dual, ⊗(dual(d),a))))
+                    @test length(es) == length(fs)
+                    F = [Fsymbol(a,b,c,d,e,f) for e in es, f in fs]
+                    @test F'*F ≈ one(F)
+                end
+            end
+        end
     end
     @testset "Sector $G: Pentagon equation" begin
         (a,b,c,d) = (randsector(G), randsector(G), randsector(G), randsector(G))
@@ -115,6 +156,9 @@
             for ((f1′,f2′), coeff2) in d2
                 if f1 == f1′ && f2 == f2′
                     @test coeff2 ≈ 1
+                    if !(coeff2 ≈ 1)
+                        @show f1, f2, n
+                    end
                 else
                     @test isapprox(coeff2, 0; atol = 10*eps())
                 end
@@ -136,8 +180,11 @@
         for ((f1′,f2′), coeff2) in d2
             if f1 == f1′ && f2 == f2′
                 @test coeff2 ≈ 1
+                if !(coeff2 ≈ 1)
+                    @show f1, f2, p
+                end
             else
-                @test isapprox(coeff2, 0; atol = 10*eps())
+                @test abs(coeff2) < 10*eps()
             end
         end
     end

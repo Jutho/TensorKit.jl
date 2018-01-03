@@ -161,7 +161,9 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
             iszero(Nsymbol(b, c′, e)) && continue
             coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
             inner′ = TupleTools.setindex(inner, c′, i-1)
-            output = ImmutableDict(output, FusionTree{G}(outer′, t.incoming, inner′, t.vertices) => coeff)
+            if coeff != zero(coeff)
+                output = ImmutableDict(output, FusionTree{G}(outer′, t.incoming, inner′, t.vertices) => coeff)
+            end
         end
         return output
     else
