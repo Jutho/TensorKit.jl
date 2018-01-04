@@ -326,7 +326,14 @@ function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, ::Void = nothing)
     end
     return C
 end
-#
+frobeniusschur(::CU1Irrep) = 1
+
 const CU₁ = CU1Irrep
 Base.show(io::IO, ::Type{CU1Irrep}) = print(io, "CU₁")
-Base.show(io::IO, c::CU1Irrep) = get(io, :compact, false) ? print(io, "(", _getj(c), ", ", c.s, ")") : print(io, "CU₁(", _getj(c), ", ", c.s, ")")
+function Base.show(io::IO, c::CU1Irrep)
+    if c.s == 1
+        get(io, :compact, false) ? print(io, "(", _getj(c), ", ", c.s, ")") : print(io, "CU₁(", _getj(c), ", ", c.s, ")")
+    else
+        get(io, :compact, false) ? print(io, "(", _getj(c), ")") : print(io, "CU₁(", _getj(c), ")")
+    end
+end

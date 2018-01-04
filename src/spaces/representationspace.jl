@@ -110,7 +110,16 @@ const ℤ₂Space = ZNSpace{2}
 const ℤ₃Space = ZNSpace{3}
 const ℤ₄Space = ZNSpace{4}
 const U₁Space = GenericRepresentationSpace{U₁}
+const CU₁Space = GenericRepresentationSpace{CU₁}
 const SU₂Space = GenericRepresentationSpace{SU₂}
+
+# non-Unicode alternatives
+const Z2Space = ℤ₂Space
+const Z3Space = ℤ₃Space
+const Z4Space = ℤ₄Space
+const U1Space = U₁Space
+const CU1Space = CU₁Space
+const SU2Space = SU₂Space
 
 Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
 Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")

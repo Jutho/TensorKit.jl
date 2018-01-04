@@ -10,5 +10,5 @@ function randnormal(::Type{T}, dims::Base.Dims) where {T<:Number}
     end
 end
 
-randisometry(dims::Base.Dims) = randisometry(Float64, dims)
-randisometry(::Type{T}, dims::Base.Dims) where {T<:Number} = leftorth!(randnormal(T, dims), QRpos())[1]
+randisometry(dims::Base.Dims{2}) = randisometry(Float64, dims)
+randisometry(::Type{T}, dims::Base.Dims{2}) where {T<:Number} = leftorth!(randnormal(T, dims), QRpos())[1]

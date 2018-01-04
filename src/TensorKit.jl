@@ -9,12 +9,13 @@ module TensorKit
 #---------
 # Types:
 export StaticLength
-export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
-export ComplexSpace, CartesianSpace, GeneralSpace, RepresentationSpace, ZNSpace # concrete spaces
-export CompositeSpace, ProductSpace # composite spaces
 export Sector, Irrep
 export Abelian, SimpleNonAbelian, DegenerateNonAbelian, SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
 export Parity, ZNIrrep, U1Irrep, SU2Irrep, FermionParity, FermionNumber, FermionSpin # specific sectors
+export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
+export ComplexSpace, CartesianSpace, GeneralSpace, RepresentationSpace, ZNSpace # concrete spaces
+export Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
+export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
 export IndexSpace, TensorSpace, AbstractTensorMap, AbstractTensor, TensorMap, Tensor # tensors and tensor properties
 export TruncationScheme
@@ -30,7 +31,7 @@ export fusiontrees, braid, repartition
 # some unicode
 export ⊕, ⊗, ×, ℂ, ℝ, ←, →
 export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂, CU₁
-export RepresentationSpace, ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, SU₂Space
+export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps
 export domain, codomain

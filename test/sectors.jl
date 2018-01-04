@@ -137,7 +137,6 @@
         out = ntuple(n->randsector(G), StaticLength(N))
         numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
         while !(0 < numtrees < 100)
-            @show numtrees
             out = ntuple(n->randsector(G), StaticLength(N))
             numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
         end

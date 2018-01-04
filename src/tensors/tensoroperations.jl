@@ -17,7 +17,7 @@ end
 scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} = dim(codomain(t)) == dim(domain(t)) == 1 ? first(blocks(t))[2][1,1] : throw(SpaceMismatch())
 
 function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
-    # TODO: Frobenius-Schur indicators!, and fermions!
+    # TODO: check Frobenius-Schur indicators!, and  add fermions!
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst,i), 1:N₁) || throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)), tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
         all(i->space(tsrc, p2[i]) == space(tdst,N₁+i), 1:N₂) || throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)), tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
@@ -34,6 +34,9 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
             @inbounds axpy!(α, permutedims(tsrc[], pdata), tdst[])
         end
     else
+        cod = codomain(tsrc)
+        dom = domain(tsrc)
+        n = length(cod)
         if iszero(β)
             fill!(tdst, β)
         elseif β != 1
@@ -41,6 +44,18 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         end
         for (f1,f2) in fusiontrees(tsrc)
             for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
+                for i in p2
+                    if i <= n && !isdual(cod[i])
+                        b = f1.outgoing[i]
+                        coeff *= frobeniusschur(b) #*fermionparity(b)
+                    end
+                end
+                for i in p1
+                    if i > n && isdual(dom[i-n])
+                        b = f2.outgoing[i-n]
+                        coeff /= frobeniusschur(b) #*fermionparity(b)
+                    end
+                end
                 @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
             end
         end

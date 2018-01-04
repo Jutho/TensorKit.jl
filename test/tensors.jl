@@ -1,33 +1,33 @@
 Vtr = (ℂ^2,
-        ℂ^3,
+        (ℂ^3)',
         ℂ^4,
         ℂ^5,
-        ℂ^6)
+        (ℂ^6)')
 Vℤ₂ = (ℂ[ℤ₂](0=>1, 1=>1),
         ℂ[ℤ₂](0=>2, 1=>5),
-        ℂ[ℤ₂](0=>3, 1=>2),
+        ℂ[ℤ₂](0=>3, 1=>2)',
         ℂ[ℤ₂](0=>2, 1=>3),
-        ℂ[ℤ₂](0=>1, 1=>2))
+        ℂ[ℤ₂](0=>1, 1=>2)')
 Vℤ₃ = (ℂ[ℤ₃](0=>1, 1=>1, 2=>2),
-        ℂ[ℤ₃](0=>2, 1=>4, 2=>3),
+        ℂ[ℤ₃](0=>2, 1=>4, 2=>3)',
         ℂ[ℤ₃](0=>3, 1=>2, 2=>1),
         ℂ[ℤ₃](0=>2, 1=>3, 2=>1),
-        ℂ[ℤ₃](0=>1, 1=>2, 2=>3))
+        ℂ[ℤ₃](0=>1, 1=>2, 2=>3)')
 VU₁ = (ℂ[U₁](0=>1, 1=>1, -1=>2),
-        ℂ[U₁](0=>2, 1=>4, -1=>3),
+        ℂ[U₁](0=>2, 1=>4, -1=>3)',
         ℂ[U₁](0=>3, 1=>2, -1=>1),
         ℂ[U₁](0=>2, 1=>3, -1=>1),
-        ℂ[U₁](0=>1, 1=>2, -1=>3))
+        ℂ[U₁](0=>1, 1=>2, -1=>3)')
 VCU₁ = (ℂ[CU₁]((0,0)=>1, (0,1)=>1, 1=>2),
-        ℂ[CU₁]((0,0)=>2, (0,1)=>4, 1=>3),
+        ℂ[CU₁]((0,0)=>2, (0,1)=>4, 1=>3)',
         ℂ[CU₁]((0,0)=>3, (0,1)=>2, 1=>1),
         ℂ[CU₁]((0,0)=>2, (0,1)=>3, 1=>1),
-        ℂ[CU₁]((0,0)=>1, (0,1)=>2, 1=>3))
+        ℂ[CU₁]((0,0)=>1, (0,1)=>2, 1=>3)')
 VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
-        ℂ[SU₂](0=>2, 1//2=>4, 1=>3),
+        ℂ[SU₂](0=>2, 1//2=>4, 1=>3)',
         ℂ[SU₂](0=>3, 1//2=>2, 1=>1),
         ℂ[SU₂](0=>2, 1//2=>3, 1=>1),
-        ℂ[SU₂](0=>1, 1//2=>2, 1=>3))
+        ℂ[SU₂](0=>1, 1//2=>2, 1=>3)')
 
 @testset "Tensors with symmetry: $G" for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁), (CU₁, VCU₁), (SU₂, VSU₂))
     V1, V2, V3, V4, V5 = V
@@ -64,7 +64,19 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
             @test vecdot(β*t2,α*t) ≈ conj(β)*α*conj(vecdot(t,t2))
         end
     end
-    @testset "Permutations and inner product invariance" begin
+    @testset "Basic linear algebra: test via conversion" begin
+        W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            t = TensorMap(rand, T, W)
+            t2 = TensorMap(rand, T, W)
+            @test vecnorm(t, 2) ≈ vecnorm(convert(Array,t), 2)
+            @test vecdot(t2,t) ≈ vecdot(convert(Array,t2), convert(Array, t))
+            α = rand(T)
+            @test convert(Array, α*t) ≈ α*convert(Array,t)
+            @test convert(Array, t+t) ≈ 2*convert(Array,t)
+        end
+    end
+    @testset "Permutations: test via inner product invariance" begin
         using Combinatorics
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         t = Tensor(rand, W);
@@ -77,6 +89,18 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
                 @test vecnorm(t2) ≈ vecnorm(t)
                 t2′= permuteind(t′, p1, p2)
                 @test vecdot(t2′,t2) ≈ vecdot(t′,t)
+            end
+        end
+    end
+    @testset "Permutations: test via conversion" begin
+        using Combinatorics
+        W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
+        t = Tensor(rand, W);
+        for k = 0:5
+            for p in permutations(1:5)
+                p1 = ntuple(n->p[n], StaticLength(k))
+                p2 = ntuple(n->p[k+n], StaticLength(5-k))
+                @test convert(Array, permuteind(t, p1, p2)) ≈ permutedims(convert(Array, t), (p1...,p2...))
             end
         end
     end

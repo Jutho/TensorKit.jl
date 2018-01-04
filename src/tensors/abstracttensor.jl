@@ -106,12 +106,12 @@ normalize(t::AbstractTensorMap, p::Real = 2) = normalize!(copy(t), p)
 
 Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
 
-# Convert to Array
-function Base.convert(::Type{Array}, t::AbstractTensorMap)
+# Convert to Array: probably not optimized for speed, only for checking purposes
+function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂}
     G = sectortype(t)
     if G == Trivial
         convert(Array, t[])
-    else
+    elseif fusiontype(G) == Abelian || fusiontype(G) == SimpleNonAbelian
         # TODO: Frobenius-Schur indicators!, and fermions!
         cod = codomain(t)
         dom = domain(t)
@@ -119,6 +119,24 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap)
         for (f1,f2) in fusiontrees(t)
             F1 = convert(Array, f1)
             F2 = convert(Array, f2)
+            for i = 1:N₁
+                if isdual(cod[i])
+                    a = f1.outgoing[i]
+                    Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
+                    indF = ntuple(k->(k == i ? -i : k), StaticLength(N₁)+StaticLength(1))
+                    indout = ntuple(identity, StaticLength(N₁)+StaticLength(1))
+                    F1 = TensorOperations.tensorcontract(Z,(i,-i), F1, indF, indout; method = :native)
+                end
+            end
+            for i = 1:N₂
+                if isdual(dom[i])
+                    a = f2.outgoing[i]
+                    Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
+                    indF = ntuple(k->(k == i ? -i : k), StaticLength(N₂)+StaticLength(1))
+                    indout = ntuple(identity, StaticLength(N₂)+StaticLength(1))
+                    F2 = TensorOperations.tensorcontract(Z,(i,-i), F2, indF, indout; method = :native)
+                end
+            end
             sz1 = size(F1)
             sz2 = size(F2)
             d1 = TupleTools.front(sz1)
