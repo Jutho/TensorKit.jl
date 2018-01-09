@@ -5,9 +5,10 @@ struct TensorMap{S<:IndexSpace, N₁, N₂, A, F₁, F₂} <: AbstractTensorMap{
     data::A
     codom::ProductSpace{S,N₁}
     dom::ProductSpace{S,N₂}
-    ranges::ImmutableDict{Tuple{F₁,F₂}, Tuple{UnitRange{Int},UnitRange{Int}}}
-    function TensorMap{S, N₁, N₂, A, F₁, F₂}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}, ranges::ImmutableDict{Tuple{F₁,F₂}, Tuple{UnitRange{Int},UnitRange{Int}}}) where {S<:IndexSpace, N₁, N₂, A<:AbstractDict, F₁, F₂}
-        new{S, N₁, N₂, A, F₁, F₂}(data, codom, dom, ranges)
+    rowr::VectorDict{F₁,UnitRange{Int}}
+    colr::VectorDict{F₂,UnitRange{Int}}
+    function TensorMap{S, N₁, N₂, A, F₁, F₂}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}, rowr::VectorDict{F₁,UnitRange{Int}}, colr::VectorDict{F₂,UnitRange{Int}}) where {S<:IndexSpace, N₁, N₂, A<:AbstractDict, F₁, F₂}
+        new{S, N₁, N₂, A, F₁, F₂}(data, codom, dom, rowr, colr)
     end
     function TensorMap{S, N₁, N₂, A, Void, Void}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂, A<:AbstractMatrix}
         new{S, N₁, N₂, A, Void, Void}(data, codom, dom)
@@ -58,32 +59,29 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
     G == keytype(data) || throw(SectorMismatch())
     F₁ = fusiontreetype(G, StaticLength(N₁))
     F₂ = fusiontreetype(G, StaticLength(N₂))
-    ranges = ImmutableDict{Tuple{F₁,F₂},Tuple{UnitRange{Int},UnitRange{Int}}}()
+    rowr = VectorDict{F₁, UnitRange{Int}}()
+    colr = VectorDict{F₂, UnitRange{Int}}()
     for c in blocksectors(codom, dom)
         offset1 = 0
-        offset2 = 0
         for s1 in sectors(codom)
-            for f1 in fusiontrees(s1, c)
-                rowr = (offset1 + 1):(offset1 + dim(codom, s1))
-                offset1 = last(rowr)
-                offset2 = 0
-                for s2 in sectors(dom)
-                    for f2 in fusiontrees(s2, c)
-                        colr = (offset2 + 1):(offset2 + dim(dom, s2))
-                        offset2 = last(colr)
-                        ranges = ImmutableDict(ranges, (f1,f2)=>(rowr,colr))
-                    end
-                end
-
+            for f in fusiontrees(s1, c)
+                r = (offset1 + 1):(offset1 + dim(codom, s1))
+                rowr[f] = r
+                offset1 = last(r)
             end
         end
-        dim1 = offset1
-        dim2 = offset2
-
-        (haskey(data, c) && size(data[c]) == (dim1, dim2)) || throw(DimensionMismatch())
+        offset2 = 0
+        for s2 in sectors(dom)
+            for f in fusiontrees(s2, c)
+                r = (offset2 + 1):(offset2 + dim(dom, s2))
+                colr[f] = r
+                offset2 = last(r)
+            end
+        end
+        (haskey(data, c) && size(data[c]) == (offset1, offset2)) || throw(DimensionMismatch())
         eltype(data[c]) ⊆ fieldtype(S) || warn("eltype(data) = $(eltype(data[c])) ⊈ $(fieldtype(S)))")
     end
-    return TensorMap{S, N₁, N₂, A, F₁, F₂}(data, codom, dom, ranges)
+    return TensorMap{S, N₁, N₂, A, F₁, F₂}(data, codom, dom, rowr, colr)
 end
 
 # without data: generic constructor from callable:
@@ -97,32 +95,32 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
     else
         F₁ = fusiontreetype(G, StaticLength(N₁))
         F₂ = fusiontreetype(G, StaticLength(N₂))
+        rowr = VectorDict{F₁, UnitRange{Int}}()
+        colr = VectorDict{F₂, UnitRange{Int}}()
         A = typeof(f((1,1)))
         data = ImmutableDict{G,A}()
-        ranges = ImmutableDict{Tuple{F₁,F₂},Tuple{UnitRange{Int},UnitRange{Int}}}()
         for c in blocksectors(codom, dom)
             offset1 = 0
-            offset2 = 0
             for s1 in sectors(codom)
                 for f1 in fusiontrees(s1, c)
-                    rowr = (offset1 + 1):(offset1 + dim(codom, s1))
-                    offset1 = last(rowr)
-                    offset2 = 0
-                    for s2 in sectors(dom)
-                        for f2 in fusiontrees(s2, c)
-                            colr = (offset2 + 1):(offset2 + dim(dom, s2))
-                            offset2 = last(colr)
-                            ranges = ImmutableDict(ranges, (f1,f2)=>(rowr,colr))
-                        end
-                    end
-
+                    r = (offset1 + 1):(offset1 + dim(codom, s1))
+                    rowr[f1] = r
+                    offset1 = last(r)
                 end
             end
             dim1 = offset1
+            offset2 = 0
+            for s2 in sectors(dom)
+                for f2 in fusiontrees(s2, c)
+                    r = (offset2 + 1):(offset2 + dim(dom, s2))
+                    colr[f2] = r
+                    offset2 = last(r)
+                end
+            end
             dim2 = offset2
             data = ImmutableDict(data, c=>f((dim1, dim2)))
         end
-        return TensorMap{S, N₁, N₂, typeof(data), F₁, F₂}(data, codom, dom, ranges)
+        return TensorMap{S, N₁, N₂, typeof(data), F₁, F₂}(data, codom, dom, rowr, colr)
     end
 end
 TensorMap(f, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
@@ -171,9 +169,6 @@ end
 hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractDict}, s::Sector) where {N₁,N₂} = haskey(t.data, s)
 hasblock(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray}, ::Trivial) where {N₁,N₂} = true
 
-blocksectors(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractDict}) where {N₁,N₂} = keys(t.data)
-blocksectors(t::TensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray}) where {N₁,N₂} = (Trivial(),)
-
 function block(t::TensorMap{S,N₁,N₂,<:AbstractDict}, s::Sector) where {S,N₁,N₂}
     sectortype(S) == typeof(s) || throw(SectorMismatch())
     A = valtype(t.data)
@@ -188,7 +183,7 @@ block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} 
 blocks(t::TensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = t.data
 blocks(t::TensorMap{S,N₁,N₂,<:AbstractArray}) where {S<:IndexSpace,N₁,N₂} = (Trivial()=>t.data,)
 
-fusiontrees(t::TensorMap) = keys(t.ranges)
+fusiontrees(t::TensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.rowr), keys(t.colr)))
 
 function Base.getindex(t::TensorMap{S,N₁,N₂}, sectors::Tuple{Vararg{G}}) where {S<:IndexSpace,N₁,N₂,G<:Sector}
     (N₁+N₂ == length(sectors) && sectortype(S) == G) || throw(SectorMismatch("Sectors $sectors not valid for tensor in $(codomain(t))←$(domain(t))"))
@@ -215,9 +210,8 @@ Base.getindex(t::TensorMap, sectors::Tuple) = t[map(sectortype(t), sectors)]
         c == f2.incoming || throw(SectorMismatch())
         checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
     end
-    rowr,colr = t.ranges[(f1,f2)]
     @inbounds begin
-        return splitdims(sview(t.data[c], rowr, colr), dims(codomain(t), f1.outgoing), dims(domain(t), f2.outgoing))
+        return splitdims(sview(t.data[c], t.rowr[f1], t.colr[f2]), dims(codomain(t), f1.outgoing), dims(domain(t), f2.outgoing))
     end
 end
 @propagate_inbounds Base.setindex!(t::TensorMap{S,N₁,N₂}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} = copy!(getindex(t, f1, f2), v)

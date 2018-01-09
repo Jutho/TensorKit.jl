@@ -87,8 +87,6 @@ if VERSION < v"0.7.0-DEV.2543"
     Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
 end
 
-Base.:(==)(t1::Tuple{Any,Any},t2::Tuple{Any,Any}) = t1[1] == t2[1] && t1[2] == t2[2]
-
 @static if !isdefined(Base, :AbstractDict)
     const AbstractDict = Base.Associative
 end
@@ -120,7 +118,6 @@ end
 
 @static if !isdefined(Base, Symbol("@__MODULE__"))
     # 0.7
-    export @__MODULE__
     macro __MODULE__()
         return current_module()
     end
@@ -141,7 +138,25 @@ end
         Base.Matrix(::Uninitialized, args...) = Matrix(args...)
     """)
     const uninitialized = Uninitialized()
-    export Uninitialized, uninitialized
+end
+
+@static if !isdefined(Base, :EqualTo)
+    if VERSION >= v"0.6.0"
+        include_string(@__MODULE__, """
+            struct EqualTo{T} <: Function
+                x::T
+                EqualTo(x::T) where {T} = new{T}(x)
+            end
+        """)
+    else
+        include_string(@__MODULE__, """
+            immutable EqualTo{T} <: Function
+                x::T
+            end
+        """)
+    end
+    (f::EqualTo)(y) = isequal(f.x, y)
+    const equalto = EqualTo
 end
 
 @static if isdefined(Base, :print_array)
