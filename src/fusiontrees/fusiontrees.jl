@@ -99,8 +99,8 @@ function Base.permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
                 end
             end
         end
-        t = FusionTree{G}(TupleTools.permute(t.outgoing, p), t.incoming)
-        return ImmutableDict(t=>coeff)
+        t = FusionTree{G}(TupleTools._permute(t.outgoing, p), t.incoming)
+        return SingletonDict(t=>coeff)
     else
         coeff = Rsymbol(one(G), one(G), one(G))
         trees = Dict(t=>coeff)
@@ -133,7 +133,11 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
         c = N > 2 ? inner[1] : t.incoming
         outer = TupleTools.setindex(outer, b, 1)
         outer = TupleTools.setindex(outer, a, 2)
-        return ImmutableDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
+        if fusiontype(G) == Abelian
+            return SingletonDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
+        elseif fusiontype(G) == SimpleNonAbelian
+            return ImmutableDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
+        end
     end
     # case i > 1:
     b = outer[i]
@@ -145,7 +149,7 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
     outer′ = TupleTools.setindex(outer′, b, i+1)
     if fusiontype(G) == Abelian
         inner′ = TupleTools.setindex(inner, first(a ⊗ d), i-1)
-        return ImmutableDict(FusionTree{G}(outer′, t.incoming, inner′) => Rsymbol(b, d, first(b ⊗ d)))
+        return SingletonDict(FusionTree{G}(outer′, t.incoming, inner′) => Rsymbol(b, d, first(b ⊗ d)))
     elseif fusiontype(G) == SimpleNonAbelian
         iter = a ⊗ d
         s = start(iter)
@@ -215,7 +219,7 @@ function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::StaticLe
         c = innerext[N+1]
         t1′ = FusionTree{G}(outgoing1, c, innerlines1)
         t2′ = FusionTree{G}(outgoing2, c, innerlines2)
-        return ImmutableDict((t1′,t2′)=>coeff)
+        return SingletonDict((t1′,t2′)=>coeff)
     else
         # TODO: implement DegenerateNonAbelian case
         throw(MethodError(repartition, (t1, t2, V)))
@@ -235,12 +239,11 @@ such that charges `p1` become outgoing and charges `p2` become incoming.
 function Base.permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂
     p = linearizepermutation(p1, p2, length(t1), length(t2))
-    @assert isperm(p)
     if fusiontype(t1) == Abelian
         (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
         t, coeff2 = first(permute(t, p))
         (t1′,t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
-        return ImmutableDict((t1′,t2′)=>coeff1*coeff2*coeff3)
+        return SingletonDict((t1′,t2′)=>coeff1*coeff2*coeff3)
     elseif fusiontype(t1) == SimpleNonAbelian
         (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
         trees = permute(t, p)

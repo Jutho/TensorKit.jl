@@ -9,19 +9,20 @@ the codomain or range of the map, and indices in `p2` indicating the domain.
 
 To permute into an existing `tdst`, use `permuteind!(tdst, tsrc, p1, p2)`.
 """
-function permuteind(t::AbstractTensorMap, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {N₁,N₂}
+function permuteind(t::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {S,N₁,N₂}
     if !copy
         # share data if possible
-        if isa(t, TensorMap)
-            if sectortype(t) == Trivial &&
-                (p1..., p2...) == ntuple(identity, StaticLength(N₁)+StaticLength(N₂))
+        if (p1..., p2...) == ntuple(identity, StaticLength(N₁)+StaticLength(N₂))
+            if isa(t, TensorMap{S,N₁,N₂})
+                return t
+            elseif isa(t, TensorMap) && S == Trivial
                 spacet = codomain(t) ⊗ dual(domain(t))
                 cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
                 dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
                 return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
+            elseif isa(t, AdjointTensorMap)
+                # TODO: can we share data for AdjointTensorMap?
             end
-        elseif isa(t, AdjointTensorMap)
-            # TODO: can we share data for AdjointTensorMap?
         end
     end
     # general case

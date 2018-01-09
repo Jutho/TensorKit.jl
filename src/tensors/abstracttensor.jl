@@ -22,17 +22,13 @@ i.e. a tensor map with only a non-trivial output space.
 """
 const AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
 
-@static if isdefined(Base.LinAlg, :Adjoint)
-    Base.LinAlg.Adjoint(t::AbstractTensorMap) = adjoint(t)
-end
-
 # tensor characteristics
 Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
 spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
 sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
 fieldtype(t::AbstractTensorMap) = fieldtype(typeof(t))
-numout(t::AbstractTensorMap) = numin(typeof(t))
-numin(t::AbstractTensorMap) = numout(typeof(t))
+numout(t::AbstractTensorMap) = numout(typeof(t))
+numin(t::AbstractTensorMap) = numin(typeof(t))
 numind(t::AbstractTensorMap) = numind(typeof(t))
 
 Base.@pure spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S

@@ -44,13 +44,13 @@ Base.show(io::IO, c::ZNIrrep{N}) where {N} = get(io, :compact, false) ? print(io
 
 # U1Irrep: irreps of U1 are labelled by integers
 struct U1Irrep <: AbelianIrrep
-    charge::Rational{Int}
+    charge::HalfInteger
 end
 Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 ⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
 
-Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(Rational{Int}, c))
+Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(HalfInteger, c))
 
 const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
@@ -60,36 +60,6 @@ Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge) :
 
 # Nob-abelian groups
 #------------------------------------------------------------------------------#
-# HalfInteger
-struct HalfInteger <: Real
-    num::Int
-end
-Base.:+(a::HalfInteger, b::HalfInteger) = HalfInteger(a.num+b.num)
-Base.:-(a::HalfInteger, b::HalfInteger) = HalfInteger(a.num-b.num)
-Base.:-(a::HalfInteger) = HalfInteger(-a.num)
-Base.:<=(a::HalfInteger, b::HalfInteger) = a.num <= b.num
-Base.:<(a::HalfInteger, b::HalfInteger) = a.num < b.num
-Base.one(::Type{HalfInteger}) = HalfInteger(2)
-Base.zero(::Type{HalfInteger}) = HalfInteger(0)
-
-Base.promote_rule(::Type{HalfInteger}, ::Type{<:Integer}) = HalfInteger
-Base.promote_rule(::Type{HalfInteger}, T::Type{<:Rational}) = T
-Base.promote_rule(::Type{HalfInteger}, T::Type{<:Real}) = T
-
-Base.convert(::Type{HalfInteger}, n::Integer) = HalfInteger(2*n)
-function Base.convert(::Type{HalfInteger}, r::Rational)
-    if r.den == 1
-        return HalfInteger(2*r.num)
-    elseif r.den == 2
-        return HalfInteger(r.num)
-    else
-        throw(InexactError())
-    end
-end
-Base.convert(::Type{HalfInteger}, r::Real) = convert(HalfInteger, convert(Rational, r))
-Base.convert(T::Type{<:Real}, s::HalfInteger) = convert(T, s.num//2)
-Base.convert(::Type{HalfInteger}, s::HalfInteger) = s
-
 # SU2Irrep: irreps of SU2 are labelled by half integers j, internally we use the integer dimension 2j+1 instead
 import WignerSymbols
 
@@ -301,11 +271,11 @@ function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, ::Void = nothing)
             C[1,1,1] = 1.
         else
             if c.s == 0
-                C[1,2,1] = 1./sqrt(2)
-                C[2,1,1] = 1./sqrt(2)
+                C[1,2,1] = 1. / sqrt(2)
+                C[2,1,1] = 1. / sqrt(2)
             else
-                C[1,2,1] = 1./sqrt(2)
-                C[2,1,1] = -1./sqrt(2)
+                C[1,2,1] = 1. / sqrt(2)
+                C[2,1,1] = -1. / sqrt(2)
             end
         end
     elseif a.j == 0

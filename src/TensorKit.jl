@@ -87,6 +87,8 @@ if VERSION < v"0.7.0-DEV.2543"
     Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
 end
 
+Base.:(==)(t1::Tuple{Any,Any},t2::Tuple{Any,Any}) = t1[1] == t2[1] && t1[2] == t2[2]
+
 @static if !isdefined(Base, :AbstractDict)
     const AbstractDict = Base.Associative
 end
@@ -158,8 +160,11 @@ const IndexTuple{N} = NTuple{N,Int}
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
+include("auxiliary/dicts.jl")
+include("auxiliary/halfinteger.jl")
 include("auxiliary/linalg.jl")
 include("auxiliary/random.jl")
+include("auxiliary/unsafe_similar.jl")
 
 # Exception types:
 #------------------
@@ -213,5 +218,11 @@ include("tensors/adjoint.jl")
 include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/factorizations.jl")
+
+@static if isdefined(Base.LinAlg, :Adjoint)
+    Base.LinAlg.Adjoint(t::AbstractTensorMap) = adjoint(t)
+    Base.LinAlg.Adjoint(V::VectorSpace) = adjoint(V)
+end
+
 
 end
