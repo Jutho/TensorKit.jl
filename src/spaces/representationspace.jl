@@ -9,16 +9,16 @@ type `G<:Sector`, e.g. the irreps of a compact or finite group, or the labels of
 a unitary fusion category.
 """
 struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
-    dims::ImmutableDict{G,Int}
+    dims::VectorDict{G,Int}
     dual::Bool
 end
-GenericRepresentationSpace{G}(dims::ImmutableDict{G,Int}) where {G<:Sector} = GenericRepresentationSpace{G}(dims, false)
+GenericRepresentationSpace{G}(dims::VectorDict{G,Int}) where {G<:Sector} = GenericRepresentationSpace{G}(dims, false)
 
 function GenericRepresentationSpace{G}(dims::Tuple{Vararg{Pair{G,Int}}}, dual::Bool) where {G<:Sector}
-    d = ImmutableDict{G,Int}()
-    @inbounds for k = length(dims):-1:1
+    d = VectorDict{G,Int}()
+    @inbounds for k = 1:length(dims)
         if dims[k][2] != 0
-            d = ImmutableDict(d, dims[k])
+            push!(d, dims[k])
         end
     end
     GenericRepresentationSpace{G}(d, dual)
@@ -27,7 +27,7 @@ end
 GenericRepresentationSpace{G}(dims::Tuple{Vararg{Pair{<:Any,Int}}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
 GenericRepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
 
-Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) = V1.dims === V2.dims && V1.dual == V2.dual
+Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) = keys(V1.dims) == keys(V2.dims) && values(V1.dims) == values(V2.dims) && V1.dual == V2.dual
 
 """
     struct ZNSpace{N} <: AbstractRepresentationSpace{ZNIrrep{N}}

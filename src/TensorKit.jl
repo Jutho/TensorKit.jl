@@ -165,6 +165,13 @@ else
     print_array(io, a) = Base.showarray(io, a, false; header=false)
 end
 
+# if VERSION >= v"0.6.99"
+#     finalizer(f, o) = Base.finalizer(f,o)
+# else
+#     finalizer(f, o) = Base.finalizer(o,f)
+# end
+
+
 #--------------------------------------------------------------------
 
 import TensorOperations
@@ -179,7 +186,7 @@ include("auxiliary/dicts.jl")
 include("auxiliary/halfinteger.jl")
 include("auxiliary/linalg.jl")
 include("auxiliary/random.jl")
-include("auxiliary/unsafe_similar.jl")
+# include("auxiliary/unsafe_similar.jl")
 
 # Exception types:
 #------------------
@@ -228,6 +235,7 @@ include("fusiontrees/fusiontrees.jl")
 include("tensors/truncation.jl")
 # general definitions
 include("tensors/abstracttensor.jl")
+include("tensors/tensortreeiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
 include("tensors/tensoroperations.jl")
@@ -238,6 +246,9 @@ include("tensors/factorizations.jl")
     Base.LinAlg.Adjoint(t::AbstractTensorMap) = adjoint(t)
     Base.LinAlg.Adjoint(V::VectorSpace) = adjoint(V)
 end
+
+# include("auxiliary/juarray.jl")
+# export JuArray
 
 
 end

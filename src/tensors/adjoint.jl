@@ -15,7 +15,16 @@ Base.eltype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,<:AbstractArray{T}}
 Base.eltype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,<:AbstractDict{<:Any,<:AbstractArray{T}}}}) where {T,N₁,N₂} = T
 
 Base.length(t::AdjointTensorMap) = length(t.parent)
-Base.similar(t::AdjointTensorMap, args...) = similar(t.parent, args...)
+
+Base.similar(t::AdjointTensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = similar(t.parent, T, P)
+Base.similar(t::AdjointTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = similar(t.parent, T, P)
+Base.similar(t::AdjointTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = similar(t.parent, P)
+Base.similar(t::AdjointTensorMap{S}, P::TensorSpace{S}) where {S} = similar(t.parent, P)
+
+unsafe_similar(t::AdjointTensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = unsafe_similar(t.parent, T, P)
+unsafe_similar(t::AdjointTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = unsafe_similar(t.parent, T, P)
+unsafe_similar(t::AdjointTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = unsafe_similar(t.parent, P)
+unsafe_similar(t::AdjointTensorMap{S}, P::TensorSpace{S}) where {S} = unsafe_similar(t.parent, P)
 
 # Copy
 Base.copy!(tdst::TensorMap, tsrc::AdjointTensorMap) = adjoint!(tdst, tsrc.parent)
@@ -26,7 +35,7 @@ Base.vecnorm(t::AdjointTensorMap, p::Real) = vecnorm(t.parent, p)
 
 # Indexing
 #----------
-fusiontrees(t::AdjointTensorMap) = filter(fs->(fs[1].incoming == fs[2].incoming), product(keys(t.parent.colr), keys(t.parent.rowr)))
+fusiontrees(t::AdjointTensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = TensorTreeIterator(t.parent.colr, t.parent.rowr)
 
 function Base.getindex(t::AdjointTensorMap{S,N₁,N₂}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
     c = f1.incoming
@@ -34,7 +43,7 @@ function Base.getindex(t::AdjointTensorMap{S,N₁,N₂}, f1::FusionTree{G,N₁},
         c == f2.incoming || throw(SectorMismatch())
         checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
     end
-    return splitdims(sview(t.parent.data[c], t.parent.rowr[f2], t.parent.colr[f1])', dims(codomain(t), f1.outgoing), dims(domain(t), f2.outgoing))
+    return splitdims(sview(t.parent.data[c], t.parent.rowr[c][f2], t.parent.colr[c][f1])', dims(codomain(t), f1.outgoing), dims(domain(t), f2.outgoing))
 end
 @propagate_inbounds Base.setindex!(t::AdjointTensorMap{S,N₁,N₂}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} = copy!(getindex(t, f1, f2), v)
 

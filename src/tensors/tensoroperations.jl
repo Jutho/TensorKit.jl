@@ -155,19 +155,23 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::
     A′ = permuteind(A, oindA, cindA)
     B′ = permuteind(B, cindB, oindB)
     if α == 1 && β == 0 && p1 == ntuple(n->n, StaticLength(N₁)) && p2 == ntuple(n->(N₁+n), StaticLength(N₂))
-        A_mul_B!(C, A′, B′)
+        mul!(C, A′, B′)
     elseif α == 1 && β == 0 && isa(C, TensorMap) && sectortype(S) == Trivial && (p1...,p2...) == ntuple(n->n, StaticLength(N₁)+StaticLength(N₂))
         p1′ = ntuple(n->n, StaticLength(N₁))
         p2′ = ntuple(n->(N₁+n), StaticLength(N₂))
         C′ = permuteind(C, p1′, p2′)
-        A_mul_B!(C′, A′, B′)
+        mul!(C′, A′, B′)
     else
-        add!(α, A′ * B′, β, C, p1, p2)
+        C′ = A′ * B′
+        add!(α, C′, β, C, p1, p2)
+        # finalize(C′)
     end
+    # finalize(A′)
+    # finalize(B′)
     return C
 end
 #
-# function contractnew!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S}, oindA::IndexTuple{N₁}, cindA::IndexTuple, oindB::IndexTuple{N₂}, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
+# function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S}, oindA::IndexTuple{N₁}, cindA::IndexTuple, oindB::IndexTuple{N₂}, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
 #     A′, freeA = unsafe_permuteind(A, oindA, cindA)
 #     B′, freeB = unsafe_permuteind(B, cindB, oindB)
 #     if α == 1 && β == 0 && p1 == ntuple(n->n, StaticLength(N₁)) && p2 == ntuple(n->(N₁+n), StaticLength(N₂))

@@ -15,7 +15,7 @@ function permuteind(t::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTup
         if (p1..., p2...) == ntuple(identity, StaticLength(N₁)+StaticLength(N₂))
             if isa(t, TensorMap{S,N₁,N₂})
                 return t
-            elseif isa(t, TensorMap) && S == Trivial
+            elseif isa(t, TensorMap) && sectortype(S) == Trivial
                 spacet = codomain(t) ⊗ dual(domain(t))
                 cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
                 dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
