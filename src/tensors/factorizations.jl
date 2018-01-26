@@ -126,3 +126,5 @@ rightorth(t::AbstractTensorMap, alg::OrthogonalFactorizationAlgorithm = LQpos())
 leftnull(t::AbstractTensorMap, alg::OrthogonalFactorizationAlgorithm = QRpos()) = leftnull!(copy(t), alg)
 rightnull(t::AbstractTensorMap, alg::OrthogonalFactorizationAlgorithm = LQpos()) = rightnull!(copy(t), alg)
 Base.eig(t::AbstractTensorMap) = eig!(copy(t))
+
+Base.exp(t::AbstractTensorMap) = exp!(copy(t))

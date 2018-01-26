@@ -22,6 +22,8 @@ struct VectorDict{K,V} <: AbstractDict{K,V}
 end
 
 Base.length(d::VectorDict) = length(d.keys)
+@propagate_inbounds getpair(d::VectorDict, i::Integer) = d.keys[i] => d.values[i]
+
 Base.keys(d::VectorDict) = d.keys
 Base.values(d::VectorDict) = d.values
 Base.haskey(d::VectorDict, key) = key in d.keys

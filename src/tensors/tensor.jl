@@ -66,24 +66,24 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
         colrc = VectorDict{F₂, UnitRange{Int}}()
         offset1 = 0
         for s1 in sectors(codom)
-            for f in fusiontrees(s1, c)
+            for f1 in fusiontrees(s1, c)
                 r = (offset1 + 1):(offset1 + dim(codom, s1))
-                rowrc[f] = r
+                push!(rowrc, f1 => r)
                 offset1 = last(r)
             end
         end
         offset2 = 0
         for s2 in sectors(dom)
-            for f in fusiontrees(s2, c)
+            for f2 in fusiontrees(s2, c)
                 r = (offset2 + 1):(offset2 + dim(dom, s2))
-                colrc[f] = r
+                push!(colrc, f2 => r)
                 offset2 = last(r)
             end
         end
         (haskey(data, c) && size(data[c]) == (offset1, offset2)) || throw(DimensionMismatch())
         eltype(data[c]) ⊆ fieldtype(S) || warn("eltype(data) = $(eltype(data[c])) ⊈ $(fieldtype(S)))")
-        rowr[c] = rowrc
-        colr[c] = colrc
+        push!(rowr, c=>rowrc)
+        push!(colr, c=>colrc)
     end
     t = TensorMap{S, N₁, N₂, A, G, F₁, F₂}(data, codom, dom, rowr, colr)
 end
@@ -112,7 +112,7 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
             for s1 in sectors(codom)
                 for f1 in fusiontrees(s1, c)
                     r = (offset1 + 1):(offset1 + dim(codom, s1))
-                    rowrc[f1] = r
+                    push!(rowrc, f1 => r)
                     offset1 = last(r)
                 end
             end
@@ -121,14 +121,14 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
             for s2 in sectors(dom)
                 for f2 in fusiontrees(s2, c)
                     r = (offset2 + 1):(offset2 + dim(dom, s2))
-                    colrc[f2] = r
+                    push!(colrc, f2 => r)
                     offset2 = last(r)
                 end
             end
             dim2 = offset2
-            data[c] = f((dim1, dim2))
-            rowr[c] = rowrc
-            colr[c] = colrc
+            push!(data, c=>f((dim1, dim2)))
+            push!(rowr, c=>rowrc)
+            push!(colr, c=>colrc)
         end
         t = TensorMap{S, N₁, N₂, typeof(data), G, F₁, F₂}(data, codom, dom, rowr, colr)
         # finalizer(finalizeblocks, t)
@@ -201,7 +201,7 @@ block(t::TensorMap{S,N₁,N₂,<:AbstractArray}, ::Trivial) where {S,N₁,N₂} 
 blocks(t::TensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = t.data
 blocks(t::TensorMap{S,N₁,N₂,<:AbstractArray}) where {S<:IndexSpace,N₁,N₂} = (Trivial()=>t.data,)
 
-fusiontrees(t::TensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = TensorTreeIterator(t.rowr, t.colr)
+fusiontrees(t::TensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = TensorKeyIterator(t.rowr, t.colr)
 
 function Base.getindex(t::TensorMap{S,N₁,N₂}, sectors::Tuple{Vararg{G}}) where {S<:IndexSpace,N₁,N₂,G<:Sector}
     (N₁+N₂ == length(sectors) && sectortype(S) == G) || throw(SectorMismatch("Sectors $sectors not valid for tensor in $(codomain(t))←$(domain(t))"))
@@ -303,15 +303,15 @@ Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = Tensor
 Base.similar(t::TensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = TensorMap(d->similar(first(blocks(t))[2], d), P)
 Base.similar(t::TensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->similar(first(blocks(t))[2], d), P)
 
-unsafe_similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = TensorMap(d->unsafe_similar(first(blocks(t))[2], T, d), P)
-unsafe_similar(t::TensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = Tensor(d->unsafe_imilar(first(blocks(t))[2], T, d), P)
-unsafe_similar(t::TensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = TensorMap(d->unsafe_similar(first(blocks(t))[2], d), P)
-unsafe_similar(t::TensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->unsafe_similar(first(blocks(t))[2], d), P)
-function unsafe_free(t::TensorMap)
-    for (c,b) in blocks(t)
-        Libc.free(pointer(b))
-    end
-end
+# unsafe_similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = TensorMap(d->unsafe_similar(first(blocks(t))[2], T, d), P)
+# unsafe_similar(t::TensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = Tensor(d->unsafe_imilar(first(blocks(t))[2], T, d), P)
+# unsafe_similar(t::TensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = TensorMap(d->unsafe_similar(first(blocks(t))[2], d), P)
+# unsafe_similar(t::TensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->unsafe_similar(first(blocks(t))[2], d), P)
+# function unsafe_free(t::TensorMap)
+#     for (c,b) in blocks(t)
+#         Libc.free(pointer(b))
+#     end
+# end
 
 # Copy and fill tensors:
 # ------------------------
@@ -355,6 +355,7 @@ end
 
 # Basic vector space methods:
 # ---------------------------
+# TODO: make these methods work between AbstractMap
 function Base.scale!(t1::TensorMap, t2::TensorMap, α::Number)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
@@ -398,7 +399,11 @@ function mul!(tC::TensorMap, tA::TensorMap,  tB::TensorMap)
         throw(SpaceMismatch())
     end
     for c in blocksectors(tC)
-        mul!(block(tC, c), block(tA, c), block(tB, c))
+        if hasblock(tA, c) && hasblock(tB, c)
+            mul!(block(tC, c), block(tA, c), block(tB, c))
+        else
+            fill!(block(tC, c), 0)
+        end
     end
     return tC
 end
@@ -631,12 +636,20 @@ function _truncate!(V::AbstractDict{G,<:AbstractVector}, trunc::TruncationScheme
     return V, truncerr
 end
 
+function exp!(t::TensorMap{S}) where {S<:EuclideanSpace}
+    domain(t) == codomain(t) || error("Exponentional of a tensor only exist when domain == codomain.")
+    for (c,m) in blocks(t)
+        exp!(m)
+    end
+    return t
+end
+
 # Adjoint (complex/Hermitian conjugation)
 #-----------------------------------------
 function adjoint!(tdst::TensorMap{<:EuclideanSpace}, tsrc::TensorMap{<:EuclideanSpace})
     (codomain(tdst) == domain(tsrc) && domain(tdst) == codomain(tsrc)) || throw(SpaceMismatch())
 
-    for c in blocksectors(t)
+    for c in blocksectors(tsrc)
         adjoint!(block(tdst, c), block(tsrc, c))
     end
     return tdst

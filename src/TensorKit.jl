@@ -87,6 +87,12 @@ if VERSION < v"0.7.0-DEV.2543"
     Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
 end
 
+@static if isdefined(Base.LinAlg, :exp!)
+    const exp! = Base.LinAlg.exp!
+else
+    const exp! = Base.LinAlg.expm!
+end
+
 @static if !isdefined(Base, :AbstractDict)
     const AbstractDict = Base.Associative
 end
