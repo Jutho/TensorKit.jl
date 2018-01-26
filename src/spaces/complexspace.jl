@@ -30,3 +30,7 @@ Base.show(io::IO, ::Type{ComplexSpace}) = print(io, "ComplexSpace")
 ⊕(V1::ComplexSpace, V2::ComplexSpace) = (V1.dual==V2.dual ?
     ComplexSpace(V1.d+V2.d, V1.dual) :
     throw(SpaceMismatch("Direct sum of a vector space and its dual does not exist")))
+
+fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d*V2.d)
+
+flip(V::ComplexSpace) = dual(V)
