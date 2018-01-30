@@ -35,7 +35,7 @@ Base.vecnorm(t::AdjointTensorMap, p::Real) = vecnorm(t.parent, p)
 
 # Indexing
 #----------
-fusiontrees(t::AdjointTensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = TensorTreeIterator(t.parent.colr, t.parent.rowr)
+fusiontrees(t::AdjointTensorMap{S,N₁,N₂,<:AbstractDict}) where {S<:IndexSpace,N₁,N₂} = TensorKeyIterator(t.parent.colr, t.parent.rowr)
 
 function Base.getindex(t::AdjointTensorMap{S,N₁,N₂}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
     c = f1.incoming
