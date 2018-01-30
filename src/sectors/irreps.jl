@@ -54,7 +54,7 @@ Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(HalfInteger, c))
 
 const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
-Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge) : print(io, "U₁(", c.charge.num//2, ")")
+Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge.num//2) : print(io, "U₁(", c.charge.num//2, ")")
 
 # NOTE: FractionalU1Charge?
 

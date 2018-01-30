@@ -597,14 +597,28 @@ function _truncate!(V::AbstractDict{G,<:AbstractVector}, trunc::TruncationScheme
     it = keys(V)
     fullnorm = _vecnorm((c=>V[c] for c in it), p)
     truncerr = zero(fullnorm)
+    T = eltype(valtype(V))
     if isa(trunc, NoTruncation)
         # don't do anything
     elseif isa(trunc, TruncationError)
         truncdim = Dict{G,Int}(c=>length(v) for (c,v) in V)
+        maxdim = copy(truncdim)
         while true
-            cmin = mininum(c->sqrt(dim(c))*V[c][truncdim[c]], keys(V))
+            s = start(it)
+            c, s = next(it, s)
+            cmin = c
+            vmin = dim(c)^(1/p)*V[c][truncdim[c]]
+            while !done(it, s)
+                c, s = next(it, s)
+                if truncdim[c] > 0
+                    v = dim(c)^(1/p)*V[c][truncdim[c]]
+                    if v < vmin
+                        cmin, vmin = c, v
+                    end
+                end
+            end
             truncdim[cmin] -= 1
-            truncerr = _vecnorm((c=>view(Σdata[c],truncdim[c]+1:maxdim[c]) for c in it), p)
+            truncerr = _vecnorm((c=>view(V[c],truncdim[c]+1:maxdim[c]) for c in it), p)
             if truncerr / fullnorm > trunc.ϵ
                 truncdim[cmin] += 1
                 break
@@ -616,11 +630,24 @@ function _truncate!(V::AbstractDict{G,<:AbstractVector}, trunc::TruncationScheme
         end
     elseif isa(trunc, TruncationDimension)
         truncdim = Dict{G,Int}(c=>length(v) for (c,v) in V)
+        maxdim = copy(truncdim)
         while sum(c->dim(c)*truncdim[c], it) > trunc.dim
-            cmin = mininum(c->dim(c)^(1/p)*V[c][truncdim[c]], it)
+            s = start(it)
+            c, s = next(it, s)
+            cmin = c
+            vmin = dim(c)^(1/p)*V[c][truncdim[c]]
+            while !done(it, s)
+                c, s = next(it, s)
+                if truncdim[c] > 0
+                    v = dim(c)^(1/p)*V[c][truncdim[c]]
+                    if v < vmin
+                        cmin, vmin = c, v
+                    end
+                end
+            end
             truncdim[cmin] -= 1
         end
-        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(Σdata[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
+        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(V[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
         for c in it
             resize!(V[c], truncdim[c])
         end
@@ -636,10 +663,10 @@ function _truncate!(V::AbstractDict{G,<:AbstractVector}, trunc::TruncationScheme
     return V, truncerr
 end
 
-function exp!(t::TensorMap{S}) where {S<:EuclideanSpace}
+function exp!(t::TensorMap)
     domain(t) == codomain(t) || error("Exponentional of a tensor only exist when domain == codomain.")
     for (c,m) in blocks(t)
-        exp!(m)
+        copy!(m,exp!(m))
     end
     return t
 end

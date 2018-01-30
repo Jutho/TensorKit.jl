@@ -13,41 +13,6 @@ function similar_from_indices(::Type{T}, oindA::IndexTuple, oindB::IndexTuple, p
     dom = dual(s[reverse(p2)])
     return similar(tA, T, cod←dom)
 end
-#
-# function unsafe_similar_from_indices(::Type{T}, p1::IndexTuple, p2::IndexTuple, t::AbstractTensorMap) where {T}
-#     s = codomain(t) ⊗ dual(domain(t))
-#     cod = s[map(n->tensor2spaceindex(t,n), p1)]
-#     dom = dual(s[map(n->tensor2spaceindex(t,n), reverse(p2))])
-#     return unsafe_similar(t, T, cod←dom)
-# end
-# function unsafe_similar_from_indices(::Type{T}, oindA::IndexTuple, oindB::IndexTuple, p1::IndexTuple, p2::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}) where {T, S<:IndexSpace}
-#     sA = codomain(tA) ⊗ dual(domain(tA))
-#     sB = codomain(tB) ⊗ dual(domain(tB))
-#     s = sA[map(n->tensor2spaceindex(tA,n), oindA)] ⊗ sB[map(n->tensor2spaceindex(tB,n), oindB)]
-#     cod = s[p1]
-#     dom = dual(s[reverse(p2)])
-#     return unsafe_similar(tA, T, cod←dom)
-# end
-# function unsafe_permuteind(t::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂}
-#     # share data if possible
-#     if (p1..., p2...) == ntuple(identity, StaticLength(N₁)+StaticLength(N₂))
-#         if isa(t, TensorMap{S,N₁,N₂})
-#             return t, false
-#         elseif isa(t, TensorMap) && S == Trivial
-#             spacet = codomain(t) ⊗ dual(domain(t))
-#             cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
-#             dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
-#             return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom), false
-#         elseif isa(t, AdjointTensorMap)
-#             # TODO: can we share data for AdjointTensorMap?
-#         end
-#     end
-#     # general case
-#     @inbounds begin
-#         tnew = unsafe_similar_from_indices(eltype(t), p1, p2, t)
-#         return permuteind!(tnew, t, p1, p2), true
-#     end
-# end
 
 scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} = dim(codomain(t)) == dim(domain(t)) == 1 ? first(blocks(t))[2][1,1] : throw(SpaceMismatch())
 
@@ -74,29 +39,10 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
     elseif fusiontype(G) == Abelian
         iterator = fusiontrees(tsrc)
         @inbounds Threads.@threads for k = 1:length(iterator)
-            (f1,f2) = iterator[k]
-            _addblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
-            # (f1′,f2′), coeff = first(permute(f1, f2, p1, p2))
-            # for i in p2
-            #     if i <= n && !isdual(cod[i])
-            #         b = f1.outgoing[i]
-            #         coeff *= frobeniusschur(b) #*fermionparity(b)
-            #     end
-            # end
-            # for i in p1
-            #     if i > n && isdual(dom[i-n])
-            #         b = f2.outgoing[i-n]
-            #         coeff /= frobeniusschur(b) #*fermionparity(b)
-            #     end
-            # end
-            # pdata = (p1...,p2...)
-            # if iszero(β)
-            #     scale!(tdst[f1′,f2′], α*coeff, permutedims(tsrc[f1,f2], pdata))
-            # elseif β == one(β)
-            #     axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
-            # else
-            #     axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
-            # end
+            f12 = iterator[k]
+            f1 = f12[1]
+            f2 = f12[2]
+            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
         end
     else
         cod = codomain(tsrc)
@@ -129,7 +75,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
     return tdst
 end
 
-function _addblock!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, f1::FusionTree, f2::FusionTree)  where {S,N₁,N₂}
+@inbounds function _addabelianblock!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, f1::FusionTree, f2::FusionTree)  where {S,N₁,N₂}
     cod = codomain(tsrc)
     dom = domain(tsrc)
     n = length(cod)

@@ -58,13 +58,24 @@ function blocksectors(P::ProductSpace{S,N}) where {S,N}
     if G == Trivial
         return (Trivial(),)
     end
+    bs = Vector{G}()
     if N == 0
-        return Set{G}((one(G),))
+        push!(bs, one(G))
     elseif N == 1
-        return Set{G}(first(s) for s in sectors(P))
+        for s in sectors(P)
+            push!(bs, first(s))
+        end
     else
-        return foldl(union!, Set{G}(), (⊗(s...) for s in sectors(P)))
+        for s in sectors(P)
+            for c in ⊗(s...)
+                if !(c in bs)
+                    push!(bs, c)
+                end
+            end
+        end
+        # return foldl(union!, Set{G}(), (⊗(s...) for s in sectors(P)))
     end
+    return bs
 end
 function blockdim(P::ProductSpace, c::Sector)
     sectortype(P) == typeof(c) || throw(SectorMismatch())

@@ -40,17 +40,24 @@ function Base.hash(f::FusionTree{G}, h::UInt) where {G}
         hash(f.vertices, hash(f.innerlines, hash(f.outgoing, hash(f.incoming, h))))
     end
 end
-function Base.isequal(f1::FusionTree, f2::FusionTree)
-    sectortype(f1) == sectortype(f2) || return false
-    G = sectortype(f1)
-    if fusiontype(G) == Abelian
-        f1.incoming == f2.incoming && f1.outgoing == f2.outgoing
-    elseif fusiontype(G) == SimpleNonAbelian
-        f1.incoming == f2.incoming && f1.outgoing == f2.outgoing && f1.innerlines == f2.innerlines
-    else
-        f1.incoming == f2.incoming && f1.outgoing == f2.outgoing && f1.innerlines == f2.innerlines && f1.vertices == f2.vertices
+function Base.isequal(f1::FusionTree{G,N}, f2::FusionTree{G,N}) where {G,N}
+    f1.incoming == f2.incoming || return false
+    @inbounds for i = 1:N
+        f1.outgoing[i] == f2.outgoing[i] || return false
     end
+    if fusiontype(G) == SimpleNonAbelian
+        @inbounds for i=1:N-2
+            f1.innerlines[i] == f2.innerlines[i] || return false
+        end
+    end
+    if fusiontype(G) == DegenerateNonAbelian
+        @inbounds for i=1:N-1
+            f1.vertices[i] == f2.vertices[i] || return false
+        end
+    end
+    return true
 end
+Base.isequal(f1::FusionTree{G1,N1}, f2::FusionTree{G2,N2}) where {G1,G2,N1,N2} = false
 
 # Fusion tree methods
 fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} = FusionTree{G,0,0,0,vertex_labeltype(G)}
