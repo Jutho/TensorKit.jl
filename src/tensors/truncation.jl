@@ -22,3 +22,8 @@ struct TruncationSpace{S<:ElementarySpace} <: TruncationScheme
     space::S
 end
 truncspace(space::ElementarySpace) = TruncationSpace(space)
+
+struct TruncateBelow{T<:Real} <: TruncationScheme
+    ϵ::T
+end
+truncbelow(epsilon::Real) = TruncateBelow(epsilon)
