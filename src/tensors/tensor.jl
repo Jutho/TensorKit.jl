@@ -588,6 +588,10 @@ function _truncate!(v::AbstractVector, trunc::TruncationScheme, p::Real = 2)
         dtrunc = min(dmax, trunc.dim)
         truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
         resize!(v, dtrunc)
+    elseif isa(trunc, TruncateBelow)
+        dtrunc   = length(Base.filter(x->(x>trunc.ϵ), v))
+        truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
+        resize!(v, dtrunc) 
     else
         error("unknown truncation scheme")
     end
@@ -657,6 +661,21 @@ function _truncate!(V::AbstractDict{G,<:AbstractVector}, trunc::TruncationScheme
                 resize!(V[c], dim(trunc.space, c))
             end
         end
+    elseif isa(trunc, TruncateBelow)
+        truncdim = Dict{G,Int}(c=>length(v) for (c,v) in V)
+        maxdim = copy(truncdim)
+        for c in it
+            newdim = length(Base.filter(x->(x>trunc.ϵ), V[c] ))
+            if newdim != 0
+                truncdim[c] = newdim
+            else
+                delete!(truncdim, c)
+            end
+        end
+        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(V[c],truncdim[c]+1:maxdim[c]), p) for c in keys(truncdim)), p)
+        for c in keys(truncdim)
+            resize!(V[c], truncdim[c])
+        end   
     else
         error("unknown truncation scheme")
     end
