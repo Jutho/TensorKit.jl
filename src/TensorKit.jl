@@ -60,11 +60,20 @@ using TupleTools
 using TupleTools: StaticLength
 
 using Strided
+import Strided: scale!, axpy!, axpby!, mul!, adjoint, adjoint!
+export adjoint
+
+import TensorOperations
+import TensorOperations: @tensor, @tensoropt
+
+using WignerSymbols
+using WignerSymbols: HalfInteger
 
 using Base: @boundscheck, @propagate_inbounds
 using Base: ImmutableDict
-
 import Base: permute
+
+const IndexTuple{N} = NTuple{N,Int}
 
 include("auxiliary/filter.jl")
 using .Filter.filter
@@ -86,6 +95,13 @@ if VERSION < v"0.7.0-DEV.2543"
     Base.Array{T}(s::UniformScaling, dims::Base.Dims{2}) where {T} = Matrix{T}(s, dims)
     Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
 end
+@static if VERSION < v"0.7.0-DEV.3309"
+    const IteratorSize = Base.iteratorsize
+    const IteratorEltype = Base.iteratoreltype
+else
+    const IteratorSize = Base.IteratorSize
+    const IteratorEltype = Base.IteratorEltype
+end
 
 @static if isdefined(Base.LinAlg, :exp!)
     const exp! = Base.LinAlg.exp!
@@ -102,24 +118,10 @@ end
     const ComplexF64 = Complex128
 end
 
-@static if isdefined(Base.LinAlg, :mul!)
-    import Base.LinAlg.mul!
-else
-    const mul! = Base.A_mul_B!
-end
-
 @static if !isdefined(Base, :empty)
     empty(a::Associative) = empty(a, keytype(a), valtype(a))
     empty(a::Associative, ::Type{V}) where {V} = empty(a, keytype(a), V)
     empty(a::Associative, ::Type{K}, ::Type{V}) where {K, V} = Dict{K, V}()
-end
-
-@static if !isdefined(Base, :adjoint)
-    const adjoint = Base.ctranspose
-    const adjoint! = Base.ctranspose!
-    export adjoint, adjoint!
-else
-    import Base: adjoint, adjoint!
 end
 
 @static if !isdefined(Base, Symbol("@__MODULE__"))
@@ -136,31 +138,23 @@ end
 end
 
 @static if !isdefined(Base, :Uninitialized)
-    include_string(@__MODULE__, """
+    # include_string(@__MODULE__, """
         struct Uninitialized end
         Base.Array{T}(::Uninitialized, args...) where {T} = Array{T}(args...)
         Base.Array{T,N}(::Uninitialized, args...) where {T,N} = Array{T,N}(args...)
         Base.Vector(::Uninitialized, args...) = Vector(args...)
         Base.Matrix(::Uninitialized, args...) = Matrix(args...)
-    """)
+    # """)
     const uninitialized = Uninitialized()
 end
 
 @static if !isdefined(Base, :EqualTo)
-    if VERSION >= v"0.6.0"
-        include_string(@__MODULE__, """
-            struct EqualTo{T} <: Function
-                x::T
-                EqualTo(x::T) where {T} = new{T}(x)
-            end
-        """)
-    else
-        include_string(@__MODULE__, """
-            immutable EqualTo{T} <: Function
-                x::T
-            end
-        """)
-    end
+    # include_string(@__MODULE__, """
+        struct EqualTo{T} <: Function
+            x::T
+            EqualTo(x::T) where {T} = new{T}(x)
+        end
+    # """)
     (f::EqualTo)(y) = isequal(f.x, y)
     const equalto = EqualTo
 end
@@ -180,19 +174,15 @@ end
 
 #--------------------------------------------------------------------
 
-import TensorOperations
-import TensorOperations: @tensor, @tensoropt
-
-const IndexTuple{N} = NTuple{N,Int}
-
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/dicts.jl")
-include("auxiliary/halfinteger.jl")
 include("auxiliary/linalg.jl")
 include("auxiliary/random.jl")
-# include("auxiliary/unsafe_similar.jl")
+
+# include("auxiliary/juarray.jl")
+# export JuArray
 
 # Exception types:
 #------------------
@@ -252,9 +242,5 @@ include("tensors/factorizations.jl")
     Base.LinAlg.Adjoint(t::AbstractTensorMap) = adjoint(t)
     Base.LinAlg.Adjoint(V::VectorSpace) = adjoint(V)
 end
-
-# include("auxiliary/juarray.jl")
-# export JuArray
-
 
 end

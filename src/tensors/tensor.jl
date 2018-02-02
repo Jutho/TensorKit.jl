@@ -356,7 +356,7 @@ end
 # Basic vector space methods:
 # ---------------------------
 # TODO: make these methods work between AbstractMap
-function Base.scale!(t1::TensorMap, t2::TensorMap, α::Number)
+function scale!(t1::TensorMap, t2::TensorMap, α::Number)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         scale!(block(t1, c), block(t2, c), α)
@@ -364,7 +364,7 @@ function Base.scale!(t1::TensorMap, t2::TensorMap, α::Number)
     return t1
 end
 
-function Base.LinAlg.axpy!(α::Number, t1::TensorMap, t2::TensorMap)
+function axpy!(α::Number, t1::TensorMap, t2::TensorMap)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMisMatch())
     for c in blocksectors(t1)
         Base.LinAlg.axpy!(α, block(t1, c), block(t2, c))

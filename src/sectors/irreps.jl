@@ -56,13 +56,13 @@ const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
 Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge.num//2) : print(io, "U₁(", c.charge.num//2, ")")
 
+Base.hash(c::ZNIrrep{N}, h::UInt64) where {N} = hash(c.n, h)
+Base.hash(c::U1Irrep, h::UInt64) = hash(c.charge, h)
 # NOTE: FractionalU1Charge?
 
 # Nob-abelian groups
 #------------------------------------------------------------------------------#
 # SU2Irrep: irreps of SU2 are labelled by half integers j, internally we use the integer dimension 2j+1 instead
-import WignerSymbols
-
 struct SU2IrrepException <: Exception end
 Base.show(io::IO, ::SU2IrrepException) = print(io, "Irreps of (bosonic or fermionic) `SU₂` should be labelled by non-negative half integers, i.e. elements of `Rational{Int}` with denominator 1 or 2")
 
@@ -83,17 +83,17 @@ dim(s::SU2Irrep) = s.j.num+1
 Base.@pure fusiontype(::Type{SU2Irrep}) = SimpleNonAbelian
 Base.@pure braidingtype(::Type{SU2Irrep}) = Bosonic
 
-Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(_getj(sa), _getj(sb), _getj(sc))
+Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
 Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
-    WignerSymbols.racahW(map(_getj,(s1,s2,s4,s3,s5,s6))...)*sqrt(dim(s5)*dim(s6))
+    WignerSymbols.racahW(s1.j, s2.j, s4.j, s3.j, s5.j, s6.j)*sqrt(dim(s5)*dim(s6))
 function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
     Nsymbol(sa, sb, sc) || return 0.
-    iseven(convert(Int, _getj(sa)+_getj(sb)-_getj(sc))) ? 1.0 : -1.0
+    iseven(convert(Int, sa.j+sb.j-sc.j)) ? 1.0 : -1.0
 end
 
 function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Void = nothing)
     C = Array{Float64}(uninitialized, dim(a), dim(b), dim(c))
-    ja, jb, jc = map(_getj, (a, b, c))
+    ja, jb, jc = a.j, b.j, c.j
 
     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
         C[ka,kb,kc] = WignerSymbols.clebschgordan(ja, ka-ja-1, jb, kb-jb-1, jc, kc-jc-1)
@@ -103,7 +103,8 @@ end
 
 const SU₂ = SU2Irrep
 Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
-Base.show(io::IO, s::SU2Irrep) = get(io, :compact, false) ? print(io, _getj(s)) : print(io, "SU₂(", _getj(s), ")")
+Base.show(io::IO, s::SU2Irrep) = get(io, :compact, false) ? print(io, s.j.num//2) : print(io, "SU₂(", s.j.num//2, ")")
+Base.hash(s::SU2Irrep, h::UInt64) = hash(s.j, h)
 
 # U₁ ⋉ C (U₁ and charge conjugation)
 struct CU1Irrep <: Sector
@@ -113,6 +114,7 @@ struct CU1Irrep <: Sector
     CU1Irrep(j::HalfInteger, s::Int = ifelse(j>0, 2, 0)) = ((j > 0 && s == 2) || (j == 0 && (s == 0 || s == 1))) ? new(j, s) : error("Not a valid CU₁ irrep")
 end
 _getj(s::CU1Irrep) = s.j.num//2
+Base.hash(c::CU1Irrep, h::UInt64) = hash(c.s, hash(c.j, h))
 
 CU1Irrep(j::Real, s::Int = ifelse(j>0, 2, 0)) = CU1Irrep(convert(HalfInteger, j), s)
 

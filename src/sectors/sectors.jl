@@ -278,6 +278,7 @@ struct SectorSet{G<:Sector,F,S}
     set::S
 end
 SectorSet{G}(set::S) where {G<:Sector,S} = SectorSet{G,typeof(identity),S}(identity,set)
+SectorSet{G}(::Type{F}, set::S) where {G<:Sector,F,S} = SectorSet{G,Type{F},S}(F,set)
 SectorSet{G}(f::F, set::S) where {G<:Sector,F,S} = SectorSet{G,F,S}(f,set)
 
 Base.iteratoreltype(::Type{<:SectorSet}) = Base.HasEltype()
