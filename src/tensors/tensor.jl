@@ -589,7 +589,7 @@ function _truncate!(v::AbstractVector, trunc::TruncationScheme, p::Real = 2)
         truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
         resize!(v, dtrunc)
     elseif isa(trunc, TruncateBelow)
-        dtrunc   = length(Base.filter(x->(x>trunc.ϵ), v))
+        dtrunc   = findlast(x->(x>trunc.ϵ), v)
         truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
         resize!(v, dtrunc) 
     else
@@ -665,7 +665,7 @@ function _truncate!(V::AbstractDict{G,<:AbstractVector}, trunc::TruncationScheme
         truncdim = Dict{G,Int}(c=>length(v) for (c,v) in V)
         maxdim = copy(truncdim)
         for c in it
-            newdim = length(Base.filter(x->(x>trunc.ϵ), V[c] ))
+            newdim = findlast(x->(x>trunc.ϵ), V[c] )
             if newdim != 0
                 truncdim[c] = newdim
             else
