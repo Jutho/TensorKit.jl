@@ -15,6 +15,7 @@ a truncated singular value decomposition will be computed. Choices are:
 *   `truncerr(ϵ)`: truncates such that the p-norm of the truncated singular values is smaller than `ϵ` times the p-norm of all singular values;
 *   `truncdim(χ)`: truncates such that the equivalent total dimension of the internal vector space is no larger than `χ`;
 *   `truncspace(V)`: truncates such that the dimension of the internal vector space is smaller than that of `V` in any sector.
+*   `trunbelow(ϵ)`: truncates such that every singular value is larger then `ϵ` ;
 
 The `svd` also returns the truncation error `truncerr`, computed as the `p` norm of the
 singular values that were truncated.
