@@ -18,7 +18,7 @@ struct TensorMap{S<:IndexSpace, N₁, N₂, G<:Sector, A<:Union{<:DenseMatrix,Se
     end
 end
 
-const Tensor{S<:IndexSpace, N, A, F₁, F₂} = TensorMap{S, N, 0, A, F₁, F₂}
+const Tensor{S<:IndexSpace, N, G<:Sector, A, F₁, F₂} = TensorMap{S, N, 0, G, A, F₁, F₂}
 const TrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} = TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}
 
 # Basic methods for characterising a tensor:
