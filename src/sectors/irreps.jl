@@ -14,7 +14,7 @@ frobeniusschur(a::AbelianIrrep) = 1
 Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 
-fusiontensor(a::G, b::G, c::G, v::Void = nothing) where {G<:AbelianIrrep} = fill(Float64(Nsymbol(a,b,c)), (1,1,1))
+fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} = fill(Float64(Nsymbol(a,b,c)), (1,1,1))
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 127?
 struct ZNIrrep{N} <: AbelianIrrep
@@ -91,7 +91,7 @@ function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
     iseven(convert(Int, sa.j+sb.j-sc.j)) ? 1.0 : -1.0
 end
 
-function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Void = nothing)
+function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Nothing = nothing)
     C = Array{Float64}(uninitialized, dim(a), dim(b), dim(c))
     ja, jb, jc = a.j, b.j, c.j
 
@@ -265,7 +265,7 @@ function Rsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
     return c.s == 1 && a.j > 0 ? -R : R
 end
 
-function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, ::Void = nothing)
+function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, ::Nothing = nothing)
     C = fill(0., dim(a), dim(b), dim(c))
     !Nsymbol(a,b,c) && return C
     if c.j == 0

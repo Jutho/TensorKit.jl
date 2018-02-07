@@ -41,8 +41,9 @@ export blocksectors, block, blocks
 export randuniform, randnormal, randisometry
 export one!
 
-# tensor factorizations
-export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!
+# tensor algebra and factorizations
+export vecnorm, vecdot
+export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!, svd, exp, exp!
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos, SVD, Polar
@@ -58,10 +59,9 @@ export notrunc, truncerr, truncdim, truncspace, truncbelow
 #---------
 using TupleTools
 using TupleTools: StaticLength
+import TupleTools: permute
 
 using Strided
-import Strided: scale!, axpy!, axpby!, mul!, adjoint, adjoint!
-export adjoint
 
 import TensorOperations
 import TensorOperations: @tensor, @tensoropt
@@ -69,110 +69,77 @@ import TensorOperations: @tensor, @tensoropt
 using WignerSymbols
 using WignerSymbols: HalfInteger
 
-using Base: @boundscheck, @propagate_inbounds
-using Base: ImmutableDict
-import Base: permute
+using Base: @boundscheck, @propagate_inbounds, OneTo
+using Base: tail, tuple_type_head, tuple_type_tail, tuple_type_cons,
+            SizeUnknown, HasLength, HasShape, IsInfinite, EltypeUnknown, HasEltype
 
 const IndexTuple{N} = NTuple{N,Int}
 
-include("auxiliary/filter.jl")
-using .Filter.filter
-
-# if VERSION <= v"0.6.1"
-    include("auxiliary/product.jl")
-    using .Product.product
-# else
-#     using Base.Iterators.product
-# end
-
 #--------------------------------------------------------------------
 # ALL OF THIS CAN GO ON JULIA 0.7 or 1.0
-if VERSION < v"0.7.0-DEV.2377"
-    Base.Matrix{T}(s::UniformScaling, dims::Base.Dims{2}) where {T}= setindex!(zeros(T, dims), T(s.λ), diagind(dims...))
-    Base.Matrix{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, Dims((m, n)))
+@static if VERSION >= v"0.7-"
+    using LinearAlgebra
+
+    import Base: IteratorSize, IteratorEltype, axes
+
+    import Strided: mul!, axpy!, axpby!, adjoint, adjoint!
+    import LinearAlgebra: exp!, svd, eig, normalize, normalize!, vecnorm, vecdot, ×
+
+    import Base: empty
+
+    using Base.Iterators: product, filter
 end
-if VERSION < v"0.7.0-DEV.2543"
-    Base.Array{T}(s::UniformScaling, dims::Base.Dims{2}) where {T} = Matrix{T}(s, dims)
-    Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
-end
-@static if VERSION < v"0.7.0-DEV.3309"
+@static if VERSION < v"0.7-" # julia 0.6
+    const LinearAlgebra = Base.LinAlg
+
     const IteratorSize = Base.iteratorsize
     const IteratorEltype = Base.iteratoreltype
-else
-    const IteratorSize = Base.IteratorSize
-    const IteratorEltype = Base.IteratorEltype
-end
+    const Nothing = Base.Void
+    const axes = Base.indices
 
-@static if isdefined(Base.LinAlg, :exp!)
-    const exp! = Base.LinAlg.exp!
-else
-    const exp! = Base.LinAlg.expm!
-end
+    copyto!(dst, src) = copy!(dst, src)
 
-@static if !isdefined(Base, :AbstractDict)
+    import Strided: mul!, axpy!, axpby!, adjoint, adjoint!
+    export adjoint
+
+    const exp! = TensorKit.LinearAlgebra.expm!
+    import TensorKit.LinearAlgebra: scale!, svd, eig, normalize, normalize!, vecnorm, vecdot, ×
+
     const AbstractDict = Base.Associative
-end
 
-@static if !isdefined(Base, :ComplexF32)
     const ComplexF32 = Complex64
     const ComplexF64 = Complex128
-end
 
-@static if !isdefined(Base, :empty)
-    empty(a::Associative) = empty(a, keytype(a), valtype(a))
-    empty(a::Associative, ::Type{V}) where {V} = empty(a, keytype(a), V)
-    empty(a::Associative, ::Type{K}, ::Type{V}) where {K, V} = Dict{K, V}()
-end
+    empty(a::AbstractDict) = empty(a, keytype(a), valtype(a))
+    empty(a::AbstractDict, ::Type{V}) where {V} = empty(a, keytype(a), V)
+    empty(a::AbstractDict, ::Type{K}, ::Type{V}) where {K, V} = Dict{K, V}()
 
-@static if !isdefined(Base, Symbol("@__MODULE__"))
-    # 0.7
-    macro __MODULE__()
-        return current_module()
-    end
-    Base.expand(mod::Module, x::ANY) = eval(mod, :(expand($(QuoteNode(x)))))
-    Base.macroexpand(mod::Module, x::ANY) = eval(mod, :(macroexpand($(QuoteNode(x)))))
-    Base.include_string(mod::Module, code::String, fname::String) =
-        eval(mod, :(include_string($code, $fname)))
-    Base.include_string(mod::Module, code::AbstractString, fname::AbstractString="string") =
-        eval(mod, :(include_string($code, $fname)))
-end
+    Base.Array{T}(s::UniformScaling, dims::Base.Dims{2}) where {T} = Matrix{T}(s, dims)
+    Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
 
-@static if !isdefined(Base, :Uninitialized)
-    # include_string(@__MODULE__, """
-        struct Uninitialized end
-        Base.Array{T}(::Uninitialized, args...) where {T} = Array{T}(args...)
-        Base.Array{T,N}(::Uninitialized, args...) where {T,N} = Array{T,N}(args...)
-        Base.Vector(::Uninitialized, args...) = Vector(args...)
-        Base.Matrix(::Uninitialized, args...) = Matrix(args...)
-    # """)
+    Base.Matrix{T}(s::UniformScaling, dims::Base.Dims{2}) where {T}= setindex!(zeros(T, dims), T(s.λ), diagind(dims...))
+    Base.Matrix{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, Dims((m, n)))
+
+    struct Uninitialized end
+    Base.Array{T}(::Uninitialized, args...) where {T} = Array{T}(args...)
+    Base.Array{T,N}(::Uninitialized, args...) where {T,N} = Array{T,N}(args...)
+    Base.Vector(::Uninitialized, args...) = Vector(args...)
+    Base.Matrix(::Uninitialized, args...) = Matrix(args...)
+
     const uninitialized = Uninitialized()
-end
+    export uninitialized
 
-@static if !isdefined(Base, :EqualTo)
-    # include_string(@__MODULE__, """
-        struct EqualTo{T} <: Function
-            x::T
-            EqualTo(x::T) where {T} = new{T}(x)
-        end
-    # """)
+    struct EqualTo{T} <: Function
+        x::T
+        EqualTo(x::T) where {T} = new{T}(x)
+    end
     (f::EqualTo)(y) = isequal(f.x, y)
     const equalto = EqualTo
-end
 
-@static if isdefined(Base, :print_array)
-    using Base.print_array
-else
     print_array(io, a) = Base.showarray(io, a, false; header=false)
+
+    include("auxiliary/iterators.jl")
 end
-
-# if VERSION >= v"0.6.99"
-#     finalizer(f, o) = Base.finalizer(f,o)
-# else
-#     finalizer(f, o) = Base.finalizer(o,f)
-# end
-
-
-#--------------------------------------------------------------------
 
 # Auxiliary files
 #-----------------
@@ -184,30 +151,36 @@ include("auxiliary/random.jl")
 # include("auxiliary/juarray.jl")
 # export JuArray
 
+#--------------------------------------------------------------------
+# experiment with different dictionaries
+const SectorDict{K,V} = VectorDict{K,V}
+const FusionTreeDict{K,V} = VectorDict{K,V}
+#--------------------------------------------------------------------
+
 # Exception types:
 #------------------
 abstract type TensorException <: Exception end
 
 # Exception type for all errors related to sector mismatch
-struct SectorMismatch{S<:Union{Void,String}} <: TensorException
+struct SectorMismatch{S<:Union{Nothing,String}} <: TensorException
     message::S
 end
-SectorMismatch()=SectorMismatch{Void}(nothing)
-Base.show(io::IO, ::SectorMismatch{Void}) = print(io, "SectorMismatch()")
+SectorMismatch()=SectorMismatch{Nothing}(nothing)
+Base.show(io::IO, ::SectorMismatch{Nothing}) = print(io, "SectorMismatch()")
 
 # Exception type for all errors related to vector space mismatch
-struct SpaceMismatch{S<:Union{Void,String}} <: TensorException
+struct SpaceMismatch{S<:Union{Nothing,String}} <: TensorException
     message::S
 end
-SpaceMismatch()=SpaceMismatch{Void}(nothing)
-Base.show(io::IO, ::SpaceMismatch{Void}) = print(io, "SpaceMismatch()")
+SpaceMismatch()=SpaceMismatch{Nothing}(nothing)
+Base.show(io::IO, ::SpaceMismatch{Nothing}) = print(io, "SpaceMismatch()")
 
 # Exception type for all errors related to invalid tensor index specification.
-struct IndexError{S<:Union{Void,String}} <: TensorException
+struct IndexError{S<:Union{Nothing,String}} <: TensorException
     message::S
 end
-IndexError()=IndexError{Void}(nothing)
-Base.show(io::IO, ::IndexError{Void}) = print(io, "IndexError()")
+IndexError()=IndexError{Nothing}(nothing)
+Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
 
 # Tensor product operator
 #-------------------------
@@ -225,22 +198,17 @@ include("spaces/vectorspaces.jl")
 #------------------------------------------------------------------
 include("fusiontrees/fusiontrees.jl")
 
-# # Definitions and methods for tensors
-# #-------------------------------------
-# define truncation schemes for tensors
-include("tensors/truncation.jl")
+# Definitions and methods for tensors
+#-------------------------------------
 # general definitions
 include("tensors/abstracttensor.jl")
 include("tensors/tensortreeiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
+include("tensors/linalg.jl")
 include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
+include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
-
-@static if isdefined(Base.LinAlg, :Adjoint)
-    Base.LinAlg.Adjoint(t::AbstractTensorMap) = adjoint(t)
-    Base.LinAlg.Adjoint(V::VectorSpace) = adjoint(V)
-end
 
 end

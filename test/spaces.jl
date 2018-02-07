@@ -47,7 +47,7 @@ end
     @test @inferred(sectortype(V)) == Trivial
     @test @inferred(TensorKit.checksectors(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
-    @test @inferred(indices(V)) == Base.OneTo(d)
+    @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
     @test ⊕(V,V) == ℝ^(2d)
 end
@@ -64,7 +64,7 @@ end
     @test @inferred(sectortype(V)) == Trivial
     @test @inferred(TensorKit.checksectors(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
-    @test @inferred(indices(V)) == Base.OneTo(d)
+    @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
     @test @inferred(⊕(V,V)) == ℂ^(2d)
     # @test_throws SpaceMismatch ⊕(V, V')
@@ -82,7 +82,7 @@ end
     @test @inferred(sectortype(V)) == Trivial
     @test @inferred(TensorKit.checksectors(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
-    @test @inferred(indices(V)) == Base.OneTo(d)
+    @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 @testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, U₁, CU₁, SU₂, ℤ₂ × ℤ₂ × ℤ₂, U₁ × SU₂, SU₂ × SU₂)
     V = @inferred RepresentationSpace((randsector(G)=>rand(1:10) for k in 1:5)...)
@@ -98,7 +98,7 @@ end
     slist = @inferred sectors(V)
     @test @inferred(TensorKit.checksectors(V, first(slist)))
     @test @inferred(dim(V)) == sum((@inferred(dim(s)*dim(V,s))) for s in slist)
-    @test @inferred(indices(V)) == Base.OneTo(dim(V))
+    @test @inferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     @inferred(⊕(V,V))
     # @test_throws SpaceMismatch ⊕(V, V')
 end

@@ -1,17 +1,17 @@
 struct TensorKeyIterator{G<:Sector,F₁<:FusionTree{G},F₂<:FusionTree{G}}
-    rowr::VectorDict{G,VectorDict{F₁,UnitRange{Int}}}
-    colr::VectorDict{G,VectorDict{F₂,UnitRange{Int}}}
+    rowr::SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}
+    colr::SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}
 end
-struct TensorPairIterator{G<:Sector,F₁<:FusionTree{G},F₂<:FusionTree{G},A<:AbstractMatrix}
-    rowr::VectorDict{G,VectorDict{F₁,UnitRange{Int}}}
-    colr::VectorDict{G,VectorDict{F₂,UnitRange{Int}}}
-    data::VectorDict{G,A}
+struct TensorPairIterator{G<:Sector, F₁<:FusionTree{G}, F₂<:FusionTree{G}, A<:DenseMatrix}
+    rowr::SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}
+    colr::SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}
+    data::SectorDict{G, A}
 end
 
 const TensorIterator{G<:Sector,F₁<:FusionTree{G},F₂<:FusionTree{G}} = Union{TensorKeyIterator{G,F₁,F₂},TensorPairIterator{G,F₁,F₂}}
 
-Base.iteratorsize(::Type{<:TensorIterator}) = Base.HasLength()
-Base.iteratoreltype(::Type{<:TensorIterator}) = Base.HasEltype()
+IteratorSize(::Type{<:TensorIterator}) = Base.HasLength()
+IteratorEltype(::Type{<:TensorIterator}) = Base.HasEltype()
 Base.eltype(T::Type{TensorKeyIterator{G,F₁,F₂}}) where {G,F₁,F₂} = Tuple{F₁,F₂}
 
 function Base.length(t::TensorKeyIterator)

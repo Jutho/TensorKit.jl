@@ -79,8 +79,8 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
     @testset "Permutations: test via inner product invariance" begin
         using Combinatorics
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        t = Tensor(rand, W);
-        t′ = Tensor(rand, W);
+        t = Tensor(rand, Float64, W);
+        t′ = Tensor(rand, Float64, W);
         for k = 0:5
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))
@@ -95,7 +95,7 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
     @testset "Permutations: test via conversion" begin
         using Combinatorics
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        t = Tensor(rand, W);
+        t = Tensor(rand, Float64, W);
         for k = 0:5
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))

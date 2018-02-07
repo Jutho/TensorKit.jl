@@ -13,15 +13,13 @@ function permuteind(t::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTup
     if !copy
         # share data if possible
         if (p1..., p2...) == ntuple(identity, StaticLength(N₁)+StaticLength(N₂))
-            if isa(t, TensorMap{S,N₁,N₂})
+            if isa(t, AbstractTensorMap{S,N₁,N₂})
                 return t
             elseif isa(t, TensorMap) && sectortype(S) == Trivial
                 spacet = codomain(t) ⊗ dual(domain(t))
                 cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
                 dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
                 return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
-            elseif isa(t, AdjointTensorMap)
-                # TODO: can we share data for AdjointTensorMap?
             end
         end
     end

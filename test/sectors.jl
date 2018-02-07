@@ -118,7 +118,7 @@
             end
         end
 
-        if method_exists(TensorKit.fusiontensor, Tuple{G,G,G})
+        if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G})
             Af = convert(Array, f)
             Afp = permutedims(Af, (p..., N+1))
             Afp2 = zero(Afp)

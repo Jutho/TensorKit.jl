@@ -30,7 +30,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         n = length(cod)
         pdata = (p1...,p2...)
         if iszero(β)
-            scale!(tdst[], α, permutedims(tsrc[], pdata))
+            mul!(tdst[], α, permutedims(tsrc[], pdata))
         elseif β == one(β)
             axpy!(α, permutedims(tsrc[], pdata), tdst[])
         else
@@ -38,11 +38,20 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         end
     elseif fusiontype(G) == Abelian
         iterator = fusiontrees(tsrc)
-        @inbounds Threads.@threads for k = 1:length(iterator)
-            f12 = iterator[k]
-            f1 = f12[1]
-            f2 = f12[2]
-            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+        if Threads.nthreads() > 1
+            @inbounds Threads.@threads for k = 1:length(iterator)
+                f12 = iterator[k]
+                f1 = f12[1]
+                f2 = f12[2]
+                _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+            end
+        else # debugging is easier this way
+            @inbounds for k = 1:length(iterator)
+                f12 = iterator[k]
+                f1 = f12[1]
+                f2 = f12[2]
+                _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+            end
         end
     else
         cod = codomain(tsrc)
@@ -52,7 +61,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         if iszero(β)
             fill!(tdst, β)
         elseif β != 1
-            scale!(tdst, β)
+            mul!(tdst, β, tdst)
         end
         @inbounds for (f1,f2) in fusiontrees(tsrc)
             for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
@@ -94,7 +103,7 @@ end
     end
     pdata = (p1...,p2...)
     if iszero(β)
-        scale!(tdst[f1′,f2′], α*coeff, permutedims(tsrc[f1,f2], pdata))
+        mul!(tdst[f1′,f2′], α*coeff, permutedims(tsrc[f1,f2], pdata))
     elseif β == one(β)
         axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
     else

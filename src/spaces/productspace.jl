@@ -17,8 +17,8 @@ dims(P::ProductSpace) = map(dim, P.spaces)
 dim(P::ProductSpace, n::Int) = dim(P.spaces[n])
 dim(P::ProductSpace) = reduce(*, 1, dims(P))
 
-Base.indices(P::ProductSpace) = map(indices, P.spaces)
-Base.indices(P::ProductSpace, n::Int) = indices(P.spaces[n])
+axes(P::ProductSpace) = map(axes, P.spaces)
+axes(P::ProductSpace, n::Int) = axes(P.spaces[n])
 
 dual(P::ProductSpace{<:ElementarySpace,0}) = P
 dual(P::ProductSpace) = ProductSpace(map(dual, reverse(P.spaces)))
@@ -51,7 +51,7 @@ checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = red
 dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = map(dim, P.spaces, sector)
 dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = reduce(*, 1, dims(P, sector))
 
-Base.indices(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N, <:Sector}) where {N} = map(indices, P.spaces, sectors)
+axes(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N, <:Sector}) where {N} = map(axes, P.spaces, sectors)
 
 function blocksectors(P::ProductSpace{S,N}) where {S,N}
     G = sectortype(S)
@@ -125,5 +125,5 @@ Base.start(P::ProductSpace) = start(P.spaces)
 Base.next(P::ProductSpace, state) = next(P.spaces, state)
 Base.done(P::ProductSpace, state) = done(P.spaces, state)
 
-Base.iteratoreltype(P::ProductSpace) = Base.iteratoreltype(P.spaces)
-Base.iteratorsize(P::ProductSpace) = Base.iteratorsize(P.spaces)
+IteratorEltype(P::ProductSpace) = IteratorEltype(P.spaces)
+IteratorSize(P::ProductSpace) = IteratorSize(P.spaces)

@@ -73,7 +73,7 @@ function Base.convert(::Type{Array}, f::FusionTree{G,0}) where {G}
 end
 function Base.convert(::Type{Array}, f::FusionTree{G,1}) where {G}
     T = eltype(fusiontensor(one(G), one(G), one(G)))
-    return copy!(Matrix{T}(uninitialized, dim(f.incoming), dim(f.incoming)), I)
+    return copyto!(Matrix{T}(uninitialized, dim(f.incoming), dim(f.incoming)), I)
 end
 Base.convert(::Type{Array}, f::FusionTree{G,2}) where {G} = fusiontensor(f.outgoing[1], f.outgoing[2], f.incoming, f.vertices[1])
 function Base.convert(::Type{Array}, f::FusionTree{G}) where {G}
@@ -92,9 +92,9 @@ end
     function permute(t::FusionTree{<:Sector,N}, i) where {N} -> (Immutable)Dict{typeof(t),<:Number}
 
 Performs a permutation of the outgoing indices of the fusion tree `t` and returns the result
-as a `Dict` (or `ImmutableDict`) of output trees and corresponding coefficients.
+as a `<:AbstractDict` of output trees and corresponding coefficients.
 """
-function Base.permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
+function permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
     @assert braidingtype(G) <: SymmetricBraiding
     if fusiontype(G) == Abelian
         coeff = Rsymbol(one(G), one(G), one(G))
@@ -110,7 +110,7 @@ function Base.permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
         return SingletonDict(t=>coeff)
     else
         coeff = Rsymbol(one(G), one(G), one(G))
-        trees = Dict(t=>coeff)
+        trees = FusionTreeDict(t=>coeff)
         newtrees = empty(trees)
         for s in permutation2swaps(p)
             for (t, c) in trees
@@ -126,7 +126,7 @@ function Base.permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
 end
 
 """
-    function braid(t::FusionTree{<:Sector,N}, i) where {N} -> ImmutableDict{typeof(t),<:Number}
+    function braid(t::FusionTree{<:Sector,N}, i) where {N} -> <:AbstractDict{typeof(t),<:Number}
 
 Performs a braid of neighbouring outgoing indices `i` and `i+1` on a fusion tree `t`,
 and returns the result as a linked list of output trees and corresponding coefficients.
@@ -143,7 +143,7 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
         if fusiontype(G) == Abelian
             return SingletonDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
         elseif fusiontype(G) == SimpleNonAbelian
-            return ImmutableDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
+            return VectorDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
         end
     end
     # case i > 1:
@@ -166,14 +166,14 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
         end
         coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
         inner′ = TupleTools.setindex(inner, c′, i-1)
-        output = ImmutableDict(FusionTree{G}(outer′, t.incoming, inner′, t.vertices)=>coeff)
+        output = VectorDict(FusionTree{G}(outer′, t.incoming, inner′, t.vertices)=>coeff)
         while !done(iter, s)
             c′, s = next(iter, s)
             iszero(Nsymbol(b, c′, e)) && continue
             coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
             inner′ = TupleTools.setindex(inner, c′, i-1)
             if coeff != zero(coeff)
-                output = ImmutableDict(output, FusionTree{G}(outer′, t.incoming, inner′, t.vertices) => coeff)
+                push!(output, FusionTree{G}(outer′, t.incoming, inner′, t.vertices) => coeff)
             end
         end
         return output
@@ -243,7 +243,7 @@ and incoming charges (`t2`) respectively (with `t1.incoming==t2.incoming`). Comp
 and corresponding coefficients obtained from repartitioning and permuting the tree
 such that charges `p1` become outgoing and charges `p2` become incoming.
 """
-function Base.permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
+function permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂
     p = linearizepermutation(p1, p2, length(t1), length(t2))
     if fusiontype(t1) == Abelian
@@ -274,7 +274,7 @@ end
 include("iterator.jl")
 
 # Show methods
-function Base.show(io::IO, t::FusionTree{G,N,M,K,Void}) where {G<:Sector,N,M,K}
+function Base.show(io::IO, t::FusionTree{G,N,M,K,Nothing}) where {G<:Sector,N,M,K}
     print(io, "FusionTree{", G, "}(", t.outgoing, ", ", t.incoming, ", ", t.innerlines, ")")
 end
 function Base.show(io::IO, t::FusionTree{G}) where {G<:Sector}

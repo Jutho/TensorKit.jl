@@ -281,9 +281,9 @@ SectorSet{G}(set::S) where {G<:Sector,S} = SectorSet{G,typeof(identity),S}(ident
 SectorSet{G}(::Type{F}, set::S) where {G<:Sector,F,S} = SectorSet{G,Type{F},S}(F,set)
 SectorSet{G}(f::F, set::S) where {G<:Sector,F,S} = SectorSet{G,F,S}(f,set)
 
-Base.iteratoreltype(::Type{<:SectorSet}) = Base.HasEltype()
+IteratorEltype(::Type{<:SectorSet}) = HasEltype()
 Base.eltype(::SectorSet{G}) where {G<:Sector} = G
-Base.iteratorsize(::Type{SectorSet{G,F,S}}) where {G<:Sector,F,S} = Base.iteratorsize(S)
+IteratorSize(::Type{SectorSet{G,F,S}}) where {G<:Sector,F,S} = IteratorSize(S)
 Base.length(s::SectorSet) = length(s.set)
 Base.size(s::SectorSet) = size(s.set)
 

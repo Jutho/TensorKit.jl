@@ -3,10 +3,16 @@ if VERSION < v"0.7.0-DEV.2005"
 else
     import Test
 end
+if VERSION >= v"0.7.0-DEV.3406"
+    using Random
+end
 
 @static if !isdefined(Base, :ComplexF32)
     const ComplexF32 = Complex64
     const ComplexF64 = Complex128
+end
+@static if !isdefined(Base, :hasmethod)
+    hasmethod(f, t) = method_exists(f,t)
 end
 
 using Test

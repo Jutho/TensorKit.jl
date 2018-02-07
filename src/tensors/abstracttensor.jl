@@ -23,6 +23,7 @@ i.e. a tensor map with only a non-trivial output space.
 const AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
 
 # tensor characteristics
+storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
 Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
 spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
 sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
@@ -74,35 +75,9 @@ function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
     return intersect(blocksectors(codom), blocksectors(dom))
 end
 
-# Basic algebra
-#---------------
-Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
-
-Base.:-(t::AbstractTensorMap) = scale!(copy(t), -one(eltype(t)))
-function Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    T = promote_type(eltype(t1), eltype(t2))
-    return Base.LinAlg.axpy!(one(T), t2, copy!(similar(t1, T), t1))
-end
-function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    T = promote_type(eltype(t1), eltype(t2))
-    return Base.LinAlg.axpy!(-one(T), t2, copy!(similar(t1, T), t1))
-end
-
-Base.:*(t::AbstractTensorMap, α::Number) = scale!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
-Base.:*(α::Number, t::AbstractTensorMap) = *(t, α)
-Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(α)/α)
-Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(α)/α)
-
-Base.scale!(t::AbstractTensorMap, α::Number) = scale!(t, t, α)
-Base.scale!(α::Number, t::AbstractTensorMap) = scale!(t, t, α)
-Base.scale!(tdest::AbstractTensorMap, α::Number, tsrc::AbstractTensorMap) = scale!(tdest, tsrc, α)
-
-Base.normalize!(t::AbstractTensorMap, p::Real = 2) = scale!(t, inv(vecnorm(t,p)))
-normalize(t::AbstractTensorMap, p::Real = 2) = normalize!(copy(t), p)
-
-Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
-
-# Convert to Array: probably not optimized for speed, only for checking purposes
+# Conversion to Array:
+#----------------------
+# probably not optimized for speed, only for checking purposes
 function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂}
     G = sectortype(t)
     if G == Trivial
@@ -138,8 +113,8 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
             d1 = TupleTools.front(sz1)
             d2 = TupleTools.front(sz2)
             F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1...,d2...))
-            Aslice = sview(A, indices(cod, f1.outgoing)..., indices(dom, f2.outgoing)...)
-            Base.LinAlg.axpy!(1, StridedView(_kron(convert(Array,t[f1,f2]), F)), Aslice)
+            Aslice = sview(A, axes(cod, f1.outgoing)..., axes(dom, f2.outgoing)...)
+            axpy!(1, StridedView(_kron(convert(Array,t[f1,f2]), F)), Aslice)
         end
         return A
     end

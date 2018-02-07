@@ -1,9 +1,9 @@
-import Base.LinAlg: BlasFloat, Char, BlasInt, LAPACKException,
-    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare
-import Base.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
-import Base.LAPACK: liblapack, chklapackerror
-
 # custom wrappers for BLAS and LAPACK routines, together with some custom definitions
+using TensorKit.LinearAlgebra: BlasFloat, Char, BlasInt, LAPACKException,
+    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare
+using TensorKit.LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
+using TensorKit.LinearAlgebra.LAPACK: liblapack, chklapackerror
+
 
 # MATRIX factorizations
 #-----------------------
@@ -33,6 +33,19 @@ SVD() = SVD(0)
 struct Polar <: OrthogonalFactorizationAlgorithm
 end
 
+adjoint(::QRpos) = LQpos()
+adjoint(::QR) = LQ()
+adjoint(::LQpos) = QRpos()
+adjoint(::LQ) = QR()
+
+adjoint(::QLpos) = RQpos()
+adjoint(::QL) = RQ()
+adjoint(::RQpos) = QLpos()
+adjoint(::RQ) = QL()
+
+adjoint(alg::SVD) = alg
+adjoint(::Polar) = Polar()
+
 _safesign(s::Real) = ifelse(s<zero(s), -one(s), +one(s))
 _safesign(s::Complex) = ifelse(iszero(s), one(s), s/abs(s))
 
@@ -40,7 +53,13 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos} = QRpos()
     m, n = size(A)
     k = min(m, n)
     A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
-    Q = LAPACK.gemqrt!('L', 'N', A, T, Matrix{eltype(A)}(I, m, k))
+    Q = similar(A, m, k)
+    for j = 1:k
+        for i = 1:m
+            Q[i,j] = i == j
+        end
+    end
+    Q = LAPACK.gemqrt!('L', 'N', A, T, Q)
     R = triu!(A[1:k, :])
 
     if isa(alg, QRpos)
@@ -101,12 +120,12 @@ function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,Polar})
     U, S, V = LAPACK.gesdd!('S', A)
     if isa(alg, SVD)
         # TODO: implement truncation based on tol in SVD
-        return U, scale!(S,V)
+        return U, mul!(V, Diagonal(S),V)
     else
         # TODO: check Lapack to see if we can recycle memory of A
         Q = U*V
         Sq = map!(sqrt,S,S)
-        SqV = scale!(Sq, V)
+        SqV = mul!(V, Diagonal(Sq), V)
         R = SqV'*SqV
         return Q, R
     end
@@ -160,16 +179,16 @@ function rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQpo
             end
         end
         Q = transpose!(A, Qt)
-        R = transpose(Rt) # TODO: efficient in place
+        R = transpose!(similar(A, (m,m)), Rt) # TODO: efficient in place
         return R, Q
     else
-        Qt, Lt = leftorth!(At, isa(alg, LQ) ? QR() : QRpos())
+        Qt, Lt = leftorth!(At, alg')
         if m > n
             L = transpose!(A, Lt)
-            Q = transpose(Qt)
+            Q = transpose!(similar(A, (n,n)), Qt) # TODO: efficient in place
         else
             Q = transpose!(A, Qt)
-            L = transpose(Lt) # TODO: efficient in place
+            L = transpose!(similar(A, (m,m)), Lt) # TODO: efficient in place
         end
         return L, Q
     end
@@ -179,18 +198,18 @@ function rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,Polar})
     U, S, V = LAPACK.gesdd!('S', A)
     if isa(alg, SVD)
         # TODO: implement truncation based on tol in SVD
-        return scale!(U, S), V
+        return mul!(U, U, Diagonal(S)), V
     else
         # TODO: check Lapack to see if we can recycle memory of A
         Q = U*V
         Sq = map!(sqrt, S, S)
-        USq = scale!(U, Sq)
+        USq = mul!(U, U, Diagonal(Sq))
         L = USq*USq'
         return L, Q
     end
 end
 
-function rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos} = LQpos())
+function rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos} = LQ())
     m, n = size(A)
     k = min(m,n)
     At = adjoint!(similar(A,n,m), A)
@@ -208,7 +227,6 @@ function rightnull!(A::StridedMatrix{<:BlasFloat}, alg::SVD)
     # TODO
 end
 
-
 function svd!(A::StridedMatrix{<:BlasFloat}, alg::SVD = SVD(0))
     U, S, V = LAPACK.gesdd!('S', A)
     # TODO: implement truncation based on tol
@@ -216,11 +234,7 @@ function svd!(A::StridedMatrix{<:BlasFloat}, alg::SVD = SVD(0))
 end
 
 # TODO: override Julia's eig interface
-
 # eig!(A::StridedMatrix{<:BlasFloat}) = LinAlg.LAPACK.gees!('V', A)
-#
-#
-#
 # function eig!(A::StridedMatrix{T}; permute::Bool=true, scale::Bool=true) where T<:BlasReal
 #     n = size(A, 2)
 #     n == 0 && return Eigen(zeros(T, 0), zeros(T, 0, 0))
@@ -255,8 +269,6 @@ end
 #
 #
 #
-
-
 # Modified / missing Lapack wrappers
 #------------------------------------
 # geqrfp!: computes qrpos factorization, missing in Base
@@ -275,7 +287,7 @@ for (geqrfp, elty, relty) in
             lwork = BlasInt(-1)
             info  = Ref{BlasInt}()
             for i = 1:2                # first call returns lwork as work[1]
-                ccall((@blasfunc($geqrfp), liblapack), Void,
+                ccall((@blasfunc($geqrfp), liblapack), Nothing,
                       (Ptr{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ptr{BlasInt},
                        Ptr{$elty}, Ptr{$elty}, Ptr{BlasInt}, Ptr{BlasInt}),
                       Ref(m), Ref(n), A, Ref(max(1,stride(A,2))), tau, work, Ref(lwork), info)

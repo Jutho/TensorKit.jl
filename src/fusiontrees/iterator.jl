@@ -10,8 +10,8 @@ struct FusionTreeIterator{G<:Sector,N}
     incoming::G
 end
 
-Base.iteratorsize(::FusionTreeIterator) = Base.SizeUnknown()
-Base.iteratoreltype(::FusionTreeIterator) = Base.HasEltype()
+IteratorSize(::FusionTreeIterator) = Base.SizeUnknown()
+IteratorEltype(::FusionTreeIterator) = Base.HasEltype()
 Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} = fusiontreetype(G, StaticLength(N))
 
 # * Iterator methods: start, next, done

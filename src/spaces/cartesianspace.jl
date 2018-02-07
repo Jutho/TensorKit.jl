@@ -16,7 +16,7 @@ Base.:^(::RealNumbers, d::Int) = CartesianSpace(d)
 # Corresponding methods:
 #------------------------
 dim(V::CartesianSpace) = V.d
-Base.indices(V::CartesianSpace) = Base.OneTo(dim(V))
+axes(V::CartesianSpace) = Base.OneTo(dim(V))
 
 Base.show(io::IO, V::CartesianSpace) = print(io, "ℝ^$(V.d)")
 Base.show(io::IO, ::Type{CartesianSpace}) = print(io, "CartesianSpace")

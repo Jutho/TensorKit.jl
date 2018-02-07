@@ -1,5 +1,3 @@
-using Base: ImmutableDict
-
 """
     struct GenericRepresentationSpace{G<:Sector} <: AbstractRepresentationSpace{G}
 
@@ -9,13 +7,13 @@ type `G<:Sector`, e.g. the irreps of a compact or finite group, or the labels of
 a unitary fusion category.
 """
 struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
-    dims::VectorDict{G,Int}
+    dims::SectorDict{G,Int}
     dual::Bool
 end
-GenericRepresentationSpace{G}(dims::VectorDict{G,Int}) where {G<:Sector} = GenericRepresentationSpace{G}(dims, false)
+GenericRepresentationSpace{G}(dims::SectorDict{G,Int}) where {G<:Sector} = GenericRepresentationSpace{G}(dims, false)
 
 function GenericRepresentationSpace{G}(dims::Tuple{Vararg{Pair{G,Int}}}, dual::Bool) where {G<:Sector}
-    d = VectorDict{G,Int}()
+    d = SectorDict{G,Int}()
     @inbounds for k = 1:length(dims)
         if dims[k][2] != 0
             push!(d, dims[k])
@@ -94,9 +92,9 @@ isdual(V::RepresentationSpace) = V.dual
 # equality / comparison
 Base.:(==)(V1::RepresentationSpace, V2::RepresentationSpace) = (V1.dims == V2.dims) && V1.dual == V2.dual
 
-# indices
-Base.indices(V::RepresentationSpace) = Base.OneTo(dim(V))
-function Base.indices(V::RepresentationSpace{G}, c::G) where {G}
+# axes
+axes(V::RepresentationSpace) = Base.OneTo(dim(V))
+function axes(V::RepresentationSpace{G}, c::G) where {G}
     offset = 0
     for c′ in sectors(V)
         c′ == c && break
@@ -149,7 +147,7 @@ end
 function ⊕(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
     dual1 = isdual(V1)
     dual1 == isdual(V2) || throw(SpaceMismatch("Direct sum of a vector space and a dual space does not exist"))
-    dims = Dict{G,Int}()
+    dims = SectorDict{G,Int}()
     for c in union(sectors(V1), sectors(V2))
         cout = ifelse(dual1, dual(c), c)
         dims[cout] = dim(V1,c) + dim(V2,c)
@@ -168,7 +166,7 @@ end
 
 # Fuse the tensor product of two spaces
 function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
-    dims = Dict{G,Int}()
+    dims = SectorDict{G,Int}()
     for a in sectors(V1), b in sectors(V2)
         for c in a ⊗ b
             dims[c] = get(dims, c, 0) + Nsymbol(a,b,c)*dim(V1,a)*dim(V2,b)
