@@ -183,20 +183,20 @@ Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->s
 hasblock(t::TrivialTensorMap, ::Trivial) = true
 hasblock(t::TensorMap, s::Sector) = haskey(t.data, s)
 
-block(t::TrivialTensorMap, ::Trivial) = t.data
+block(t::TrivialTensorMap, ::Trivial) = StridedView(t.data)
 function block(t::TensorMap, s::Sector)
     sectortype(t) == typeof(s) || throw(SectorMismatch())
     A = valtype(t.data)
     if haskey(t.data, s)
-        return t.data[s]
+        return StridedView(t.data[s])
     else # at least one of the two matrix dimensions will be zero
         A = storagetype(t)
-        return A(uninitialized, (blockdim(codomain(t),s), blockdim(domain(t), s)))
+        return StridedView(A(uninitialized, (blockdim(codomain(t),s), blockdim(domain(t), s))))
     end
 end
 
-blocks(t::TensorMap{<:IndexSpace,N₁,N₂,Trivial}) where {N₁,N₂} = SingletonDict(Trivial()=>t.data)
-blocks(t::TensorMap) = t.data
+blocks(t::TensorMap{<:IndexSpace,N₁,N₂,Trivial}) where {N₁,N₂} = SingletonDict(Trivial()=>StridedView(t.data))
+blocks(t::TensorMap) = (kv[1]=>StridedView(kv[2]) for kv in t.data)
 
 fusiontrees(t::TrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
@@ -229,11 +229,11 @@ end
         return reshape(sview(t.data[c], t.rowr[c][f1], t.colr[c][f2]), (dims(codomain(t), f1.outgoing)..., dims(domain(t), f2.outgoing)...))
     end
 end
-@propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copy!(getindex(t, f1, f2), v)
+@propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copyto!(getindex(t, f1, f2), v)
 
 # For a tensor with trivial symmetry, allow no argument indexing
 @inline Base.getindex(t::TrivialTensorMap) = reshape(sview(t.data, :, :), (dims(codomain(t))..., dims(domain(t))...))
-@inline Base.setindex!(t::TrivialTensorMap, v) = copy!(getindex(t), v)
+@inline Base.setindex!(t::TrivialTensorMap, v) = copyto!(getindex(t), v)
 
 # For a tensor with trivial symmetry, fusiontrees returns (nothing,nothing)
 @inline Base.getindex(t::TrivialTensorMap, ::Tuple{Nothing,Nothing}) = getindex(t)

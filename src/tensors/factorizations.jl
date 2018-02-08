@@ -243,7 +243,7 @@ function rightnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
 end
 function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real = 2) where {S<:EuclideanSpace}
     if sectortype(t) == Trivial
-        U,Σ,V = svd!(block(t, Trivial()))
+        U,Σ,V = svd!(t.data)
         dmax = length(Σ)
         Σ, truncerr = _truncate!(Σ, trunc, p)
         d = length(Σ)

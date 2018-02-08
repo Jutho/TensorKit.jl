@@ -25,10 +25,11 @@ Base.length(t::AdjointTensorMap) = length(t.parent)
 # Indexing
 #----------
 hasblock(t::AdjointTensorMap, s::Sector) = hasblock(t.parent, s)
-if VERSION >= v"0.7-" # only if lazy adjoint exists
-    block(t::AdjointTensorMap, s::Sector) = block(t.parent, s)'
-    blocks(t::AdjointTensorMap) = (c=>b' for (c,b) in blocks(t.parent))
-end
+
+block(t::AdjointTensorMap, s::Sector) = block(t.parent, s)'
+
+blocks(t::AdjointTrivialTensorMap) = SingletonDict(Trivial()=>StridedView(t.parent.data)')
+blocks(t::AdjointTensorMap) = (kv[1]=>StridedView(kv[2])' for kv in t.parent.data)
 
 fusiontrees(::AdjointTrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::AdjointTensorMap) = TensorKeyIterator(t.parent.colr, t.parent.rowr)

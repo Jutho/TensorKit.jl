@@ -70,14 +70,14 @@ end
 function Base.copy!(tdest::AbstractTensorMap, tsource::AbstractTensorMap)
     codomain(tdest) == codomain(tsource) && domain(tdest) == domain(tsource) || throw(SpaceMismatch())
     for c in blocksectors(tdest)
-        copy!(StridedView(block(tdest, c)), StridedView(block(tsource, c)))
+        copy!(block(tdest, c), block(tsource, c))
     end
     return tdest
 end
 function adjoint!(tdest::AbstractTensorMap, tsource::AbstractTensorMap)
     codomain(tdest) == domain(tsource) && domain(tdest) == codomain(tsource) || throw(SpaceMismatch())
     for c in blocksectors(tdest)
-        adjoint!(StridedView(block(tdest, c)), StridedView(block(tsource, c)))
+        adjoint!(block(tdest, c), block(tsource, c))
     end
     return tdest
 end
@@ -92,21 +92,21 @@ end
 function mul!(t1::AbstractTensorMap, t2::AbstractTensorMap, α::Number)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
-        mul!(StridedView(block(t1, c)), StridedView(block(t2, c)), α)
+        mul!(block(t1, c), block(t2, c), α)
     end
     return t1
 end
 function mul!(t1::AbstractTensorMap, α::Number, t2::AbstractTensorMap)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
-        mul!(StridedView(block(t1, c)), α, StridedView(block(t2, c)))
+        mul!(block(t1, c), α, block(t2, c))
     end
     return t1
 end
 function axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTensorMap)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMisMatch())
     for c in blocksectors(t1)
-        axpy!(α, StridedView(block(t1, c)), StridedView(block(t2, c)))
+        axpy!(α, block(t1, c), block(t2, c))
     end
     return t2
 end
@@ -144,42 +144,6 @@ function mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,  tB::AbstractTensorM
         end
     end
     return tC
-end
-
-if VERSION < v"0.7-"
-    function mul!(tC::TensorMap, tA::AdjointTensorMap,  tB::TensorMap)
-        (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
-        for c in blocksectors(tC)
-            if hasblock(tA.parent, c) # then also tB should have such a block
-                Base.Ac_mul_B!(block(tC, c), block(tA.parent, c), block(tB, c))
-            else
-                fill!(block(tC, c), 0)
-            end
-        end
-        return tC
-    end
-    function mul!(tC::TensorMap, tA::TensorMap,  tB::AdjointTensorMap)
-        (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
-        for c in blocksectors(tC)
-            if hasblock(tA, c) # then also tB should have such a block
-                Base.A_mul_Bc!(block(tC, c), block(tA, c), block(tB.parent, c))
-            else
-                fill!(block(tC, c), 0)
-            end
-        end
-        return tC
-    end
-    function mul!(tC::TensorMap, tA::AdjointTensorMap,  tB::AdjointTensorMap)
-        (codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB)) || throw(SpaceMismatch())
-        for c in blocksectors(tC)
-            if hasblock(tA.parent, c) # then also tB should have such a block
-                Base.Ac_mul_Bc!(block(tC, c), block(tA.parent, c), block(tB.parent, c))
-            else
-                fill!(block(tC, c), 0)
-            end
-        end
-        return tC
-    end
 end
 
 # TensorMap exponentation:
