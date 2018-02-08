@@ -148,7 +148,7 @@ end
 
 function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
     if sectortype(t) == Trivial
-        Q, R = leftorth!(block(t, Trivial()), alg)
+        Q, R = leftorth!(t.data, alg)
         V = S(size(Q,2))
         return TensorMap(Q, codomain(t)←V), TensorMap(R, V←domain(t))
     else
@@ -156,7 +156,7 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
         Rdata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
         for c in blocksectors(t)
-            Q, R = leftorth!(block(t,c), alg)
+            Q, R = leftorth!(t.data[c], alg)
             Qdata[c] = Q
             Rdata[c] = R
             dims[c] = size(Q,2)
@@ -173,7 +173,7 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
 end
 function leftnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
     if sectortype(t) == Trivial
-        N = leftnull!(block(t, Trivial()), alg)
+        N = leftnull!(t.data, alg)
         W = S(size(N, 2))
         return TensorMap(N, codomain(t)←W)
     else
@@ -181,7 +181,11 @@ function leftnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
         Ndata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
         for c in blocksectors(V)
-            N = leftnull!(block(t,c), alg)
+            if hasblock(t, c)
+                N = leftnull!(t.data[c], alg)
+            else
+                N = storagetype(t)(I, blockdim(V, c), blockdim(V,c))
+            end
             Ndata[c] = N
             dims[c] = size(N,2)
         end
@@ -191,7 +195,7 @@ function leftnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
 end
 function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
     if sectortype(t) == Trivial
-        L, Q = rightorth!(block(t, Trivial()), alg)
+        L, Q = rightorth!(t.data, alg)
         V = S(size(Q, 1))
         return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
     else
@@ -199,7 +203,7 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
         Qdata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
         for c in blocksectors(t)
-            L, Q = rightorth!(block(t,c), alg)
+            L, Q = rightorth!(t.data[c], alg)
             Ldata[c] = L
             Qdata[c] = Q
             dims[c] = size(Q,1)
@@ -216,7 +220,7 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
 end
 function rightnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
     if sectortype(t) == Trivial
-        N = rightnull!(block(t, Trivial()), alg)
+        N = rightnull!(t.data, alg)
         W = S(size(N, 1))
         return TensorMap(N, W←domain(t))
     else
@@ -225,7 +229,11 @@ function rightnull!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
         A = valtype(Ndata)
         dims = SectorDict{sectortype(t), Int}()
         for c in blocksectors(V)
-            N = rightnull!(block(t,c), alg)
+            if hasblock(t, c)
+                N = rightnull!(t.data[c], alg)
+            else
+                N = storagetype(t)(I, blockdim(V, c), blockdim(V,c))
+            end
             Ndata[c] = N
             dims[c] = size(N,1)
         end
@@ -261,14 +269,14 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
             return TensorMap(empty(t.data), codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(empty(t.data), W←domain(t)), truncerr
         end
         c, s = next(it, s)
-        U,Σ,V = svd!(block(t,c))
+        U,Σ,V = svd!(t.data[c])
         Udata = SectorDict(c=>U)
         Σdata = SectorDict(c=>Σ)
         Vdata = SectorDict(c=>V)
         dims[c] = length(Σ)
         while !done(it, s)
             c, s = next(it, s)
-            U,Σ,V = svd!(block(t,c))
+            U,Σ,V = svd!(t.data[c])
             Udata[c] = U
             Σdata[c] = Σ
             Vdata[c] = V
