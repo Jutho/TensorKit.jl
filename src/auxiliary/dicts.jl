@@ -44,6 +44,7 @@ Base.sizehint!(d::VectorDict, newsz) = (sizehint!(d.keys, newsz); sizehint!(d.va
 
 @propagate_inbounds getpair(d::VectorDict, i::Integer) = d.keys[i] => d.values[i]
 
+Base.copy(d::VectorDict) = VectorDict(copy(d.keys), copy(d.values))
 empty(::VectorDict, ::Type{K}, ::Type{V}) where {K, V} = VectorDict{K, V}()
 Base.empty!(d::VectorDict) = (empty!(d.keys); empty!(d.values); return d)
 
