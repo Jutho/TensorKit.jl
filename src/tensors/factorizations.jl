@@ -279,10 +279,16 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
             truncdims = SectorDict{sectortype(t), Int}()
             for c in blocksectors(t)
                 truncdim = length(Σdata[c])
-                truncdims[c] = truncdim
-                if truncdim != dims[c]
-                    Udata[c] = Udata[c][:, 1:truncdim]
-                    Vdata[c] = Vdata[c][1:truncdim, :]
+                if truncdim != 0
+                    truncdims[c] = truncdim
+                    if truncdim != dims[c]
+                        Udata[c] = Udata[c][:, 1:truncdim]
+                        Vdata[c] = Vdata[c][1:truncdim, :]
+                    end
+                else
+                    delete!(Udata, c)
+                    delete!(Vdata, c)
+                    delete!(Σdata, c)
                 end
             end
             dims = truncdims
