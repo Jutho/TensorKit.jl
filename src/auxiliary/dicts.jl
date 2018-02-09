@@ -15,12 +15,6 @@ Base.start(::SingletonDict) = false
 Base.next(d::SingletonDict, s) = (d.key => d.value), true
 Base.done(d::SingletonDict, s) = s
 
-function Base.delete!(d::SingletonDict, key)
-    if key == d.key
-        throw("I am not sure if it makes sense to delete an element from a SingletonDict ?")
-    end
-end
-
 struct VectorDict{K,V} <: AbstractDict{K,V}
     keys::Vector{K}
     values::Vector{V}
