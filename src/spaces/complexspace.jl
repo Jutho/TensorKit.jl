@@ -23,14 +23,12 @@ axes(V::ComplexSpace) = Base.OneTo(dim(V))
 Base.conj(V::ComplexSpace) = ComplexSpace(V.d, !V.dual)
 isdual(V::ComplexSpace) = V.dual
 
-Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")
-Base.show(io::IO, ::Type{ComplexSpace}) = print(io, "ComplexSpace")
-
-# direct sum
+Base.oneunit(::Type{ComplexSpace}) = ComplexSpace(1)
 ⊕(V1::ComplexSpace, V2::ComplexSpace) = (V1.dual==V2.dual ?
     ComplexSpace(V1.d+V2.d, V1.dual) :
     throw(SpaceMismatch("Direct sum of a vector space and its dual does not exist")))
-
 fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d*V2.d)
-
 flip(V::ComplexSpace) = dual(V)
+
+Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")
+Base.show(io::IO, ::Type{ComplexSpace}) = print(io, "ComplexSpace")

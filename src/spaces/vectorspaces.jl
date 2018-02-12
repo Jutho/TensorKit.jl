@@ -73,7 +73,6 @@ returns `false` for spaces where `V==dual(V)`.
 """
 function isdual end
 
-
 # convenience definitions:
 adjoint(V::VectorSpace) = dual(V)
 Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
@@ -96,8 +95,61 @@ const IndexSpace = ElementarySpace
 
 fieldtype(::Type{<:ElementarySpace{k}}) where {k} = k
 
+
 """
-    conj(V::ElementarySpace) -> ElementarySpace
+    oneunit(V::S) where {S<:ElementarySpace} -> S
+
+Returns the corresponding vector space of type `S` that represents the trivial
+space, i.e. the space that is isomorphic to the corresponding field. Note that
+this is different from `one(V::S)`, which returns the empty product space
+`ProductSpace{S,0}(())`.
+"""
+Base.oneunit(V::ElementarySpace) = oneunit(typeof(V))
+
+
+"""
+    ⊕(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
+
+Returns the corresponding vector space of type `S` that represents the direct sum
+sum of the spaces `V1`, `V2`, ... Note that all the individual spaces should have
+the same value for `isdual`, as otherwise the direct sum is not defined.
+"""
+function ⊕ end
+⊕(V1, V2, V3, V4...) = ⊕(⊕(V1, V2), V3, V4...)
+
+
+"""
+    ⊗(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
+
+Creates a `ProductSpace{S}(V1, V2, V3...)` representing the tensor product of
+several elementary vector spaces. The tensor product structure is preserved, see
+`fuse(V1, V2, V3...) = fuse(V1 ⊗ V2 ⊗ V3...)` for returning a single elementary
+space of type `S` that is isomorphic to this tensor product.
+"""
+function ⊗ end
+⊗(V1, V2, V3, V4...) = ⊗(⊗(V1, V2), V3, V4...)
+
+"""
+    fuse(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
+    fuse(P::ProductSpace{S}) where {S<:ElementarySpace} -> S
+
+Returns a single vector space of type `S` that is isomorphic to the fusion product
+of the individual spaces `V1`, `V2`, ..., or the spaces contained in `P`.
+"""
+function fuse end
+fuse(V1, V2, V3, V4...) = fuse(fuse(V1, V2), V3, V4...)
+
+"""
+    flip(V::S) where {S<:ElementarySpace} -> S
+
+Returns a single vector space of type `S` that has the same value of `isdual` as
+`dual(V)`, but yet is isomorphic to `V` rather than to `dual(V)`. The spaces `flip(V)`
+and `dual(V)` only differ in the case of `RepresentationSpace{G}`.
+"""
+function flip end
+
+"""
+    conj(V::S) where {S<:ElementarySpace} -> S
 Returns the conjugate space of `V`. For `fieldtype(V)==ℝ`, `conj(V) == V`
 It is assumed that `typeof(V) == typeof(conj(V))`.
 """
@@ -150,7 +202,8 @@ checksectors(::ElementarySpace, ::Trivial) = true
 axes(V::ElementarySpace, ::Trivial) = axes(V)
 
 """
-    function sectors(a)
+    sectors(V::ElementarySpace) -> sectortype(V)
+    sectors(V::ProductSpace{S,N}) -> NTuple{N,sectortype{V}}
 
 Returns the different sectors of object `a`( e.g. a representation space or an
 invariant tensor).

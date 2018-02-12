@@ -182,10 +182,6 @@ end
 IndexError()=IndexError{Nothing}(nothing)
 Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
 
-# Tensor product operator
-#-------------------------
-⊗(a, b, c, d...)=⊗(a, ⊗(b, c, d...))
-
 # Definitions and methods for superselection sectors (quantum numbers)
 #----------------------------------------------------------------------
 include("sectors/sectors.jl")

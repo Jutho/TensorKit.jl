@@ -24,6 +24,7 @@ end
 
 GenericRepresentationSpace{G}(dims::Tuple{Vararg{Pair{<:Any,Int}}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
 GenericRepresentationSpace{G}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
+GenericRepresentationSpace{G}(g::Base.Generator; dual::Bool = false) where {G<:Sector} = GenericRepresentationSpace{G}(g...; dual=dual)
 
 Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) = keys(V1.dims) == keys(V2.dims) && values(V1.dims) == values(V2.dims) && V1.dual == V2.dual
 
@@ -63,16 +64,13 @@ RepresentationSpace{ZNIrrep{N}}(dims::Vararg{Pair{<:Any,Int}}; dual::Bool = fals
 RepresentationSpace(dims::AbstractDict{ZNIrrep{N},Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
 RepresentationSpace(dims::Vararg{Pair{ZNIrrep{N},Int}}; dual::Bool = false) where {N} = ZNSpace{N}(dims...; dual = dual)
 
+RepresentationSpace{G}(g::Base.Generator; dual::Bool = false) where {G<:Sector} = RepresentationSpace{G}(g...; dual = dual)
+RepresentationSpace(g::Base.Generator; dual::Bool = false) = RepresentationSpace(g...; dual = dual)
+
 Base.getindex(::ComplexNumbers, G::Type{<:Sector}) = RepresentationSpace{G}
 Base.getindex(::ComplexNumbers, d1::Pair{G,Int}, dims::Vararg{Pair{G,Int}}) where {G<:Sector} = RepresentationSpace{G}(d1, dims...)
 
 # Corresponding methods:
-"""
-    sectors(V::ElementarySpace) -> sectortype(V)
-    sectors(V::ProductSpace{S,N}) -> NTuple{N,sectortype{V}}
-
-Iterate over the different sectors in the vector space.
-"""
 sectors(V::GenericRepresentationSpace{G}) where {G<:Sector} = SectorSet{G}(s->isdual(V) ? dual(s) : s, keys(V.dims))
 sectors(V::ZNSpace{N}) where {N} = SectorSet{ZNIrrep{N}}(n->isdual(V) ? -(n-1) : (n-1), Iterators.filter(n->V.dims[n]!=0, 1:N))
 
@@ -119,13 +117,41 @@ const U1Space = U₁Space
 const CU1Space = CU₁Space
 const SU2Space = SU₂Space
 
+
+Base.oneunit(::Type{<:RepresentationSpace{G}}) where {G<:Sector} = RepresentationSpace{G}(one(G)=>1)
+function ⊕(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
+    dual1 = isdual(V1)
+    dual1 == isdual(V2) || throw(SpaceMismatch("Direct sum of a vector space and a dual space does not exist"))
+    dims = SectorDict{G,Int}()
+    for c in union(sectors(V1), sectors(V2))
+        cout = ifelse(dual1, dual(c), c)
+        dims[cout] = dim(V1,c) + dim(V2,c)
+    end
+    return RepresentationSpace(dims; dual = dual1)
+end
+function flip(V::RepresentationSpace)
+    if isdual(V)
+        typeof(V)((c=>dim(V,c) for c in sectors(V))...)
+    else
+        typeof(V)((dual(c)=>dim(V,c) for c in sectors(V))...)'
+    end
+end
+function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
+    dims = SectorDict{G,Int}()
+    for a in sectors(V1), b in sectors(V2)
+        for c in a ⊗ b
+            dims[c] = get(dims, c, 0) + Nsymbol(a,b,c)*dim(V1,a)*dim(V2,b)
+        end
+    end
+    return RepresentationSpace(dims)
+end
+
 Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
 Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
 Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
 Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
 Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
 
-# Show methods
 function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
     print(io, "RepresentationSpace{", G, "}(")
     seperator = ""
@@ -141,36 +167,4 @@ function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
     print(io, ")")
     V.dual && print(io, "'")
     return nothing
-end
-
-# direct sum of RepresentationSpaces
-function ⊕(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
-    dual1 = isdual(V1)
-    dual1 == isdual(V2) || throw(SpaceMismatch("Direct sum of a vector space and a dual space does not exist"))
-    dims = SectorDict{G,Int}()
-    for c in union(sectors(V1), sectors(V2))
-        cout = ifelse(dual1, dual(c), c)
-        dims[cout] = dim(V1,c) + dim(V2,c)
-    end
-    return RepresentationSpace(dims; dual = dual1)
-end
-
-# Flip the duality of a space, resulting in an equivalent space (this is different from dual(V))
-function flip(V::RepresentationSpace)
-    if isdual(V)
-        typeof(V)((c=>dim(V,c) for c in sectors(V))...)
-    else
-        typeof(V)((dual(c)=>dim(V,c) for c in sectors(V))...)'
-    end
-end
-
-# Fuse the tensor product of two spaces
-function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
-    dims = SectorDict{G,Int}()
-    for a in sectors(V1), b in sectors(V2)
-        for c in a ⊗ b
-            dims[c] = get(dims, c, 0) + Nsymbol(a,b,c)*dim(V1,a)*dim(V2,b)
-        end
-    end
-    return RepresentationSpace(dims)
 end

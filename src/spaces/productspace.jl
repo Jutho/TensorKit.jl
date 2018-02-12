@@ -114,6 +114,10 @@ if VERSION <= v"0.6.99"
 else
     Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val) = ProductSpace(ntuple(n->V, p))
 end
+Base.convert(::Type{S}, P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
+Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
+fuse(P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
+fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 
 # Functionality for extracting and iterating over spaces
 #--------------------------------------------------------
