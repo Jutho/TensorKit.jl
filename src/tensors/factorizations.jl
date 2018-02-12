@@ -279,10 +279,16 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
             truncdims = SectorDict{sectortype(t), Int}()
             for c in blocksectors(t)
                 truncdim = length(Σdata[c])
-                truncdims[c] = truncdim
-                if truncdim != dims[c]
-                    Udata[c] = Udata[c][:, 1:truncdim]
-                    Vdata[c] = Vdata[c][1:truncdim, :]
+                if truncdim != 0
+                    truncdims[c] = truncdim
+                    if truncdim != dims[c]
+                        Udata[c] = Udata[c][:, 1:truncdim]
+                        Vdata[c] = Vdata[c][1:truncdim, :]
+                    end
+                else
+                    delete!(Udata, c)
+                    delete!(Vdata, c)
+                    delete!(Σdata, c)
                 end
             end
             dims = truncdims
@@ -403,14 +409,10 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationScheme, 
         maxdim = copy(truncdim)
         for c in it
             newdim = findlast(x->(x>trunc.ϵ), V[c] )
-            if newdim != 0
-                truncdim[c] = newdim
-            else
-                delete!(truncdim, c)
-            end
+            truncdim[c] = newdim
         end
-        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(V[c],truncdim[c]+1:maxdim[c]), p) for c in keys(truncdim)), p)
-        for c in keys(truncdim)
+        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(V[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
+        for c in it
             resize!(V[c], truncdim[c])
         end
     else

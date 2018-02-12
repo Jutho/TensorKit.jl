@@ -78,3 +78,9 @@ end
 Base.start(::VectorDict) = 1
 Base.next(d::VectorDict, s) = (d.keys[s] => d.values[s]), s+1
 Base.done(d::VectorDict, s) = s > length(d)
+
+function Base.delete!(d::VectorDict, key)
+    loc = findfirst(equalto(key), d.keys)
+    deleteat!(d.keys  , loc)
+    deleteat!(d.values, loc)
+end
