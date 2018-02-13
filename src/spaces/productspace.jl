@@ -129,5 +129,6 @@ Base.start(P::ProductSpace) = start(P.spaces)
 Base.next(P::ProductSpace, state) = next(P.spaces, state)
 Base.done(P::ProductSpace, state) = done(P.spaces, state)
 
+Base.eltype(P::ProductSpace{S}) where {S<:ElementarySpace} = S
 IteratorEltype(P::ProductSpace) = IteratorEltype(P.spaces)
 IteratorSize(P::ProductSpace) = IteratorSize(P.spaces)
