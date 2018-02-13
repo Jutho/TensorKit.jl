@@ -146,6 +146,13 @@ function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:
     return RepresentationSpace(dims)
 end
 
+Base.min(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G} = V1.dual == V2.dual ?
+    RepresentationSpace{G}(c=>min(dim(V1,c), dim(V2,c)) for c in union(sectors(V1), sectors(V2)), dual = V1.dual) :
+    throw(SpaceMismatch("V1 and V2 should both be normal or dual spaces"))
+Base.max(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G} = V1.dual == V2.dual ?
+    RepresentationSpace{G}(c=>max(dim(V1,c), dim(V2,c)) for c in union(sectors(V1), sectors(V2)), dual = V1.dual) :
+    throw(SpaceMismatch("V1 and V2 should both be normal or dual spaces"))
+
 Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
 Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
 Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")

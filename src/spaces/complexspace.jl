@@ -30,5 +30,12 @@ Base.oneunit(::Type{ComplexSpace}) = ComplexSpace(1)
 fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d*V2.d)
 flip(V::ComplexSpace) = dual(V)
 
+Base.min(V1::ComplexSpace, V2::ComplexSpace) = V1.dual == V2.dual ?
+    ComplexSpace(min(V1.d, V2.d), V1.dual) :
+    throw(SpaceMismatch("V1 and V2 should both be normal or dual spaces"))
+Base.max(V1::ComplexSpace, V2::ComplexSpace) = V1.dual == V2.dual ?
+    ComplexSpace(max(V1.d, V2.d), V1.dual) :
+    throw(SpaceMismatch("V1 and V2 should both be normal or dual spaces"))
+
 Base.show(io::IO, V::ComplexSpace) = print(io, V.dual ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")
 Base.show(io::IO, ::Type{ComplexSpace}) = print(io, "ComplexSpace")
