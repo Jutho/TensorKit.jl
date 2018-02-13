@@ -111,6 +111,9 @@ end
     end
 end
 
+# TODO: contraction with either A or B a (1,1) tensor does not require to
+# permute the fusion tree and should therefore be special cased. This will speed
+# up MPS algorithms
 function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S}, oindA::IndexTuple{N₁}, cindA::IndexTuple, oindB::IndexTuple{N₂}, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
     A′ = permuteind(A, oindA, cindA)
     B′ = permuteind(B, cindB, oindB)

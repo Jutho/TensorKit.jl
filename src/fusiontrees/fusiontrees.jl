@@ -269,6 +269,7 @@ function permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2:
         throw(MethodError(permute, (t1, t2, p1, p2)))
     end
 end
+# TODO: Make permute a @generated function that computes the result ones and stores it
 
 # Fusion tree iterators
 include("iterator.jl")
