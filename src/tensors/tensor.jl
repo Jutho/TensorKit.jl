@@ -203,8 +203,8 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 
 function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G}, sectors::Tuple{Vararg{G}}) where {N₁,N₂,G<:Sector}
     fusiontype(G) == Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
-    s1 = ntuple(n->sectors[n], StaticLength(N₁))
-    s2 = ntuple(n->sectors[N₁+n], StaticLength(N₂))
+    s1 = TupleTools.getindices(sectors, codomainind(t))
+    s2 = TupleTools.getindices(sectors, domainind(t))
     c1 = length(s1) == 0 ? one(G) : (length(s1) == 1 ? s1[1] : first(⊗(s1...)))
     @boundscheck begin
         c2 = length(s2) == 0 ? one(G) : (length(s2) == 1 ? s2[1] : first(⊗(s1...)))

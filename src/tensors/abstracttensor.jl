@@ -49,6 +49,10 @@ space(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = i <= 
 space(t::AbstractTensor) = codomain(t)
 space(t::AbstractTensor, i) = space(t)[i]
 
+# some index manipulation utilities
+codomainind(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂} = ntuple(n->n, StaticLength(N₁))
+domainind(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂} = ntuple(n->N₁+n, StaticLength(N₂))
+
 tensor2spaceindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = ifelse(i<=N₁, i, 2N₁+N₂+1-i)
 space2tensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = ifelse(i<=N₁, i, 2N₁+N₂+1-i)
 adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = ifelse(i<=N₁, N₂+i, i-N₁)
@@ -69,7 +73,7 @@ const TensorMapSpace{S<:IndexSpace, N₁, N₂} = Pair{ProductSpace{S,N₂},Prod
 ←(codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => codom
 ←(codom::S, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => ProductSpace(codom)
 
-# do we still need this
+# NOTE: do we still need this
 function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S,N₁,N₂}
     sectortype(S) == Trivial && return (Trivial(),)
     return intersect(blocksectors(codom), blocksectors(dom))
