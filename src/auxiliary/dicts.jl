@@ -48,6 +48,15 @@ Base.copy(d::VectorDict) = VectorDict(copy(d.keys), copy(d.values))
 empty(::VectorDict, ::Type{K}, ::Type{V}) where {K, V} = VectorDict{K, V}()
 Base.empty!(d::VectorDict) = (empty!(d.keys); empty!(d.values); return d)
 
+function Base.delete!(d::VectorDict, key)
+    i = findfirst(equalto(key), d.keys)
+    if !(i == nothing || i == 0)
+        deleteat!(d.keys  , i)
+        deleteat!(d.values, i)
+    end
+    return d
+end
+
 Base.keys(d::VectorDict) = d.keys
 Base.values(d::VectorDict) = d.values
 Base.haskey(d::VectorDict, key) = key in d.keys

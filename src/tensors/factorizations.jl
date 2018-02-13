@@ -279,10 +279,16 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
             truncdims = SectorDict{sectortype(t), Int}()
             for c in blocksectors(t)
                 truncdim = length(Σdata[c])
-                truncdims[c] = truncdim
-                if truncdim != dims[c]
-                    Udata[c] = Udata[c][:, 1:truncdim]
-                    Vdata[c] = Vdata[c][1:truncdim, :]
+                if truncdim != 0
+                    truncdims[c] = truncdim
+                    if truncdim != dims[c]
+                        Udata[c] = Udata[c][:, 1:truncdim]
+                        Vdata[c] = Vdata[c][1:truncdim, :]
+                    end
+                else
+                    delete!(Udata, c)
+                    delete!(Vdata, c)
+                    delete!(Σdata, c)
                 end
             end
             dims = truncdims
@@ -300,121 +306,4 @@ function svd!(t::TensorMap{S}, trunc::TruncationScheme = NoTruncation(), p::Real
         Σmdata = SectorDict(c=>copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ)) for (c,Σ) in Σdata)
         return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W), TensorMap(Vdata, W←domain(t)), truncerr
     end
-end
-
-function _truncate!(v::AbstractVector, trunc::TruncationScheme, p::Real = 2)
-    fullnorm = vecnorm(v, p)
-    truncerr = zero(fullnorm)
-    if isa(trunc, NoTruncation)
-        # don't do anything
-    elseif isa(trunc, TruncationError)
-        dmax = length(v)
-        dtrunc = dmax
-        while true
-            dtrunc -= 1
-            truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
-            if truncerr / fullnorm > trunc.ϵ
-                dtrunc += 1
-                break
-            end
-        end
-        truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
-        resize!(v, dtrunc)
-    elseif isa(trunc, TruncationDimension)
-        dmax = length(v)
-        dtrunc = min(dmax, trunc.dim)
-        truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
-        resize!(v, dtrunc)
-    elseif isa(trunc, TruncateBelow)
-        dtrunc   = findlast(x->(x>trunc.ϵ), v)
-        truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
-        resize!(v, dtrunc)
-    else
-        error("unknown truncation scheme")
-    end
-    return v, truncerr
-end
-function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationScheme, p = 2) where {G<:Sector}
-    it = keys(V)
-    fullnorm = _vecnorm((c=>V[c] for c in it), p)
-    truncerr = zero(fullnorm)
-    T = eltype(valtype(V))
-    if isa(trunc, NoTruncation)
-        # don't do anything
-    elseif isa(trunc, TruncationError)
-        truncdim = SectorDict{G,Int}(c=>length(v) for (c,v) in V)
-        maxdim = copy(truncdim)
-        while true
-            s = start(it)
-            c, s = next(it, s)
-            cmin = c
-            vmin = dim(c)^(1/p)*V[c][truncdim[c]]
-            while !done(it, s)
-                c, s = next(it, s)
-                if truncdim[c] > 0
-                    v = dim(c)^(1/p)*V[c][truncdim[c]]
-                    if v < vmin
-                        cmin, vmin = c, v
-                    end
-                end
-            end
-            truncdim[cmin] -= 1
-            truncerr = _vecnorm((c=>view(V[c],truncdim[c]+1:maxdim[c]) for c in it), p)
-            if truncerr / fullnorm > trunc.ϵ
-                truncdim[cmin] += 1
-                break
-            end
-        end
-        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(Σdata[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
-        for c in it
-            resize!(V[c], truncdim[c])
-        end
-    elseif isa(trunc, TruncationDimension)
-        truncdim = SectorDcit{G,Int}(c=>length(v) for (c,v) in V)
-        maxdim = copy(truncdim)
-        while sum(c->dim(c)*truncdim[c], it) > trunc.dim
-            s = start(it)
-            c, s = next(it, s)
-            cmin = c
-            vmin = dim(c)^(1/p)*V[c][truncdim[c]]
-            while !done(it, s)
-                c, s = next(it, s)
-                if truncdim[c] > 0
-                    v = dim(c)^(1/p)*V[c][truncdim[c]]
-                    if v < vmin
-                        cmin, vmin = c, v
-                    end
-                end
-            end
-            truncdim[cmin] -= 1
-        end
-        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(V[c],truncdim[c]+1:maxdim[c]), p) for c in it), p)
-        for c in it
-            resize!(V[c], truncdim[c])
-        end
-    elseif isa(trunc, TruncationSpace)
-        for c in it
-            if length(V[c]) > dim(trunc.space, c)
-                resize!(V[c], dim(trunc.space, c))
-            end
-        end
-    elseif isa(trunc, TruncateBelow)
-        truncdim = SectorDict{G,Int}(c=>length(v) for (c,v) in V)
-        maxdim = copy(truncdim)
-        for c in it
-            newdim = findlast(x->(x>trunc.ϵ), V[c] )
-            if newdim != 0
-                truncdim[c] = newdim
-            else
-                delete!(truncdim, c)
-            end
-        end
-        truncerr = vecnorm((convert(T, dim(c))^(1/p)*vecnorm(view(V[c],truncdim[c]+1:maxdim[c]), p) for c in keys(truncdim)), p)
-        for c in keys(truncdim)
-            resize!(V[c], truncdim[c])
-        end
-    else
-        error("unknown truncation scheme")
-    end
-    return V, truncerr
 end
