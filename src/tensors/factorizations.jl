@@ -163,8 +163,14 @@ function leftorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = QRpo
         end
         if length(domain(t)) == 1
             V = domain(t)[1]
+            if V.dims != dims
+                V = S(dims)
+            end
         elseif length(codomain(t)) == 1
             V = codomain(t)[1]
+            if V.dims != dims
+                V = S(dims)
+            end
         else
             V = S(dims)
         end
@@ -206,8 +212,14 @@ function rightorth!(t::TensorMap{S}, alg::OrthogonalFactorizationAlgorithm = LQp
         end
         if length(domain(t)) == 1
             V = domain(t)[1]
+            if V.dims != dims
+                V = S(dims)
+            end
         elseif length(codomain(t)) == 1
             V = codomain(t)[1]
+            if V.dims != dims
+                V = S(dims)
+            end
         else
             V = S(dims)
         end
