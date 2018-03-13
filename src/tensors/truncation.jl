@@ -74,6 +74,9 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationError, p
     while true
         s = start(it)
         c, s = next(it, s)
+        while truncdim[c] == 0
+            c, s = next(it, s)
+        end
         cmin = c
         vmin = dim(c)^(1/p)*V[c][truncdim[c]]
         while !done(it, s)
@@ -104,6 +107,9 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationDimensio
     while sum(c->dim(c)*truncdim[c], it) > trunc.dim
         s = start(it)
         c, s = next(it, s)
+        while truncdim[c] == 0
+            c, s = next(it, s)
+        end
         cmin = c
         vmin = dim(c)^(1/p)*V[c][truncdim[c]]
         while !done(it, s)
