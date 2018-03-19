@@ -68,6 +68,8 @@ Base.hash(p::ProductSector, h::UInt64) = hash(p.sectors, h)
 
 # Default construction from tensor product of sectors
 #-----------------------------------------------------
+×(S1, S2, S3, S4...) = ×(×(S1, S2), S3, S4...)
+
 ×(S1::Sector, S2::Sector) = ProductSector((S1, S2))
 ×(P1::ProductSector, S2::Sector) = ProductSector(tuple(P1.sectors..., S2))
 ×(S1::Sector, P2::ProductSector) = ProductSector(tuple(S1, P2.sectors...))
