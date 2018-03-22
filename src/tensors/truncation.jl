@@ -50,7 +50,7 @@ function _truncate!(v::AbstractVector, trunc::TruncationError, p::Real = 2)
     return v, truncerr
 end
 function _truncate!(v::AbstractVector, trunc::TruncationDimension, p::Real = 2)
-    dtrunc = min(dmax, trunc.dim)
+    dtrunc = min(length(v), trunc.dim)
     truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
     resize!(v, dtrunc)
     return v, truncerr
