@@ -49,6 +49,12 @@ function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
 end
 frobeniusschur(p::ProductSector) = prod(map(frobeniusschur, p.sectors))
 
+fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T}, v::Nothing = nothing) where {T<:SectorTuple} =
+    _kron(fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1]), fusiontensor(ProductSector(tail(a.sectors)), ProductSector(tail(b.sectors)), ProductSector(tail(c.sectors))))
+
+fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T}, v::Nothing = nothing) where {T<:Tuple{<:Sector}} =
+    fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1])
+
 fusiontype(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _fusiontype(T)
 _fusiontype(::Type{Tuple{}}) = Abelian
 _fusiontype(::Type{T}) where {T<:SectorTuple} = fusiontype(Base.tuple_type_head(T)) & _fusiontype(Base.tuple_type_tail(T))
