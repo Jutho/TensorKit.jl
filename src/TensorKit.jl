@@ -53,7 +53,7 @@ export @tensor, @tensoropt
 export scalar, add!, contract!
 
 # truncation schemes
-export notrunc, truncerr, truncdim, truncspace, truncbelow
+export notrunc, truncerr, truncdim, truncspace, truncbelow, multtrunc
 
 # Imports
 #---------
