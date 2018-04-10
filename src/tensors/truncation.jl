@@ -32,6 +32,7 @@ truncbelow(epsilon::Real) = TruncateBelow(epsilon)
 function _truncate!(v::AbstractVector, ::NoTruncation, p::Real = 2)
     return v, zero(vecnorm(v, p))
 end
+
 function _truncate!(v::AbstractVector, trunc::TruncationError, p::Real = 2)
     fullnorm = vecnorm(v, p)
     truncerr = zero(fullnorm)
@@ -49,12 +50,16 @@ function _truncate!(v::AbstractVector, trunc::TruncationError, p::Real = 2)
     resize!(v, dtrunc)
     return v, truncerr
 end
+
 function _truncate!(v::AbstractVector, trunc::TruncationDimension, p::Real = 2)
     dtrunc = min(length(v), trunc.dim)
     truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
     resize!(v, dtrunc)
     return v, truncerr
 end
+
+_truncate!(v::AbstractVector, trunc::TruncationSpace, p::Real = 2) = _truncate!(v, dim(trunc.space), p)
+
 function _truncate!(v::AbstractVector, trunc::TruncateBelow, p::Real = 2)
     dtrunc   = findlast(x->(x>trunc.ϵ), v)
     truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
@@ -153,4 +158,29 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncateBelow, p =
         resize!(V[c], truncdim[c])
     end
     return V, truncerr
+end
+
+# Combine truncations
+struct MultipleTruncation{T<:Tuple{Vararg{<:TruncationScheme}}} <: TruncationScheme
+    truncations::T
+end
+Base.:&(a::MultipleTruncation, b::MultipleTruncation) = MultipleTruncation((a.truncations...,b.truncations...))
+Base.:&(a::MultipleTruncation, b::TruncationScheme) = MultipleTruncation((a.truncations...,b))
+Base.:&(a::TruncationScheme, b::MultipleTruncation) = MultipleTruncation((a,b.truncations...))
+Base.:&(a::TruncationScheme, b::TruncationScheme) = MultipleTruncation((a,b))
+
+# TODO: this is not really correct because of relative error in TruncationError;
+# maybe TruncationError should use absolute error as measure
+function _truncate!(v, trunc::MultipleTruncation, p::Real = 2)
+    v, truncerrs = __truncate!(v, trunc.truncations, p)
+    return v, vecnorm(truncerrs, p)
+end
+function __truncate!(v, trunc::Tuple{Vararg{<:TruncationScheme}}, p::Real = 2)
+    v, truncerr1 = _truncate!(v, first(trunc), p)
+    v, truncerrtail = __truncate!(v, tail(trunc), p)
+    return v, (truncerr1, truncerrtail...)
+end
+function __truncate!(v, trunc::Tuple{<:TruncationScheme}, p::Real = 2)
+    v, truncerr1 = _truncate!(v, first(trunc), p)
+    return v, (truncerr1,)
 end
