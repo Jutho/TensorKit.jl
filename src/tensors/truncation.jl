@@ -28,6 +28,11 @@ struct TruncateBelow{T<:Real} <: TruncationScheme
 end
 truncbelow(epsilon::Real) = TruncateBelow(epsilon)
 
+struct MultipleTrunc <: TruncationScheme
+    truncations::Array{TruncationScheme}
+end
+multtrunc(arr::Array{TruncationScheme}) = MultipleTrunc(arr)
+
 # For a single vector
 function _truncate!(v::AbstractVector, ::NoTruncation, p::Real = 2)
     return v, zero(vecnorm(v, p))
@@ -153,4 +158,14 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncateBelow, p =
         resize!(V[c], truncdim[c])
     end
     return V, truncerr
+end
+
+#multiple truncations
+function _truncate!(v::Union{AbstractVector,SectorDict{G,<:AbstractVector}}, trunc::MultipleTrunc, p::Real = 2) where {G<:Sector}
+    truncerr = 0.
+    for currtrunc in trunc.truncations
+        v, currtruncerr = _truncate!(v, currtrunc, p)
+        truncerr += currtruncerr
+    end
+    return v, truncerr
 end
