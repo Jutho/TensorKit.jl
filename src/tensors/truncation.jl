@@ -34,14 +34,13 @@ function _truncate!(v::AbstractVector, ::NoTruncation, p::Real = 2)
 end
 
 function _truncate!(v::AbstractVector, trunc::TruncationError, p::Real = 2)
-    fullnorm = vecnorm(v, p)
-    truncerr = zero(fullnorm)
+    truncerr = abs(zero(eltype(v)))
     dmax = length(v)
     dtrunc = dmax
     while true
         dtrunc -= 1
         truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
-        if truncerr / fullnorm > trunc.ϵ
+        if truncerr > trunc.ϵ
             dtrunc += 1
             break
         end
@@ -72,7 +71,6 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, ::NoTruncation, p = 2) wh
     return V, zero(_vecnorm(V, p))
 end
 function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationError, p = 2) where {G<:Sector}
-    fullnorm = _vecnorm(V, p)
     truncdim = SectorDict{G,Int}(c=>length(v) for (c,v) in V)
     maxdim = copy(truncdim)
     it = keys(V)
@@ -95,7 +93,7 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationError, p
         end
         truncdim[cmin] -= 1
         truncerr = _vecnorm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
-        if truncerr / fullnorm > trunc.ϵ
+        if truncerr > trunc.ϵ
             truncdim[cmin] += 1
             break
         end
