@@ -229,6 +229,7 @@ end
 
 function svd!(A::StridedMatrix{<:BlasFloat}, alg::SVD = SVD(0))
     U, S, V = LAPACK.gesdd!('S', A)
+    # U, S, V = LAPACK.gesvd!('S','S',A)
     # TODO: implement truncation based on tol
     return U, S, V
 end
