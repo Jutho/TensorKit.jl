@@ -10,9 +10,6 @@
         @inferred Bsymbol(s...)
         @inferred Fsymbol(s..., s...)
         it = @inferred s[1] ⊗ s[2]
-        state = @inferred start(it)
-        @inferred next(it, state)
-        @inferred done(it, state)
         @inferred ⊗(s..., s...)
     end
     if G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂)
@@ -94,9 +91,7 @@
         end
 
         it = @inferred fusiontrees(out, in)
-        state = @inferred start(it)
-        f, state = @inferred next(it, state)
-        @inferred done(it, state)
+        f, state = iterate(it)
 
         @inferred braid(f, 2)
 

@@ -15,7 +15,7 @@ struct GeneralSpace{k} <: ElementarySpace{k}
 end
 
 dim(V::GeneralSpace) = V.d
-axes(V::GeneralSpace) = Base.OneTo(dim(V))
+Base.axes(V::GeneralSpace) = Base.OneTo(dim(V))
 
 dual(V::GeneralSpace{k}) where {k} = GeneralSpace{k}(V.d, !V.dual, V.conj)
 isdual(V::GeneralSpace) = V.dual

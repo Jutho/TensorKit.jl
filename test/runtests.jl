@@ -1,22 +1,9 @@
-if VERSION < v"0.7.0-DEV.2005"
-    const Test = Base.Test
-else
-    import Test
-end
-if VERSION >= v"0.7.0-DEV.3406"
-    using Random
-end
-
-@static if !isdefined(Base, :ComplexF32)
-    const ComplexF32 = Complex64
-    const ComplexF64 = Complex128
-end
-@static if !isdefined(Base, :hasmethod)
-    hasmethod(f, t) = method_exists(f,t)
-end
-
 using Test
+using Random
 using TensorKit
+using TensorOperations
+using TupleTools
+using TupleTools: StaticLength
 
 smallset(::Type{ZNIrrep{N}}) where {N} = map(ZNIrrep{N}, 1:N)
 smallset(::Type{CU₁}) = map(t->CU₁(t[1],t[2]), [(0,0),(0,1),(1//2,2),(1,2),(3//2,2),(2,2),(5//2,2),(3,2),(7//2,2),(4,2),(9//2,2),(5,2)])
@@ -29,6 +16,6 @@ randsector(::Type{U₁}) = rand(smallset(U₁))
 randsector(::Type{SU₂}) = rand(smallset(SU₂))
 randsector(P::Type{<:TensorKit.ProductSector}) = P(map(randsector, (P.parameters[1].parameters...,)))
 
-include("sectors.jl")
-include("spaces.jl")
-include("tensors.jl")
+# include("sectors.jl")
+# include("spaces.jl")
+# include("tensors.jl")

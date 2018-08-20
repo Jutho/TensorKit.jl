@@ -17,7 +17,7 @@ Base.:^(::RealNumbers, d::Int) = CartesianSpace(d)
 # Corresponding methods:
 #------------------------
 dim(V::CartesianSpace) = V.d
-axes(V::CartesianSpace) = Base.OneTo(dim(V))
+Base.axes(V::CartesianSpace) = Base.OneTo(dim(V))
 
 Base.oneunit(::Type{CartesianSpace}) = CartesianSpace(1)
 ⊕(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(V1.d+V2.d)

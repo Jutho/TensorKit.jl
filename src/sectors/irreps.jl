@@ -4,8 +4,8 @@
 #------------------------------------------------------------------------------#
 abstract type AbelianIrrep <: Sector end
 
-Base.@pure fusiontype(::Type{<:AbelianIrrep}) = Abelian
-Base.@pure braidingtype(::Type{<:AbelianIrrep}) = Bosonic
+Base.@pure fusiontype(::Type{<:AbelianIrrep}) = Abelian()
+Base.@pure braidingtype(::Type{<:AbelianIrrep}) = Bosonic()
 
 Nsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = c == first(a ⊗ b)
 Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:AbelianIrrep} =
@@ -80,8 +80,8 @@ Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(convert(HalfInteger, j))
 
 dim(s::SU2Irrep) = s.j.num+1
 
-Base.@pure fusiontype(::Type{SU2Irrep}) = SimpleNonAbelian
-Base.@pure braidingtype(::Type{SU2Irrep}) = Bosonic
+Base.@pure fusiontype(::Type{SU2Irrep}) = SimpleNonAbelian()
+Base.@pure braidingtype(::Type{SU2Irrep}) = Bosonic()
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
 Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
@@ -92,7 +92,7 @@ function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
 end
 
 function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Nothing = nothing)
-    C = Array{Float64}(uninitialized, dim(a), dim(b), dim(c))
+    C = Array{Float64}(undef, dim(a), dim(b), dim(c))
     ja, jb, jc = a.j, b.j, c.j
 
     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
@@ -128,29 +128,25 @@ struct CU1ProdIterator
     a::CU1Irrep
     b::CU1Irrep
 end
-Base.start(p::CU1ProdIterator) = 1
-function Base.next(p::CU1ProdIterator, s::Int)
+function Base.iterate(p::CU1ProdIterator, s::Int = 1)
     if s == 1
-        if p.a == p.b
-            return one(CU1Irrep), s+1
-        elseif p.a.j == p.b.j == zero(HalfInteger)
-            return CU1Irrep(zero(HalfInteger), 1), s+1
+        if p.a.j == p.b.j == zero(HalfInteger)
+            return CU1Irrep(zero(HalfInteger), xor(p.a.s, p.b.s)), 4
+        elseif p.a.j == zero(HalfInteger)
+            return p.b, 4
+        elseif p.b.j == zero(HalfInteger)
+            return p.a, 4
+        elseif p.a == p.b # != zero
+            return one(CU1Irrep), 2
         else
-            return CU1Irrep(abs(p.a.j - p.b.j)),  s+1
+            return CU1Irrep(abs(p.a.j - p.b.j)),  3
         end
     elseif s == 2
-        (p.a == p.b  ? CU1Irrep(zero(HalfInteger), 1) : CU1Irrep(p.a.j + p.b.j)), s+1
+        return CU1Irrep(zero(HalfInteger), 1), 3
+    elseif s == 3
+        CU1Irrep(p.a.j + p.b.j), 4
     else
-        CU1Irrep(p.a.j + p.b.j), s+1
-    end
-end
-function Base.done(p::CU1ProdIterator, s::Int)
-    if p.a.j == zero(HalfInteger) || p.b.j == zero(HalfInteger)
-        s > 1
-    elseif p.a == p.b
-        s > 3
-    else
-        s > 2
+        return nothing
     end
 end
 function Base.length(p::CU1ProdIterator)
@@ -167,8 +163,8 @@ end
 
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInteger), 1, 2)
 
-Base.@pure fusiontype(::Type{CU1Irrep}) = SimpleNonAbelian
-Base.@pure braidingtype(::Type{CU1Irrep}) = Bosonic
+Base.@pure fusiontype(::Type{CU1Irrep}) = SimpleNonAbelian()
+Base.@pure braidingtype(::Type{CU1Irrep}) = Bosonic()
 
 function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
     ifelse(c.s == 0, (a.j == b.j) & ((a.s == b.s == 2) | (a.s == b.s)),

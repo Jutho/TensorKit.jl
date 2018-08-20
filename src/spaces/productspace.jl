@@ -17,8 +17,8 @@ dims(P::ProductSpace) = map(dim, P.spaces)
 dim(P::ProductSpace, n::Int) = dim(P.spaces[n])
 dim(P::ProductSpace) = reduce(*, 1, dims(P))
 
-axes(P::ProductSpace) = map(axes, P.spaces)
-axes(P::ProductSpace, n::Int) = axes(P.spaces[n])
+Base.axes(P::ProductSpace) = map(axes, P.spaces)
+Base.axes(P::ProductSpace, n::Int) = axes(P.spaces[n])
 
 dual(P::ProductSpace{<:ElementarySpace,0}) = P
 dual(P::ProductSpace) = ProductSpace(map(dual, reverse(P.spaces)))
@@ -46,12 +46,12 @@ sectors(P::ProductSpace) = _sectors(P, sectortype(P))
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} = (ntuple(n->Trivial(), StaticLength{N}()),) # speed up sectors for ungraded spaces
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} = product(map(sectors, P.spaces)...)
 
-checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = reduce(&, true, map(checksectors, V.spaces, s))
+checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = reduce(&, map(checksectors, V.spaces, s); init = true)
 
-dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = map(dim, P.spaces, sector)
-dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N, Sector}) where {N} = reduce(*, 1, dims(P, sector))
+dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N} = map(dim, P.spaces, sector)
+dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N} = prod(dims(P, sector))
 
-axes(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N, <:Sector}) where {N} = map(axes, P.spaces, sectors)
+Base.axes(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N,<:Sector}) where {N} = map(axes, P.spaces, sectors)
 
 function blocksectors(P::ProductSpace{S,N}) where {S,N}
     G = sectortype(S)
@@ -109,11 +109,7 @@ Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 Base.one(V::VectorSpace) = one(typeof(V))
 
 Base.convert(::Type{<:ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
-if VERSION <= v"0.6.99"
-    Base.literal_pow(::typeof(^), V::ElementarySpace, p::Type{Val{N}}) where {N} = ProductSpace(ntuple(n->V, p))
-else
-    Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val) = ProductSpace(ntuple(n->V, p))
-end
+Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val) = ProductSpace(ntuple(n->V, p))
 Base.convert(::Type{S}, P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
 Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 fuse(P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
@@ -125,10 +121,11 @@ Base.length(P::ProductSpace) = length(P.spaces)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
 Base.getindex(P::ProductSpace{S}, I::NTuple{N,Integer}) where {S<:ElementarySpace,N} = ProductSpace{S,N}(TupleTools.getindices(P.spaces, I))
 #
-Base.start(P::ProductSpace) = start(P.spaces)
-Base.next(P::ProductSpace, state) = next(P.spaces, state)
-Base.done(P::ProductSpace, state) = done(P.spaces, state)
+
+Base.iterate(P::ProductSpace) = Base.iterate(P.spaces)
+Base.iterate(P::ProductSpace, s) = Base.iterate(P.spaces, s)
 
 Base.eltype(P::ProductSpace{S}) where {S<:ElementarySpace} = S
-IteratorEltype(P::ProductSpace) = IteratorEltype(P.spaces)
-IteratorSize(P::ProductSpace) = IteratorSize(P.spaces)
+
+Base.IteratorEltype(P::ProductSpace) = Base.IteratorEltype(P.spaces)
+Base.IteratorSize(P::ProductSpace) = Base.IteratorSize(P.spaces)

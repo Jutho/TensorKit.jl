@@ -8,7 +8,6 @@ module TensorKit
 # Exports
 #---------
 # Types:
-export StaticLength
 export Sector, Irrep
 export Abelian, SimpleNonAbelian, DegenerateNonAbelian, SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
 export Parity, ZNIrrep, U1Irrep, SU2Irrep, FermionParity, FermionNumber, FermionSpin # specific sectors
@@ -63,90 +62,28 @@ import TupleTools: permute
 
 using Strided
 
-import TensorOperations
-import TensorOperations: @tensor, @tensoropt
+# import TensorOperations
+# import TensorOperations: @tensor, @tensoropt
 
 using WignerSymbols
 using WignerSymbols: HalfInteger
 
-using Base: @boundscheck, @propagate_inbounds, OneTo
-using Base: tail, tuple_type_head, tuple_type_tail, tuple_type_cons,
+using Base: @boundscheck, @propagate_inbounds, OneTo, tail,
+            tuple_type_head, tuple_type_tail, tuple_type_cons,
             SizeUnknown, HasLength, HasShape, IsInfinite, EltypeUnknown, HasEltype
+using Base.Iterators: product, filter
+
+using LinearAlgebra
 
 const IndexTuple{N} = NTuple{N,Int}
 
-#--------------------------------------------------------------------
-# ALL OF THIS CAN GO ON JULIA 0.7 or 1.0
-@static if VERSION >= v"0.7-"
-    using LinearAlgebra
-
-    import Base: IteratorSize, IteratorEltype, axes
-
-    import Strided: mul!, axpy!, axpby!, adjoint, adjoint!
-    import LinearAlgebra: exp!, svd, eig, normalize, normalize!, vecnorm, vecdot, ×
-
-    import Base: empty
-
-    using Base.Iterators: product, filter
-end
-@static if VERSION < v"0.7-" # julia 0.6
-    const LinearAlgebra = Base.LinAlg
-
-    const IteratorSize = Base.iteratorsize
-    const IteratorEltype = Base.iteratoreltype
-    const Nothing = Base.Void
-    const axes = Base.indices
-
-    copyto!(dst, src) = copy!(dst, src)
-
-    import Strided: mul!, axpy!, axpby!, adjoint, adjoint!
-    export adjoint
-
-    const exp! = TensorKit.LinearAlgebra.expm!
-    import TensorKit.LinearAlgebra: scale!, svd, eig, normalize, normalize!, vecnorm, vecdot, ×
-
-    const AbstractDict = Base.Associative
-
-    const ComplexF32 = Complex64
-    const ComplexF64 = Complex128
-
-    empty(a::AbstractDict) = empty(a, keytype(a), valtype(a))
-    empty(a::AbstractDict, ::Type{V}) where {V} = empty(a, keytype(a), V)
-    empty(a::AbstractDict, ::Type{K}, ::Type{V}) where {K, V} = Dict{K, V}()
-
-    Base.Array{T}(s::UniformScaling, dims::Base.Dims{2}) where {T} = Matrix{T}(s, dims)
-    Base.Array{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, m, n)
-
-    Base.Matrix{T}(s::UniformScaling, dims::Base.Dims{2}) where {T}= setindex!(zeros(T, dims), T(s.λ), diagind(dims...))
-    Base.Matrix{T}(s::UniformScaling, m::Integer, n::Integer) where {T} = Matrix{T}(s, Dims((m, n)))
-
-    struct Uninitialized end
-    Base.Array{T}(::Uninitialized, args...) where {T} = Array{T}(args...)
-    Base.Array{T,N}(::Uninitialized, args...) where {T,N} = Array{T,N}(args...)
-    Base.Vector(::Uninitialized, args...) = Vector(args...)
-    Base.Matrix(::Uninitialized, args...) = Matrix(args...)
-
-    const uninitialized = Uninitialized()
-    export uninitialized
-
-    struct EqualTo{T} <: Function
-        x::T
-        EqualTo(x::T) where {T} = new{T}(x)
-    end
-    (f::EqualTo)(y) = isequal(f.x, y)
-    const equalto = EqualTo
-
-    print_array(io, a) = Base.showarray(io, a, false; header=false)
-
-    include("auxiliary/iterators.jl")
-end
 
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/dicts.jl")
-include("auxiliary/linalg.jl")
-include("auxiliary/random.jl")
+# include("auxiliary/linalg.jl")
+# include("auxiliary/random.jl")
 
 # include("auxiliary/juarray.jl")
 # export JuArray
@@ -186,25 +123,25 @@ Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
 #----------------------------------------------------------------------
 include("sectors/sectors.jl")
 
-# Definitions and methods for vector spaces
-#-------------------------------------------
-include("spaces/vectorspaces.jl")
-
 # Constructing and manipulating fusion trees and iterators thereof
 #------------------------------------------------------------------
 include("fusiontrees/fusiontrees.jl")
 
-# Definitions and methods for tensors
-#-------------------------------------
-# general definitions
-include("tensors/abstracttensor.jl")
-include("tensors/tensortreeiterator.jl")
-include("tensors/tensor.jl")
-include("tensors/adjoint.jl")
-include("tensors/linalg.jl")
-include("tensors/tensoroperations.jl")
-include("tensors/indexmanipulations.jl")
-include("tensors/truncation.jl")
-include("tensors/factorizations.jl")
+# Definitions and methods for vector spaces
+#-------------------------------------------
+include("spaces/vectorspaces.jl")
+
+# # Definitions and methods for tensors
+# #-------------------------------------
+# # general definitions
+# include("tensors/abstracttensor.jl")
+# include("tensors/tensortreeiterator.jl")
+# include("tensors/tensor.jl")
+# include("tensors/adjoint.jl")
+# include("tensors/linalg.jl")
+# include("tensors/tensoroperations.jl")
+# include("tensors/indexmanipulations.jl")
+# include("tensors/truncation.jl")
+# include("tensors/factorizations.jl")
 
 end

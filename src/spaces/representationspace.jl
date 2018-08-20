@@ -77,7 +77,7 @@ sectors(V::ZNSpace{N}) where {N} = SectorSet{ZNIrrep{N}}(n->isdual(V) ? -(n-1) :
 checksectors(V::RepresentationSpace{G}, s::G) where {G<:Sector} = dim(V, s) != 0
 
 # properties
-dim(V::GenericRepresentationSpace) = sum(dim(c)*V.dims[c] for c in keys(V.dims))
+dim(V::GenericRepresentationSpace) = sum(c->dim(c)*V.dims[c], keys(V.dims))
 dim(V::GenericRepresentationSpace{G}, c::G) where {G<:Sector} = get(V.dims, isdual(V) ? dual(c) : c, 0)
 
 dim(V::ZNSpace) = sum(V.dims)
@@ -91,8 +91,8 @@ isdual(V::RepresentationSpace) = V.dual
 Base.:(==)(V1::RepresentationSpace, V2::RepresentationSpace) = (V1.dims == V2.dims) && V1.dual == V2.dual
 
 # axes
-axes(V::RepresentationSpace) = Base.OneTo(dim(V))
-function axes(V::RepresentationSpace{G}, c::G) where {G}
+Base.axes(V::RepresentationSpace) = Base.OneTo(dim(V))
+function Base.axes(V::RepresentationSpace{G}, c::G) where {G}
     offset = 0
     for c′ in sectors(V)
         c′ == c && break
