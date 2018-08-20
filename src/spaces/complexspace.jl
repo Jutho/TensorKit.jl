@@ -18,7 +18,7 @@ Base.getindex(::ComplexNumbers, d::Int) = ComplexSpace(d)
 # Corresponding methods:
 #------------------------
 dim(V::ComplexSpace) = V.d
-axes(V::ComplexSpace) = Base.OneTo(dim(V))
+Base.axes(V::ComplexSpace) = Base.OneTo(dim(V))
 
 Base.conj(V::ComplexSpace) = ComplexSpace(V.d, !V.dual)
 isdual(V::ComplexSpace) = V.dual

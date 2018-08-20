@@ -74,7 +74,7 @@ returns `false` for spaces where `V==dual(V)`.
 function isdual end
 
 # convenience definitions:
-adjoint(V::VectorSpace) = dual(V)
+Base.adjoint(V::VectorSpace) = dual(V)
 Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
 
 # Hierarchy of elementary vector spaces
@@ -199,7 +199,7 @@ sectortype(::Type{<:ElementarySpace}) = Trivial
 sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 
 checksectors(::ElementarySpace, ::Trivial) = true
-axes(V::ElementarySpace, ::Trivial) = axes(V)
+Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
 
 """
     sectors(V::ElementarySpace) -> sectortype(V)

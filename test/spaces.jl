@@ -67,8 +67,8 @@ end
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
     @test @inferred(⊕(V,V)) == ℂ^(2d)
-    # @test_throws SpaceMismatch ⊕(V, V')
-    # @test_throws MethodError ⊕(ℝ^d, ℂ^d)
+    @test_throws SpaceMismatch (⊕(V, V'))
+    @test_throws MethodError (⊕(ℝ^d, ℂ^d))
 end
 @testset "ElementarySpace: GeneralSpace" begin
     d = 2
@@ -100,5 +100,5 @@ end
     @test @inferred(dim(V)) == sum((@inferred(dim(s)*dim(V,s))) for s in slist)
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     @inferred(⊕(V,V))
-    # @test_throws SpaceMismatch ⊕(V, V')
+    @test_throws SpaceMismatch (⊕(V, V'))
 end

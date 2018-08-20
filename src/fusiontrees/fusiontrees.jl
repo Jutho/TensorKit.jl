@@ -13,11 +13,11 @@ FusionTree(outgoing::NTuple{N,G}, incoming::G, innerlines, vertices = ntuple(n->
 
 
 function FusionTree{G}(outgoing::NTuple{N}, incoming = one(G)) where {G<:Sector, N}
-    fusiontype(G) == Abelian || error("cannot create fusion tree without inner lines if `fusiontype(G) <: NonAbelian`")
+    fusiontype(G) isa Abelian || error("cannot create fusion tree without inner lines if `fusiontype(G) <: NonAbelian`")
     FusionTree{G}(map(s->convert(G,s), outgoing), convert(G, incoming), _abelianinner(map(s->convert(G,s),(outgoing..., dual(incoming)))))
 end
 function FusionTree(outgoing::NTuple{N,G}, incoming::G = one(G)) where {G<:Sector, N}
-    fusiontype(G) == Abelian || error("cannot create fusion tree without inner lines if `fusiontype(G) <: NonAbelian`")
+    fusiontype(G) isa Abelian || error("cannot create fusion tree without inner lines if `fusiontype(G) <: NonAbelian`")
     FusionTree{G}(outgoing, incoming, _abelianinner((outgoing..., dual(incoming))))
 end
 
@@ -32,9 +32,9 @@ Base.length(t::FusionTree) = length(typeof(t))
 
 # Hashing, important for using fusion trees as key in Dict
 function Base.hash(f::FusionTree{G}, h::UInt) where {G}
-    if fusiontype(G) == Abelian
+    if fusiontype(G) isa Abelian
         hash(f.outgoing, hash(f.incoming, h))
-    elseif fusiontype(G) == SimpleNonAbelian
+    elseif fusiontype(G) isa SimpleNonAbelian
         hash(f.innerlines, hash(f.outgoing, hash(f.incoming, h)))
     else
         hash(f.vertices, hash(f.innerlines, hash(f.outgoing, hash(f.incoming, h))))
@@ -45,12 +45,12 @@ function Base.isequal(f1::FusionTree{G,N}, f2::FusionTree{G,N}) where {G,N}
     @inbounds for i = 1:N
         f1.outgoing[i] == f2.outgoing[i] || return false
     end
-    if fusiontype(G) == SimpleNonAbelian
+    if fusiontype(G) isa SimpleNonAbelian
         @inbounds for i=1:N-2
             f1.innerlines[i] == f2.innerlines[i] || return false
         end
     end
-    if fusiontype(G) == DegenerateNonAbelian
+    if fusiontype(G) isa DegenerateNonAbelian
         @inbounds for i=1:N-1
             f1.vertices[i] == f2.vertices[i] || return false
         end
@@ -60,18 +60,18 @@ end
 Base.isequal(f1::FusionTree{G1,N1}, f2::FusionTree{G2,N2}) where {G1,G2,N1,N2} = false
 
 # Fusion tree methods
-fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} = FusionTree{G,0,0,0,vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} = FusionTree{G,1,0,0,vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} = FusionTree{G,2,0,1,vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} = _fusiontreetype(G, StaticLength(N), StaticLength(N)-StaticLength(2), StaticLength(N)-StaticLength(1))
+fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} = FusionTree{G, 0, 0, 0, vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} = FusionTree{G, 1, 0, 0, vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} = FusionTree{G, 2, 0, 1, vertex_labeltype(G)}
+fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} = _fusiontreetype(G, StaticLength(N), StaticLength(N) - StaticLength(2), StaticLength(N) - StaticLength(1))
 _fusiontreetype(::Type{G}, ::StaticLength{N}, ::StaticLength{M}, ::StaticLength{L}) where {G<:Sector, N, M, L} = FusionTree{G,N,M,L,vertex_labeltype(G)}
 
 # converting to actual array
-function Base.convert(::Type{Array}, f::FusionTree{G,0}) where {G}
+function Base.convert(::Type{Array}, f::FusionTree{G, 0}) where {G}
     T = eltype(fusiontensor(one(G), one(G), one(G)))
     return fill(one(T), 1)
 end
-function Base.convert(::Type{Array}, f::FusionTree{G,1}) where {G}
+function Base.convert(::Type{Array}, f::FusionTree{G, 1}) where {G}
     T = eltype(fusiontensor(one(G), one(G), one(G)))
     return copyto!(Matrix{T}(uninitialized, dim(f.incoming), dim(f.incoming)), I)
 end
@@ -95,8 +95,8 @@ Performs a permutation of the outgoing indices of the fusion tree `t` and return
 as a `<:AbstractDict` of output trees and corresponding coefficients.
 """
 function permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
-    @assert braidingtype(G) <: SymmetricBraiding
-    if fusiontype(G) == Abelian
+    @assert braidingtype(G) isa SymmetricBraiding
+    if fusiontype(G) isa Abelian
         coeff = Rsymbol(one(G), one(G), one(G))
         for i = 1:N
             for j = 1:i-1
@@ -140,9 +140,9 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
         c = N > 2 ? inner[1] : t.incoming
         outer = TupleTools.setindex(outer, b, 1)
         outer = TupleTools.setindex(outer, a, 2)
-        if fusiontype(G) == Abelian
+        if fusiontype(G) isa Abelian
             return SingletonDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
-        elseif fusiontype(G) == SimpleNonAbelian
+        elseif fusiontype(G) isa SimpleNonAbelian
             return VectorDict(FusionTree{G}(outer, t.incoming, inner, t.vertices) => Rsymbol(a, b, c))
         end
     end
@@ -154,21 +154,26 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
     e = i == N-1 ? t.incoming : inner[i]
     outer′ = TupleTools.setindex(outer, d, i)
     outer′ = TupleTools.setindex(outer′, b, i+1)
-    if fusiontype(G) == Abelian
+    if fusiontype(G) isa Abelian
         inner′ = TupleTools.setindex(inner, first(a ⊗ d), i-1)
         return SingletonDict(FusionTree{G}(outer′, t.incoming, inner′) => Rsymbol(b, d, first(b ⊗ d)))
-    elseif fusiontype(G) == SimpleNonAbelian
+    elseif fusiontype(G) isa SimpleNonAbelian
         iter = a ⊗ d
-        s = start(iter)
-        c′, s = next(iter, s)
+        next = iterate(iter)
+        next === nothing && error("Empty fusion channel $a and $d ?")
+        c′, s = next
         while iszero(Nsymbol(b, c′, e))
-            c′, s = next(iter, s)
+            next = iterate(iter, s)
+            next === nothing && error("No valid fusion between $a ⊗ $d and dual(dual($e) ⊗ $b)?")
+            c′, s = next
         end
         coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
         inner′ = TupleTools.setindex(inner, c′, i-1)
         output = VectorDict(FusionTree{G}(outer′, t.incoming, inner′, t.vertices)=>coeff)
-        while !done(iter, s)
-            c′, s = next(iter, s)
+        next = iterate(iter, s)
+        while next !== nothing
+            c′, s = next
+            next = iterate(iter, s)
             iszero(Nsymbol(b, c′, e)) && continue
             coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
             inner′ = TupleTools.setindex(inner, c′, i-1)
@@ -189,7 +194,7 @@ end
 
 Input is a double fusion tree that describes the fusion of a set of `N₂` incoming charges to
 a set of `N₁` outgoing charges, represented using the individual trees of outgoing (`t1`)
-and incoming charges (`t2`) respectively (with `t1.incoming==t2.incoming`). Computes new trees
+and incoming charges (`t2`) respectively (with `t1.incoming == t2.incoming`). Computes new trees
 an corresponding coefficients obtained from repartitioning the tree by bending incoming
 to outgoing charges (or vice versa) in order to have `N` outgoing charges.
 """
@@ -199,7 +204,7 @@ function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::StaticLe
     V1 = V
     V2 = StaticLength(N₁)+StaticLength(N₂)-V
 
-    if fusiontype(t1) == Abelian || fusiontype(t1) == SimpleNonAbelian
+    if fusiontype(t1) isa Abelian || fusiontype(t1) isa SimpleNonAbelian
         coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
         outer = (t1.outgoing..., map(dual, reverse(t2.outgoing))...)
         inner1ext = isa(StaticLength(N₁), StaticLength{0}) ? () : (isa(StaticLength(N₁), StaticLength{1}) ? (one(G),) : (one(G), first(outer), t1.innerlines...))
@@ -239,29 +244,32 @@ end
 
 Input is a double fusion tree that describes the fusion of a set of incoming charges to
 a set of outgoing charges, represented using the individual trees of outgoing (`t1`)
-and incoming charges (`t2`) respectively (with `t1.incoming==t2.incoming`). Computes new trees
+and incoming charges (`t2`) respectively (with `t1.incoming == t2.incoming`). Computes new trees
 and corresponding coefficients obtained from repartitioning and permuting the tree
 such that charges `p1` become outgoing and charges `p2` become incoming.
 """
 function permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂
     p = linearizepermutation(p1, p2, length(t1), length(t2))
-    if fusiontype(t1) == Abelian
+    if fusiontype(t1) isa Abelian
         (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
         t, coeff2 = first(permute(t, p))
         (t1′,t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
         return SingletonDict((t1′,t2′)=>coeff1*coeff2*coeff3)
-    elseif fusiontype(t1) == SimpleNonAbelian
+    elseif fusiontype(t1) isa SimpleNonAbelian
         (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
         trees = permute(t, p)
-        s = start(trees)
-        (t, coeff2), s = next(trees, s)
+        next = iterate(trees)
+        next === nothing && error("emptry set of trees?")
+        (t, coeff2), s = next
         (t1′, t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
         newtrees = Dict((t1′,t2′)=>coeff1*coeff2*coeff3)
-        while !done(trees, s)
-            (t, coeff2), s = next(trees, s)
+        next = iterate(trees, s)
+        while next !== nothing
+            (t, coeff2), s = next
             (t1′, t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
             push!(newtrees, (t1′,t2′)=>coeff1*coeff2*coeff3)
+            next = iterate(trees, s)
         end
         return newtrees
     else

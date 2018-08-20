@@ -11,9 +11,7 @@ Base.haskey(d::SingletonDict, key) = d.key == key
 Base.getindex(d::SingletonDict, key) = d.key == key ? d.value : throw(KeyError(key))
 Base.get(dict::SingletonDict, key, default) = d.key == key ? d.value : default
 
-Base.start(::SingletonDict) = false
-Base.next(d::SingletonDict, s) = (d.key => d.value), true
-Base.done(d::SingletonDict, s) = s
+Base.iterate(d::SingletonDict, s = true) = s ? ((d.key => d.value), false) : nothing
 
 struct VectorDict{K,V} <: AbstractDict{K,V}
     keys::Vector{K}
@@ -23,7 +21,7 @@ VectorDict{K,V}() where {K,V} = VectorDict{K,V}(Vector{K}(), Vector{V}())
 function VectorDict{K,V}(kv) where {K,V}
     keys = Vector{K}()
     values = Vector{V}()
-    if IteratorSize(kv) != SizeUnknown()
+    if Base.IteratorSize(kv) !== SizeUnknown()
         sizehint!(keys, length(kv))
         sizehint!(values, length(kv))
     end
@@ -45,11 +43,11 @@ Base.sizehint!(d::VectorDict, newsz) = (sizehint!(d.keys, newsz); sizehint!(d.va
 @propagate_inbounds getpair(d::VectorDict, i::Integer) = d.keys[i] => d.values[i]
 
 Base.copy(d::VectorDict) = VectorDict(copy(d.keys), copy(d.values))
-empty(::VectorDict, ::Type{K}, ::Type{V}) where {K, V} = VectorDict{K, V}()
+Base.empty(::VectorDict, ::Type{K}, ::Type{V}) where {K, V} = VectorDict{K, V}()
 Base.empty!(d::VectorDict) = (empty!(d.keys); empty!(d.values); return d)
 
 function Base.delete!(d::VectorDict, key)
-    i = findfirst(equalto(key), d.keys)
+    i = findfirst(isequal(key), d.keys)
     if !(i == nothing || i == 0)
         deleteat!(d.keys  , i)
         deleteat!(d.values, i)
@@ -61,14 +59,14 @@ Base.keys(d::VectorDict) = d.keys
 Base.values(d::VectorDict) = d.values
 Base.haskey(d::VectorDict, key) = key in d.keys
 function Base.getindex(d::VectorDict, key)
-    i = findfirst(equalto(key), d.keys)
+    i = findfirst(isequal(key), d.keys)
     @inbounds begin
-        return !(i == nothing || i == 0) ? d.values[i] : throw(KeyError(key))
+        return i !== nothing ? d.values[i] : throw(KeyError(key))
     end
 end
 function Base.setindex!(d::VectorDict, v, key)
-    i = findfirst(equalto(key), d.keys)
-    if i == nothing || i == 0
+    i = findfirst(isequal(key), d.keys)
+    if i === nothing
         push!(d.keys, key)
         push!(d.values, v)
     else
@@ -78,12 +76,16 @@ function Base.setindex!(d::VectorDict, v, key)
 end
 
 function Base.get(d::VectorDict, key, default)
-    i = findfirst(equalto(key), d.keys)
+    i = findfirst(isequal(key), d.keys)
     @inbounds begin
-        return !(i == nothing || i == 0) ? d.values[i] : default
+        return i !== nothing ? d.values[i] : default
     end
 end
 
-Base.start(::VectorDict) = 1
-Base.next(d::VectorDict, s) = (d.keys[s] => d.values[s]), s+1
-Base.done(d::VectorDict, s) = s > length(d)
+function Base.iterate(d::VectorDict, s = 1)
+    @inbounds if s > length(d)
+        return nothing
+    else
+        return (d.keys[s] => d.values[s]), s+1
+    end
+end

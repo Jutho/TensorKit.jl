@@ -1,8 +1,8 @@
 # custom wrappers for BLAS and LAPACK routines, together with some custom definitions
-using TensorKit.LinearAlgebra: BlasFloat, Char, BlasInt, LAPACKException,
+using LinearAlgebra: BlasFloat, Char, BlasInt, LAPACKException,
     DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare
-using TensorKit.LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
-using TensorKit.LinearAlgebra.LAPACK: liblapack, chklapackerror
+using LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
+using LinearAlgebra.LAPACK: liblapack, chklapackerror
 
 
 # MATRIX factorizations

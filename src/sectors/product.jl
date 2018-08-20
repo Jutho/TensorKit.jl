@@ -16,7 +16,7 @@ Base.conj(p::ProductSector) = ProductSector(map(conj, p.sectors))
 
 Nsymbol(a::P, b::P, c::P) where {P<:ProductSector} = prod(map(Nsymbol, a.sectors, b.sectors, c.sectors))
 function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
-    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+    if fusiontype(P) isa Abelian || fusiontype(P) isa SimpleNonAbelian
         return prod(map(Fsymbol, a.sectors, b.sectors, c.sectors, d.sectors, e.sectors, f.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
@@ -24,7 +24,7 @@ function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
     end
 end
 function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
-    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+    if fusiontype(P) isa Abelian || fusiontype(P) isa SimpleNonAbelian
         return prod(map(Rsymbol, a.sectors, b.sectors, c.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
@@ -32,7 +32,7 @@ function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
     end
 end
 function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
-    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+    if fusiontype(P) isa Abelian || fusiontype(P) isa SimpleNonAbelian
         return prod(map(Asymbol, a.sectors, b.sectors, c.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
@@ -40,7 +40,7 @@ function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
     end
 end
 function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
-    if fusiontype(P) == Abelian || fusiontype(P) == SimpleNonAbelian
+    if fusiontype(P) isa Abelian || fusiontype(P) isa SimpleNonAbelian
         return prod(map(Bsymbol, a.sectors, b.sectors, c.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
@@ -56,11 +56,11 @@ fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T}, v::N
     fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1])
 
 fusiontype(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _fusiontype(T)
-_fusiontype(::Type{Tuple{}}) = Abelian
+_fusiontype(::Type{Tuple{}}) = Abelian()
 _fusiontype(::Type{T}) where {T<:SectorTuple} = fusiontype(Base.tuple_type_head(T)) & _fusiontype(Base.tuple_type_tail(T))
 
 braidingtype(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _braidingtype(T)
-_braidingtype(::Type{Tuple{}}) = Bosonic
+_braidingtype(::Type{Tuple{}}) = Bosonic()
 _braidingtype(::Type{T}) where {T<:SectorTuple} = braidingtype(Base.tuple_type_head(T)) & _braidingtype(Base.tuple_type_tail(T))
 
 fermionparity(P::ProductSector) = _fermionparity(P.sectors)
