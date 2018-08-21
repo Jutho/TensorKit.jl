@@ -10,16 +10,17 @@ correspond to (unitary) fusion categories.
 Every new `G<:Sector` should implement the following methods:
 *   `one(::Type{G})` -> unit element of `G`
 *   `conj(a::G)` -> a̅: conjugate or dual label of a
-*   `⊗(a::G, b::G)` -> iterable with fusion outputs of `a ⊗ b`
-*   `Nsymbol(a::G, b::G, c::G)` -> number of times `c` appears in `a ⊗ b`
-*   `fusiontype(::Type{G})` -> `Abelian`, `SimpleNonAbelian` or `DegenerateNonAbelian`
-*   `braidingtype(::Type{G})` -> `Bosonic`, `Fermionic`, `Anyonic`, ...
-and, if `fusiontype(G) <: NonAbelian`,
-*   `Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G)` -> F-symbol: scalar (in case of `SimpleNonAbelian`) or matrix (in case of `DegenerateNonAbelian`)
+*   `⊗(a::G, b::G)` -> iterable with unique fusion outputs of `a ⊗ b` (i.e. don't repeat in case of multiplicities)
+*   `Nsymbol(a::G, b::G, c::G)` -> number of times `c` appears in `a ⊗ b`, i.e. the multiplicity
+*   `fusiontype(::Type{G})` -> `Abelian()`, `SimpleNonAbelian()` or `DegenerateNonAbelian()`
+*   `braidingtype(::Type{G})` -> `Bosonic()`, `Fermionic()`, `Anyonic()`, ...
+and, if `fusiontype(G) == NonAbelian()`,
+*   `Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G)` -> F-symbol: scalar (in case of `SimpleNonAbelian`)
+    or matrix (in case of `DegenerateNonAbelian`)
 *   ... can all other information (quantum dimension, cups and caps) be extracted from `F`?
-and if `braidingtype(G) == Fermionic`
+and if `braidingtype(G) == Fermionic()`
 *   `fermionparity(a::G)` -> `Bool` representing the fermion parity of sector `a`
-and optionally, if if `fusiontype(G) == DegenerateNonAbelian`
+and optionally, if if `fusiontype(G) isa DegenerateNonAbelian`
 *   `vertex_ind2label(i::Int, a::G, b::G, c::G)` -> a custom label for the `i`th copy of `c` appearing in `a ⊗ b`
 """
 abstract type Sector end
@@ -34,7 +35,7 @@ Base.show(io::IO, ::Type{Trivial}) = print(io, "Trivial")
     function one(::Sector) -> Sector
     function one(::Type{<:Sector}) -> Sector
 
-Returns the unit element within this type of sector
+Return the unit element within this type of sector.
 """
 Base.one(a::Sector) = one(typeof(a))
 Base.one(::Type{Trivial}) = Trivial()
@@ -42,7 +43,7 @@ Base.one(::Type{Trivial}) = Trivial()
 """
     function dual(a::Sector) -> Sector
 
-Returns the conjugate label `conj(a)`
+Return the conjugate label `conj(a)`.
 """
 dual(a::Sector) = conj(a)
 dual(::Trivial) = Trivial()
@@ -52,17 +53,18 @@ dual(::Trivial) = Trivial()
 """
     function ⊗(a::G, b::G) where {G<:Sector}
 
-Returns an iterable of elements of `c::G` that appear in the fusion product `a ⊗ b`.
+Return an iterable of elements of `c::G` that appear in the fusion product `a ⊗ b`.
+
 Note that every element `c` should appear at most once, fusion degeneracies (if
-`fusiontype(G) == DegenerateNonAbelian`) should be accessed via `Nsymbol(a,b,c)`.
+`fusiontype(G) == DegenerateNonAbelian()`) should be accessed via `Nsymbol(a,b,c)`.
 """
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
 
 """
     function Nsymbol(a::G, b::G, c::G) where {G<:Sector} -> Integer
 
-Returns an `Integer` representing the number of times `c` appears in the fusion
-product `a ⊗ b`. Could be a `Bool` if `fusiontype(G) == Abelian()` or `SimpleNonAbelian`.
+Return an `Integer` representing the number of times `c` appears in the fusion
+product `a ⊗ b`. Could be a `Bool` if `fusiontype(G) == Abelian()` or `SimpleNonAbelian()`.
 """
 Nsymbol(::Trivial, ::Trivial, ::Trivial) = true
 
@@ -79,9 +81,10 @@ end
 """
     function fusiontype(G::Type{<:Sector}) -> ::Fusion
 
-Returns the type of fusion behavior of sectors of type G, which can be either
+Return the type of fusion behavior of sectors of type G, which can be either
 *   `Abelian()`: single fusion output when fusing two sectors;
-*   `SimpleNonAbelian()`: multiple outputs, but every output occurs at most one, also known as multiplicity free (e.g. irreps of SU(2));
+*   `SimpleNonAbelian()`: multiple outputs, but every output occurs at most one,
+    also known as multiplicity free (e.g. irreps of SU(2));
 *   `DegenerateNonAbelian()`: multiple outputs that can occur more than once (e.g. irreps of SU(3)).
 """
 fusiontype(::Type{Trivial}) = Abelian()
@@ -108,7 +111,7 @@ end
 """
     function Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:Sector}
 
-Returns the F-symbol F^{a,b,c}_d that associates the two different fusion orders
+Return the F-symbol F^{a,b,c}_d that associates the two different fusion orders
 of sectors `a`, `b` and `c` into an ouput sector `d`, using either an intermediate
 sector `a ⊗ b → e` or `b ⊗ c → f`:
 ```
@@ -158,7 +161,7 @@ _ind2label(::DegenerateNonAbelian, i, s1, s2, sout) = i
 """
     function vertex_labeltype(G::Type{<:Sector}) -> Type
 
-Returns the type of labels for the fusion vertices of sectors of type `G`.
+Return the type of labels for the fusion vertices of sectors of type `G`.
 """
 Base.@pure vertex_labeltype(G::Type{<:Sector}) = typeof(vertex_ind2label(1, one(G), one(G), one(G)))
 
@@ -175,7 +178,7 @@ Base.:&(::DegenerateNonAbelian, ::SimpleNonAbelian) = DegenerateNonAbelian()
 """
     function dim(a::Sector)
 
-Returns the (quantum) dimension of the sector `a`.
+Return the (quantum) dimension of the sector `a`.
 """
 function dim(a::Sector)
     if fusiontype(a) isa Abelian
@@ -190,7 +193,7 @@ end
 """
     function frobeniusschur(a::Sector)
 
-Returns the Frobenius-Schur indicator of a sector `a`.
+Return the Frobenius-Schur indicator of a sector `a`.
 """
 function frobeniusschur(a::Sector)
     if fusiontype(a) isa Abelian || fusiontype(a) isa SimpleNonAbelian
@@ -203,14 +206,14 @@ end
 """
     function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
 
-Returns the value of B^{a,b}_c which appears in transforming a splitting vertex
+Return the value of B^{a,b}_c which appears in transforming a splitting vertex
 into a fusion vertex using the transformation
 ```
 a -<-μ-<- c                                 a -<-ν-<- c
      ∨          -> Bsymbol(a,b,c)[μ,ν]           ∧
      b                                         dual(b)
 ```
-If `fusiontype(G)` is `Abelian` or `SimpleNonAbelian`, the B-symbol is a number.
+If `fusiontype(G)` is `Abelian()` or `SimpleNonAbelian()`, the B-symbol is a number.
 Otherwise it is a square matrix with row and column size
 `Nsymbol(a, b, c) == Nsymbol(c, dual(b), a)`.
 """
@@ -258,7 +261,7 @@ Base.:&(::Fermionic,::Anyonic) = Anyonic()
 """
     function braidingtype(G::Type{<:Sector}) -> ::Braiding
 
-Returns the type of braiding behavior of sectors of type G, which can be either
+Return the type of braiding behavior of sectors of type G, which can be either
 *   `Bosonic()`: trivial exchange
 *   `Fermionic()`: fermionic exchange depending on `fermionparity`
 *   `Anyonic()`: requires general R_(a,b)^c phase or matrix (depending on `SimpleNonAbelian` or `DegenerateNonAbelian` fusion)

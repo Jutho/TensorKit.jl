@@ -73,7 +73,7 @@ function Base.convert(::Type{Array}, f::FusionTree{G, 0}) where {G}
 end
 function Base.convert(::Type{Array}, f::FusionTree{G, 1}) where {G}
     T = eltype(fusiontensor(one(G), one(G), one(G)))
-    return copyto!(Matrix{T}(uninitialized, dim(f.incoming), dim(f.incoming)), I)
+    return copyto!(Matrix{T}(undef, dim(f.incoming), dim(f.incoming)), I)
 end
 Base.convert(::Type{Array}, f::FusionTree{G,2}) where {G} = fusiontensor(f.outgoing[1], f.outgoing[2], f.incoming, f.vertices[1])
 function Base.convert(::Type{Array}, f::FusionTree{G}) where {G}
@@ -91,7 +91,7 @@ end
 """
     function permute(t::FusionTree{<:Sector,N}, i) where {N} -> (Immutable)Dict{typeof(t),<:Number}
 
-Performs a permutation of the outgoing indices of the fusion tree `t` and returns the result
+Perform a permutation of the outgoing indices of the fusion tree `t` and returns the result
 as a `<:AbstractDict` of output trees and corresponding coefficients.
 """
 function permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
@@ -128,7 +128,7 @@ end
 """
     function braid(t::FusionTree{<:Sector,N}, i) where {N} -> <:AbstractDict{typeof(t),<:Number}
 
-Performs a braid of neighbouring outgoing indices `i` and `i+1` on a fusion tree `t`,
+Perform a braid of neighbouring outgoing indices `i` and `i+1` on a fusion tree `t`,
 and returns the result as a linked list of output trees and corresponding coefficients.
 """
 function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}

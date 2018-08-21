@@ -10,8 +10,8 @@ end
 
 const TensorIterator{G<:Sector,F₁<:FusionTree{G},F₂<:FusionTree{G}} = Union{TensorKeyIterator{G,F₁,F₂},TensorPairIterator{G,F₁,F₂}}
 
-IteratorSize(::Type{<:TensorIterator}) = Base.HasLength()
-IteratorEltype(::Type{<:TensorIterator}) = Base.HasEltype()
+Base.IteratorSize(::Type{<:TensorIterator}) = Base.HasLength()
+Base.IteratorEltype(::Type{<:TensorIterator}) = Base.HasEltype()
 Base.eltype(T::Type{TensorKeyIterator{G,F₁,F₂}}) where {G,F₁,F₂} = Tuple{F₁,F₂}
 
 function Base.length(t::TensorKeyIterator)
@@ -42,11 +42,13 @@ function Base.getindex(t::TensorKeyIterator, i)
     throw(BoundsError())
 end
 
-Base.start(it::TensorKeyIterator) = (1,1,1)
-function Base.next(it::TensorKeyIterator, s)
+function Base.iterate(it::TensorKeyIterator, s = (1,1,1))
     i,j,k = s
-    f1 = it.rowr.values[i].keys[j]
-    f2 = it.colr.values[i].keys[k]
+    length(it.rowr) < i && return nothing
+    @inbounds begin
+        f1 = it.rowr.values[i].keys[j]
+        f2 = it.colr.values[i].keys[k]
+    end
 
     if j < length(it.rowr.values[i])
         j += 1
@@ -61,4 +63,3 @@ function Base.next(it::TensorKeyIterator, s)
 
     return (f1,f2), (i,j,k)
 end
-Base.done(it::TensorKeyIterator, s) = length(it.rowr) < s[1]

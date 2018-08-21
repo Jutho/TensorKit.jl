@@ -31,7 +31,7 @@ Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) = key
 """
     struct ZNSpace{N} <: AbstractRepresentationSpace{ZNIrrep{N}}
 
-Optimized mplementation of a graded `ℤ_N` space, i.e. a complex Euclidean space graded
+Optimized implementation of a graded `ℤ_N` space, i.e. a complex Euclidean space graded
 by the irreps of type `ZNIrrep{N}`
 """
 struct ZNSpace{N} <: RepresentationSpace{ZNIrrep{N}}
@@ -165,9 +165,9 @@ function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
     comma = ", "
     for c in sectors(V)
         if isdual(V)
-            print(io, seperator, sprint(showcompact, dual(c)), "=>", dim(V, c))
+            print(io, seperator, sprint(show, dual(c); context = :compact=>true), "=>", dim(V, c))
         else
-            print(io, seperator, sprint(showcompact, c), "=>", dim(V, c))
+            print(io, seperator, sprint(show, c; context = :compact=>true), "=>", dim(V, c))
         end
         seperator = comma
     end

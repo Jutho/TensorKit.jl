@@ -36,7 +36,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         else
             axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
         end
-    elseif fusiontype(G) == Abelian
+    elseif fusiontype(G) isa Abelian
         iterator = fusiontrees(tsrc)
         if Threads.nthreads() > 1
             @inbounds Threads.@threads for k = 1:length(iterator)
@@ -111,7 +111,7 @@ end
     end
 end
 
-# TODO: contraction with either A or B a (1,1) tensor does not require to
+# TODO: contraction with either A or B a rank (1,1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
 function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::AbstractTensorMap{S}, oindA::IndexTuple{N₁}, cindA::IndexTuple, oindB::IndexTuple{N₂}, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple) where {S<:IndexSpace,N₁,N₂}
@@ -131,76 +131,76 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S}, β, C::
     return C
 end
 
-# Compatibility layer for working with the `@tensor` macro from TensorOperations
-TensorOperations.numind(t::AbstractTensorMap) = numind(t)
-TensorOperations.numind(T::Type{<:AbstractTensorMap}) = numind(T)
-
-TensorOperations.similar_from_indices(T::Type, p::IndexTuple, t::AbstractTensorMap, V::Type{<:Val}) = TensorOperations.similar_from_indices(T, p, (), t, V)
-TensorOperations.similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}, VA::Type{<:Val}, VB::Type{<:Val}) where {S} = TensorOperations.similar_from_indices(T, oindA, oindB, p, (), ta, tb, VA, VB)
-
-function TensorOperations.similar_from_indices(T::Type, p1::IndexTuple, p2::IndexTuple, t::AbstractTensorMap, V::Type{<:Val})
-    if V == Val{:N}
-        similar_from_indices(T, p1, p2, t)
-    else
-        p1 = map(n->adjointtensorindex(t,n), p1)
-        p2 = map(n->adjointtensorindex(t,n), p2)
-        similar_from_indices(T, p1, p2, adjoint(t))
-    end
-end
-function TensorOperations.similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p1::IndexTuple, p2::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}, VA::Type{<:Val}, VB::Type{<:Val}) where {S}
-    if VA == Val{:N} && VB == Val{:N}
-        similar_from_indices(T, oindA, oindB, p1, p2, tA, tB)
-    elseif VA == Val{:N} && VB == Val{:C}
-        oindB = map(n->adjointtensorindex(tB,n), oindB)
-        similar_from_indices(T, oindA, oindB, p1, p2, tA, adjoint(tB))
-    elseif VA == Val{:C} && VB == Val{:N}
-        oindA = map(n->adjointtensorindex(tA,n), oindA)
-        similar_from_indices(T, oindA, oindB, p1, p2, adjoint(tA), tB)
-    else
-        oindA = map(n->adjointtensorindex(tA,n), oindA)
-        oindB = map(n->adjointtensorindex(tB,n), oindB)
-        similar_from_indices(T, oindA, oindB, p1, p2, adjoint(tA), adjoint(tB))
-    end
-end
-
-TensorOperations.scalar(t::AbstractTensorMap) = scalar(t)
-
-function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple = ()) where {S,N₁,N₂}
-    p = (p1..., p2...)
-    if V == Val{:N}
-        pl = ntuple(n->p[n], StaticLength(N₁))
-        pr = ntuple(n->p[N₁+n], StaticLength(N₂))
-        add!(α, tsrc, β, tdst, pl, pr)
-    else
-        pl = ntuple(n->adjointtensorindex(tsrc, p[n]), StaticLength(N₁))
-        pr = ntuple(n->adjointtensorindex(tsrc, p[N₁+n]), StaticLength(N₂))
-        add!(α, adjoint(tsrc), β, tdst, pl, pr)
-    end
-    return tdst
-end
-
-TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p::IndexTuple, ::Type{Val{:BLAS}}) where {S} = TensorOperations.contract!(α, tA, VA, tB, VB, β, tC, oindA, cindA, oindB, cindB, p)
-
-function TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple = ()) where {S,N₁,N₂}
-    p = (p1..., p2...)
-    pl = ntuple(n->p[n], StaticLength(N₁))
-    pr = ntuple(n->p[N₁+n], StaticLength(N₂))
-    if VA == Val{:N} && VB == Val{:N}
-        contract!(α, tA, tB, β, tC, oindA, cindA, oindB, cindB, pl, pr)
-    elseif VA == Val{:N} && VB == Val{:C}
-        oindB = map(n->adjointtensorindex(tB,n), oindB)
-        cindB = map(n->adjointtensorindex(tB,n), cindB)
-        contract!(α, tA, adjoint(tB), β, tC, oindA, cindA, oindB, cindB, pl, pr)
-    elseif VA == Val{:C} && VB == Val{:N}
-        oindA = map(n->adjointtensorindex(tA,n), oindA)
-        cindA = map(n->adjointtensorindex(tA,n), cindA)
-        contract!(α, adjoint(tA), tB, β, tC, oindA, cindA, oindB, cindB, pl, pr)
-    else
-        oindA = map(n->adjointtensorindex(tA,n), oindA)
-        cindA = map(n->adjointtensorindex(tA,n), cindA)
-        oindB = map(n->adjointtensorindex(tB,n), oindB)
-        cindB = map(n->adjointtensorindex(tB,n), cindB)
-        contract!(α, adjoint(tA), adjoint(tB), β, tC, oindA, cindA, oindB, cindB, pl, pr)
-    end
-    return tC
-end
+# # Compatibility layer for working with the `@tensor` macro from TensorOperations
+# TensorOperations.numind(t::AbstractTensorMap) = numind(t)
+# TensorOperations.numind(T::Type{<:AbstractTensorMap}) = numind(T)
+#
+# TensorOperations.similar_from_indices(T::Type, p::IndexTuple, t::AbstractTensorMap, V::Type{<:Val}) = TensorOperations.similar_from_indices(T, p, (), t, V)
+# TensorOperations.similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}, VA::Type{<:Val}, VB::Type{<:Val}) where {S} = TensorOperations.similar_from_indices(T, oindA, oindB, p, (), ta, tb, VA, VB)
+#
+# function TensorOperations.similar_from_indices(T::Type, p1::IndexTuple, p2::IndexTuple, t::AbstractTensorMap, V::Type{<:Val})
+#     if V == Val{:N}
+#         similar_from_indices(T, p1, p2, t)
+#     else
+#         p1 = map(n->adjointtensorindex(t,n), p1)
+#         p2 = map(n->adjointtensorindex(t,n), p2)
+#         similar_from_indices(T, p1, p2, adjoint(t))
+#     end
+# end
+# function TensorOperations.similar_from_indices(T::Type, oindA::IndexTuple, oindB::IndexTuple, p1::IndexTuple, p2::IndexTuple, tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}, VA::Type{<:Val}, VB::Type{<:Val}) where {S}
+#     if VA == Val{:N} && VB == Val{:N}
+#         similar_from_indices(T, oindA, oindB, p1, p2, tA, tB)
+#     elseif VA == Val{:N} && VB == Val{:C}
+#         oindB = map(n->adjointtensorindex(tB,n), oindB)
+#         similar_from_indices(T, oindA, oindB, p1, p2, tA, adjoint(tB))
+#     elseif VA == Val{:C} && VB == Val{:N}
+#         oindA = map(n->adjointtensorindex(tA,n), oindA)
+#         similar_from_indices(T, oindA, oindB, p1, p2, adjoint(tA), tB)
+#     else
+#         oindA = map(n->adjointtensorindex(tA,n), oindA)
+#         oindB = map(n->adjointtensorindex(tB,n), oindB)
+#         similar_from_indices(T, oindA, oindB, p1, p2, adjoint(tA), adjoint(tB))
+#     end
+# end
+#
+# TensorOperations.scalar(t::AbstractTensorMap) = scalar(t)
+#
+# function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, V::Type{<:Val}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple = ()) where {S,N₁,N₂}
+#     p = (p1..., p2...)
+#     if V == Val{:N}
+#         pl = ntuple(n->p[n], StaticLength(N₁))
+#         pr = ntuple(n->p[N₁+n], StaticLength(N₂))
+#         add!(α, tsrc, β, tdst, pl, pr)
+#     else
+#         pl = ntuple(n->adjointtensorindex(tsrc, p[n]), StaticLength(N₁))
+#         pr = ntuple(n->adjointtensorindex(tsrc, p[N₁+n]), StaticLength(N₂))
+#         add!(α, adjoint(tsrc), β, tdst, pl, pr)
+#     end
+#     return tdst
+# end
+#
+# TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p::IndexTuple, ::Type{Val{:BLAS}}) where {S} = TensorOperations.contract!(α, tA, VA, tB, VB, β, tC, oindA, cindA, oindB, cindB, p)
+#
+# function TensorOperations.contract!(α, tA::AbstractTensorMap{S}, VA::Type{<:Val}, tB::AbstractTensorMap{S}, VB::Type{<:Val}, β, tC::AbstractTensorMap{S,N₁,N₂}, oindA::IndexTuple, cindA::IndexTuple, oindB::IndexTuple, cindB::IndexTuple, p1::IndexTuple, p2::IndexTuple = ()) where {S,N₁,N₂}
+#     p = (p1..., p2...)
+#     pl = ntuple(n->p[n], StaticLength(N₁))
+#     pr = ntuple(n->p[N₁+n], StaticLength(N₂))
+#     if VA == Val{:N} && VB == Val{:N}
+#         contract!(α, tA, tB, β, tC, oindA, cindA, oindB, cindB, pl, pr)
+#     elseif VA == Val{:N} && VB == Val{:C}
+#         oindB = map(n->adjointtensorindex(tB,n), oindB)
+#         cindB = map(n->adjointtensorindex(tB,n), cindB)
+#         contract!(α, tA, adjoint(tB), β, tC, oindA, cindA, oindB, cindB, pl, pr)
+#     elseif VA == Val{:C} && VB == Val{:N}
+#         oindA = map(n->adjointtensorindex(tA,n), oindA)
+#         cindA = map(n->adjointtensorindex(tA,n), cindA)
+#         contract!(α, adjoint(tA), tB, β, tC, oindA, cindA, oindB, cindB, pl, pr)
+#     else
+#         oindA = map(n->adjointtensorindex(tA,n), oindA)
+#         cindA = map(n->adjointtensorindex(tA,n), cindA)
+#         oindB = map(n->adjointtensorindex(tB,n), oindB)
+#         cindB = map(n->adjointtensorindex(tB,n), cindB)
+#         contract!(α, adjoint(tA), adjoint(tB), β, tC, oindA, cindA, oindB, cindB, pl, pr)
+#     end
+#     return tC
+# end

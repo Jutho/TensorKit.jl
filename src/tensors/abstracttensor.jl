@@ -86,7 +86,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
     G = sectortype(t)
     if G == Trivial
         convert(Array, t[])
-    elseif fusiontype(G) == Abelian || fusiontype(G) == SimpleNonAbelian
+    elseif fusiontype(G) isa Abelian || fusiontype(G) isa SimpleNonAbelian
         # TODO: Frobenius-Schur indicators!, and fermions!
         cod = codomain(t)
         dom = domain(t)
@@ -117,10 +117,13 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
             d1 = TupleTools.front(sz1)
             d2 = TupleTools.front(sz2)
             F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1...,d2...))
-            Aslice = sview(A, axes(cod, f1.outgoing)..., axes(dom, f2.outgoing)...)
-            axpy!(1, StridedView(_kron(convert(Array,t[f1,f2]), F)), Aslice)
+            Aslice = StridedView(A)[axes(cod, f1.outgoing)..., axes(dom, f2.outgoing)...]
+            axpy!(1, StridedView(_kron(convert(Array, t[f1,f2]), F)), Aslice)
         end
         return A
+    else
+        # TODO: implement DegenerateNonAbelian case
+        throw(MethodError(convert, (Array, t)))
     end
 end
 # TODO: Reverse conversion

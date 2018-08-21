@@ -1,7 +1,7 @@
 """
     struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
 
-A ProductSpace is a tensor product space of `N` vector spaces of type
+A `ProductSpace` is a tensor product space of `N` vector spaces of type
 `S<:ElementarySpace`. Only tensor products between `ElementarySpace` objects of
 the same type are allowed.
 """
@@ -15,7 +15,7 @@ ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSp
 #-----------------------
 dims(P::ProductSpace) = map(dim, P.spaces)
 dim(P::ProductSpace, n::Int) = dim(P.spaces[n])
-dim(P::ProductSpace) = reduce(*, 1, dims(P))
+dim(P::ProductSpace) = prod(dims(P))
 
 Base.axes(P::ProductSpace) = map(axes, P.spaces)
 Base.axes(P::ProductSpace, n::Int) = axes(P.spaces[n])
