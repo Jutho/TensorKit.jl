@@ -34,7 +34,7 @@ Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,G,<:SectorDict{
 
 Base.@pure Base.eltype(T::Type{<:TensorMap}) = eltype(storagetype(T))
 
-Base.length(t::TensorMap) = sum(length(b) for (c,b) in blocks(t)) # total number of free parameters, in order to use e.g. KrylovKit
+# Base.length(t::TensorMap) = sum(length(b) for (c,b) in blocks(t)) # total number of free parameters, in order to use e.g. KrylovKit
 
 # General TensorMap constructors
 #--------------------------------
@@ -139,13 +139,13 @@ end
 TensorMap(f, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
     TensorMap(d->f(T, d), codom, dom)
 TensorMap(::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(uninitialized, d), codom, dom)
+    TensorMap(d->Array{T}(undef, d), codom, dom)
 TensorMap(I::UniformScaling, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
     TensorMap(d->Array{T}(I, d), codom, dom)
 TensorMap(I::UniformScaling, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(I, Float64, codom, dom)
-TensorMap(::Uninitialized, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(uninitialized, d), codom, dom)
-TensorMap(::Uninitialized, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(uninitialized, Float64, codom, dom)
+TensorMap(::UndefInitializer, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
+    TensorMap(d->Array{T}(undef, d), codom, dom)
+TensorMap(::UndefInitializer, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(undef, Float64, codom, dom)
 
 TensorMap(::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {T<:Number, S<:IndexSpace} = TensorMap(T, convert(ProductSpace, codom), convert(ProductSpace, dom))
 TensorMap(dataorf, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
@@ -173,10 +173,10 @@ end
 
 # Similar
 #---------
-Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = TensorMap(d->similar(storagetype(t)(uninitialized, (0,0)), T, d), P)
-Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = Tensor(d->similar(storagetype(t)(uninitialized, (0,0)), T, d), P)
-Base.similar(t::AbstractTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = TensorMap(d->similar(storagetype(t)(uninitialized, (0,0)), d), P)
-Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->similar(storagetype(t)(uninitialized, (0,0)), d), P)
+Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = TensorMap(d->similar(storagetype(t)(undef, (0,0)), T, d), P)
+Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = Tensor(d->similar(storagetype(t)(undef, (0,0)), T, d), P)
+Base.similar(t::AbstractTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = TensorMap(d->similar(storagetype(t)(undef, (0,0)), d), P)
+Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->similar(storagetype(t)(undef, (0,0)), d), P)
 
 # Getting and setting the data
 #------------------------------
@@ -191,7 +191,7 @@ function block(t::TensorMap, s::Sector)
         return t.data[s]
     else # at least one of the two matrix dimensions will be zero
         A = storagetype(t)
-        return A(uninitialized, (blockdim(codomain(t),s), blockdim(domain(t), s)))
+        return A(undef, (blockdim(codomain(t),s), blockdim(domain(t), s)))
     end
 end
 
@@ -201,8 +201,8 @@ blocks(t::TensorMap) = t.data
 fusiontrees(t::TrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 
-function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G}, sectors::Tuple{Vararg{G}}) where {N₁,N₂,G<:Sector}
-    fusiontype(G) == Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
+@inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G}, sectors::Tuple{Vararg{G}}) where {N₁,N₂,G<:Sector}
+    fusiontype(G) isa Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
     s2 = TupleTools.getindices(sectors, domainind(t))
     c1 = length(s1) == 0 ? one(G) : (length(s1) == 1 ? s1[1] : first(⊗(s1...)))
@@ -226,14 +226,14 @@ end
         checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
     end
     @inbounds begin
-        return reshape(sview(t.data[c], t.rowr[c][f1], t.colr[c][f2]), (dims(codomain(t), f1.outgoing)..., dims(domain(t), f2.outgoing)...))
+        return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], (dims(codomain(t), f1.outgoing)..., dims(domain(t), f2.outgoing)...))
     end
 end
-@propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copy!(getindex(t, f1, f2), v)
+@propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copyto!(getindex(t, f1, f2), v)
 
 # For a tensor with trivial symmetry, allow no argument indexing
-@inline Base.getindex(t::TrivialTensorMap) = reshape(sview(t.data, :, :), (dims(codomain(t))..., dims(domain(t))...))
-@inline Base.setindex!(t::TrivialTensorMap, v) = copy!(getindex(t), v)
+@inline Base.getindex(t::TrivialTensorMap) = sreshape(StridedView(t.data), (dims(codomain(t))..., dims(domain(t))...))
+@inline Base.setindex!(t::TrivialTensorMap, v) = copyto!(getindex(t), v)
 
 # For a tensor with trivial symmetry, fusiontrees returns (nothing,nothing)
 @inline Base.getindex(t::TrivialTensorMap, ::Tuple{Nothing,Nothing}) = getindex(t)
@@ -265,18 +265,18 @@ function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
     end
     println(io, "TensorMap(", codomain(t), " ← ", domain(t), "):")
     if sectortype(S) == Trivial
-        print_array(io, t[])
+        Base.print_array(io, t[])
         println(io)
-    elseif fusiontype(sectortype(S)) == Abelian
+    elseif fusiontype(sectortype(S)) isa Abelian
         for (f1,f2) in fusiontrees(t)
             println(io, "* Data for sector ", f1.outgoing, " ← ", f2.outgoing, ":")
-            print_array(io, t[f1,f2])
+            Base.print_array(io, t[f1,f2])
             println(io)
         end
     else
         for (f1,f2) in fusiontrees(t)
             println(io, "* Data for fusiontree ", f1, " ← ", f2, ":")
-            print_array(io, t[f1,f2])
+            Base.print_array(io, t[f1,f2])
             println(io)
         end
     end

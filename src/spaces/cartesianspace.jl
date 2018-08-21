@@ -1,7 +1,7 @@
 """
     struct immutable CartesianSpace <: EuclideanSpace{ℝ}
 
-A CartesianSpace is a real euclidean space `ℝ^d` and therefore self-dual. It has no
+A `CartesianSpace` is a real euclidean space `ℝ^d` and therefore self-dual. It has no
 additonal structure and is completely characterised by its dimension `d`. This is
 the vector space that is implicitly assumed in most of matrix algebra.
 """

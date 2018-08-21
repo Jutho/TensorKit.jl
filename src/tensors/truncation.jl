@@ -30,7 +30,7 @@ truncbelow(epsilon::Real) = TruncateBelow(epsilon)
 
 # For a single vector
 function _truncate!(v::AbstractVector, ::NoTruncation, p::Real = 2)
-    return v, zero(vecnorm(v, p))
+    return v, zero(norm(v, p))
 end
 
 function _truncate!(v::AbstractVector, trunc::TruncationError, p::Real = 2)
@@ -39,20 +39,20 @@ function _truncate!(v::AbstractVector, trunc::TruncationError, p::Real = 2)
     dtrunc = dmax
     while true
         dtrunc -= 1
-        truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
+        truncerr = norm(view(v, dtrunc+1:dmax), p)
         if truncerr > trunc.ϵ
             dtrunc += 1
             break
         end
     end
-    truncerr = vecnorm(view(v, dtrunc+1:dmax), p)
+    truncerr = norm(view(v, dtrunc+1:dmax), p)
     resize!(v, dtrunc)
     return v, truncerr
 end
 
 function _truncate!(v::AbstractVector, trunc::TruncationDimension, p::Real = 2)
     dtrunc = min(length(v), trunc.dim)
-    truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
+    truncerr = norm(view(v, dtrunc+1:length(v)), p)
     resize!(v, dtrunc)
     return v, truncerr
 end
@@ -61,14 +61,14 @@ _truncate!(v::AbstractVector, trunc::TruncationSpace, p::Real = 2) = _truncate!(
 
 function _truncate!(v::AbstractVector, trunc::TruncateBelow, p::Real = 2)
     dtrunc   = findlast(x->(x>trunc.ϵ), v)
-    truncerr = vecnorm(view(v, dtrunc+1:length(v)), p)
+    truncerr = norm(view(v, dtrunc+1:length(v)), p)
     resize!(v, dtrunc)
     return v, truncerr
 end
 
 # For SectorDict
 function _truncate!(V::SectorDict{G,<:AbstractVector}, ::NoTruncation, p = 2) where {G<:Sector}
-    return V, zero(_vecnorm(V, p))
+    return V, zero(_norm(V, p))
 end
 function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationError, p = 2) where {G<:Sector}
     truncdim = SectorDict{G,Int}(c=>length(v) for (c,v) in V)
@@ -92,13 +92,13 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationError, p
             end
         end
         truncdim[cmin] -= 1
-        truncerr = _vecnorm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+        truncerr = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
         if truncerr > trunc.ϵ
             truncdim[cmin] += 1
             break
         end
     end
-    truncerr = _vecnorm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+    truncerr = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
     for c in it
         resize!(V[c], truncdim[c])
     end
@@ -126,7 +126,7 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationDimensio
         end
         truncdim[cmin] -= 1
     end
-    truncerr = _vecnorm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+    truncerr = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
     for c in it
         resize!(V[c], truncdim[c])
     end
@@ -134,7 +134,7 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationDimensio
 end
 function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncationSpace, p = 2) where {G<:Sector}
     truncdim = SectorDict{G,Int}(c=>min(lenth(v), dim(trunc.space,c)) for (c,v) in V)
-    truncerr = _vecnorm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+    truncerr = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
     for c in keys(V)
         resize!(V[c], truncdim[c])
     end
@@ -151,7 +151,7 @@ function _truncate!(V::SectorDict{G,<:AbstractVector}, trunc::TruncateBelow, p =
             truncdim[c] = newdim
         end
     end
-    truncerr = _vecnorm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+    truncerr = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
     for c in it
         resize!(V[c], truncdim[c])
     end
@@ -171,7 +171,7 @@ Base.:&(a::TruncationScheme, b::TruncationScheme) = MultipleTruncation((a,b))
 # maybe TruncationError should use absolute error as measure
 function _truncate!(v, trunc::MultipleTruncation, p::Real = 2)
     v, truncerrs = __truncate!(v, trunc.truncations, p)
-    return v, vecnorm(truncerrs, p)
+    return v, norm(truncerrs, p)
 end
 function __truncate!(v, trunc::Tuple{Vararg{<:TruncationScheme}}, p::Real = 2)
     v, truncerr1 = _truncate!(v, first(trunc), p)

@@ -3,7 +3,7 @@
 """
     permuteind(tsrc::AbstractTensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ()) -> tdst::TensorMap{S,N₁,N₂}
 
-Permutes the indices of `tsrc::AbstractTensorMap{S}` such that a new tensor
+Permute the indices of `tsrc::AbstractTensorMap{S}` such that a new tensor
 `tdst::TensorMap{S,N₁,N₂}` is obtained, with indices in `p1` playing the role of
 the codomain or range of the map, and indices in `p2` indicating the domain.
 

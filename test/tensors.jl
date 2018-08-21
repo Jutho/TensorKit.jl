@@ -36,7 +36,7 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
         for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
             t = Tensor(zeros, T, W)
             @test eltype(t) == T
-            @test vecnorm(t) == 0
+            @test norm(t) == 0
             @test codomain(t) == W
             @test space(t) == W
             @test domain(t) == one(W)
@@ -49,19 +49,19 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
             @test eltype(t) == T
             @test codomain(t) == W.second
             @test domain(t) == W.first
-            @test isa(@inferred(vecnorm(t)), real(T))
-            @test vecnorm(t)^2 ≈ vecdot(t,t)
+            @test isa(@inferred(norm(t)), real(T))
+            @test norm(t)^2 ≈ dot(t,t)
             α = rand(T)
-            @test vecnorm(α*t) ≈ abs(α)*vecnorm(t)
-            @test vecnorm(t+t, 2) ≈ 2*vecnorm(t, 2)
-            @test vecnorm(t+t, 1) ≈ 2*vecnorm(t, 1)
-            @test vecnorm(t+t, Inf) ≈ 2*vecnorm(t, Inf)
+            @test norm(α*t) ≈ abs(α)*norm(t)
+            @test norm(t+t, 2) ≈ 2*norm(t, 2)
+            @test norm(t+t, 1) ≈ 2*norm(t, 1)
+            @test norm(t+t, Inf) ≈ 2*norm(t, Inf)
             p = 3*rand(Float64)
-            @test vecnorm(t+t, p) ≈ 2*vecnorm(t, p)
+            @test norm(t+t, p) ≈ 2*norm(t, p)
 
             t2 = TensorMap(rand, T, W)
             β = rand(T)
-            @test vecdot(β*t2,α*t) ≈ conj(β)*α*conj(vecdot(t,t2))
+            @test dot(β*t2,α*t) ≈ conj(β)*α*conj(dot(t,t2))
         end
     end
     @testset "Basic linear algebra: test via conversion" begin
@@ -69,15 +69,14 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t = TensorMap(rand, T, W)
             t2 = TensorMap(rand, T, W)
-            @test vecnorm(t, 2) ≈ vecnorm(convert(Array,t), 2)
-            @test vecdot(t2,t) ≈ vecdot(convert(Array,t2), convert(Array, t))
+            @test norm(t, 2) ≈ norm(convert(Array,t), 2)
+            @test dot(t2,t) ≈ dot(convert(Array,t2), convert(Array, t))
             α = rand(T)
             @test convert(Array, α*t) ≈ α*convert(Array,t)
             @test convert(Array, t+t) ≈ 2*convert(Array,t)
         end
     end
     @testset "Permutations: test via inner product invariance" begin
-        using Combinatorics
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         t = Tensor(rand, Float64, W);
         t′ = Tensor(rand, Float64, W);
@@ -86,14 +85,13 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
                 p1 = ntuple(n->p[n], StaticLength(k))
                 p2 = ntuple(n->p[k+n], StaticLength(5-k))
                 t2 = @inferred permuteind(t, p1, p2)
-                @test vecnorm(t2) ≈ vecnorm(t)
+                @test norm(t2) ≈ norm(t)
                 t2′= permuteind(t′, p1, p2)
-                @test vecdot(t2′,t2) ≈ vecdot(t′,t)
+                @test dot(t2′,t2) ≈ dot(t′,t)
             end
         end
     end
     @testset "Permutations: test via conversion" begin
-        using Combinatorics
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         t = Tensor(rand, Float64, W);
         for k = 0:5
@@ -108,32 +106,38 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t = Tensor(rand, T, W)
-            @testset "leftorth with $alg" for alg in (QR(), QRpos(), QL(), QLpos(), Polar(), SVD())
-                Q, R = @inferred leftorth(t, (3,4,2),(1,5), alg)
+            @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
+                Q, R = @inferred leftorth(t, (3,4,2),(1,5); alg = alg)
                 QdQ = Q'*Q
                 @test QdQ ≈ one(QdQ)
                 @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
             end
-            @testset "leftnull with $alg" for alg in (QR(), QRpos())
-                N = @inferred leftnull(t, (3,4,2),(1,5), alg)
+            @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos())
+                N = @inferred leftnull(t, (3,4,2),(1,5); alg = alg)
                 NdN = N'*N
                 @test NdN ≈ one(NdN)
-                @test vecnorm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(vecnorm(t))
+                @test norm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(norm(t))
             end
-            @testset "rightorth with $alg" for alg in (RQ(), RQpos(), LQ(), LQpos(), Polar(), SVD())
-                L, Q = @inferred rightorth(t, (3,4),(2,1,5), alg)
+            @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.RQpos(), TensorKit.LQ(), TensorKit.LQpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
+                L, Q = @inferred rightorth(t, (3,4),(2,1,5); alg = alg)
                 QQd = Q*Q'
                 @test QQd ≈ one(QQd)
                 @test L*Q ≈ permuteind(t, (3,4),(2,1,5))
             end
-            @testset "rightnull with $alg" for alg in (LQ(), LQpos())
-                M = @inferred rightnull(t, (3,4),(2,1,5), alg)
+            @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.LQpos())
+                M = @inferred rightnull(t, (3,4),(2,1,5); alg = alg)
                 MMd = M*M'
                 @test MMd ≈ one(MMd)
-                @test vecnorm(permuteind(t, (3,4),(2,1,5))*M') < 100*eps(vecnorm(t))
+                @test norm(permuteind(t, (3,4),(2,1,5))*M') < 100*eps(norm(t))
             end
-            U, S, V = @inferred svd(t, (3,4,2),(1,5))
-            @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
+            @testset "svd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                U, S, V = @inferred svd(t, (3,4,2),(1,5); alg = alg)
+                UdU = U'*U
+                @test UdU ≈ one(UdU)
+                VVd = V*V'
+                @test VVd ≈ one(VVd)
+                @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
+            end
         end
     end
 end

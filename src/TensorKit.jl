@@ -62,8 +62,8 @@ import TupleTools: permute
 
 using Strided
 
-# import TensorOperations
-# import TensorOperations: @tensor, @tensoropt
+import TensorOperations
+import TensorOperations: @tensor, @tensoropt
 
 using WignerSymbols
 using WignerSymbols: HalfInteger
@@ -82,8 +82,8 @@ const IndexTuple{N} = NTuple{N,Int}
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/dicts.jl")
-# include("auxiliary/linalg.jl")
-# include("auxiliary/random.jl")
+include("auxiliary/linalg.jl")
+include("auxiliary/random.jl")
 
 # include("auxiliary/juarray.jl")
 # export JuArray
@@ -134,14 +134,14 @@ include("spaces/vectorspaces.jl")
 # # Definitions and methods for tensors
 # #-------------------------------------
 # # general definitions
-# include("tensors/abstracttensor.jl")
-# include("tensors/tensortreeiterator.jl")
-# include("tensors/tensor.jl")
-# include("tensors/adjoint.jl")
-# include("tensors/linalg.jl")
-# include("tensors/tensoroperations.jl")
-# include("tensors/indexmanipulations.jl")
-# include("tensors/truncation.jl")
-# include("tensors/factorizations.jl")
+include("tensors/abstracttensor.jl")
+include("tensors/tensortreeiterator.jl")
+include("tensors/tensor.jl")
+include("tensors/adjoint.jl")
+include("tensors/linalg.jl")
+include("tensors/tensoroperations.jl")
+include("tensors/indexmanipulations.jl")
+include("tensors/truncation.jl")
+include("tensors/factorizations.jl")
 
 end

@@ -1,5 +1,7 @@
 using Test
 using Random
+using LinearAlgebra
+using Combinatorics
 using TensorKit
 using TensorOperations
 using TupleTools
@@ -16,6 +18,6 @@ randsector(::Type{U₁}) = rand(smallset(U₁))
 randsector(::Type{SU₂}) = rand(smallset(SU₂))
 randsector(P::Type{<:TensorKit.ProductSector}) = P(map(randsector, (P.parameters[1].parameters...,)))
 
-# include("sectors.jl")
-# include("spaces.jl")
-# include("tensors.jl")
+include("sectors.jl")
+include("spaces.jl")
+include("tensors.jl")
