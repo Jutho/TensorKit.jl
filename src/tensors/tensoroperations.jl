@@ -38,18 +38,19 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         end
     elseif fusiontype(G) isa Abelian
         iterator = fusiontrees(tsrc)
-        if Threads.nthreads() > 1
-            @inbounds Threads.@threads for k = 1:length(iterator)
-                f12 = iterator[k]
-                f1 = f12[1]
-                f2 = f12[2]
-                _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+        K = Threads.nthreads()
+        if K > 1
+            Threads.@threads for k = 1:K
+                counter = 0
+                for (f1,f2) in iterator
+                    counter += 1
+                    if mod1(counter, K) == k
+                        _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+                    end
+                end
             end
         else # debugging is easier this way
-            @inbounds for k = 1:length(iterator)
-                f12 = iterator[k]
-                f1 = f12[1]
-                f2 = f12[2]
+            @inbounds for (f1,f2) in iterator
                 _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
             end
         end
