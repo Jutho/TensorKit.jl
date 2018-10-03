@@ -1,10 +1,9 @@
 """
     struct GenericRepresentationSpace{G<:Sector} <: AbstractRepresentationSpace{G}
 
-Generic implementation of a representation space, i.e. a complex Euclidean space
-with a direct sum structure corresponding to different superselection sectors of
-type `G<:Sector`, e.g. the irreps of a compact or finite group, or the labels of
-a unitary fusion category.
+Generic implementation of a representation space, i.e. a complex Euclidean space with a direct
+sum structure corresponding to different superselection sectors of type `G<:Sector`, e.g. the
+irreps of a compact or finite group, or the labels of a unitary fusion category.
 """
 struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
     dims::SectorDict{G,Int}
@@ -32,7 +31,7 @@ Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) = key
     struct ZNSpace{N} <: AbstractRepresentationSpace{ZNIrrep{N}}
 
 Optimized implementation of a graded `ℤ_N` space, i.e. a complex Euclidean space graded
-by the irreps of type `ZNIrrep{N}`
+by the irreps of type [`ZNIrrep{N}`](@ref).
 """
 struct ZNSpace{N} <: RepresentationSpace{ZNIrrep{N}}
     dims::NTuple{N,Int}
