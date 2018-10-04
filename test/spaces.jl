@@ -43,7 +43,7 @@ end
     @test isa(V, EuclideanSpace)
     @test isa(V, CartesianSpace)
     @test V == @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V))
-    @test TensorKit.fieldtype(V) == ℝ
+    @test field(V) == ℝ
     @test @inferred(sectortype(V)) == Trivial
     @test @inferred(TensorKit.checksectors(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
@@ -60,7 +60,7 @@ end
     @test isa(V, EuclideanSpace)
     @test isa(V, ComplexSpace)
     @test @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V)) != V
-    @test @inferred(TensorKit.fieldtype(V)) == ℂ
+    @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == Trivial
     @test @inferred(TensorKit.checksectors(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
@@ -78,7 +78,7 @@ end
     @test !isa(V, InnerProductSpace)
     @test !isa(V, EuclideanSpace)
     @test @inferred(dual(V)) != @inferred(conj(V)) != V
-    @test @inferred(TensorKit.fieldtype(V)) == ℂ
+    @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == Trivial
     @test @inferred(TensorKit.checksectors(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
@@ -93,7 +93,7 @@ end
     @test isa(V, RepresentationSpace)
     @test isa(V, RepresentationSpace{G})
     @test @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V)) != V
-    @test @inferred(TensorKit.fieldtype(V)) == ℂ
+    @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == G
     slist = @inferred sectors(V)
     @test @inferred(TensorKit.checksectors(V, first(slist)))
