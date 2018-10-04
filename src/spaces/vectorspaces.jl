@@ -25,7 +25,9 @@ Base.in(::Number, ::ComplexNumbers) = true
 Base.@pure Base.issubset(::Type, ::Field) = false
 Base.@pure Base.issubset(::Type{<:Real}, ::RealNumbers) = true
 Base.@pure Base.issubset(::Type{<:Number}, ::ComplexNumbers) = true
+Base.@pure Base.issubset(::RealNumbers, ::RealNumbers) = true
 Base.@pure Base.issubset(::RealNumbers, ::ComplexNumbers) = true
+Base.@pure Base.issubset(::ComplexNumbers, ::RealNumbers) = false
 
 # VECTOR SPACES:
 #==============================================================================#
@@ -83,9 +85,9 @@ Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
 # Hierarchy of elementary vector spaces
 #---------------------------------------
 """
-    abstract type ElementarySpace{k} <: VectorSpace end
+    abstract type ElementarySpace{𝕜} <: VectorSpace end
 
-Elementary finite-dimensional vector space over a field `k` that can be used as the
+Elementary finite-dimensional vector space over a field `𝕜` that can be used as the
 index space corresponding to the indices of a tensor.
 
 Every elementary vector space should respond to the methods [`conj`](@ref) and [`dual`](@ref),
@@ -94,10 +96,10 @@ the dual space is obtained as `dual(conj(V)) === conj(dual(V))`. These different
 be of the same type, so that a tensor can be defined as an element of a homogeneous tensor
 product of these spaces.
 """
-abstract type ElementarySpace{k} <: VectorSpace end
+abstract type ElementarySpace{𝕜} <: VectorSpace end
 const IndexSpace = ElementarySpace
 
-field(::Type{<:ElementarySpace{k}}) where {k} = k
+field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
 
 
 """
@@ -162,15 +164,15 @@ For `field(V)==ℝ`, `conj(V) == V`. It is assumed that `typeof(V) == typeof(con
 Base.conj(V::ElementarySpace{ℝ}) = V
 
 """
-    abstract type InnerProductSpace{k} <: ElementarySpace{k} end
+    abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
 
 Abstract type for denoting vector with an inner product and a corresponding
 metric, which can be used to raise or lower indices of tensors.
 """
-abstract type InnerProductSpace{k} <: ElementarySpace{k} end
+abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
 
 """
-    abstract type EuclideanSpace{k<:Union{ℝ,ℂ}} <: InnerProductSpace{k} end
+    abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end
 
 Abstract type for denoting real or complex spaces with a standard (Euclidean)
 inner product (i.e. orthonormal basis), such that the dual space is naturally
@@ -178,7 +180,7 @@ isomorphic to the conjugate space (in the complex case) or even to the
 space itself (in the real case), also known as the category of finite-dimensional
 Hilbert spaces ``FdHilb``.
 """
-abstract type EuclideanSpace{k} <: InnerProductSpace{k} end # k should be ℝ or ℂ
+abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end # 𝕜 should be ℝ or ℂ
 
 dual(V::EuclideanSpace) = conj(V)
 isdual(V::EuclideanSpace{ℝ}) = false
@@ -223,7 +225,7 @@ dim(V::ElementarySpace, ::Trivial) = sectortype(V) == Trivial ? dim(V) : throw(S
     abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
 Abstract type for composite spaces that are defined in terms of a number of elementary vector
-spaces of a homogeneous type `S<:ElementarySpace{k}`.
+spaces of a homogeneous type `S<:ElementarySpace{𝕜}`.
 """
 abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
