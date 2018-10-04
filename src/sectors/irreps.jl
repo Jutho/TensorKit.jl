@@ -4,8 +4,8 @@
 #------------------------------------------------------------------------------#
 abstract type AbelianIrrep <: Sector end
 
-Base.@pure fusiontype(::Type{<:AbelianIrrep}) = Abelian()
-Base.@pure braidingtype(::Type{<:AbelianIrrep}) = Bosonic()
+Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
+Base.@pure BraidingStyle(::Type{<:AbelianIrrep}) = Bosonic()
 
 Nsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = c == first(a ⊗ b)
 Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:AbelianIrrep} =
@@ -80,8 +80,8 @@ Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(convert(HalfInteger, j))
 
 dim(s::SU2Irrep) = s.j.num+1
 
-Base.@pure fusiontype(::Type{SU2Irrep}) = SimpleNonAbelian()
-Base.@pure braidingtype(::Type{SU2Irrep}) = Bosonic()
+Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
+Base.@pure BraidingStyle(::Type{SU2Irrep}) = Bosonic()
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
 Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
@@ -163,8 +163,8 @@ end
 
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInteger), 1, 2)
 
-Base.@pure fusiontype(::Type{CU1Irrep}) = SimpleNonAbelian()
-Base.@pure braidingtype(::Type{CU1Irrep}) = Bosonic()
+Base.@pure FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
+Base.@pure BraidingStyle(::Type{CU1Irrep}) = Bosonic()
 
 function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
     ifelse(c.s == 0, (a.j == b.j) & ((a.s == b.s == 2) | (a.s == b.s)),

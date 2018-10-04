@@ -37,12 +37,12 @@ Abstract type at the top of the type hierarchy for denoting vector spaces.
 abstract type VectorSpace end
 
 """
-    function fieldtype(V::VectorSpace) -> Field
+    function field(V::VectorSpace) -> Field
 
 Return the field type over which a vector space is defined.
 """
-function fieldtype end
-fieldtype(V::VectorSpace) = fieldtype(typeof(V))
+function field end
+field(V::VectorSpace) = field(typeof(V))
 
 # Basic vector space methods
 #----------------------------
@@ -97,7 +97,7 @@ product of these spaces.
 abstract type ElementarySpace{k} <: VectorSpace end
 const IndexSpace = ElementarySpace
 
-fieldtype(::Type{<:ElementarySpace{k}}) where {k} = k
+field(::Type{<:ElementarySpace{k}}) where {k} = k
 
 
 """
@@ -157,7 +157,7 @@ function flip end
 
 Return the conjugate space of `V`.
 
-For `fieldtype(V)==ℝ`, `conj(V) == V`. It is assumed that `typeof(V) == typeof(conj(V))`.
+For `field(V)==ℝ`, `conj(V) == V`. It is assumed that `typeof(V) == typeof(conj(V))`.
 """
 Base.conj(V::ElementarySpace{ℝ}) = V
 
@@ -227,7 +227,7 @@ spaces of a homogeneous type `S<:ElementarySpace{k}`.
 """
 abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
-fieldtype(::Type{<:CompositeSpace{S}}) where {S<:ElementarySpace} = fieldtype(S)
+field(::Type{<:CompositeSpace{S}}) where {S<:ElementarySpace} = field(S)
 sectortype(::Type{<:CompositeSpace{S}}) where {S<:ElementarySpace} = sectortype(S)
 
 # Specific realizations of ElementarySpace types

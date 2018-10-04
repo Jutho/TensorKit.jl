@@ -8,7 +8,7 @@ module TensorKit
 # Exports
 #---------
 # Types:
-export Sector, Irrep
+export Sector, Irrep, FusionStyle, BraidingStyle
 export Abelian, SimpleNonAbelian, DegenerateNonAbelian, SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
 export Parity, ZNIrrep, U1Irrep, SU2Irrep, FermionParity, FermionNumber, FermionSpin # specific sectors
 export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
@@ -21,9 +21,9 @@ export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
 # general vector space methods
-export space, dual, dim, dims, fuse, flip
+export space, field, dual, dim, dims, fuse, flip
 # methods for sectors and properties thereof
-export sectortype, fusiontype, braidingtype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
+export sectortype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 export fusiontrees, braid, repartition
 

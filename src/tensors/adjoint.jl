@@ -75,7 +75,7 @@ function Base.show(io::IO, t::AdjointTensorMap{S}) where {S<:IndexSpace}
     if sectortype(S) == Trivial
         Base.print_array(io, t[])
         println(io)
-    elseif fusiontype(sectortype(S)) isa Abelian
+    elseif FusionStyle(sectortype(S)) isa Abelian
         for (f1,f2) in fusiontrees(t)
             println(io, "* Data for sector ", f1.outgoing, " ← ", f2.outgoing, ":")
             Base.print_array(io, t[f1,f2])

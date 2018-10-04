@@ -2,7 +2,7 @@
 #==============================================================================#
 abstract type Fermion <: Sector end
 
-Base.@pure braidingtype(::Type{<:Fermion}) = Fermionic()
+Base.@pure BraidingStyle(::Type{<:Fermion}) = Fermionic()
 
 # FermionParity: only total fermion parity is conserved
 struct FermionParity <: Fermion
@@ -13,7 +13,7 @@ Base.one(::Type{FermionParity}) = FermionParity(false)
 Base.conj(p::FermionParity) = p
 ⊗(p1::FermionParity, p2::FermionParity) = (FermionParity(p1.parity != p2.parity),)
 
-Base.@pure fusiontype(::Type{FermionParity}) = Abelian()
+Base.@pure FusionStyle(::Type{FermionParity}) = Abelian()
 
 const fℤ₂ = FermionParity
 
@@ -28,7 +28,7 @@ Base.one(::Type{FermionNumber}) = FermionNumber(0)
 Base.conj(n::FermionNumber) = FermionNumber(n.num)
 ⊗(n1::FermionNumber, n2::FermionNumber) = (FermionNumber(n1.num+n2.num),)
 
-Base.@pure fusiontype(::Type{FermionNumber}) = Abelian()
+Base.@pure FusionStyle(::Type{FermionNumber}) = Abelian()
 
 const fU₁ = FermionNumber
 
@@ -68,7 +68,7 @@ Base.one(::Type{FermionSpin}) = FermionSpin(0)
 Base.conj(s::FermionSpin) = s
 ⊗(s1::FermionSpin, s2::FermionSpin) = SectorSet{FermionSpin}( abs(_getj(s1)-_getj(s2)):(_getj(s1)+_getj(s2)) )
 
-Base.@pure fusiontype(::Type{FermionSpin}) = SimpleNonAbelian()
+Base.@pure FusionStyle(::Type{FermionSpin}) = SimpleNonAbelian()
 
 Nsymbol(s1::FermionSpin, s2::FermionSpin, s::FermionSpin) = (abs(s1.dim-s2.dim)+1) <= s.dim <= (s1.dim+s2.dim-1) && isodd(s1.dim+s2.dim - s.dim)
 

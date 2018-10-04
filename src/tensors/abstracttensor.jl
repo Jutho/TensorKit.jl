@@ -27,14 +27,14 @@ storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
 Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
 spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
 sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
-fieldtype(t::AbstractTensorMap) = fieldtype(typeof(t))
+field(t::AbstractTensorMap) = field(typeof(t))
 numout(t::AbstractTensorMap) = numout(typeof(t))
 numin(t::AbstractTensorMap) = numin(typeof(t))
 numind(t::AbstractTensorMap) = numind(typeof(t))
 
 Base.@pure spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
 Base.@pure sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
-Base.@pure fieldtype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = fieldtype(S)
+Base.@pure field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
 Base.@pure numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁
 Base.@pure numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₂
 Base.@pure numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} = N₁ + N₂
@@ -86,7 +86,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
     G = sectortype(t)
     if G == Trivial
         convert(Array, t[])
-    elseif fusiontype(G) isa Abelian || fusiontype(G) isa SimpleNonAbelian
+    elseif FusionStyle(G) isa Abelian || FusionStyle(G) isa SimpleNonAbelian
         # TODO: Frobenius-Schur indicators!, and fermions!
         cod = codomain(t)
         dom = domain(t)

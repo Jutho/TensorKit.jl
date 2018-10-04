@@ -36,7 +36,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         else
             axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
         end
-    elseif fusiontype(G) isa Abelian
+    elseif FusionStyle(G) isa Abelian
         iterator = fusiontrees(tsrc)
         K = Threads.nthreads()
         if K > 1

@@ -46,7 +46,7 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
             size(data) == (dims(codom)..., dims(dom)...))
             throw(DimensionMismatch())
         end
-        eltype(data) ⊆ fieldtype(S) || warn("eltype(data) = $(eltype(data)) ⊈ $(fieldtype(S)))")
+        eltype(data) ⊆ field(S) || warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))")
 
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
@@ -84,7 +84,7 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
             end
         end
         (haskey(data, c) && size(data[c]) == (offset1, offset2)) || throw(DimensionMismatch())
-        eltype(data[c]) ⊆ fieldtype(S) || warn("eltype(data) = $(eltype(data[c])) ⊈ $(fieldtype(S)))")
+        eltype(data[c]) ⊆ field(S) || warn("eltype(data) = $(eltype(data[c])) ⊈ $(field(S)))")
         push!(rowr, c=>rowrc)
         push!(colr, c=>colrc)
     end
@@ -202,7 +202,7 @@ fusiontrees(t::TrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G}, sectors::Tuple{Vararg{G}}) where {N₁,N₂,G<:Sector}
-    fusiontype(G) isa Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
+    FusionStyle(G) isa Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
     s2 = TupleTools.getindices(sectors, domainind(t))
     c1 = length(s1) == 0 ? one(G) : (length(s1) == 1 ? s1[1] : first(⊗(s1...)))
@@ -267,7 +267,7 @@ function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
     if sectortype(S) == Trivial
         Base.print_array(io, t[])
         println(io)
-    elseif fusiontype(sectortype(S)) isa Abelian
+    elseif FusionStyle(sectortype(S)) isa Abelian
         for (f1,f2) in fusiontrees(t)
             println(io, "* Data for sector ", f1.outgoing, " ← ", f2.outgoing, ":")
             Base.print_array(io, t[f1,f2])
