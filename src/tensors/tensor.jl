@@ -220,13 +220,13 @@ end
 @propagate_inbounds Base.getindex(t::TensorMap, sectors::Tuple) = t[map(sectortype(t), sectors)]
 
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector}
-    c = f1.incoming
+    c = f1.coupled
     @boundscheck begin
-        c == f2.incoming || throw(SectorMismatch())
-        checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
+        c == f2.coupled || throw(SectorMismatch())
+        checksectors(codomain(t), f1.uncoupled) && checksectors(domain(t), f2.uncoupled)
     end
     @inbounds begin
-        return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], (dims(codomain(t), f1.outgoing)..., dims(domain(t), f2.outgoing)...))
+        return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))
     end
 end
 @propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copyto!(getindex(t, f1, f2), v)
@@ -269,7 +269,7 @@ function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
         println(io)
     elseif FusionStyle(sectortype(S)) isa Abelian
         for (f1,f2) in fusiontrees(t)
-            println(io, "* Data for sector ", f1.outgoing, " ← ", f2.outgoing, ":")
+            println(io, "* Data for sector ", f1.uncoupled, " ← ", f2.uncoupled, ":")
             Base.print_array(io, t[f1,f2])
             println(io)
         end

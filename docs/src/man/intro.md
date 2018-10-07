@@ -264,7 +264,7 @@ However, the graphical representation using ribbons is only consistent if we fur
 or also a **ribbon category**.
 
 In the case of a symmetric braiding, most of these difficulties go away and the pivotal structure
-follows 
+follows
 
 
 ### Adjoints

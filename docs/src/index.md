@@ -30,5 +30,12 @@ data, so as to leverage GPUs for the different operations defined on tensors.
 
 ```@contents
 Pages = ["man/intro.md", "man/spaces.md", "man/sectors.md"]
+Depth = 3
+```
+
+## Library outline
+
+```@contents
+Pages = ["lib/spaces.md"]
 Depth = 2
 ```

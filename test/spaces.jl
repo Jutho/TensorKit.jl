@@ -37,6 +37,8 @@ end
 @testset "ElementarySpace: CartesianSpace" begin
     d = 2
     V = ℝ^d
+    @test eval(Meta.parse(sprint(show,V))) == V
+    @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
     @test isa(V, InnerProductSpace)
@@ -54,6 +56,8 @@ end
 @testset "ElementarySpace: ComplexSpace" begin
     d = 2
     V = ℂ^d
+    @test eval(Meta.parse(sprint(show,V))) == V
+    @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
     @test isa(V, InnerProductSpace)
@@ -73,6 +77,8 @@ end
 @testset "ElementarySpace: GeneralSpace" begin
     d = 2
     V = GeneralSpace{ℂ}(d)
+    @test eval(Meta.parse(sprint(show,V))) == V
+    @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
     @test !isa(V, InnerProductSpace)
@@ -86,6 +92,8 @@ end
 end
 @testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, U₁, CU₁, SU₂, ℤ₂ × ℤ₂ × ℤ₂, U₁ × SU₂, SU₂ × SU₂)
     V = @inferred RepresentationSpace((randsector(G)=>rand(1:10) for k in 1:5)...)
+    @test eval(Meta.parse(sprint(show,V))) == V
+    @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
     @test isa(V, InnerProductSpace)

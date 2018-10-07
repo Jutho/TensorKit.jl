@@ -1,5 +1,5 @@
 """
-    struct GenericRepresentationSpace{G<:Sector} <: AbstractRepresentationSpace{G}
+    struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
 
 Generic implementation of a representation space, i.e. a complex Euclidean space with a direct
 sum structure corresponding to different superselection sectors of type `G<:Sector`, e.g. the
@@ -159,7 +159,8 @@ Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
 Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
 
 function Base.show(io::IO, V::RepresentationSpace{G}) where {G<:Sector}
-    print(io, "RepresentationSpace{", G, "}(")
+    show(io, typeof(V))
+    print(io, "(")
     seperator = ""
     comma = ", "
     for c in sectors(V)

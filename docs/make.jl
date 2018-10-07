@@ -6,7 +6,8 @@ makedocs(modules=[TensorKit],
             sitename="TensorKit.jl",
             pages = [
                 "Home" => "index.md",
-                "Manual" => ["man/intro.md", "man/spaces.md", "man/sectors.md"]
+                "Manual" => ["man/intro.md", "man/spaces.md", "man/sectors.md"],
+                "Library" => ["lib/spaces.md"]
             ])
 
 # Documenter can also automatically deploy documentation to gh-pages.

@@ -32,12 +32,12 @@ fusiontrees(::AdjointTrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::AdjointTensorMap) = TensorKeyIterator(t.parent.colr, t.parent.rowr)
 
 function Base.getindex(t::AdjointTensorMap{S,N₁,N₂,G}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
-    c = f1.incoming
+    c = f1.coupled
     @boundscheck begin
-        c == f2.incoming || throw(SectorMismatch())
-        checksectors(codomain(t), f1.outgoing) && checksectors(domain(t), f2.outgoing)
+        c == f2.coupled || throw(SectorMismatch())
+        checksectors(codomain(t), f1.uncoupled) && checksectors(domain(t), f2.uncoupled)
     end
-    return sreshape((StridedView(t.parent.data[c])[t.parent.rowr[c][f2], t.parent.colr[c][f1]])', (dims(codomain(t), f1.outgoing)..., dims(domain(t), f2.outgoing)...))
+    return sreshape((StridedView(t.parent.data[c])[t.parent.rowr[c][f2], t.parent.colr[c][f1]])', (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))
 end
 @propagate_inbounds Base.setindex!(t::AdjointTensorMap{S,N₁,N₂}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} = copyto!(getindex(t, f1, f2), v)
 
@@ -77,7 +77,7 @@ function Base.show(io::IO, t::AdjointTensorMap{S}) where {S<:IndexSpace}
         println(io)
     elseif FusionStyle(sectortype(S)) isa Abelian
         for (f1,f2) in fusiontrees(t)
-            println(io, "* Data for sector ", f1.outgoing, " ← ", f2.outgoing, ":")
+            println(io, "* Data for sector ", f1.uncoupled, " ← ", f2.uncoupled, ":")
             Base.print_array(io, t[f1,f2])
             println(io)
         end
