@@ -105,9 +105,9 @@ field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
 """
     oneunit(V::S) where {S<:ElementarySpace} -> S
 
-Return the corresponding vector space of type `S` that represents the trivial space, i.e. the
-space that is isomorphic to the corresponding field. Note that this is different from
-`one(V::S)`, which returns the empty product space `ProductSpace{S,0}(())`.
+Return the corresponding vector space of type `S` that represents the trivial one-dimensional
+space, i.e. the space that is isomorphic to the corresponding field. Note that this is different
+from `one(V::S)`, which returns the empty product space `ProductSpace{S,0}(())`.
 """
 Base.oneunit(V::ElementarySpace) = oneunit(typeof(V))
 
@@ -127,9 +127,10 @@ function ⊕ end
     ⊗(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
 
 Create a [`ProductSpace{S}(V1, V2, V3...)`](@ref) representing the tensor product of several
-elementary vector spaces.
+elementary vector spaces. For convience, Julia's regular multiplication operator `*` applied to
+vector spaces has the same effect.
 
-The tensor product structure is preserved, see `fuse`](@ref) for returning a single elementary
+The tensor product structure is preserved, see [`fuse`](@ref) for returning a single elementary
 space of type `S` that is isomorphic to this tensor product.
 """
 function ⊗ end
@@ -150,7 +151,7 @@ fuse(V1, V2, V3, V4...) = fuse(fuse(V1, V2), V3, V4...)
 
 Return a single vector space of type `S` that has the same value of [`isdual`](@ref) as
 `dual(V)`, but yet is isomorphic to `V` rather than to `dual(V)`. The spaces `flip(V)`
-and `dual(V)` only differ in the case of `RepresentationSpace{G}`.
+and `dual(V)` only differ in the case of [`RepresentationSpace{G}`](@ref).
 """
 function flip end
 
@@ -195,6 +196,7 @@ superselection sectors of type `G<:Sector`, e.g. the elements or irreps of a
 compact or finite group, or the labels of a unitary fusion category.
 """
 abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
+const Rep{G<:Sector} = RepresentationSpace{G}
 
 """
     function sectortype(a) -> Sector

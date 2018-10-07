@@ -1,5 +1,5 @@
 """
-    struct immutable CartesianSpace <: EuclideanSpace{ℝ}
+    struct CartesianSpace <: EuclideanSpace{ℝ}
 
 A real euclidean space `ℝ^d`, which is therefore self-dual. `CartesianSpace` has no additonal
 structure and is completely characterised by its dimension `d`. This is the vector space that

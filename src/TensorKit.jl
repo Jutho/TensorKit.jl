@@ -12,7 +12,7 @@ export Sector, Irrep, FusionStyle, BraidingStyle
 export Abelian, SimpleNonAbelian, DegenerateNonAbelian, SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
 export Parity, ZNIrrep, U1Irrep, SU2Irrep, FermionParity, FermionNumber, FermionSpin # specific sectors
 export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
-export ComplexSpace, CartesianSpace, GeneralSpace, RepresentationSpace, ZNSpace # concrete spaces
+export ComplexSpace, CartesianSpace, GeneralSpace, RepresentationSpace, ZNSpace, Rep # concrete spaces
 export Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
@@ -21,7 +21,7 @@ export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
 # general vector space methods
-export space, field, dual, dim, dims, fuse, flip
+export space, field, dual, dim, dims, fuse, flip, isdual
 # methods for sectors and properties thereof
 export sectortype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
@@ -104,6 +104,7 @@ struct SectorMismatch{S<:Union{Nothing,String}} <: TensorException
 end
 SectorMismatch()=SectorMismatch{Nothing}(nothing)
 Base.show(io::IO, ::SectorMismatch{Nothing}) = print(io, "SectorMismatch()")
+Base.show(io::IO, e::SectorMismatch) = print(io, "SectorMismatch(", e.message, ")")
 
 # Exception type for all errors related to vector space mismatch
 struct SpaceMismatch{S<:Union{Nothing,String}} <: TensorException
@@ -111,6 +112,7 @@ struct SpaceMismatch{S<:Union{Nothing,String}} <: TensorException
 end
 SpaceMismatch()=SpaceMismatch{Nothing}(nothing)
 Base.show(io::IO, ::SpaceMismatch{Nothing}) = print(io, "SpaceMismatch()")
+Base.show(io::IO, e::SpaceMismatch) = print(io, "SpaceMismatch(", e.message, ")")
 
 # Exception type for all errors related to invalid tensor index specification.
 struct IndexError{S<:Union{Nothing,String}} <: TensorException
@@ -118,6 +120,7 @@ struct IndexError{S<:Union{Nothing,String}} <: TensorException
 end
 IndexError()=IndexError{Nothing}(nothing)
 Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
+Base.show(io::IO, e::IndexError) = print(io, "IndexError(", e.message, ")")
 
 # Definitions and methods for superselection sectors (quantum numbers)
 #----------------------------------------------------------------------

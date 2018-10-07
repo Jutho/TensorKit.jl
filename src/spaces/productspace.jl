@@ -12,6 +12,11 @@ ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSp
 
 # Corresponding methods
 #-----------------------
+"""
+    dims(::ProductSpace{S,N}) -> Dims{N} = NTuple{N,Int}
+
+Return the dimensions of the spaces in the tensor product space as a tuple of integers.
+"""
 dims(P::ProductSpace) = map(dim, P.spaces)
 dim(P::ProductSpace, n::Int) = dim(P.spaces[n])
 dim(P::ProductSpace) = prod(dims(P))
@@ -103,9 +108,16 @@ Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
 ⊗(P::ProductSpace) = P
 
 # unit element with respect to the monoidal structure of taking tensor products
+"""
+    one(::S) where {S<:ElementarySpace} -> ProductSpace{S,0}
+    one(::ProductSpace{S}) where {S<:ElementarySpace} -> ProductSpace{S,0}
+
+Return a tensor product of zero spaces of type `S`, i.e. this is the unit object under
+the tensor product operation, such that `V ⊗ one(V) == V`.
+"""
+Base.one(V::VectorSpace) = one(typeof(V))
 Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
-Base.one(V::VectorSpace) = one(typeof(V))
 
 Base.convert(::Type{<:ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
 Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val) = ProductSpace(ntuple(n->V, p))

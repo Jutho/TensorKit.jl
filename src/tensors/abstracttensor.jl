@@ -96,7 +96,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
             F2 = convert(Array, f2)
             for i = 1:N₁
                 if isdual(cod[i])
-                    a = f1.outgoing[i]
+                    a = f1.uncoupled[i]
                     Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
                     indF = ntuple(k->(k == i ? -i : k), StaticLength(N₁)+StaticLength(1))
                     indout = ntuple(identity, StaticLength(N₁)+StaticLength(1))
@@ -105,7 +105,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
             end
             for i = 1:N₂
                 if isdual(dom[i])
-                    a = f2.outgoing[i]
+                    a = f2.uncoupled[i]
                     Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
                     indF = ntuple(k->(k == i ? -i : k), StaticLength(N₂)+StaticLength(1))
                     indout = ntuple(identity, StaticLength(N₂)+StaticLength(1))
@@ -117,7 +117,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
             d1 = TupleTools.front(sz1)
             d2 = TupleTools.front(sz2)
             F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1...,d2...))
-            Aslice = StridedView(A)[axes(cod, f1.outgoing)..., axes(dom, f2.outgoing)...]
+            Aslice = StridedView(A)[axes(cod, f1.uncoupled)..., axes(dom, f2.uncoupled)...]
             axpy!(1, StridedView(_kron(convert(Array, t[f1,f2]), F)), Aslice)
         end
         return A

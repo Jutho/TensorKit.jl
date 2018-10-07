@@ -1,4 +1,5 @@
-"""`immutable ComplexSpace <: EuclideanSpace{ℂ}`
+"""
+    struct ComplexSpace <: EuclideanSpace{ℂ}
 
 A standard complex vector space ℂ^d with Euclidean inner product and no additional structure.
 It is completely characterised by its dimension and whether its the normal space or its dual

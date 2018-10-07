@@ -46,7 +46,7 @@ Base.one(::Type{Trivial}) = Trivial()
 Return the conjugate label `conj(a)`.
 """
 dual(a::Sector) = conj(a)
-dual(::Trivial) = Trivial()
+Base.conj(::Trivial) = Trivial()
 
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
@@ -280,9 +280,9 @@ struct SectorSet{G<:Sector,F,S}
     f::F
     set::S
 end
-SectorSet{G}(set::S) where {G<:Sector,S} = SectorSet{G,typeof(identity),S}(identity, set)
 SectorSet{G}(::Type{F}, set::S) where {G<:Sector,F,S} = SectorSet{G,Type{F},S}(F, set)
 SectorSet{G}(f::F, set::S) where {G<:Sector,F,S} = SectorSet{G,F,S}(f, set)
+SectorSet{G}(set) where {G<:Sector} = SectorSet{G}(identity, set)
 
 Base.IteratorEltype(::Type{<:SectorSet}) = HasEltype()
 Base.IteratorSize(::Type{SectorSet{G,F,S}}) where {G<:Sector,F,S} = Base.IteratorSize(S)
