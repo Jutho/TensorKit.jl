@@ -27,6 +27,7 @@ Base.one(::Type{ZNIrrep{N}}) where {N} =ZNIrrep{N}(0)
 Base.conj(c::ZNIrrep{N}) where {N} = ZNIrrep{N}(-c.n)
 ⊗(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = (ZNIrrep{N}(c1.n+c2.n),)
 
+ZNIrrep{N}(n::Real) where {N} = convert(ZNIrrep{N}, n)
 Base.convert(Z::Type{<:ZNIrrep}, n::Real) = Z(convert(Int, n))
 
 const ℤ₂ = ZNIrrep{2}
@@ -50,12 +51,15 @@ Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 ⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
 
+U1Irrep(j::Real) = convert(U1Irrep, j)
 Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(HalfInteger, c))
 
 const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
 Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge.num//2) : print(io, "U₁(", c.charge.num//2, ")")
 
+Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
+Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} = isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInteger) < c1.charge == -c2.charge
 Base.hash(c::ZNIrrep{N}, h::UInt64) where {N} = hash(c.n, h)
 Base.hash(c::U1Irrep, h::UInt64) = hash(c.charge, h)
 # NOTE: FractionalU1Charge?
@@ -68,6 +72,10 @@ Base.show(io::IO, ::SU2IrrepException) = print(io, "Irreps of (bosonic or fermio
 
 struct SU2Irrep <: Sector
     j::HalfInteger
+    function SU2Irrep(j::HalfInteger)
+        j >= 0 || error("Not a valid SU₂ irrep")
+        new(j)
+    end
 end
 _getj(s::SU2Irrep) = s.j.num//2
 
@@ -75,7 +83,7 @@ Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInteger))
 Base.conj(s::SU2Irrep) = s
 ⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(HalfInteger, abs(s1.j.num-s2.j.num):2:(s1.j.num+s2.j.num) )
 
-Base.convert(::Type{SU2Irrep}, j::HalfInteger) = SU2Irrep(j)
+SU2Irrep(j::Real) = convert(SU2Irrep, j)
 Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(convert(HalfInteger, j))
 
 dim(s::SU2Irrep) = s.j.num+1
@@ -104,7 +112,9 @@ end
 const SU₂ = SU2Irrep
 Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
 Base.show(io::IO, s::SU2Irrep) = get(io, :compact, false) ? print(io, s.j.num//2) : print(io, "SU₂(", s.j.num//2, ")")
+
 Base.hash(s::SU2Irrep, h::UInt64) = hash(s.j, h)
+Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 
 # U₁ ⋉ C (U₁ and charge conjugation)
 struct CU1Irrep <: Sector
@@ -115,6 +125,7 @@ struct CU1Irrep <: Sector
 end
 _getj(s::CU1Irrep) = s.j.num//2
 Base.hash(c::CU1Irrep, h::UInt64) = hash(c.s, hash(c.j, h))
+Base.isless(c1::CU1Irrep, c2::CU1Irrep) = isless(c1.j, c2.j) || (c1.j == c2.j == 0 && c1.s < c2.s)
 
 CU1Irrep(j::Real, s::Int = ifelse(j>0, 2, 0)) = CU1Irrep(convert(HalfInteger, j), s)
 
