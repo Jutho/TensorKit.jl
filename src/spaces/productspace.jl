@@ -57,6 +57,11 @@ dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N}
 
 Base.axes(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N,<:Sector}) where {N} = map(axes, P.spaces, sectors)
 
+"""
+    dims(::ProductSpace{S,N}) -> Dims{N} = NTuple{N,Int}
+
+Return the dimensions of the spaces in the tensor product space as a tuple of integers.
+"""
 function blocksectors(P::ProductSpace{S,N}) where {S,N}
     G = sectortype(S)
     if G == Trivial
@@ -112,8 +117,8 @@ Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
     one(::S) where {S<:ElementarySpace} -> ProductSpace{S,0}
     one(::ProductSpace{S}) where {S<:ElementarySpace} -> ProductSpace{S,0}
 
-Return a tensor product of zero spaces of type `S`, i.e. this is the unit object under
-the tensor product operation, such that `V ⊗ one(V) == V`.
+Return a tensor product of zero spaces of type `S`, i.e. this is the unit object under the
+tensor product operation, such that `V ⊗ one(V) == V`.
 """
 Base.one(V::VectorSpace) = one(typeof(V))
 Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,0}(())

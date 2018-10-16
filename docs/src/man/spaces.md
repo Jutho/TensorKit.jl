@@ -142,7 +142,7 @@ end
 ```
 Given some `V1::S`, `V2::S`, `V3::S` of the same type `S<:ElementarySpace`, we can easily
 construct `ProductSpace{S,3}((V1,V2,V3))` as `ProductSpace(V1,V2,V3)` or using `V1 ⊗ V2 ⊗ V3`,
-where `⊗` is simply obtained by typing `\otimes`+TAB. In fact, for convience, even the regular
+where `⊗` is simply obtained by typing `\otimes`+TAB. In fact, for convenience, even the regular
 multiplication operator `*` acts as tensor product between vector spaces, and as a consequence
 so does raising a vector space to a positive integer power, i.e.
 ```@repl tensorkit
@@ -151,10 +151,12 @@ V2 = ℂ^3
 V1 ⊗ V2 ⊗ V1' == V1 * V2 * V1' == ProductSpace(V1,V2,V1') == ProductSpace(V1,V2) ⊗ V1'
 V1^3
 dim(V1 ⊗ V2)
+dims(V1 ⊗ V2)
 dual(V1 ⊗ V2)
 ```
-Note that the rationale for the last result was explained in the subsection [Duals](@ref) of
-[Properties of monoidal categories](@ref).
+Here, the new function `dims` maps `dim` to the individual spaces in a `ProductSpace` and returns
+the result as a tuple. Note that the rationale for the last result was explained in the subsection
+[Duals](@ref) of [Properties of monoidal categories](@ref).
 
 Following Julia's Base library, the function `one` applied to a `ProductSpace{S,N}` returns
 the multiplicative identity, which is `ProductSpace{S,0}`. The same result is obtained when

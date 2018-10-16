@@ -23,7 +23,7 @@ export SpaceMismatch, SectorMismatch, IndexError # error types
 # general vector space methods
 export space, field, dual, dim, dims, fuse, flip, isdual
 # methods for sectors and properties thereof
-export sectortype, sectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
+export sectortype, sectors, checksectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 export fusiontrees, braid, repartition
 
@@ -34,7 +34,7 @@ export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps
 export domain, codomain
-export blocksectors, block, blocks
+export blocksectors, blockdim, block, blocks
 
 # random methods for constructor
 export randuniform, randnormal, randisometry
@@ -91,7 +91,7 @@ include("auxiliary/random.jl")
 #--------------------------------------------------------------------
 # experiment with different dictionaries
 const SectorDict{K,V} = VectorDict{K,V}
-const FusionTreeDict{K,V} = VectorDict{K,V}
+const FusionTreeDict{K,V} = Dict{K,V}
 #--------------------------------------------------------------------
 
 # Exception types:

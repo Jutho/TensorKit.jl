@@ -30,8 +30,8 @@ Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) = key
 """
     struct ZNSpace{N} <: AbstractRepresentationSpace{ZNIrrep{N}}
 
-Optimized implementation of a graded `ℤ_N` space, i.e. a complex Euclidean space graded
-by the irreps of type [`ZNIrrep{N}`](@ref).
+Optimized implementation of a graded `ℤ_N` space, i.e. a complex Euclidean space graded by the
+irreps of type [`ZNIrrep{N}`](@ref).
 """
 struct ZNSpace{N} <: RepresentationSpace{ZNIrrep{N}}
     dims::NTuple{N,Int}

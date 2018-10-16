@@ -12,27 +12,127 @@ representations, such that the corresponding vector spaces also have a natural E
 product. In particular, the Euclidean inner product between two vectors is invariant under the
 group action, i.e. the scalar field corresponds to the trivial representation of the group.
 
-In particular, the corresponding vector spaces will be canonically represented as ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``,
+The corresponding vector spaces will be canonically represented as ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``,
 where ``a`` labels the different irreps, ``n_a`` is the number of times irrep ``a`` appears and
-``R_a`` is the vector space associated with irrep ``a``. Irreps are also known as spin (in the
-case of ``\mathsf{SU}_2``) or charge (in the case of `\mathsf{U}_1`). The dimension of ``R_a``
-is denoted  as ``d_a`` and henceforth called the quantum dimension; it is always one for abelian
-groups, in which case the `R_a` spaces are trivial. In any case, it is `n_a` which will affect
-the number of free elements in a tensor, whereas the part that lives in `R_a` will be fixed by
-the [Clebsch-Gordan (CG) coefficients](https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients)
-of the group, and more generally, the fusion trees. This is discussed later. For now, it suffices
-to know that we do not need the actual CG coefficients, but only how they transform under transformations
-such as interchanging the order of the incoming irreps or interchanging incoming and outgoing irreps.
-This information is known as the topological data of the group, i.e. mainly the F-symbols, which
-are also known as recoupling coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol)
-(more accurately, it's actually [Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient))
-in the case of ``\mathsf{SU}_2``.
+``R_a`` is the vector space associated with irrep ``a``. Irreps are also known as spin sectors
+(in the case of ``\mathsf{SU}_2``) or charge sectors (in the case of `\mathsf{U}_1`), and we
+henceforth refer to `a` as a sector. As is briefly discussed below, the approach we follow does
+in fact go beyond the case of irreps of groups, and sectors would more generally correspond to
+simple objects in a (ribbon) fusion category. Nonetheless, every step can be appreciated by using
+the representation theory of ``\mathsf{SU}_2`` or ``\mathsf{SU}_3`` as example. The vector space
+``V`` is completely specified by the values of `n_a`.
 
-An irrep is also referred to as a spin sector (in the case of ``\mathsf{SU}_2``) or charge sector
-(in the case of ``\mathsf{U}_1``). Henceforth, we will refer to them exclusively as **sector**,
-also because the required formalism is actually not restricted to representations of groups.
-Mathematically, it can in principle be used for any (unitary) [fusion category](https://en.wikipedia.org/wiki/Fusion_category),
-where the sectors `a` are also known as the simple objects.
+The gain in efficiency (both in memory occupation and computation time) obtained from using
+symmetric tensor maps is that, by Schur's lemma, they are block diagonal in the basis of
+coupled sectors. To exploit this block diagonal form, it is however essential that we know
+the basis transform from the individual (uncoupled) sectors appearing in the tensor product
+form of the domain and codomain, to the totally coupled sectors that label the different blocks.
+We refer to the latter as block sectors. The transformation from the uncoupled sectors in the
+domain (or codomain) of the tensor map to the block sector is encoded in a fusion tree (or splitting
+tree). Essentially, it is a sequential application of pairwise fusion as described by the group's
+[Clebsch-Gordan (CG) coefficients](https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients).
+However, it turns out that we do not need the actual CG coefficients, but only how they transform
+under transformations such as interchanging the order of the incoming irreps or interchanging
+incoming and outgoing irreps. This information is known as the topological data of the group, i.e.
+mainly the F-symbols, which are also known as recoupling coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol) (more accurately, it's actually
+[Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient)) in the case of ``\mathsf{SU}_2``.
+
+Below, we describe how to specify a certain type of sector what information about them
+needs to be implemented. Then, we describe how to build a space `V` composed of a direct sum
+of different sectors. In the last section, we explain the details of fusion trees, i.e. their
+construction and manipulation. But first, we provide a quick theoretical overview of the required
+data of the representation theory of a group.
+
+## Representation theory and unitary fusion categories
+
+Let the different irreps or sectors be labeled as ``a``, ``b``, ``c``, … First and foremost,
+we need to specify the *fusion rules* ``a ⊗ b = ⨁ N_{a,b}^{c} c`` with `N_{a,b}^c` some non-negative
+integers. There should always exists a unique trivial sector ``u`` such that ``a ⊗ u = a = u ⊗ a``.
+Furthermore, there should exist a unique sector ``\overline{a}`` such that ``N_{a,\overline{a}}^{u} = 1``,
+whereas for all ``b ≂̸ \overline{a}``, ``N_{a,b}^{u} = 0``. For example, for the representations
+of ``\mathsf{SU}_2``, all irreps are self-dual (i.e. ``a = \overline{a}``) and the trivial
+sector corresponds to spin zero.
+
+The meaning of the fusion rules is that the space of transformations ``R_a ⊗ R_b → R_c`` (or vice
+versa) has dimension ``N_{a,b}^c``. In particular, we assume the existence of a basis consisting of
+unitary tensor maps ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` with `μ = 1, \ldots, N_{a,b}^c` such that
+
+``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}``
+
+and
+
+``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
+
+The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the fusion
+tensors. They are only determined up to a unitary basis transform within the space, i.e. acting
+on the multiplicity label ``μ``. For ``\mathsf{SU}_2``, where ``N_{a,b}^c`` is zero or one and the
+multiplicity labels are absent, the entries of ``X_{a,b}^{c}`` are precisely given by the CG
+coefficients. The point is that we do not need to know the tensors ``X_{a,b}^{c,μ}``, the topological
+data of (the representation category of) the group describes the following transformation:
+
+*   F-move or recoupling: the transformation between ``(a ⊗ b) ⊗ c`` to ``a ⊗ (b ⊗ c)``:
+
+    ``(X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) ∘ X_{e,c}^{d,ν} = ∑_{f,κ,λ} [F^{a,b,c}_{d}]^{e,μν}_{f,κλ} (X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) X_{e,c}^{d,ν} (\mathrm{id}_a ⊗ X_{b,c}^{f,κ}) ∘ X_{a,f}^{d,λ}``
+
+*   [Braiding](@ref) or permuting as defined by ``σ_{a,b}: R_a ⊗ R_b → R_b ⊗ R_a``:
+
+    ``σ_{R_a,R_b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}
+
+The dimensions of the spaces ``R_a`` on which representation ``a`` acts are denoted as ``d_a``
+and referred to as quantum dimensions. In particular ``d_u = 1`` and ``d_a = d_{\overline{a}}``.
+This information is also encoded in the F-symbol as ``d_a = | [F^{a \overline{a} a}_a]^u_u |^{-1}``.
+Note that there are no multiplicity labels in that particular F-symbol as `N_{a,\overline{a}}^u = 1`.
+
+If, for every ``a`` and ``b``, there is a unique ``c`` such that ``a ⊗ b = c``
+(i.e. ``N_{a,b}^{c} = 1`` and ``N_{a,b}^{c′} = 0`` for all other ``c′``), the category is abelian.
+Indeed, the representations of a group have this property if and only if the group multiplication
+law is commutative. In that case, all spaces ``R_{a}`` associated with the representation are
+one-dimensional and thus trivial. In all other cases, the category is nonabelian. We find it
+useful to further finegrain between categories which have all ``N_{a,b}^c`` equal to zero or
+one (such that no multiplicity labels are needed), e.g. the representations of ``\mathsf{SU}_2``,
+and those where some ``N_{a,b}^c`` are larger than one, e.g. the representations of ``\mathsf{SU}_3``.
+
+
+
+
+
+Using ``R_u ≂ ℂ``, ``λ_{R_} ``η_{R_{\overline{a}}}``
+
+
+
+
+
+
+
+If, for every ``a`` and ``b``, there is a unique ``c`` such that ``a ⊗ b = c``
+(i.e. ``N_{a,b}^{c} = 1`` and ``N_{a,b}^{c′} = 0`` for all other ``c′``), the category is Abelian.
+Indeed, the representations of a group have this property if and only if the group multiplication
+law is commutative. In that case, all spaces ``R_{a}`` associated with the representation are
+one-dimensional and thus trivial.
+
+
+
+Furthermore, there is a relation between splitting vertices and fusion vertices given by the
+B-symbol, but we refer to the section on [Fusion trees](@ref) for the precise definition and
+further information. The required data is completely encoded in the the F-symbol, and corresponding
+Julia function `Bsymbol(a,b,c)`
+
+
+
+
+There should always exists a unique trivial sector ``u`` such that ``a ⊗ u = a = u ⊗ a``.
+Furthermore, there should exist a unique sector ``\overline{a}`` such that ``N_{a,\overline{a}}^{u} = 1``,
+whereas for all ``b ≂̸ \overline{a}``, ``N_{a,b}^{u} = 0``. For example, for the representations
+of ``\mathsf{SU}_2``, all irreps are self-dual (i.e. ``a = \overline{a}``) and the trivial
+sector corresponds to spin zero.
+
+
+
+
+The dimensions of the spaces ``R_a`` on which representation
+``a`` acts are denoted as ``d_a`` and referred to as quantum dimensions. In particular ``d_u = 1``
+and ``d_a = d_{\overline{a}}``.
+
 
 ## Sectors
 
@@ -89,41 +189,32 @@ end
 New sector types `G<:Sector` should then indicate which fusion style they have by defining
 `FusionStyle(::Type{G})`.
 
-Schematically representing the CG coefficients or splitting vertex to go from the ``μ``th copy
-of `c` back to the original basis of ``a ⊗ b`` (with ``μ = 1, …, N_{a,b}^c``) as
-```
-a -<-μ-<- c
-     ∨
-     b
-```
-we define the F-symbols as
-```
-a-<-μ-<-e-<-ν-<-d                                     a-<-λ-<-d
-    ∨       ∨       -> Fsymbol(a,b,c,d,e,f)[μ,ν,κ,λ]      ∨
-    b       c                                         b-<-κ
-                                                          ∨
-                                                          c
-```
-and the R-symbols as
-```
-a -<-μ-<- c                                 b -<-ν-<- c
-     ∨          -> Rsymbol(a,b,c)[μ,ν]           ∧
-     b                                           a
-```
-If `FusionStyle(G) == Abelian()` or `FusionStyle(G) == NonAbelian()`, then there are no multiplicity
-labels and the functions `Fsymbol` and `Rsymbol` can just return a `Number`, in the case of
-`FusionStyle(G) == DegenerateNonAbelian()`, an `Array{<:Number,4}` and `Array{<:Number,2}` need
-to be returned.
+In the representation and manipulation of symmetric tensors, it will be important to couple
+or fuse different sectors together into a single block sector. The section on [fusion trees](@ref)
+describes the details of this process, which consists of pairwise fusing two sectors into a single
+coupled sector, which is then fused with the next uncoupled sector. For this, we assume the
+existence of unitary tensor maps ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b``
+such that ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
+
+``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
+
+The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the fusion
+tensors. For ``\mathsf{SU}_2``, their entries are precisely given by the CG coefficients. The
+point is that we do not need to know the tensors ``X_{a,b}^{c,μ}``, the topological data of (the
+representation category of) the group describes the following transformation:
+
+*   F-move or recoupling: the transformation between ``(a ⊗ b) ⊗ c`` to ``a ⊗ (b ⊗ c)``:
+
+    ``(X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) ∘ X_{e,c}^{d,ν} = ∑_{f,κ,λ} [F^{a,b,c}_{d}]^{e,μν}_{f,κλ} (X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) X_{e,c}^{d,ν} (\mathrm{id}_a ⊗ X_{b,c}^{f,κ}) ∘ X_{a,f}^{d,λ}``
+
+*   [Braiding](@ref) or permuting as defined by ``σ_{a,b}: R_a ⊗ R_b → R_b ⊗ R_a``:
+
+    ``σ_{a,b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}
 
 Furthermore, there is a relation between splitting vertices and fusion vertices given by the
-B-symbol
-```
-a -<-μ-<- c                                 a -<-ν-<- c
-     ∨          -> Bsymbol(a,b,c)[μ,ν]           ∧
-     b                                         dual(b)
-```
-There is a different relation via the so-called A-symbol, which we do not need. Both A- and B-symbols
-are completely determined by the F-symbol, and corresponding Julia function `Bsymbol(a,b,c)`
+B-symbol, but we refer to the section on [Fusion trees](@ref) for the precise definition and
+further information. The required data is completely encoded in the the F-symbol, and corresponding
+Julia function `Bsymbol(a,b,c)`
 is implemented as
 ```julia
 function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
@@ -134,8 +225,7 @@ function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
     end
 end
 ```
-but a more efficient implementation may be provided. We refer to the section on [Fusion trees](@ref)
-for further information.
+but a more efficient implementation may be provided.
 
 Before discussing in more detail how a new sector type should be implemented, let us study
 the cases which have already been implemented. Currently, they all correspond to the irreps
@@ -384,13 +474,20 @@ elements of `set`; if `f` is not provided it is just taken as the function `iden
 ### Generalizations
 
 As mentioned before, the framework for sectors outlined above depends is in one-to-one correspondence
-to the topological data for specifying a unitary fusion category. In fact, because we also need
-a braiding (corresponding to `Rsymbol(a,b,c)`) it is a so-called ribbon fusion category. However,
-the category does not need to be modular.  The category of representations of a finite group[^1]
-corresponds to a typical example (which is not modular). Other  examples are the representation
-of quasi-triangular Hopf algebras, which are typically known as anyon theories, e.g. Fibonicci
-anyons, Ising anyons, ... In those cases, quantum dimensions `d_a` are complex, and their is
-no vector space interpretation to spaces ``R_a`` in the decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``.
+to the topological data for specifying a unitary [fusion category](https://en.wikipedia.org/wiki/Fusion_category).
+In fact, because we also need a braiding (corresponding to `Rsymbol(a,b,c)`) it is a so-called
+ribbon fusion category. However, the category does not need to be modular.  The category of
+representations of a finite group[^1] corresponds to a typical example (which is not modular
+and which have a symmetric braiding). Other examples are the representation of quasi-triangular
+Hopf algebras, which are typically known as anyon theories in the physics literature, e.g. Fibonicci
+anyons, Ising anyons, … In those cases, quantum dimensions `d_a` are complex, and there is no
+vector space interpretation to objects ``R_a`` (which we can identify with just `a`) in the
+decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``. The different sectors `a`, … just represent abstract
+objects. However, there is still a vector space associated with the homomorphisms `a ⊗ b → c`,
+whose dimension is `N_{a,b}^c`. The objects `X_{a,b}^{c,μ}` for `μ = 1,…,N_{a,b}^c` serve as
+an abstract basis for this space and from there on the discussion is completely equivalent.
+
+So far, none of these cases have been implemented, but it is a simple exercise to do so.
 
 ## Representation spaces
 We have introduced `Sector` subtypes as a way to label the irreps or sectors in the decomposition
@@ -398,15 +495,171 @@ We have introduced `Sector` subtypes as a way to label the irreps or sectors in 
 type `RepresentationSpace`, which is a subtype of `EuclideanSpace{ℂ}`, i.e.
 ```julia
 abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
-const Rep{G<:Sector} = RepresentationSpace{G}
 ```
 Note that this is still an abstract type, nonetheless it will be the type name that the user
-calls to create specific instances. Therefore, there is also a type alias `Rep{G}`, which serves
-as an abbreviation and is clearly a pun on ``Rep{\mathsf{G}⁠}``, the representation category.
+calls to create specific instances.
+### Types
+The actual implementation comes in two flavors
+```julia
+struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
+    dims::SectorDict{G,Int}
+    dual::Bool
+end
+struct ZNSpace{N} <: RepresentationSpace{ZNIrrep{N}}
+    dims::NTuple{N,Int}
+    dual::Bool
+end
+```
+The `GenericRepresentationSpace` is the default implementation and stores the different
+sectors ``a`` and their corresponding degeneracy ``n_a`` as key value pairs in an `Associative`
+array, i.e. a dictionary `dims::SectorDict`. `SectorDict` is a constant type alias for a specific
+dictionary implementation, either Julia's default `Dict` or the type `VectorDict` implemented
+in TensorKit.jl. Note that only sectors ``a`` with non-zero ``n_a`` are stored. The second implementation
+`ZNSpace{N}` is a dedicated implementation for `ZNIrrep{N}` symmetries, and just stores all `N`
+different values ``n_a`` in a tuple.
 
-The actual implementation comes in two flavors 
+As mentioned, creating instances of these types goes via `RepresentationSpace`, using a list
+of pairs `a=>n_a`, i.e. `V = RepresentationSpace(a=>n_a, b=>n_b, c=>n_c)`. In this case, the sector
+type `G` is inferred from the sectors. However, it is often more convenient to specify the sector
+type explicitly, since then the sectors are automatically converted to the correct type, i.e.
+compare
+```@repl tensorkit
+RepresentationSpace{U1Irrep}(0=>3, 1=>2, -1=>1) == RepresentationSpace(U1Irrep(0)=>3, U1Irrep(1)=>2, U1Irrep(-1)=>1)
+```
+or using Unicode
+```@repl tensorkit
+RepresentationSpace{U₁}(0=>3, 1=>2, -1=>1) == RepresentationSpace(U₁(0)=>3, U₁(1)=>2, U₁(-1)=>1)
+```
+However, both are still to long for the most common cases. Therefore, we provide a number of
+type aliases, both in plain ASCII and in Unicode
+```julia
+const ℤ₂Space = ZNSpace{2}
+const ℤ₃Space = ZNSpace{3}
+const ℤ₄Space = ZNSpace{4}
+const U₁Space = GenericRepresentationSpace{U₁}
+const CU₁Space = GenericRepresentationSpace{CU₁}
+const SU₂Space = GenericRepresentationSpace{SU₂}
+
+# non-Unicode alternatives
+const Z2Space = ℤ₂Space
+const Z3Space = ℤ₃Space
+const Z4Space = ℤ₄Space
+const U1Space = U₁Space
+const CU1Space = CU₁Space
+const SU2Space = SU₂Space
+```
+
+### Methods
+There are a number of methods to work with instances `V` of `RepresentationSpace`. The function
+[`sectortype`](@ref) returns the type of the sector labels. It also works on other vector spaces,
+in which case it returns [`Trivial`](@ref). The function [`sectors`](@ref) returns an iterator
+over the different sectors `a` with non-zero `n_a`, for other `ElementarySpace` types it returns
+`(Trivial,)`. The degeneracy dimensions `n_a` can be extracted as `dim(V, a)`, it properly returns
+`0` if sector `a` is not present in the decomposition of `V`. With `checksectors(V, a)` one can
+check if `V` contains a sector `a` with `dim(V,a)>0`. Finally, `dim(V)` returns the total dimension
+of the space `V`, i.e. ``∑_a n_a d_a`` or thus `dim(V) = sum(dim(V,a) * dim(a) for a in sectors(V))`.
+
+Other methods for `ElementarySpace`, such as [`dual`](@ref), [`fuse`](@ref) and [`flip`](@ref)
+also work. In fact, `RepresentationSpace` is the reason `flip` exists, cause in this case it
+is different then `dual`. The existence of flip originates from the non-trivial isomorphism
+between ``R_{\overline{a}}`` and ``R_{a}^*``, i.e. the representation space of the dual ``\overline{a}``
+of sector ``a`` and the dual of the representation space of sector ``a``.
+
+
+
+
+In order for `flip(V)` to be isomorphic to `V`, it is such that, if
+`V = RepresentationSpace(a=>n_a,...)` then `flip(V) = dual(RepresentationSpace(dual(a)=>n_a,....))`.
+Furthermore, for two spaces `V1 = RepresentationSpace(a=>n1_a, ...)` and `V2 = RepresentationSpace(a=>n2_a, ...)`,
+we have `min(V1,V2) = RepresentationSpace(a=>min(n1_a,n2_a), ....)` and similarly for `max`,
+i.e. they act on the degeneracy dimensions of every sector separately. Therefore, it can be
+that the return value of `min(V1,V2)` or `max(V1,V2)` is neither equal to `V1` or `V2`.
+
+For `W` a `ProductSpace{<:RepresentationSpace{G},N}`, `sectors(W)` returns an iterator that
+generates all possible combinations of sectors `as` represented as `NTuple{G,N}`. The function
+`dims(W, as)` returns the corresponding tuple with degeneracy dimensions, while `dim(W, as)` returns
+the product of these dimensions. `checksectors(W, as)` is equivalent to `dim(W, as)>0`. Finally,
+there is the function [`blocksectors(W)`](@ref) which returns a list (of type `Vector`) with all possible
+"block sectors" or total/coupled sectors that can result from fusing the individual uncoupled
+sectors in `W`. Correspondingly, [`blockdim(W, a)`](@ref) counts the total dimension of coupled sector `a`
+in `W`. The machinery for computing this is the topic of the next section on [Fusion trees](@ref),
+but first, it's time for some examples.
+
+### Examples
+Let's start with an example involving ``\mathsf{U}_1``:
+```@repl tensorkit
+V1 = RepresentationSpace{U₁}(0=>3, 1=>2, -1=>1)
+V1 == U1Space(0=>3, 1=>2, -1=>1) == U₁Space(0=>3, 1=>2, -1=>1)
+(sectors(V1)...,)
+dim(V1, U₁(1))
+dim(V1)
+checksectors(V1, U₁(1))
+checksectors(V1, U₁(2))
+dual(V1)
+flip(V1)
+V2 = U1Space(0=>2, 1=>1, -1=>1, 2=>1, -2=>1)
+min(V1,V2)
+max(V1,V2)
+⊕(V1,V2)
+W = ⊗(V1,V2)
+(sectors(W)...,)
+dims(W, (U₁(0), U₁(0)))
+dim(W, (U₁(0), U₁(0)))
+checksectors(W, (U₁(0), U₁(0)))
+checksectors(W, (U₁(2), U₁(0)))
+fuse(W)
+(blocksectors(W)...,)
+blockdim(W, U₁(0))
+```
+and then with ``\mathsf{SU}_2``:
+```@repl tensorkit
+V1 = RepresentationSpace{SU₂}(0=>3, 1//2=>2, 1=>1)
+V1 == SU2Space(0=>3, 1//2=>2, 1=>1) == SU₂Space(0=>3, 1//2=>2, 1=>1)
+(sectors(V1)...,)
+dim(V1, SU₂(1))
+dim(V1)
+checksectors(V1, SU₂(1))
+checksectors(V1, SU₂(2))
+dual(V1)
+flip(V1)
+V2 = SU2Space(0=>2, 1//2=>1, 1=>1, 3//2=>1, 2=>1)
+min(V1,V2)
+max(V1,V2)
+⊕(V1,V2)
+W = ⊗(V1,V2)
+(sectors(W)...,)
+dims(W, (SU₂(0), SU₂(0)))
+dim(W, (SU₂(0), SU₂(0)))
+checksectors(W, (SU₂(0), SU₂(0)))
+checksectors(W, (SU₂(2), SU₂(0)))
+fuse(W)
+(blocksectors(W)...,)
+blockdim(W, SU₂(0))
+```
 
 ## Fusion trees
+
+The gain in efficiency (both in memory occupation and computation time) obtained from using
+symmetric tensor maps is that, by Schur's lemma, they are block diagonal in the basis of
+coupled sectors. To exploit this block diagonal form, it is however essential that we know
+the basis transform from the individual (uncoupled) sectors appearing in the tensor product
+form of the domain and codomain, to the totally coupled sectors that label the different blocks.
+We refer to the latter as block sectors, as we already encountered in the previous section
+[`blocksectors`](@ref) and [`blockdim`](@ref) defined on the type [`ProductSpace`](@ref).
+
+To couple or fuse the different sectors together into a single block sector, we sequentially
+fuse together two sectors into a single coupled sector, which is then fused with the next uncoupled
+sector. For this, we assume the existence of unitary tensor maps ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b``
+introduced in the section [Sectors](@ref).
+
+
+such that ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
+
+``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
+
+The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the fusion
+tensors. For ``\mathsf{SU}_2``, their entries are given by the Clebsch-Gordan coefficients
+
 ### Canonical representation
 ### Possible manipulations
 
