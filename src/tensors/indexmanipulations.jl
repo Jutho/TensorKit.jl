@@ -9,25 +9,33 @@ the codomain or range of the map, and indices in `p2` indicating the domain.
 
 To permute into an existing `tdst`, use `permuteind!(tdst, tsrc, p1, p2)`.
 """
-function permuteind(t::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {S,N₁,N₂}
+function permuteind(t::TensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {S,N₁,N₂}
+    cod = ProductSpace{S,N₁}(map(n->space(t, n), p1))
+    dom = ProductSpace{S,N₂}(map(n->dual(space(t, n)), p2))
+
     if !copy
         # share data if possible
-        if (p1..., p2...) == ntuple(identity, StaticLength(N₁)+StaticLength(N₂))
-            if isa(t, AbstractTensorMap{S,N₁,N₂})
-                return t
-            elseif isa(t, TensorMap) && sectortype(S) == Trivial
-                spacet = codomain(t) ⊗ dual(domain(t))
-                cod = spacet[map(n->tensor2spaceindex(t,n), p1)]
-                dom = dual(spacet[map(n->tensor2spaceindex(t,n), reverse(p2))])
+        if p1 === codomainind(t) && p2 === domainind(t)
+            return t
+        elseif isa(t, TensorMap) && sectortype(S) == Trivial
+            s = strides(t[])
+            if s === TupleTools.getindices(s, (p1..., p2...))
                 return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
             end
         end
     end
     # general case
     @inbounds begin
-        return permuteind!(similar_from_indices(eltype(t), p1, p2, t), t, p1, p2)
+        return permuteind!(similar(t, cod←dom), t, p1, p2)
     end
 end
+
+function permuteind(t::AdjointTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {S,N₁,N₂}
+    p1′ = map(n->adjointtensorindex(t, p2))
+    p2′ = map(n->adjointtensorindex(t, p1))
+    adjoint(permuteind(adjoint(t), p1′, p2′); copy = copy)
+end
+
 
 @propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂} = add!(1,tsrc,0,tdst,p1,p2)
 

@@ -78,8 +78,8 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
     end
     @testset "Permutations: test via inner product invariance" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        t = Tensor(rand, Float64, W);
-        t′ = Tensor(rand, Float64, W);
+        t = Tensor(rand, ComplexF64, W);
+        t′ = Tensor(rand, ComplexF64, W);
         for k = 0:5
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))
@@ -93,7 +93,7 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
     end
     @testset "Permutations: test via conversion" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        t = Tensor(rand, Float64, W);
+        t = Tensor(rand, ComplexF64, W);
         for k = 0:5
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))
@@ -102,6 +102,25 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
             end
         end
     end
+    @testset "Tensor contraction: test via conversion" begin
+        A1 = TensorMap(randn, ComplexF64, V1*V2, V3)
+        A2 = TensorMap(randn, ComplexF64, V3*V4, V5)
+        rhoL = TensorMap(randn, ComplexF64, V1, V1)
+        rhoR = TensorMap(randn, ComplexF64, V5, V5)
+        H = TensorMap(randn, ComplexF64, V2*V4, V2*V4)
+        @tensor HrA12[a, s1, s2, c] := rhoL[a, a'] * A1[a', t1, b] *
+            A2[b, t2, c'] * rhoR[c', c] * H[s1, s2, t1, t2]
+
+        @tensor HrA12array[a, s1, s2, c] := convert(Array, rhoL)[a, a'] *
+            convert(Array, A1)[a', t1, b] *
+            convert(Array, A2)[b, t2, c'] *
+            convert(Array, rhoR)[c', c] *
+            convert(Array, H)[s1, s2, t1, t2]
+
+        @test HrA12array ≈ convert(Array, HrA12)
+    end
+
+
     @testset "Factorization" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)

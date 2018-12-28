@@ -34,8 +34,9 @@ tree). Essentially, it is a sequential application of pairwise fusion as describ
 However, it turns out that we do not need the actual CG coefficients, but only how they transform
 under transformations such as interchanging the order of the incoming irreps or interchanging
 incoming and outgoing irreps. This information is known as the topological data of the group, i.e.
-mainly the F-symbols, which are also known as recoupling coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol) (more accurately, it's actually
-[Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient)) in the case of ``\mathsf{SU}_2``.
+mainly the F-symbols, which are also known as recoupling coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol)
+(more accurately, it's actually [Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient))
+in the case of ``\mathsf{SU}_2``.
 
 Below, we describe how to specify a certain type of sector what information about them
 needs to be implemented. Then, we describe how to build a space `V` composed of a direct sum

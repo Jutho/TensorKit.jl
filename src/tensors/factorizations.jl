@@ -269,8 +269,7 @@ function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncat
         dims = SectorDict{sectortype(t), Int}()
         next = iterate(it)
         if next === nothing
-            fakerealdata = real(storagetype(t)(undef, (0,0)))
-            emptyrealdata = SectorDict{G,typeof(fakerealdata)}()
+            emptyrealdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
             W = S(dims)
             truncerr = abs(zero(eltype(t)))
             return TensorMap(empty(t.data), codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(empty(t.data), W←domain(t)), truncerr

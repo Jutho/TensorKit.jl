@@ -101,14 +101,14 @@ function LinearAlgebra.mul!(t1::AbstractTensorMap, α::Number, t2::AbstractTenso
     return t1
 end
 function LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTensorMap)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMisMatch())
+    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         axpy!(α, StridedView(block(t1, c)), StridedView(block(t2, c)))
     end
     return t2
 end
 function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap, β::Number, t2::AbstractTensorMap)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMisMatch())
+    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         axpby!(α, StridedView(block(t1, c)), β, StridedView(block(t2, c)))
     end
@@ -136,15 +136,22 @@ function _norm(blockiterator, p::Real)
 end
 
 # TensorMap multiplication:
-function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,  tB::AbstractTensorMap)
+function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,  tB::AbstractTensorMap, α = true, β = false)
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB))
         throw(SpaceMismatch())
     end
     for c in blocksectors(tC)
         if hasblock(tA, c) # then also tB should have such a block
-            mul!(block(tC, c), block(tA, c), block(tB, c))
-        else
-            fill!(block(tC, c), 0)
+            A = block(tA, c)
+            B = block(tB, c)
+            C = block(tC, c)
+            if isbitstype(eltype(A)) && isbitstype(eltype(B)) && isbitstype(eltype(C))
+                @unsafe_strided A B C mul!(C, A, B, α, β)
+            else
+                mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
+            end
+        elseif β != one(β)
+            rmul!(block(tC, c), β)
         end
     end
     return tC
@@ -155,6 +162,38 @@ function exp!(t::TensorMap)
     domain(t) == codomain(t) || error("Exponentional of a tensor only exist when domain == codomain.")
     for (c,b) in blocks(t)
         copyto!(b, exp!(b))
+    end
+    return t
+end
+
+# hcat and vcat of tensors
+function Base.hcat(t1::AbstractTensorMap{S,N₁,1}, t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
+    codomain(t1) == codomain(t2) || throw(SpaceMismatch())
+
+    V1, = domain(t1)
+    V2, = domain(t2)
+    isdual(V1) == isdual(V2) || throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
+
+    V = V1 ⊕ V2
+    t = TensorMap(undef, promote_type(eltype(t1),eltype(t2)), codomain(t1), V)
+    for c in sectors(V)
+        block(t,c)[:,1:dim(V1, c)] .= block(t1,c)
+        block(t,c)[:,dim(V1,c) .+ (1:dim(V2, c))] .= block(t2,c)
+    end
+    return t
+end
+function Base.vcat(t1::AbstractTensorMap{S,1,N₂}, t2::AbstractTensorMap{S,1,N₂}) where {S,N₂}
+    domain(t1) == domain(t2) || throw(SpaceMismatch())
+
+    V1, = codomain(t1)
+    V2, = codomain(t2)
+    isdual(V1) == isdual(V2) || throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
+
+    V = V1 ⊕ V2
+    t = TensorMap(undef, promote_type(eltype(t1),eltype(t2)), V, domain(t1))
+    for c in sectors(V)
+        block(t,c)[1:dim(V1, c),:] .= block(t1,c)
+        block(t,c)[dim(V1,c) .+ (1:dim(V2, c)),:] .= block(t2,c)
     end
     return t
 end
