@@ -29,10 +29,10 @@ domain(t::TensorMap) = t.dom
 blocksectors(t::TrivialTensorMap) = (Trivial(),)
 blocksectors(t::TensorMap) = keys(t.data)
 
-Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where {N₁,N₂,A<:DenseMatrix} = A
-Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,G,<:SectorDict{G,A}}}) where {N₁,N₂,G<:Sector,A<:DenseMatrix} = A
-
-Base.@pure Base.eltype(T::Type{<:TensorMap}) = eltype(storagetype(T))
+Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where
+    {N₁,N₂,A<:DenseMatrix} = A
+Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,G,<:SectorDict{G,A}}}) where
+    {N₁,N₂,G<:Sector,A<:DenseMatrix} = A
 
 # Base.length(t::TensorMap) = sum(length(b) for (c,b) in blocks(t)) # total number of free parameters, in order to use e.g. KrylovKit
 
@@ -40,7 +40,7 @@ Base.@pure Base.eltype(T::Type{<:TensorMap}) = eltype(storagetype(T))
 #--------------------------------
 # with data
 function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
-    if sectortype(S) == Trivial # For now, we can only accept array data for Trivial sectortype
+    if sectortype(S) === Trivial # For now, we can only accept array data for Trivial sectortype
         (d1, d2) = (dim(codom), dim(dom))
         if !(length(data) == d1*d2 || size(data) == (d1, d2) ||
             size(data) == (dims(codom)..., dims(dom)...))
@@ -173,10 +173,14 @@ end
 
 # Similar
 #---------
-Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} = TensorMap(d->similar(storagetype(t)(undef, (0,0)), T, d), P)
-Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} = Tensor(d->similar(storagetype(t)(undef, (0,0)), T, d), P)
-Base.similar(t::AbstractTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} = TensorMap(d->similar(storagetype(t)(undef, (0,0)), d), P)
-Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} = Tensor(d->similar(storagetype(t)(undef, (0,0)), d), P)
+Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} =
+    TensorMap(d->similarstoragetype(t, T)(undef, d), P)
+Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} =
+    Tensor(d->similarstoragetype(t, T)(undef, d), P)
+Base.similar(t::AbstractTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} =
+    TensorMap(d->storagetype(t)(undef, d), P)
+Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} =
+    Tensor(d->storagetype(t)(undef, d), P)
 
 # Getting and setting the data
 #------------------------------
@@ -190,18 +194,20 @@ function block(t::TensorMap, s::Sector)
     if haskey(t.data, s)
         return t.data[s]
     else # at least one of the two matrix dimensions will be zero
-        A = storagetype(t)
-        return A(undef, (blockdim(codomain(t),s), blockdim(domain(t), s)))
+        return storagetype(t)(undef, (blockdim(codomain(t),s), blockdim(domain(t), s)))
     end
 end
 
-blocks(t::TensorMap{<:IndexSpace,N₁,N₂,Trivial}) where {N₁,N₂} = SingletonDict(Trivial()=>t.data)
+blocks(t::TensorMap{<:IndexSpace,N₁,N₂,Trivial}) where {N₁,N₂} =
+    SingletonDict(Trivial()=>t.data)
 blocks(t::TensorMap) = t.data
 
 fusiontrees(t::TrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 
-@inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G}, sectors::Tuple{Vararg{G}}) where {N₁,N₂,G<:Sector}
+@inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G},
+                                sectors::Tuple{Vararg{G}}) where {N₁,N₂,G<:Sector}
+
     FusionStyle(G) isa Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
     s2 = TupleTools.getindices(sectors, domainind(t))
@@ -217,9 +223,12 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
         return t[f1,f2]
     end
 end
-@propagate_inbounds Base.getindex(t::TensorMap, sectors::Tuple) = t[map(sectortype(t), sectors)]
+@propagate_inbounds Base.getindex(t::TensorMap, sectors::Tuple) =
+    t[map(sectortype(t), sectors)]
 
-@inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector}
+@inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G},
+        f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector}
+
     c = f1.coupled
     @boundscheck begin
         c == f2.coupled || throw(SectorMismatch())

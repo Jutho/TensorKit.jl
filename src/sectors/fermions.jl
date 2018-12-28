@@ -1,6 +1,18 @@
 # Sectors giving rise to super vector spaces, which have at least a Z2 grading
 #==============================================================================#
-abstract type Fermion <: Sector end
+abstract type AbstractFermion end
+
+
+
+struct Fermion{G<:Sector,F} <: Sector end
+    sector::G
+    parity::F
+end
+
+z2fermionparity(c::ℤ₂) = isodd(c.n)
+u1fermionparity(c::U₁) = isodd(c.charge)
+const FermionParity = Fermion{ℤ₂,typeof(z2fermionparity)}
+
 
 Base.@pure BraidingStyle(::Type{<:Fermion}) = Fermionic()
 

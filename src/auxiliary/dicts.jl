@@ -89,3 +89,75 @@ function Base.iterate(d::VectorDict, s = 1)
         return (d.keys[s] => d.values[s]), s+1
     end
 end
+
+struct SortedVectorDict{K,V} <: AbstractDict{K,V}
+    pairs::Vector{Pair{K,V}}
+    function SortedVectorDict{K,V}(pairs::Vector{Pair{K,V}}) where {K,V}
+        if !issorted(pairs, by=first)
+            pairs = sort(pairs, by=first)
+        end
+        return new{K,V}(pairs)
+    end
+end
+function SortedVectorDict{K,V}(kv) where {K,V}
+    pairs = Vector{Pair{K,V}}()
+    if Base.IteratorSize(kv) !== SizeUnknown()
+        sizehint!(pairs, length(kv))
+    end
+    for (k,v) in kv
+        push!(pairs, k=>v)
+    end
+    return SortedVectorDict{K,V}(pairs)
+end
+SortedVectorDict{K,V}() where {K,V} = SortedVectorDict{K,V}(Vector{Pair{K,V}}())
+SortedVectorDict(pairs::Vector{Pair{K,V}}) where {K,V} = SortedVectorDict{K,V}(pairs)
+SortedVectorDict(kv::Pair{K,V}...) where {K,V} = SortedVectorDict{K,V}(kv)
+SortedVectorDict(g::Base.Generator) = SortedVectorDict(collect(g))
+
+Base.length(d::SortedVectorDict) = length(d.pairs)
+Base.sizehint!(d::SortedVectorDict, newsz) = (sizehint!(d.pairs, newsz); return d)
+
+Base.copy(d::SortedVectorDict) = SortedVectorDict(copy(d.pairs))
+Base.empty(::SortedVectorDict, ::Type{K}, ::Type{V}) where {K, V} = SortedVectorDict{K, V}()
+Base.empty!(d::SortedVectorDict) = (empty!(d.pairs); return d)
+
+function Base.delete!(d::SortedVectorDict, key)
+    i = searchsortedfirst(d.pairs, key; by=first)
+    if i <= length(d.pairs) && first(d.pairs[i]) == key
+        deleteat!(d.pairs , i)
+    end
+    return d
+end
+
+Base.keys(d::SortedVectorDict) = Base.Generator(first, d.pairs)
+Base.values(d::SortedVectorDict) = Base.Generator(last, d.pairs)
+Base.haskey(d::SortedVectorDict, key) = !isempty(searchsortedfirst(d.pairs, key; by=first))
+function Base.getindex(d::SortedVectorDict, key)
+    i = searchsortedfirst(d.pairs, key; by=first)
+    @inbounds begin
+        return (i <= length(d.pairs) && first(d.pairs[i]) == key) ? last(d.pairs[i]) : throw(KeyError(key))
+    end
+end
+function Base.setindex!(d::SortedVectorDict, v, key)
+    i = searchsortedfirst(d.pairs, key; by=first)
+    if i <= length(d.pairs) && first(d.pairs[i]) == key
+        d.pairs[i] = (key=>v)
+    else
+        insert!(d.pairs, i, (key=>v))
+    end
+    return d
+end
+
+function Base.get(d::SortedVectorDict, key, default)
+    i = searchsortedfirst(d.pairs, key; by=first)
+    @inbounds begin
+        return (i <= length(d.pairs)) ? last(d.pairs[i]) : default
+    end
+end
+function Base.get(f, d::SortedVectorDict, key)
+    i = searchsortedfirst(d.pairs, key; by=first)
+    @inbounds begin
+        return (i <= length(d.pairs)) ? last(d.pairs[i]) : f()
+    end
+end
+Base.iterate(d::SortedVectorDict, args...) = iterate(d.pairs, args...)

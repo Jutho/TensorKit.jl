@@ -23,7 +23,12 @@ i.e. a tensor map with only a non-trivial output space.
 const AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
 
 # tensor characteristics
+Base.@pure Base.eltype(T::Type{<:AbstractTensorMap}) = eltype(storagetype(T))
+Base.@pure similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T} =
+    Core.Compiler.return_type(similar, Tuple{storagetype(TT), Type{T}})
+
 storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
+similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
 Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
 spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
 sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
@@ -100,7 +105,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
                     Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
                     indF = ntuple(k->(k == i ? -i : k), StaticLength(N₁)+StaticLength(1))
                     indout = ntuple(identity, StaticLength(N₁)+StaticLength(1))
-                    F1 = TensorOperations.tensorcontract(Z,(i,-i), F1, indF, indout; method = :native)
+                    F1 = TensorOperations.tensorcontract(Z,(i,-i), F1, indF, indout)
                 end
             end
             for i = 1:N₂
@@ -109,7 +114,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
                     Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
                     indF = ntuple(k->(k == i ? -i : k), StaticLength(N₂)+StaticLength(1))
                     indout = ntuple(identity, StaticLength(N₂)+StaticLength(1))
-                    F2 = TensorOperations.tensorcontract(Z,(i,-i), F2, indF, indout; method = :native)
+                    F2 = TensorOperations.tensorcontract(Z,(i,-i), F2, indF, indout)
                 end
             end
             sz1 = size(F1)
