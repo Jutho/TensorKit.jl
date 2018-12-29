@@ -6,7 +6,7 @@ makedocs(modules=[TensorKit],
             authors = "Jutho Haegeman",
             pages = [
                 "Home" => "index.md",
-                "Manual" => ["man/intro.md", "man/spaces.md", "man/sectors.md"],
+                "Manual" => ["man/intro.md", "man/spaces.md", "man/sectors.md", "man/tensors.md"],
                 "Library" => ["lib/spaces.md"]
             ])
 
