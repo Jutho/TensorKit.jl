@@ -1,4 +1,4 @@
-@testset "Sectors and fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂)
+@testset "Sectors and fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, ℤ₃ × ℤ₄)#, U₁ × SU₂, SU₂ × SU₂)
     @testset "Sector $G: Basic properties" begin
         s = (randsector(G), randsector(G), randsector(G))
         @test eval(Meta.parse(sprint(show,G))) == G
