@@ -115,7 +115,7 @@
             end
         end
 
-        if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G}) && G != SU₂ × SU₂
+        if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G}) && !(G <: TensorKit.ProductSector)
             Af = convert(Array, f)
             Afp = permutedims(Af, (p..., N+1))
             Afp2 = zero(Afp)
