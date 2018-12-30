@@ -175,28 +175,29 @@ objects. This makes `Vect` into a **monoidal category**, which has
     *   ``∀ V_1, V_2, V_3 ∈ |C|``, an associator
         ``α_{V_1,V_2,V_3}:(V_1 ⊗ V_2) ⊗ V_3 → V_1 ⊗ (V_2 ⊗ V_3)``
     that satisfy certain consistency conditions (coherence axioms), which are known as the
-    triangle identity and *pentagon equation*.
+    *triangle equation* and *pentagon equation*.
 
-For the category ``Vect``, the identity object ``I`` is just the scalar field, which can be
-identified with a one-dimensional vector space. Every monoidal category is equivalent to a
-strict monoidal category, where the left and right unitor and associator act as the
-identity and their domain and codomain are truly identical. Nonetheless, for tensor maps,
-we do actually discriminate between ``V``, ``I ⊗ V`` and ``V ⊗ I`` because this amounts to adding
-or removing an extra factor `I` to the tensor product structure of the (co)domain, i.e. the
-left and right unitor are analogous to removing extra dimensions of size 1 from an array,
-and an actual operation is required to do so (this has in fact led to some controversy in
-several programming languages that provide native support for multidimensional arrays). For
-what concerns the associator, the distinction between ``(V_1 ⊗ V_2) ⊗ V_3`` and
-``V_1 ⊗ (V_2 ⊗ V_3)`` is typically absent for simple tensors or multidimensional arrays.
-However, this grouping can be taken to indicate how to build the fusion tree for coupling
-irreps to a joint irrep in the case of symmetric tensors. As such, going from one to the
-other requires a recoupling (F-move) which has a non-trivial action on the reduced blocks.
-We return to this in the discussion of symmetric tensors.
+For the category ``\mathbf{Vect}``, the identity object ``I`` is just the scalar field,
+which can be identified with a one-dimensional vector space. Every monoidal category is
+equivalent to a strict monoidal category, where the left and right unitor and associator
+act as the identity and their domain and codomain are truly identical. Nonetheless, for
+tensor maps, we do actually discriminate between ``V``, ``I ⊗ V`` and ``V ⊗ I`` because
+this amounts to adding or removing an extra factor `I` to the tensor product structure of
+the (co)domain, i.e. the left and right unitor are analogous to removing extra dimensions
+of size 1 from an array,and an actual operation is required to do so (this has in fact led
+to some controversy in several programming languages that provide native support for
+multidimensional arrays). For what concerns the associator, the distinction between
+``(V_1 ⊗ V_2) ⊗ V_3`` and ``V_1 ⊗ (V_2 ⊗ V_3)`` is typically absent for simple tensors or
+multidimensional arrays. However, this grouping can be taken to indicate how to build the
+fusion tree for coupling irreps to a joint irrep in the case of symmetric tensors. As such,
+going from one to the other requires a recoupling (F-move) which has a non-trivial action
+on the reduced blocks. We return to this in the discussion of symmetric tensors.
 
 With these definitions, we have the minimal requirements for defining tensor maps. In
 principle, we could use a more general definition and define tensor maps as morphism of any
 monoidal category where the hom-sets are themselves vector spaces, such that we can add
-morphisms and multiply them with scalars. Such categories are called ``Vect``-enriched.
+morphisms and multiply them with scalars. Such categories are called
+``\mathbf{Vect}``-enriched.
 
 In order to make tensor (maps) useful and to define operations with them, we can now
 introduce additional structure or quantifiers to the monoidal category for which they are
