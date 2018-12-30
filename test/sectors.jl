@@ -63,64 +63,64 @@
             end
         end
     end
-    # @testset "Sector $G: Hexagon equation" begin
-    #     (a,b,c) = (randsector(G), randsector(G), randsector(G))
-    #     for e in ⊗(a,b), f in ⊗(b,c)
-    #         for d in intersect(⊗(e,c), ⊗(a,f))
-    #             p1 = Rsymbol(a,b,e)*Fsymbol(b,a,c,d,e,f)*Rsymbol(a,c,f)
-    #             p2 = zero(p1)
-    #             for h in ⊗(b,c)
-    #                 p2 += Fsymbol(a,b,c,d,e,h)*Rsymbol(a,h,d)*Fsymbol(b,c,a,d,h,f)
-    #             end
-    #             @test isapprox(p1, p2; atol=10*eps())
-    #         end
-    #     end
-    # end
-    #
-    # @testset "Sector $G: Fusion trees" begin
-    #     N = 5
-    #     out = ntuple(n->randsector(G), StaticLength(N))
-    #     in = rand(collect(⊗(out...)))
-    #     numtrees = count(n->true, fusiontrees(out, in))
-    #     while !(0 < numtrees < 30)
-    #         out = ntuple(n->randsector(G), StaticLength(N))
-    #         in = rand(collect(⊗(out...)))
-    #         numtrees = count(n->true, fusiontrees(out, in))
-    #     end
-    #
-    #     it = @inferred fusiontrees(out, in)
-    #     f, state = iterate(it)
-    #
-    #     @inferred braid(f, 2)
-    #
-    #     p = tuple(randperm(N)...,)
-    #     ip = invperm(p)
-    #
-    #     d = @inferred TensorKit.permute(f, p)
-    #     d2 = Dict{typeof(f), valtype(d)}()
-    #     for (f2, coeff) in d
-    #         for (f1,coeff2) in TensorKit.permute(f2, ip)
-    #             d2[f1] = get(d2, f1, zero(coeff)) + coeff2*coeff
-    #         end
-    #     end
-    #     for (f1, coeff2) in d2
-    #         if f1 == f
-    #             @test coeff2 ≈ 1
-    #         else
-    #             @test isapprox(coeff2, 0; atol = 10*eps())
-    #         end
-    #     end
-    #
-    #     if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G})
-    #         Af = convert(Array, f)
-    #         Afp = permutedims(Af, (p..., N+1))
-    #         Afp2 = zero(Afp)
-    #         for (f1, coeff) in d
-    #             Afp2 .+= coeff .* convert(Array, f1)
-    #         end
-    #         @test Afp ≈ Afp2
-    #     end
-    # end
+    @testset "Sector $G: Hexagon equation" begin
+        (a,b,c) = (randsector(G), randsector(G), randsector(G))
+        for e in ⊗(a,b), f in ⊗(b,c)
+            for d in intersect(⊗(e,c), ⊗(a,f))
+                p1 = Rsymbol(a,b,e)*Fsymbol(b,a,c,d,e,f)*Rsymbol(a,c,f)
+                p2 = zero(p1)
+                for h in ⊗(b,c)
+                    p2 += Fsymbol(a,b,c,d,e,h)*Rsymbol(a,h,d)*Fsymbol(b,c,a,d,h,f)
+                end
+                @test isapprox(p1, p2; atol=10*eps())
+            end
+        end
+    end
+
+    @testset "Sector $G: Fusion trees" begin
+        N = 5
+        out = ntuple(n->randsector(G), StaticLength(N))
+        in = rand(collect(⊗(out...)))
+        numtrees = count(n->true, fusiontrees(out, in))
+        while !(0 < numtrees < 30)
+            out = ntuple(n->randsector(G), StaticLength(N))
+            in = rand(collect(⊗(out...)))
+            numtrees = count(n->true, fusiontrees(out, in))
+        end
+
+        it = @inferred fusiontrees(out, in)
+        f, state = iterate(it)
+
+        @inferred braid(f, 2)
+
+        p = tuple(randperm(N)...,)
+        ip = invperm(p)
+
+        d = @inferred TensorKit.permute(f, p)
+        d2 = Dict{typeof(f), valtype(d)}()
+        for (f2, coeff) in d
+            for (f1,coeff2) in TensorKit.permute(f2, ip)
+                d2[f1] = get(d2, f1, zero(coeff)) + coeff2*coeff
+            end
+        end
+        for (f1, coeff2) in d2
+            if f1 == f
+                @test coeff2 ≈ 1
+            else
+                @test isapprox(coeff2, 0; atol = 10*eps())
+            end
+        end
+
+        # if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G})
+        #     Af = convert(Array, f)
+        #     Afp = permutedims(Af, (p..., N+1))
+        #     Afp2 = zero(Afp)
+        #     for (f1, coeff) in d
+        #         Afp2 .+= coeff .* convert(Array, f1)
+        #     end
+        #     @test Afp ≈ Afp2
+        # end
+    end
     # @testset "Sector $G: Double fusion trees" begin
     #     if G == SU₂ × SU₂
     #         N = 3
