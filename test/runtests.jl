@@ -21,5 +21,5 @@ randsector(::Type{SU₂}) = rand(smallset(SU₂))
 randsector(P::Type{<:ProductSector}) = P(map(randsector, (P.parameters[1].parameters...,)))
 
 include("sectors.jl")
-include("spaces.jl")
-include("tensors.jl")
+# include("spaces.jl")
+# include("tensors.jl")

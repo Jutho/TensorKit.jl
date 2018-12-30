@@ -48,21 +48,21 @@
             end
         end
     end
-    # @testset "Sector $G: Pentagon equation" begin
-    #     (a,b,c,d) = (randsector(G), randsector(G), randsector(G), randsector(G))
-    #     for f in ⊗(a,b), j in ⊗(c,d)
-    #         for g in ⊗(f,c), i in ⊗(b,j)
-    #             for e in intersect(⊗(g,d), ⊗(a,i))
-    #                 p1 = Fsymbol(f,c,d,e,g,j)*Fsymbol(a,b,j,e,f,i)
-    #                 p2 = zero(p1)
-    #                 for h in ⊗(b,c)
-    #                     p2 += Fsymbol(a,b,c,g,f,h)*Fsymbol(a,h,d,e,g,i)*Fsymbol(b,c,d,i,h,j)
-    #                 end
-    #                 @test isapprox(p1, p2; atol=10*eps())
-    #             end
-    #         end
-    #     end
-    # end
+    @testset "Sector $G: Pentagon equation" begin
+        (a,b,c,d) = (randsector(G), randsector(G), randsector(G), randsector(G))
+        for f in ⊗(a,b), j in ⊗(c,d)
+            for g in ⊗(f,c), i in ⊗(b,j)
+                for e in intersect(⊗(g,d), ⊗(a,i))
+                    p1 = Fsymbol(f,c,d,e,g,j)*Fsymbol(a,b,j,e,f,i)
+                    p2 = zero(p1)
+                    for h in ⊗(b,c)
+                        p2 += Fsymbol(a,b,c,g,f,h)*Fsymbol(a,h,d,e,g,i)*Fsymbol(b,c,d,i,h,j)
+                    end
+                    @test isapprox(p1, p2; atol=10*eps())
+                end
+            end
+        end
+    end
     # @testset "Sector $G: Hexagon equation" begin
     #     (a,b,c) = (randsector(G), randsector(G), randsector(G))
     #     for e in ⊗(a,b), f in ⊗(b,c)
