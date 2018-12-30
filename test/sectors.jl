@@ -14,7 +14,7 @@
         it = @inferred s[1] ⊗ s[2]
         @inferred ⊗(s..., s...)
     end
-    if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G})
+    if hasmethod(fusiontensor, Tuple{G,G,G})
         @testset "Sector $G: fusion tensor and F-move and R-move" begin
             using TensorKit: fusiontensor
             for a in smallset(G), b in smallset(G)
@@ -32,10 +32,6 @@
                         @tensor f1 = conj(Y2[a,f,d])*conj(Y1[b,c,f])*X1[a,b,e]*X2[e,c,d]
                         f2 = Fsymbol(a,b,c,d,e,f)*dim(d)
                         @test f1≈f2 atol=1e-12
-                        if !(isapprox(f1,f2;atol=1e-12))
-                            @show a,b,c,d,e,f
-                            @show f1, f2
-                        end
                     end
                 end
             end

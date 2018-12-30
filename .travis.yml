@@ -2,11 +2,11 @@
 language: julia
 os:
   - linux
-  - osx
+  # - osx
 julia:
-  - 0.7
+  # - 0.7
   - 1.0
-  - nightly
+  # - nightly
 notifications:
   email: false
 
@@ -17,7 +17,7 @@ matrix:
 env:
   matrix:
     - JULIA_NUM_THREADS=1
-    - JULIA_NUM_THREADS=4
+    # - JULIA_NUM_THREADS=4
 
 ## uncomment the following lines to override the default test script
 
