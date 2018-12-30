@@ -640,6 +640,8 @@ blockdim(W, SU₂(0))
 
 ## Fusion trees
 
+**Work in progress**
+
 The gain in efficiency (both in memory occupation and computation time) obtained from using
 symmetric tensor maps is that, by Schur's lemma, they are block diagonal in the basis of
 coupled sectors. To exploit this block diagonal form, it is however essential that we know
@@ -662,7 +664,12 @@ The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjug
 tensors. For ``\mathsf{SU}_2``, their entries are given by the Clebsch-Gordan coefficients
 
 ### Canonical representation
+
+TODO
+
 ### Possible manipulations
+
+TODO
 
 ## Fermions
 

@@ -1,6 +1,6 @@
 # TensorKit.jl
 
-A Julia Package for working with tensors, with a flavor of category theory.
+A Julia package for large-scale tensor computations, with a hint of category theory.
 
 | **Documentation**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|

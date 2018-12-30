@@ -1,7 +1,6 @@
 # TensorKit.jl
 
-A Julia package for large-scale tensor computations with a hint of category theory.
-***
+*A Julia package for large-scale tensor computations, with a hint of category theory.*
 
 ## Package summary
 
@@ -29,7 +28,7 @@ data, so as to leverage GPUs for the different operations defined on tensors.
 ## Contents of the manual
 
 ```@contents
-Pages = ["man/intro.md", "man/spaces.md", "man/sectors.md"]
+Pages = ["man/intro.md", "man/spaces.md", "man/sectors.md", "man/tensors.md"]
 Depth = 3
 ```
 

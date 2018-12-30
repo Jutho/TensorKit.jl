@@ -5,8 +5,8 @@ using TensorKit
 ```
 
 From the [Introduction](@ref), it should be clear that an important aspect in the definition
-of a tensor (map) is specifying the vector spaces and their structure in the domain and codomain
-of the map. The starting point is an abstract type `VectorSpace`
+of a tensor (map) is specifying the vector spaces and their structure in the domain and
+codomain of the map. The starting point is an abstract type `VectorSpace`
 ```julia
 abstract type VectorSpace end
 ```
@@ -18,15 +18,16 @@ const IndexSpace = ElementarySpace
 
 abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 ```
-Here, `ElementarySpace` is a super type for all vector spaces that can be associated with the
-individual indices of a tensor, as hinted to by its alias `IndexSpace`. It is parametrically
-dependent on `𝕜`, the field of scalars (see the next section on [Fields](@ref)).
+Here, `ElementarySpace` is a super type for all vector spaces that can be associated with
+the individual indices of a tensor, as hinted to by its alias `IndexSpace`. It is
+parametrically dependent on `𝕜`, the field of scalars (see the next section on
+[Fields](@ref)).
 
-On the other hand, subtypes of `CompositeSpace{S}` where `S<:ElementarySpace` are composed of
-a number of elementary spaces of type `S`. So far, there is a single concrete type `ProductSpace{S,N}`
-that represents the homogeneous tensor product of `N` vector spaces of type `S`. Its properties
-are discussed in the section on [Composite spaces](@ref), together with possible extensions
-for the future.
+On the other hand, subtypes of `CompositeSpace{S}` where `S<:ElementarySpace` are composed
+of a number of elementary spaces of type `S`. So far, there is a single concrete type
+`ProductSpace{S,N}` that represents the homogeneous tensor product of `N` vector spaces of
+type `S`. Its properties are discussed in the section on [Composite spaces](@ref), together
+with possible extensions for the future.
 
 ## Fields
 
@@ -41,9 +42,9 @@ struct ComplexNumbers <: Field end
 const ℝ = RealNumbers()
 const ℂ = ComplexNumbers()
 ```
-Note that `ℝ` and `ℂ` can be typed as `\bbR`+TAB and `\bbC`+TAB. One reason for defining this
-new type hierarchy instead of recycling the types from Julia's `Number` hierarchy is to introduce
-some syntactic suggar without commiting type piracy. In particular, we now have
+Note that `ℝ` and `ℂ` can be typed as `\bbR`+TAB and `\bbC`+TAB. One reason for defining
+this new type hierarchy instead of recycling the types from Julia's `Number` hierarchy is
+to introduce some syntactic suggar without commiting type piracy. In particular, we now have
 ```@repl tensorkit
 3 ∈ ℝ
 5.0 ∈ ℂ
@@ -62,26 +63,29 @@ spaces as described in the next section. The underlying field of a vector space 
 As mentioned at the beginning of this section, vector spaces that are associated with the
 individual indices of a tensor should be implemented as subtypes of `ElementarySpace`. As
 the domain and codomain of a tensor map will be the tensor product of such objects which all
-have the same type, it is important that related vector spaces, e.g. the dual space, are objects
-of the same concrete type (i.e. with the same type parameters in case of a parametric type).
-In particular, every `ElementarySpace` should implement the following methods
+have the same type, it is important that related vector spaces, e.g. the dual space, are
+objects of the same concrete type (i.e. with the same type parameters in case of a
+parametric type). In particular, every `ElementarySpace` should implement the following
+methods
 
-*   `dim(::ElementarySpace) -> ::Int`  
+*   `dim(::ElementarySpace) -> ::Int`
     return the dimension of the space as an `Int`
 
-*   `dual{S<:ElementarySpace}(::S) -> ::S`  
-    return the [dual space](http://en.wikipedia.org/wiki/Dual_space) `dual(V)`, using an instance
-    of the same concrete type (i.e. not via type parameters); this should satisfy `dual(dual(V)==V`
+*   `dual{S<:ElementarySpace}(::S) -> ::S`
+    return the [dual space](http://en.wikipedia.org/wiki/Dual_space) `dual(V)`, using an
+    instance of the same concrete type (i.e. not via type parameters); this should satisfy
+    `dual(dual(V)==V`
 
-*   `conj{S<:ElementarySpace}(::S) -> ::S`  
+*   `conj{S<:ElementarySpace}(::S) -> ::S`
     return the [complex conjugate space](http://en.wikipedia.org/wiki/Complex_conjugate_vector_space)
-    `conj(V)`, using an instance of the same concrete type (i.e. not via type parameters); this
-    should satisfy `conj(conj(V))==V` and we automatically have `conj{F<:Real}(V::ElementarySpace{F}) = V`.
+    `conj(V)`, using an instance of the same concrete type (i.e. not via type parameters);
+    this should satisfy `conj(conj(V))==V` and we automatically have
+    `conj{F<:Real}(V::ElementarySpace{F}) = V`.
 
 For convenience, the dual of a space `V` can also be obtained as `V'`.
 
 There is concrete type `GeneralSpace` which is completely characterized by its field `𝕜`,
-its dimension and whether its the dual and/or complex conjugate of $𝕜^d$ .
+its dimension and whether its the dual and/or complex conjugate of $𝕜^d$.
 ```julia
 struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
     d::Int
