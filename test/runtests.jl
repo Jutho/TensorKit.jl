@@ -18,9 +18,13 @@ randsector(::Type{ZNIrrep{N}}) where {N} = rand(smallset(ZNIrrep{N}))
 randsector(::Type{CU₁}) = rand(smallset(CU₁))
 randsector(::Type{U₁}) = rand(smallset(U₁))
 randsector(::Type{SU₂}) = rand(smallset(SU₂))
-randsector(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2} = randsector(G1) × randsector(G2)
+randsector(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2} =
+    randsector(G1) × randsector(G2)
+randsector(::Type{ProductSector{Tuple{G1,G2,G3}}}) where {G1,G2,G3} =
+    randsector(G1) × randsector(G2) × randsector(G3)
 # special case: make sure dimensions are not too big
-randsector(P::Type{SU₂×SU₂}) = rand(collect(i × j for i in map(SU₂, 1//2:1//2:1), j in map(SU₂, 1//2:1//2:1)))
+randsector(P::Type{SU₂×SU₂}) =
+    rand(collect(i × j for i in map(SU₂, 1//2:1//2:1), j in map(SU₂, 1//2:1//2:1)))
 
 include("sectors.jl")
 include("spaces.jl")
