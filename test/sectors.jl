@@ -166,7 +166,6 @@
         d2 = Dict{typeof((f1,f2)), valtype(d)}()
         for ((f1′,f2′), coeff) in d
             d′ = TensorKit.permute(f1′,f2′, ip1, ip2)
-            @show length(d), length(d′)
             for ((f1′′,f2′′), coeff2) in d′
                 d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
             end

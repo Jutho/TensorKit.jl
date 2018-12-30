@@ -23,5 +23,5 @@ randsector(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2} = randsector(G1) �
 randsector(P::Type{SU₂×SU₂}) = rand(collect(i × j for i in map(SU₂, 1//2:1//2:1), j in map(SU₂, 1//2:1//2:1)))
 
 include("sectors.jl")
-# include("spaces.jl")
-# include("tensors.jl")
+include("spaces.jl")
+include("tensors.jl")
