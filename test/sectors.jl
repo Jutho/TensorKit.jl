@@ -121,63 +121,63 @@
             @test Afp ≈ Afp2
         end
     end
-    @testset "Sector $G: Double fusion trees" begin
-        if G == SU₂ × SU₂
-            N = 3
-        else
-            N = 4
-        end
-        out = ntuple(n->randsector(G), StaticLength(N))
-        numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
-        while !(0 < numtrees < 100)
-            out = ntuple(n->randsector(G), StaticLength(N))
-            numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
-        end
-        in = rand(collect(⊗(out...)))
-        f1 = rand(collect(fusiontrees(out, in)))
-        f2 = rand(collect(fusiontrees(out[randperm(N)], in)))
-
-        for n = 0:2*N
-            d = @inferred repartition(f1, f2, StaticLength(n))
-            d2 = Dict{typeof((f1,f2)), valtype(d)}()
-            for ((f1′,f2′),coeff) in d
-                for ((f1′′,f2′′),coeff2) in repartition(f1′,f2′, StaticLength(N))
-                    d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
-                end
-            end
-            for ((f1′,f2′), coeff2) in d2
-                if f1 == f1′ && f2 == f2′
-                    @test coeff2 ≈ 1
-                    if !(coeff2 ≈ 1)
-                        @show f1, f2, n
-                    end
-                else
-                    @test isapprox(coeff2, 0; atol = 10*eps())
-                end
-            end
-        end
-
-        p = (randperm(2*N)...,)
-        p1, p2 = p[1:2], p[3:2N]
-        ip = invperm(p)
-        ip1, ip2 = ip[1:N], ip[N+1:2N]
-
-        d = @inferred TensorKit.permute(f1, f2, p1, p2)
-        d2 = Dict{typeof((f1,f2)), valtype(d)}()
-        for ((f1′,f2′),coeff) in d
-            for ((f1′′,f2′′),coeff2) in TensorKit.permute(f1′,f2′, ip1, ip2)
-                d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
-            end
-        end
-        for ((f1′,f2′), coeff2) in d2
-            if f1 == f1′ && f2 == f2′
-                @test coeff2 ≈ 1
-                if !(coeff2 ≈ 1)
-                    @show f1, f2, p
-                end
-            else
-                @test abs(coeff2) < 10*eps()
-            end
-        end
-    end
+    # @testset "Sector $G: Double fusion trees" begin
+    #     if G == SU₂ × SU₂
+    #         N = 3
+    #     else
+    #         N = 4
+    #     end
+    #     out = ntuple(n->randsector(G), StaticLength(N))
+    #     numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
+    #     while !(0 < numtrees < 100)
+    #         out = ntuple(n->randsector(G), StaticLength(N))
+    #         numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
+    #     end
+    #     in = rand(collect(⊗(out...)))
+    #     f1 = rand(collect(fusiontrees(out, in)))
+    #     f2 = rand(collect(fusiontrees(out[randperm(N)], in)))
+    #
+    #     for n = 0:2*N
+    #         d = @inferred repartition(f1, f2, StaticLength(n))
+    #         d2 = Dict{typeof((f1,f2)), valtype(d)}()
+    #         for ((f1′,f2′),coeff) in d
+    #             for ((f1′′,f2′′),coeff2) in repartition(f1′,f2′, StaticLength(N))
+    #                 d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
+    #             end
+    #         end
+    #         for ((f1′,f2′), coeff2) in d2
+    #             if f1 == f1′ && f2 == f2′
+    #                 @test coeff2 ≈ 1
+    #                 if !(coeff2 ≈ 1)
+    #                     @show f1, f2, n
+    #                 end
+    #             else
+    #                 @test isapprox(coeff2, 0; atol = 10*eps())
+    #             end
+    #         end
+    #     end
+    #
+    #     p = (randperm(2*N)...,)
+    #     p1, p2 = p[1:2], p[3:2N]
+    #     ip = invperm(p)
+    #     ip1, ip2 = ip[1:N], ip[N+1:2N]
+    #
+    #     d = @inferred TensorKit.permute(f1, f2, p1, p2)
+    #     d2 = Dict{typeof((f1,f2)), valtype(d)}()
+    #     for ((f1′,f2′),coeff) in d
+    #         for ((f1′′,f2′′),coeff2) in TensorKit.permute(f1′,f2′, ip1, ip2)
+    #             d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
+    #         end
+    #     end
+    #     for ((f1′,f2′), coeff2) in d2
+    #         if f1 == f1′ && f2 == f2′
+    #             @test coeff2 ≈ 1
+    #             if !(coeff2 ≈ 1)
+    #                 @show f1, f2, p
+    #             end
+    #         else
+    #             @test abs(coeff2) < 10*eps()
+    #         end
+    #     end
+    # end
 end
