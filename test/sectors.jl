@@ -111,15 +111,15 @@
             end
         end
 
-        # if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G})
-        #     Af = convert(Array, f)
-        #     Afp = permutedims(Af, (p..., N+1))
-        #     Afp2 = zero(Afp)
-        #     for (f1, coeff) in d
-        #         Afp2 .+= coeff .* convert(Array, f1)
-        #     end
-        #     @test Afp ≈ Afp2
-        # end
+        if hasmethod(TensorKit.fusiontensor, Tuple{G,G,G})
+            Af = convert(Array, f)
+            Afp = permutedims(Af, (p..., N+1))
+            Afp2 = zero(Afp)
+            for (f1, coeff) in d
+                Afp2 .+= coeff .* convert(Array, f1)
+            end
+            @test Afp ≈ Afp2
+        end
     end
     # @testset "Sector $G: Double fusion trees" begin
     #     if G == SU₂ × SU₂
