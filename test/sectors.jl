@@ -156,28 +156,30 @@
                 end
             end
         end
-    #
-    #     p = (randperm(2*N)...,)
-    #     p1, p2 = p[1:2], p[3:2N]
-    #     ip = invperm(p)
-    #     ip1, ip2 = ip[1:N], ip[N+1:2N]
-    #
-    #     d = @inferred TensorKit.permute(f1, f2, p1, p2)
-    #     d2 = Dict{typeof((f1,f2)), valtype(d)}()
-    #     for ((f1′,f2′),coeff) in d
-    #         for ((f1′′,f2′′),coeff2) in TensorKit.permute(f1′,f2′, ip1, ip2)
-    #             d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
-    #         end
-    #     end
-    #     for ((f1′,f2′), coeff2) in d2
-    #         if f1 == f1′ && f2 == f2′
-    #             @test coeff2 ≈ 1
-    #             if !(coeff2 ≈ 1)
-    #                 @show f1, f2, p
-    #             end
-    #         else
-    #             @test abs(coeff2) < 10*eps()
-    #         end
-    #     end
+
+        p = (randperm(2*N)...,)
+        p1, p2 = p[1:2], p[3:2N]
+        ip = invperm(p)
+        ip1, ip2 = ip[1:N], ip[N+1:2N]
+
+        d = @inferred TensorKit.permute(f1, f2, p1, p2)
+        d2 = Dict{typeof((f1,f2)), valtype(d)}()
+        for ((f1′,f2′), coeff) in d
+            d′ = TensorKit.permute(f1′,f2′, ip1, ip2)
+            @show length(d), length(d′)
+            for ((f1′′,f2′′), coeff2) in d′
+                d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
+            end
+        end
+        for ((f1′,f2′), coeff2) in d2
+            if f1 == f1′ && f2 == f2′
+                @test coeff2 ≈ 1
+                if !(coeff2 ≈ 1)
+                    @show f1, f2, p
+                end
+            else
+                @test abs(coeff2) < 10*eps()
+            end
+        end
     end
 end
