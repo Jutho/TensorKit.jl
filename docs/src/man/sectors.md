@@ -5,58 +5,63 @@ using TensorKit
 ```
 
 Symmetries in a physical system often result in tensors which are invariant under the action
-of the symmetry group, where this group acts as a tensor product of group actions on every tensor
-index separately. The group action on a single index, or thus, on the corresponding vector space,
-can be decomposed into irreducible representations (irreps). Here, we restrict to unitary
-representations, such that the corresponding vector spaces also have a natural Euclidean inner
-product. In particular, the Euclidean inner product between two vectors is invariant under the
-group action, i.e. the scalar field corresponds to the trivial representation of the group.
+of the symmetry group, where this group acts as a tensor product of group actions on every
+tensor index separately. The group action on a single index, or thus, on the corresponding
+vector space, can be decomposed into irreducible representations (irreps). Here, we
+restrict to unitary representations, such that the corresponding vector spaces also have a
+natural Euclidean inner product. In particular, the Euclidean inner product between two
+vectors is invariant under the group action, i.e. the scalar field corresponds to the
+trivial representation of the group.
 
-The corresponding vector spaces will be canonically represented as ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``,
-where ``a`` labels the different irreps, ``n_a`` is the number of times irrep ``a`` appears and
-``R_a`` is the vector space associated with irrep ``a``. Irreps are also known as spin sectors
-(in the case of ``\mathsf{SU}_2``) or charge sectors (in the case of `\mathsf{U}_1`), and we
-henceforth refer to `a` as a sector. As is briefly discussed below, the approach we follow does
-in fact go beyond the case of irreps of groups, and sectors would more generally correspond to
-simple objects in a (ribbon) fusion category. Nonetheless, every step can be appreciated by using
-the representation theory of ``\mathsf{SU}_2`` or ``\mathsf{SU}_3`` as example. The vector space
-``V`` is completely specified by the values of `n_a`.
+The corresponding vector spaces will be canonically represented as
+``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``, where ``a`` labels the different irreps, ``n_a`` is the number
+of times irrep ``a`` appears and ``R_a`` is the vector space associated with irrep ``a``.
+Irreps are also known as spin sectors (in the case of ``\mathsf{SU}_2``) or charge sectors
+(in the case of `\mathsf{U}_1`), and we henceforth refer to `a` as a sector. As is briefly
+discussed below, the approach we follow doesin fact go beyond the case of irreps of groups,
+and sectors would more generally correspond to simple objects in a (ribbon) fusion
+category. Nonetheless, every step can be appreciated by using the representation theory of
+``\mathsf{SU}_2`` or ``\mathsf{SU}_3`` as example. The vector space ``V`` is completely
+specified by the values of ``n_a``.
 
 The gain in efficiency (both in memory occupation and computation time) obtained from using
 symmetric tensor maps is that, by Schur's lemma, they are block diagonal in the basis of
 coupled sectors. To exploit this block diagonal form, it is however essential that we know
 the basis transform from the individual (uncoupled) sectors appearing in the tensor product
-form of the domain and codomain, to the totally coupled sectors that label the different blocks.
-We refer to the latter as block sectors. The transformation from the uncoupled sectors in the
-domain (or codomain) of the tensor map to the block sector is encoded in a fusion tree (or splitting
-tree). Essentially, it is a sequential application of pairwise fusion as described by the group's
+form of the domain and codomain, to the totally coupled sectors that label the different
+blocks. We refer to the latter as block sectors. The transformation from the uncoupled
+sectors in the domain (or codomain) of the tensor map to the block sector is encoded in a
+fusion tree (or splitting tree). Essentially, it is a sequential application of pairwise
+fusion as described by the group's
 [Clebsch-Gordan (CG) coefficients](https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients).
-However, it turns out that we do not need the actual CG coefficients, but only how they transform
-under transformations such as interchanging the order of the incoming irreps or interchanging
-incoming and outgoing irreps. This information is known as the topological data of the group, i.e.
-mainly the F-symbols, which are also known as recoupling coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol)
-(more accurately, it's actually [Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient))
+However, it turns out that we do not need the actual CG coefficients, but only how they
+transform under transformations such as interchanging the order of the incoming irreps or
+interchanging incoming and outgoing irreps. This information is known as the topological
+data of the group, i.e. mainly the F-symbols, which are also known as recoupling
+coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol) (more accurately,
+it's actually [Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient))
 in the case of ``\mathsf{SU}_2``.
 
 Below, we describe how to specify a certain type of sector what information about them
 needs to be implemented. Then, we describe how to build a space `V` composed of a direct sum
-of different sectors. In the last section, we explain the details of fusion trees, i.e. their
-construction and manipulation. But first, we provide a quick theoretical overview of the required
-data of the representation theory of a group.
+of different sectors. In the last section, we explain the details of fusion trees, i.e.
+their construction and manipulation. But first, we provide a quick theoretical overview of
+the required data of the representation theory of a group.
 
 ## Representation theory and unitary fusion categories
 
 Let the different irreps or sectors be labeled as ``a``, ``b``, ``c``, … First and foremost,
-we need to specify the *fusion rules* ``a ⊗ b = ⨁ N_{a,b}^{c} c`` with `N_{a,b}^c` some non-negative
-integers. There should always exists a unique trivial sector ``u`` such that ``a ⊗ u = a = u ⊗ a``.
-Furthermore, there should exist a unique sector ``\overline{a}`` such that ``N_{a,\overline{a}}^{u} = 1``,
-whereas for all ``b ≂̸ \overline{a}``, ``N_{a,b}^{u} = 0``. For example, for the representations
-of ``\mathsf{SU}_2``, all irreps are self-dual (i.e. ``a = \overline{a}``) and the trivial
-sector corresponds to spin zero.
+we need to specify the *fusion rules* ``a ⊗ b = ⨁ N_{a,b}^{c} c`` with `N_{a,b}^c` some
+non-negative integers. There should always exists a unique trivial sector ``u`` such that
+``a ⊗ u = a = u ⊗ a``. Furthermore, there should exist a unique sector ``\overline{a}``
+such that ``N_{a,\overline{a}}^{u} = 1``, whereas for all ``b ≂̸ \overline{a}``,
+``N_{a,b}^{u} = 0``. For example, for the representations of ``\mathsf{SU}_2``, all irreps
+are self-dual (i.e. ``a = \overline{a}``) and the trivial sector corresponds to spin zero.
 
-The meaning of the fusion rules is that the space of transformations ``R_a ⊗ R_b → R_c`` (or vice
-versa) has dimension ``N_{a,b}^c``. In particular, we assume the existence of a basis consisting of
-unitary tensor maps ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` with `μ = 1, \ldots, N_{a,b}^c` such that
+The meaning of the fusion rules is that the space of transformations ``R_a ⊗ R_b → R_c``
+(or vice versa) has dimension ``N_{a,b}^c``. In particular, we assume the existence of a
+basis consisting of unitary tensor maps ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` with
+``μ = 1, \ldots, N_{a,b}^c`` such that
 
 ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}``
 
@@ -64,12 +69,13 @@ and
 
 ``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
 
-The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the fusion
-tensors. They are only determined up to a unitary basis transform within the space, i.e. acting
-on the multiplicity label ``μ``. For ``\mathsf{SU}_2``, where ``N_{a,b}^c`` is zero or one and the
-multiplicity labels are absent, the entries of ``X_{a,b}^{c}`` are precisely given by the CG
-coefficients. The point is that we do not need to know the tensors ``X_{a,b}^{c,μ}``, the topological
-data of (the representation category of) the group describes the following transformation:
+The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the
+fusion tensors. They are only determined up to a unitary basis transform within the space,
+i.e. acting on the multiplicity label ``μ``. For ``\mathsf{SU}_2``, where ``N_{a,b}^c`` is
+zero or one and the multiplicity labels are absent, the entries of ``X_{a,b}^{c}`` are
+precisely given by the CG coefficients. The point is that we do not need to know the
+tensors ``X_{a,b}^{c,μ}``, the topological data of (the representation category of) the
+group describes the following transformation:
 
 *   F-move or recoupling: the transformation between ``(a ⊗ b) ⊗ c`` to ``a ⊗ (b ⊗ c)``:
 
@@ -79,36 +85,36 @@ data of (the representation category of) the group describes the following trans
 
     ``σ_{R_a,R_b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}
 
-The dimensions of the spaces ``R_a`` on which representation ``a`` acts are denoted as ``d_a``
-and referred to as quantum dimensions. In particular ``d_u = 1`` and ``d_a = d_{\overline{a}}``.
-This information is also encoded in the F-symbol as ``d_a = | [F^{a \overline{a} a}_a]^u_u |^{-1}``.
-Note that there are no multiplicity labels in that particular F-symbol as `N_{a,\overline{a}}^u = 1`.
+The dimensions of the spaces ``R_a`` on which representation ``a`` acts are denoted as
+``d_a`` and referred to as quantum dimensions. In particular ``d_u = 1`` and
+``d_a = d_{\overline{a}}``. This information is also encoded in the F-symbol as
+``d_a = | [F^{a \overline{a} a}_a]^u_u |^{-1}``. Note that there are no multiplicity labels
+in that particular F-symbol as `N_{a,\overline{a}}^u = 1`.
+
+If, for every ``a`` and ``b``, there is a unique ``c`` such that ``a ⊗ b = c`` (i.e.
+``N_{a,b}^{c} = 1`` and ``N_{a,b}^{c′} = 0`` for all other ``c′``), the category is abelian.
+Indeed, the representations of a group have this property if and only if the group
+multiplication law is commutative. In that case, all spaces ``R_{a}`` associated with the
+representation are one-dimensional and thus trivial. In all other cases, the category is
+nonabelian. We find it useful to further finegrain between categories which have all
+``N_{a,b}^c`` equal to zero or one (such that no multiplicity labels are needed), e.g. the
+representations of ``\mathsf{SU}_2``, and those where some ``N_{a,b}^c`` are larger than
+one, e.g. the representations of ``\mathsf{SU}_3``.
+
+
+
+
+
+Using ``R_u ≂ ℂ``, ``λ_{R_}`` ``η_{R_{\overline{a}}}``
+
+
+
+
+
+
 
 If, for every ``a`` and ``b``, there is a unique ``c`` such that ``a ⊗ b = c``
-(i.e. ``N_{a,b}^{c} = 1`` and ``N_{a,b}^{c′} = 0`` for all other ``c′``), the category is abelian.
-Indeed, the representations of a group have this property if and only if the group multiplication
-law is commutative. In that case, all spaces ``R_{a}`` associated with the representation are
-one-dimensional and thus trivial. In all other cases, the category is nonabelian. We find it
-useful to further finegrain between categories which have all ``N_{a,b}^c`` equal to zero or
-one (such that no multiplicity labels are needed), e.g. the representations of ``\mathsf{SU}_2``,
-and those where some ``N_{a,b}^c`` are larger than one, e.g. the representations of ``\mathsf{SU}_3``.
-
-
-
-
-
-Using ``R_u ≂ ℂ``, ``λ_{R_} ``η_{R_{\overline{a}}}``
-
-
-
-
-
-
-
-If, for every ``a`` and ``b``, there is a unique ``c`` such that ``a ⊗ b = c``
-(i.e. ``N_{a,b}^{c} = 1`` and ``N_{a,b}^{c′} = 0`` for all other ``c′``), the category is Abelian.
-Indeed, the representations of a group have this property if and only if the group multiplication
-law is commutative. In that case, all spaces ``R_{a}`` associated with the representation are
+(i.e. ``N_{a,b}^{c} = 1`` and ``N_{a,b}^{c′} = 0`` for all other ``c′``), the category is Abelian. Indeed, the representations of a group have this property if and only if the group multiplication law is commutative. In that case, all spaces ``R_{a}`` associated with the representation are
 one-dimensional and thus trivial.
 
 
