@@ -244,10 +244,10 @@ rules"
 ``λ_{V^*}^{-1} ∘ (ϵ_V ⊗ \mathrm{id}_{V^*}) ∘ (\mathrm{id}_{V^*} ⊗ η_V) ∘ ρ_{V^*}^{-1} = \mathrm{id}_{V^*}``
 
 Given a morphism ``t::W→V``, we can now identify it with ``(t ⊗ \mathrm{id}_{W^*}) ∘ η_W``
-to obtain a morphism ``I→V⊗W^*``. For the category ``Vect``, this is the identification
-between linear maps ``W→V`` and tensors in ``V⊗W^*``. In particular, for complex vector
-spaces, using a bra-ket notation and a generic basis ``{|n⟩}`` for ``V`` and dual basis
-``{⟨m|}`` for ``V^*`` (such that ``⟨m|n⟩ = δ_{m,n}``), the unit is
+to obtain a morphism ``I→V⊗W^*``. For the category ``\mathbf{Vect}``, this is the
+identification between linear maps ``W→V`` and tensors in ``V⊗W^*``. In particular, for
+complex vector spaces, using a bra-ket notation and a generic basis ``{|n⟩}`` for ``V`` and
+dual basis ``{⟨m|}`` for ``V^*`` (such that ``⟨m|n⟩ = δ_{m,n}``), the unit is
 ``η_V:ℂ → V ⊗ V^*:λ → λ ∑_n |n⟩ ⊗ ⟨n|`` and the co-unit is
 ``⁠ϵ_V:V^* ⊗ V → ℂ: ⟨m| ⊗ |n⟩ → δ_{m,n}``. Note that this does not require an inner
 product, i.e. no mapping from ``|n⟩`` to ``⟨n|`` was defined. Furthermore, note that we
@@ -264,7 +264,7 @@ It does makes sense to define or identify
 
 In general categories, one can distinguish between a left and right dual, but we always
 assume that both objects are naturally isomorphic. Equivalently, ``V^{**} ≂ V`` and the
-category is said to be  **pivotal**. For every morphism `f:W→V`, there is then a well
+category is said to be  **pivotal**. For every morphism ``f:W→V``, there is then a well
 defined notion of a transpose (also called adjoint mate) ``f^*:V^* → W^*`` as
 
 ``f^* = λ_{W^*} ∘ (ϵ_V ⊗ \mathrm{id}_{W^*}) ∘ (\mathrm{id}_{V^*} ⊗ f ⊗ \mathrm{id}_{W^*}) ∘ (\mathrm{id}_{V^*} ⊗ η_{W}) ∘ ρ_{V^*}^{-1}``
@@ -273,18 +273,19 @@ defined notion of a transpose (also called adjoint mate) ``f^*:V^* → W^*`` as
 
 and both definitions coincide (which is not the case if the category is not pivotal). In a graphical representation, this means that boxes (representing tensor maps or morphisms more generally) can be rotated. The transpose corresponds to a 180˚ rotation (either way).
 
-A braiding ``σ_{V,V^*}`` provides a particular way to construct an exact pairing
-``ϵ_{V^*} = ϵ_V ∘ σ_{V,V^*} : V⊗V^* → I`` and ``η_{V^*} = σ_{V^*,V}^{-1} \circ η_V: I→ V^*⊗V``,
-but this mapping is not canonical for general braidings, so that a braided autonomous
-category is not automatically pivotal. A category that is both braided and pivotal
-automatically has a twist (and is thus balanced), vice versa a balanced autonomous category
-is automatically pivotal. However, the graphical representation using ribbons is only
-consistent if we furthermore have
+A braiding ``σ_{V,V^*}`` provides a particular way to construct an maps
+``ϵ_{V^*} = ϵ_V ∘ σ_{V,V^*} : V⊗V^* → I`` and
+``η_{V^*} = σ_{V^*,V}^{-1} \circ η_V: I→ V^*⊗V``, but these maps are not canonical for
+general braidings, so that a braided autonomous category is not automatically pivotal. A
+category that is both braided and pivotal automatically has a twist (and is thus balanced),
+vice versa a balanced autonomous category is automatically pivotal. However, the graphical
+representation using ribbons is only consistent if we furthermore have
 ``θ_{V^*} = θ_V^*`` (i.e. the transpose), in which case the category is said to be
 **tortile** or also a **ribbon category**.
 
 In the case of a symmetric braiding, most of these difficulties go away and the pivotal
-structure follows
+structure follows. A symmetric monoidal category with duals is known as a **compact closed
+category**.
 
 ### Adjoints
 

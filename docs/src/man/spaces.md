@@ -10,8 +10,8 @@ codomain of the map. The starting point is an abstract type `VectorSpace`
 ```julia
 abstract type VectorSpace end
 ```
-which serves in a sense as the category ``Vect``. All instances of subtypes of `VectorSpace`
-will represent vector spaces. In particular, we define two abstract subtypes
+which serves in a sense as the category ``\mathbf{Vect}``. All instances of subtypes of
+`VectorSpace` will represent vector spaces. In particular, we define two abstract subtypes
 ```julia
 abstract type ElementarySpace{𝕜} <: VectorSpace end
 const IndexSpace = ElementarySpace
@@ -68,19 +68,18 @@ objects of the same concrete type (i.e. with the same type parameters in case of
 parametric type). In particular, every `ElementarySpace` should implement the following
 methods
 
-*   `dim(::ElementarySpace) -> ::Int`
-    return the dimension of the space as an `Int`
+*   `dim(::ElementarySpace) -> ::Int` returns the dimension of the space as an `Int`
 
-*   `dual{S<:ElementarySpace}(::S) -> ::S`
-    return the [dual space](http://en.wikipedia.org/wiki/Dual_space) `dual(V)`, using an
-    instance of the same concrete type (i.e. not via type parameters); this should satisfy
+*   `dual{S<:ElementarySpace}(::S) -> ::S` returns the
+    [dual space](http://en.wikipedia.org/wiki/Dual_space) `dual(V)`, using an instance of
+    the same concrete type (i.e. not via type parameters); this should satisfy
     `dual(dual(V)==V`
 
-*   `conj{S<:ElementarySpace}(::S) -> ::S`
-    return the [complex conjugate space](http://en.wikipedia.org/wiki/Complex_conjugate_vector_space)
+*   `conj{S<:ElementarySpace}(::S) -> ::S` returns the
+    [complex conjugate space](http://en.wikipedia.org/wiki/Complex_conjugate_vector_space)
     `conj(V)`, using an instance of the same concrete type (i.e. not via type parameters);
     this should satisfy `conj(conj(V))==V` and we automatically have
-    `conj{F<:Real}(V::ElementarySpace{F}) = V`.
+    `conj(V::ElementarySpace{ℝ}) = V`.
 
 For convenience, the dual of a space `V` can also be obtained as `V'`.
 
@@ -98,17 +97,18 @@ We furthermore define the abstract type
 ```julia
 abstract InnerProductSpace{𝕜} <: ElementarySpace{𝕜}
 ```
-to contain all vector spaces `V` which have an inner product and thus a canonical mapping from
-`dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This mapping
-is provided by the metric, but no further support for working with metrics is currently implemented.
+to contain all vector spaces `V` which have an inner product and thus a canonical mapping
+from `dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This
+mapping is provided by the metric, but no further support for working with metrics is
+currently implemented.
 
 Finally there is
 ```julia
 abstract EuclideanSpace{𝕜} <: InnerProductSpace{𝕜}
 ```
 to contain all spaces `V` with a standard Euclidean inner product (i.e. where the metric is
-the identity). These spaces have the natural isomorphisms `dual(V) == V` (for ` 𝕜<:Real`) or
-`dual(V) == conj(V)` (for ` 𝕜<:Complex`). In particular, we have two concrete types
+the identity). These spaces have the natural isomorphisms `dual(V) == V` (for ` 𝕜<:Real`)
+or `dual(V) == conj(V)` (for ` 𝕜<:Complex`). In particular, we have two concrete types
 ```julia
 immutable CartesianSpace <: EuclideanSpace{ℝ}
     d::Int
@@ -118,10 +118,10 @@ immutable ComplexSpace <: EuclideanSpace{ℂ}
   dual::Bool
 end
 ```
-to represent the Euclidean spaces $ℝ^d$ or $ℂ^d$ without further inner structure. They can be
-created using the syntax `ℝ^d` and `ℂ^d`, or `(ℂ^d)'`for the dual space of the latter. Note
-that the brackets are required because of the precedence rules, since `d' == d` for `d::Integer``.
-Some examples
+to represent the Euclidean spaces $ℝ^d$ or $ℂ^d$ without further inner structure. They can
+be created using the syntax `ℝ^d` and `ℂ^d`, or `(ℂ^d)'`for the dual space of the latter.
+Note that the brackets are required because of the precedence rules, since `d' == d` for
+`d::Integer`. Some examples:
 ```@repl tensorkit
 dim(ℝ^10)
 (ℝ^10)' == ℝ^10
@@ -136,19 +136,19 @@ an inner structure corresponding to the irreducible representations of a group.
 
 ## Composite spaces
 
-Composite spaces are vector spaces that are built up out of individual elementary vector spaces.
-The most prominent (and currently only) example is a tensor product of `N` elementary spaces
-of the same type `S`, which is implemented as
+Composite spaces are vector spaces that are built up out of individual elementary vector
+spaces. The most prominent (and currently only) example is a tensor product of `N` elementary spaces of the same type `S`, which is implemented as
 ```julia
 struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
     spaces::NTuple{N, S}
 end
 ```
 Given some `V1::S`, `V2::S`, `V3::S` of the same type `S<:ElementarySpace`, we can easily
-construct `ProductSpace{S,3}((V1,V2,V3))` as `ProductSpace(V1,V2,V3)` or using `V1 ⊗ V2 ⊗ V3`,
-where `⊗` is simply obtained by typing `\otimes`+TAB. In fact, for convenience, even the regular
-multiplication operator `*` acts as tensor product between vector spaces, and as a consequence
-so does raising a vector space to a positive integer power, i.e.
+construct `ProductSpace{S,3}((V1,V2,V3))` as `ProductSpace(V1,V2,V3)` or using
+`V1 ⊗ V2 ⊗ V3`, where `⊗` is simply obtained by typing `\otimes`+TAB. In fact, for
+convenience, also the regular multiplication operator `*` acts as tensor product between
+vector spaces, and as a consequence so does raising a vector space to a positive integer
+power, i.e.
 ```@repl tensorkit
 V1 = ℂ^2
 V2 = ℂ^3
@@ -158,40 +158,41 @@ dim(V1 ⊗ V2)
 dims(V1 ⊗ V2)
 dual(V1 ⊗ V2)
 ```
-Here, the new function `dims` maps `dim` to the individual spaces in a `ProductSpace` and returns
-the result as a tuple. Note that the rationale for the last result was explained in the subsection
-[Duals](@ref) of [Properties of monoidal categories](@ref).
+Here, the new function `dims` maps `dim` to the individual spaces in a `ProductSpace` and
+returns the result as a tuple. Note that the rationale for the last result was explained in
+the subsection [Duals](@ref) of [Properties of monoidal categories](@ref).
 
 Following Julia's Base library, the function `one` applied to a `ProductSpace{S,N}` returns
 the multiplicative identity, which is `ProductSpace{S,0}`. The same result is obtained when
-acting on an instance `V` of `S::ElementarySpace` directly, however note that `V ⊗ one(V)` will
-yield a `ProductSpace{S,1}(V)` and not `V` itself. Similar to Julia Base, `one` also works in
-the type domain.
+acting on an instance `V` of `S::ElementarySpace` directly, however note that `V ⊗ one(V)`
+will yield a `ProductSpace{S,1}(V)` and not `V` itself. Similar to Julia Base, `one` also
+works in the type domain.
 
-In the future, other `CompositeSpace` types could be added. For example, the wave function of
-an `N`-particle quantum system in first quantization would require the introduction of a `SymmetricSpace{S,N}`
-or a `AntiSymmetricSpace{S,N}` for bosons or fermions respectively, which correspond to the
-symmetric (permutation invariant) or antisymmetric subspace of `V^N`, where `V::S` represents
-the Hilbert space of the single particle system. Other domains, like general relativity, might
-also benefit from tensors living in a subspace with certain symmetries under specific index
-permutations.
+In the future, other `CompositeSpace` types could be added. For example, the wave function
+of an `N`-particle quantum system in first quantization would require the introduction of a
+`SymmetricSpace{S,N}` or a `AntiSymmetricSpace{S,N}` for bosons or fermions respectively,
+which correspond to the symmetric (permutation invariant) or antisymmetric subspace of
+`V^N`, where `V::S` represents the Hilbert space of the single particle system. Other
+domains, like general relativity, might also benefit from tensors living in a subspace with
+certain symmetries under specific index permutations.
 
 ## Some more functionality
-Some more convenience functions are provided for the euclidean spaces [`CartesianSpace`](@ref)
-and [`ComplexSpace`](@ref), as well as for [`RepresentationSpace`](@ref) discussed in the next
-section. All functions below that act on more than a single elementary space, are only defined
-when the different spaces are of the same concrete subtype `S<:ElementarySpace`
+Some more convenience functions are provided for the euclidean spaces
+[`CartesianSpace`](@ref) and [`ComplexSpace`](@ref), as well as for
+[`RepresentationSpace`](@ref) discussed in the next section. All functions below that act
+on more than a single elementary space, are only defined when the different spaces are of
+the same concrete subtype `S<:ElementarySpace`
 
-The function `fuse(V1, V2, ...)` or `fuse(V1 ⊗ V2 ⊗ ...)` returns an elementary space that is
-isomorphic to `V1 ⊗ V2 ⊗ ...`, in the sense that a unitary tensor map can be constructed between
-those spaces, e.g. from `W = V1 ⊗ V2 ⊗ ...` to `V = fuse(V1 ⊗ V2 ⊗ ...)`. The function `flip(V1)`
-returns a space that is isomorphic to `V1` but has `isdual(flip(V1)) == isdual(V1')`, i.e. if
-`V1` is a normal space than `flip(V1)` is a dual space. Again, isomorphism here implies that
-a unitary map (but there is no canonical choice) can be constructed between both spaces. `flip(V1)`
-is different from `dual(V1)` in the case of [`RepresentationSpace`](@ref). It is useful to
-flip a tensor index from a ket to a bra (or vice versa), by contracting that index with a unitary
-map from `V1` to `map(V1)`. We refer to `[Index operations](@ref)` for further information.
-Some examples
+The function `fuse(V1, V2, ...)` or `fuse(V1 ⊗ V2 ⊗ ...)` returns an elementary space that
+is isomorphic to `V1 ⊗ V2 ⊗ ...`, in the sense that a unitary tensor map can be constructed
+between those spaces, e.g. from `W = V1 ⊗ V2 ⊗ ...` to `V = fuse(V1 ⊗ V2 ⊗ ...)`. The
+function `flip(V1)` returns a space that is isomorphic to `V1` but has
+`isdual(flip(V1)) == isdual(V1')`, i.e. if `V1` is a normal space than `flip(V1)` is a dual
+space. Again, isomorphism here implies that a unitary map (but there is no canonical
+choice) can be constructed between both spaces. `flip(V1)` is different from `dual(V1)` in
+the case of [`RepresentationSpace`](@ref). It is useful to flip a tensor index from a ket
+to a bra (or vice versa), by contracting that index with a unitary map from `V1` to
+`flip(V1)`. We refer to `[Index operations](@ref)` for further information. Some examples:
 ```@repl tensorkit
 fuse(ℝ^5, ℝ^3)
 fuse(ℂ^3, (ℂ^5)', ℂ^2)
@@ -199,10 +200,10 @@ flip(ℂ^4)
 ```
 
 We also define the direct sum `V1` and `V2` as `V1 ⊕ V2`, where `⊕` is obtained by typing
-`\oplus`+TAB. This is possible only if `isdual(V1) == isdual(V2)`. With a little pun on Julia
-Base, `oneunit` applied to an elementary space (in the value or type domain) returns the one-dimensional
-space, which is isomorphic to the scalar field of the spaceitself. Some examples illustrate
-this better
+`\oplus`+TAB. This is possible only if `isdual(V1) == isdual(V2)`. With a little pun on
+Julia Base, `oneunit` applied to an elementary space (in the value or type domain) returns
+the one-dimensional space, which is isomorphic to the scalar field of the spaceitself. Some
+examples illustrate this better
 ```@repl tensorkit
 ℝ^5 ⊕ ℝ^3
 ℂ^5 ⊕ ℂ^3
@@ -214,13 +215,13 @@ oneunit((ℂ^3)')
 (ℂ^5)' ⊕ oneunit((ℂ^5)')
 ```
 
-For two spaces `V1` and `V2`, `min(V1,V2)` returns the space with the smallest dimension, whereas
-`max(V1,V2)` returns the space with the largest dimension, as illustrated by
+For two spaces `V1` and `V2`, `min(V1,V2)` returns the space with the smallest dimension,
+whereas `max(V1,V2)` returns the space with the largest dimension, as illustrated by
 ```@repl tensorkit
 min(ℝ^5, ℝ^3)
 max(ℂ^5, ℂ^3)
 max(ℂ^5, (ℂ^3)')
 ```
 Again, we impose `isdual(V1) == isdual(V2)`. Again, the use of these methods is to construct
-unitary or isometric tensors that map between different spaces, which will be elaborated upon
-in the section on Tensors
+unitary or isometric tensors that map between different spaces, which will be elaborated
+upon in the section on Tensors.
