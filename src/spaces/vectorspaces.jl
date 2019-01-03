@@ -207,7 +207,7 @@ sectortype(V::VectorSpace) = sectortype(typeof(V))
 sectortype(::Type{<:ElementarySpace}) = Trivial
 sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 
-checksectors(::ElementarySpace, ::Trivial) = true
+hassector(::ElementarySpace, ::Trivial) = true
 Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
 
 """

@@ -215,7 +215,7 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
     @boundscheck begin
         c2 = length(s2) == 0 ? one(G) : (length(s2) == 1 ? s2[1] : first(⊗(s1...)))
         c2 == c1 || throw(SectorMismatch())
-        checksectors(codomain(t), s1) && checksectors(domain(t), s2)
+        hassector(codomain(t), s1) && hassector(domain(t), s2)
     end
     f1 = FusionTree(s1,c1)
     f2 = FusionTree(s2,c1)
@@ -232,7 +232,8 @@ end
     c = f1.coupled
     @boundscheck begin
         c == f2.coupled || throw(SectorMismatch())
-        checksectors(codomain(t), f1.uncoupled) && checksectors(domain(t), f2.uncoupled)
+        hassector(codomain(t), f1.uncoupled) || throw(SectorMismatch())
+        hassector(domain(t), f2.uncoupled) || throw(SectorMismatch())
     end
     @inbounds begin
         return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))
@@ -241,7 +242,8 @@ end
 @propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copyto!(getindex(t, f1, f2), v)
 
 # For a tensor with trivial symmetry, allow no argument indexing
-@inline Base.getindex(t::TrivialTensorMap) = sreshape(StridedView(t.data), (dims(codomain(t))..., dims(domain(t))...))
+@inline Base.getindex(t::TrivialTensorMap) =
+    sreshape(StridedView(t.data), (dims(codomain(t))..., dims(domain(t))...))
 @inline Base.setindex!(t::TrivialTensorMap, v) = copyto!(getindex(t), v)
 
 # For a tensor with trivial symmetry, fusiontrees returns (nothing,nothing)

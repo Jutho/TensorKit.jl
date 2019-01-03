@@ -34,7 +34,7 @@ function Base.getindex(t::AdjointTensorMap{S,N₁,N₂,G}, f1::FusionTree{G,N₁
     c = f1.coupled
     @boundscheck begin
         c == f2.coupled || throw(SectorMismatch())
-        checksectors(codomain(t), f1.uncoupled) && checksectors(domain(t), f2.uncoupled)
+        hassector(codomain(t), f1.uncoupled) && hassector(domain(t), f2.uncoupled)
     end
     return sreshape((StridedView(t.parent.data[c])[t.parent.rowr[c][f2], t.parent.colr[c][f1]])', (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))
 end

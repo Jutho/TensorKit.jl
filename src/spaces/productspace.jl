@@ -1,14 +1,17 @@
 """
     struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
 
-A `ProductSpace` is a tensor product space of `N` vector spaces of type `S<:ElementarySpace`.
-Only tensor products between [`ElementarySpace`](@ref) objects of the same type are allowed.
+A `ProductSpace` is a tensor product space of `N` vector spaces of type
+`S<:ElementarySpace`. Only tensor products between [`ElementarySpace`](@ref) objects of the
+same type are allowed.
 """
 struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
     spaces::NTuple{N, S}
 end
-ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSpace{S,N}(spaces)
-ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} = ProductSpace{S,N}(spaces)
+ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} =
+    ProductSpace{S,N}(spaces)
+ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} =
+    ProductSpace{S,N}(spaces)
 
 # Corresponding methods
 #-----------------------
@@ -47,15 +50,21 @@ end
 
 # more specific methods
 sectors(P::ProductSpace) = _sectors(P, sectortype(P))
-_sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} = (ntuple(n->Trivial(), StaticLength{N}()),) # speed up sectors for ungraded spaces
-_sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} = product(map(sectors, P.spaces)...)
+_sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} =
+    (ntuple(n->Trivial(), StaticLength{N}()),) # speed up sectors for ungraded spaces
+_sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} =
+    product(map(sectors, P.spaces)...)
 
-checksectors(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} = reduce(&, map(checksectors, V.spaces, s); init = true)
+hassector(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} =
+    reduce(&, map(hassector, V.spaces, s); init = true)
 
-dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N} = map(dim, P.spaces, sector)
-dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N} = prod(dims(P, sector))
+dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N} =
+    map(dim, P.spaces, sector)
+dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N} =
+    prod(dims(P, sector))
 
-Base.axes(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N,<:Sector}) where {N} = map(axes, P.spaces, sectors)
+Base.axes(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N,<:Sector}) where {N} =
+    map(axes, P.spaces, sectors)
 
 """
     dims(::ProductSpace{S,N}) -> Dims{N} = NTuple{N,Int}
@@ -103,9 +112,12 @@ Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
 # Default construction from product of spaces
 #---------------------------------------------
 ⊗(V1::S, V2::S) where {S<:ElementarySpace}= ProductSpace((V1, V2))
-⊗(P1::ProductSpace{S}, V2::S) where {S<:ElementarySpace} = ProductSpace(tuple(P1.spaces..., V2))
-⊗(V1::S, P2::ProductSpace{S}) where {S<:ElementarySpace} = ProductSpace(tuple(V1, P2.spaces...))
-⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace} = ProductSpace(tuple(P1.spaces..., P2.spaces...))
+⊗(P1::ProductSpace{S}, V2::S) where {S<:ElementarySpace} =
+    ProductSpace(tuple(P1.spaces..., V2))
+⊗(V1::S, P2::ProductSpace{S}) where {S<:ElementarySpace} =
+    ProductSpace(tuple(V1, P2.spaces...))
+⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace} =
+    ProductSpace(tuple(P1.spaces..., P2.spaces...))
 ⊗(P::ProductSpace{S,0}, ::ProductSpace{S,0}) where {S<:ElementarySpace} = P
 ⊗(P::ProductSpace{S}, ::ProductSpace{S,0}) where {S<:ElementarySpace} = P
 ⊗(::ProductSpace{S,0}, P::ProductSpace{S}) where {S<:ElementarySpace} = P
@@ -135,8 +147,8 @@ fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 #--------------------------------------------------------
 Base.length(P::ProductSpace) = length(P.spaces)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
-Base.getindex(P::ProductSpace{S}, I::NTuple{N,Integer}) where {S<:ElementarySpace,N} = ProductSpace{S,N}(TupleTools.getindices(P.spaces, I))
-#
+Base.getindex(P::ProductSpace{S}, I::NTuple{N,Integer}) where {S<:ElementarySpace,N} =
+    ProductSpace{S,N}(TupleTools.getindices(P.spaces, I))
 
 Base.iterate(P::ProductSpace) = Base.iterate(P.spaces)
 Base.iterate(P::ProductSpace, s) = Base.iterate(P.spaces, s)

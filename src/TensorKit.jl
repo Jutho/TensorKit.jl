@@ -23,7 +23,7 @@ export SpaceMismatch, SectorMismatch, IndexError # error types
 # general vector space methods
 export space, field, dual, dim, dims, fuse, flip, isdual
 # methods for sectors and properties thereof
-export sectortype, sectors, checksectors, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
+export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 export fusiontrees, braid, repartition
 

@@ -47,7 +47,7 @@ end
     @test V == @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V))
     @test field(V) == ℝ
     @test @inferred(sectortype(V)) == Trivial
-    @test @inferred(TensorKit.checksectors(V, Trivial()))
+    @test @inferred(TensorKit.hassector(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
@@ -66,7 +66,7 @@ end
     @test @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V)) != V
     @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == Trivial
-    @test @inferred(TensorKit.checksectors(V, Trivial()))
+    @test @inferred(TensorKit.hassector(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
@@ -86,7 +86,7 @@ end
     @test @inferred(dual(V)) != @inferred(conj(V)) != V
     @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == Trivial
-    @test @inferred(TensorKit.checksectors(V, Trivial()))
+    @test @inferred(TensorKit.hassector(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
@@ -104,7 +104,7 @@ end
     @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == G
     slist = @inferred sectors(V)
-    @test @inferred(TensorKit.checksectors(V, first(slist)))
+    @test @inferred(TensorKit.hassector(V, first(slist)))
     @test @inferred(dim(V)) == sum((@inferred(dim(s)*dim(V,s))) for s in slist)
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     @inferred(⊕(V,V))

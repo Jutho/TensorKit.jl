@@ -73,7 +73,7 @@ Base.getindex(::ComplexNumbers, d1::Pair{G,Int}, dims::Vararg{Pair{G,Int}}) wher
 sectors(V::GenericRepresentationSpace{G}) where {G<:Sector} = SectorSet{G}(s->isdual(V) ? dual(s) : s, keys(V.dims))
 sectors(V::ZNSpace{N}) where {N} = SectorSet{ZNIrrep{N}}(n->isdual(V) ? -(n-1) : (n-1), Iterators.filter(n->V.dims[n]!=0, 1:N))
 
-checksectors(V::RepresentationSpace{G}, s::G) where {G<:Sector} = dim(V, s) != 0
+hassector(V::RepresentationSpace{G}, s::G) where {G<:Sector} = dim(V, s) != 0
 
 # properties
 dim(V::GenericRepresentationSpace) = sum(c->dim(c)*V.dims[c], keys(V.dims))
