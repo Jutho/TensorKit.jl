@@ -90,7 +90,7 @@ include("auxiliary/random.jl")
 
 #--------------------------------------------------------------------
 # experiment with different dictionaries
-const SectorDict{K,V} = VectorDict{K,V}
+const SectorDict{K,V} = SortedVectorDict{K,V}
 const FusionTreeDict{K,V} = Dict{K,V}
 #--------------------------------------------------------------------
 
