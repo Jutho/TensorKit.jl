@@ -10,7 +10,8 @@ struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
     dual::Bool
     conj::Bool
     function GeneralSpace{𝕜}(d::Int, dual::Bool = false, conj::Bool = false) where {𝕜}
-        d >= 0 || throw(ArgumentError("Dimension of a vector space should be bigger than zero"))
+        d >= 0 ||
+            throw(ArgumentError("Dimension of a vector space should be bigger than zero"))
         if 𝕜 isa Field
             new{𝕜}(d, dual, (𝕜 ⊆ ℝ) ? false : conj)
         else
