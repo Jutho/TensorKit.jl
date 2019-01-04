@@ -81,7 +81,7 @@ _fermionparity(t::Tuple) = xor(fermionparity(t[1]), _fermionparity(tail(t)))
 dim(p::ProductSector) = prod(dim, p.sectors)
 
 Base.isequal(p1::ProductSector, p2::ProductSector) = isequal(p1.sectors, p2.sectors)
-Base.hash(p::ProductSector, h::UInt64) = hash(p.sectors, h)
+Base.hash(p::ProductSector, h::UInt) = hash(p.sectors, h)
 Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
     isless(p1.sectors, p2.sectors)
 

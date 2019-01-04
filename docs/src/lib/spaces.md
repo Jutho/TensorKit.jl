@@ -40,7 +40,7 @@ Methods often apply similar to e.g. spaces and corresponding tensors or tensor m
 field
 sectortype
 sectors
-checksectors
+hassector
 dim
 dims
 blocksectors

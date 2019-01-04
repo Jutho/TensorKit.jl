@@ -64,11 +64,11 @@ Base.show(io::IO, c::U1Irrep) =
     get(io, :compact, false) ? print(io, c.charge.num//2) :
         print(io, "U₁(", c.charge.num//2, ")")
 
+Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
 Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
+Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
 Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
     isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInteger) < c1.charge == -c2.charge
-Base.hash(c::ZNIrrep{N}, h::UInt64) where {N} = hash(c.n, h)
-Base.hash(c::U1Irrep, h::UInt64) = hash(c.charge, h)
 
 # Nob-abelian groups
 #------------------------------------------------------------------------------#
@@ -123,7 +123,7 @@ Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
 Base.show(io::IO, s::SU2Irrep) =
     get(io, :compact, false) ? print(io, s.j.num//2) : print(io, "SU₂(", s.j.num//2, ")")
 
-Base.hash(s::SU2Irrep, h::UInt64) = hash(s.j, h)
+Base.hash(s::SU2Irrep, h::UInt) = hash(s.j, h)
 Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 
 # U₁ ⋉ C (U₁ and charge conjugation)
@@ -142,7 +142,7 @@ struct CU1Irrep <: Sector
     end
 end
 _getj(s::CU1Irrep) = s.j.num//2
-Base.hash(c::CU1Irrep, h::UInt64) = hash(c.s, hash(c.j, h))
+Base.hash(c::CU1Irrep, h::UInt) = hash(c.s, hash(c.j, h))
 Base.isless(c1::CU1Irrep, c2::CU1Irrep) =
     isless(c1.j, c2.j) || (c1.j == c2.j == 0 && c1.s < c2.s)
 

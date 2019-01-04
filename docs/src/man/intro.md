@@ -97,11 +97,10 @@ denoted as a rank 2 tensor in ``V ⊗ W^*``, where ``W^*`` corresponds to the du
 
 This brings us to our final (yet formal) definition
 
-*   A tensor (map) is a homorphism between two objects from the category ``Vect`` (or some
-    subcategory thereof). In practice, this will be ``FinVect``, the category of finite
-    dimensional vector spaces. More generally, our concept of a tensor makes sense, in
-    principle, for any ``Vect``-enriched monoidal category, see [below](@ref "Properties of
-    monoidal categories").
+*   A tensor (map) is a homorphism between two objects from the category ``\mathbf{Vect}``
+    (or some subcategory thereof). In practice, this will be ``\mathbf{FinVect}``, the
+    category of finite dimensional vector spaces. More generally, our concept of a tensor
+    makes sense, in principle, for any ``\mathbf{Vect}``-enriched monoidal category. We refer to the section "[Monoidal categories and their properties (optional)](@ref)".
 
 ## Symmetries and block sparsity
 
@@ -139,9 +138,9 @@ requires the *topological* data of the group, i.e. the fusion rules of the irrep
 quantum dimensions and the F-symbol (6j-symbol or more precisely Racah's W-symbol in the
 case of ``\mathsf{SU}_2``). In particular, we do not need the Clebsch-Gordan coefficients.
 
-Further details are provided in ["Sectors, representation spaces and fusion trees"](@ref).
+Further details are provided in [Sectors, representation spaces and fusion trees](@ref).
 
-## Properties of monoidal categories
+## Monoidal categories and their properties (optional)
 
 The purpose of this final introductory section (which can safely be skipped), is to explain
 how certain concepts and terminology from the theory of monoidal categories apply in the
@@ -159,11 +158,11 @@ To start, a category ``C`` consists of
 *   for each object ``V``, an identity morphism ``\mathrm{id}_V:V→V`` such that
     ``f ∘ \mathrm{id}_W = f = \mathrm{id}_V ∘ f``.
 
-In our case, i.e. the category `Vect` (or some subcategory thereof), the objects are vector
-spaces, and the morphisms are linear maps between these vector spaces with "matrix
-multiplication" as composition. We refer to these morphisms as tensor maps exactly because
-there is an operation `⊗`, the tensor product, that allows to combine objects into new
-objects. This makes `Vect` into a **monoidal category**, which has
+In our case, i.e. the category ``\mathbf{Vect}`` (or some subcategory thereof), the objects
+are vector spaces, and the morphisms are linear maps between these vector spaces with
+"matrix multiplication" as composition. We refer to these morphisms as tensor maps exactly
+because there is an operation `⊗`, the tensor product, that allows to combine objects into
+new objects. This makes ``\mathbf{Vect}`` into a **monoidal category**, which has
 *   a binary operation on objects ``⊗: |C| × |C| → |C|``
 *   a binary operation on morphisms, also denoted as ``⊗``, such that
     ``⊗: hom(W_1,V_1) × hom(W_2,V_2) → hom(W_1 ⊗ W_2, V_1 ⊗ V_2)``

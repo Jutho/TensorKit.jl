@@ -107,8 +107,8 @@ Finally there is
 abstract EuclideanSpace{𝕜} <: InnerProductSpace{𝕜}
 ```
 to contain all spaces `V` with a standard Euclidean inner product (i.e. where the metric is
-the identity). These spaces have the natural isomorphisms `dual(V) == V` (for ` 𝕜<:Real`)
-or `dual(V) == conj(V)` (for ` 𝕜<:Complex`). In particular, we have two concrete types
+the identity). These spaces have the natural isomorphisms `dual(V) == V` (for `𝕜 == ℝ`)
+or `dual(V) == conj(V)` (for ` 𝕜 == ℂ`). In particular, we have two concrete types
 ```julia
 immutable CartesianSpace <: EuclideanSpace{ℝ}
     d::Int

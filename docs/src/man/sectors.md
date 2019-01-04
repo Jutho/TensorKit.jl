@@ -51,7 +51,7 @@ the required data of the representation theory of a group.
 ## Representation theory and unitary fusion categories
 
 Let the different irreps or sectors be labeled as ``a``, ``b``, ``c``, … First and foremost,
-we need to specify the *fusion rules* ``a ⊗ b = ⨁ N_{a,b}^{c} c`` with `N_{a,b}^c` some
+we need to specify the *fusion rules* ``a ⊗ b = ⨁ N_{a,b}^{c} c`` with ``N_{a,b}^c`` some
 non-negative integers. There should always exists a unique trivial sector ``u`` such that
 ``a ⊗ u = a = u ⊗ a``. Furthermore, there should exist a unique sector ``\overline{a}``
 such that ``N_{a,\overline{a}}^{u} = 1``, whereas for all ``b ≂̸ \overline{a}``,
@@ -83,13 +83,13 @@ category of) the group describes the following transformation:
 
 *   [Braiding](@ref) or permuting as defined by ``σ_{a,b}: R_a ⊗ R_b → R_b ⊗ R_a``:
 
-    ``σ_{R_a,R_b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}
+    ``σ_{R_a,R_b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}``
 
 The dimensions of the spaces ``R_a`` on which representation ``a`` acts are denoted as
 ``d_a`` and referred to as quantum dimensions. In particular ``d_u = 1`` and
 ``d_a = d_{\overline{a}}``. This information is also encoded in the F-symbol as
 ``d_a = | [F^{a \overline{a} a}_a]^u_u |^{-1}``. Note that there are no multiplicity labels
-in that particular F-symbol as `N_{a,\overline{a}}^u = 1`.
+in that particular F-symbol as ``N_{a,\overline{a}}^u = 1``.
 
 If, for every ``a`` and ``b``, there is a unique ``c`` such that ``a ⊗ b = c`` (i.e.
 ``N_{a,b}^{c} = 1`` and ``N_{a,b}^{c′} = 0`` for all other ``c′``), the category is abelian.
@@ -165,7 +165,7 @@ New sector types `G<:Sector` should then indicate which fusion style they have b
 
 In the representation and manipulation of symmetric tensors, it will be important to couple
 or fuse different sectors together into a single block sector. The section on
-[fusion trees](@ref) describes the details of this process, which consists of pairwise
+[Fusion trees](@ref) describes the details of this process, which consists of pairwise
 fusing two sectors into a single coupled sector, which is then fused with the next
 uncoupled sector. For this, we assume the existence of a basis of unitary tensor maps
 ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` such that
@@ -486,13 +486,13 @@ called ribbon fusion category. However, the category does not need to be modular
 category of representations of a finite group[^1] corresponds to a typical example (which is
 not modular and which have a symmetric braiding). Other examples are the representation of
 quasi-triangular Hopf algebras, which are typically known as anyon theories in the physics
-literature, e.g. Fibonicci anyons, Ising anyons, … In those cases, quantum dimensions `d_a`
-are non-integer, and there is no vector space interpretation to objects ``R_a`` (which we
-can identify with just `a`) in the decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``. The different
-sectors `a`, … just represent abstract objects. However, there is still a vector space
-associated with the homomorphisms `a ⊗ b → c`, whose dimension is `N_{a,b}^c`. The objects
-`X_{a,b}^{c,μ}` for `μ = 1,…,N_{a,b}^c` serve as an abstract basis for this space and from
-there on the discussion is completely equivalent.
+literature, e.g. Fibonicci anyons, Ising anyons, … In those cases, quantum dimensions
+``d_a`` are non-integer, and there is no vector space interpretation to objects ``R_a``
+(which we can identify with just ``a``) in the decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``.
+The different sectors ``a``, … just represent abstract objects. However, there is still a
+vector space associated with the homomorphisms ``a ⊗ b → c``, whose dimension is
+``N_{a,b}^c``. The objects ``X_{a,b}^{c,μ}`` for ``μ = 1,…,N_{a,b}^c`` serve as an abstract
+basis for this space and from there on the discussion is completely equivalent.
 
 So far, none of these cases have been implemented, but it is a simple exercise to do so.
 
