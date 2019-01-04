@@ -6,18 +6,29 @@ struct FusionTree{G<:Sector,N,M,L,T}
     innerlines::NTuple{M,G} # M = N-2
     vertices::NTuple{L,T} # L = N-1
 end
-FusionTree{G}(uncoupled::NTuple{N}, coupled, innerlines, vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))) where {G<:Sector,N} =
-    fusiontreetype(G, StaticLength(N))(map(s->convert(G,s),uncoupled), convert(G,coupled), map(s->convert(G,s),innerlines), vertices)
-FusionTree(uncoupled::NTuple{N,G}, coupled::G, innerlines, vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))) where {G<:Sector,N} =
+FusionTree{G}(uncoupled::NTuple{N},
+                coupled,
+                innerlines,
+                vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))
+                ) where {G<:Sector,N} =
+    fusiontreetype(G, StaticLength(N))(map(s->convert(G,s),uncoupled),
+        convert(G,coupled), map(s->convert(G,s), innerlines), vertices)
+FusionTree(uncoupled::NTuple{N,G},
+            coupled::G,
+            innerlines,
+            vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))
+            ) where {G<:Sector,N} =
     fusiontreetype(G, StaticLength(N))(uncoupled, coupled, innerlines, vertices)
 
-
 function FusionTree{G}(uncoupled::NTuple{N}, coupled = one(G)) where {G<:Sector, N}
-    FusionStyle(G) isa Abelian || error("cannot create fusion tree without inner lines if `FusionStyle(G) <: NonAbelian`")
-    FusionTree{G}(map(s->convert(G,s), uncoupled), convert(G, coupled), _abelianinner(map(s->convert(G,s),(uncoupled..., dual(coupled)))))
+    FusionStyle(G) isa Abelian ||
+        error("fusion tree requires inner lines if `FusionStyle(G) <: NonAbelian`")
+    FusionTree{G}(map(s->convert(G,s), uncoupled), convert(G, coupled),
+                    _abelianinner(map(s->convert(G,s),(uncoupled..., dual(coupled)))))
 end
 function FusionTree(uncoupled::NTuple{N,G}, coupled::G = one(G)) where {G<:Sector, N}
-    FusionStyle(G) isa Abelian || error("cannot create fusion tree without inner lines if `FusionStyle(G) <: NonAbelian`")
+    FusionStyle(G) isa Abelian ||
+        error("fusion tree requires inner lines if `FusionStyle(G) <: NonAbelian`")
     FusionTree{G}(uncoupled, coupled, _abelianinner((uncoupled..., dual(coupled))))
 end
 
@@ -60,11 +71,18 @@ end
 Base.isequal(f1::FusionTree{G1,N1}, f2::FusionTree{G2,N2}) where {G1,G2,N1,N2} = false
 
 # Fusion tree methods
-fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} = FusionTree{G, 0, 0, 0, vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} = FusionTree{G, 1, 0, 0, vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} = FusionTree{G, 2, 0, 1, vertex_labeltype(G)}
-fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} = _fusiontreetype(G, StaticLength(N), StaticLength(N) - StaticLength(2), StaticLength(N) - StaticLength(1))
-_fusiontreetype(::Type{G}, ::StaticLength{N}, ::StaticLength{M}, ::StaticLength{L}) where {G<:Sector, N, M, L} = FusionTree{G,N,M,L,vertex_labeltype(G)}
+Base.@pure fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} =
+    FusionTree{G, 0, 0, 0, vertex_labeltype(G)}
+Base.@pure fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} =
+    FusionTree{G, 1, 0, 0, vertex_labeltype(G)}
+Base.@pure fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} =
+    FusionTree{G, 2, 0, 1, vertex_labeltype(G)}
+Base.@pure fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} =
+    _fusiontreetype(G, StaticLength(N),
+        StaticLength(N) - StaticLength(2), StaticLength(N) - StaticLength(1))
+Base.@pure _fusiontreetype(::Type{G}, ::StaticLength{N}, ::StaticLength{M},
+                            ::StaticLength{L}) where {G<:Sector, N, M, L} =
+    FusionTree{G,N,M,L,vertex_labeltype(G)}
 
 # converting to actual array
 function Base.convert(::Type{Array}, f::FusionTree{G, 0}) where {G}
@@ -75,21 +93,24 @@ function Base.convert(::Type{Array}, f::FusionTree{G, 1}) where {G}
     T = eltype(fusiontensor(one(G), one(G), one(G)))
     return copyto!(Matrix{T}(undef, dim(f.coupled), dim(f.coupled)), I)
 end
-Base.convert(::Type{Array}, f::FusionTree{G,2}) where {G} = fusiontensor(f.uncoupled[1], f.uncoupled[2], f.coupled, f.vertices[1])
+Base.convert(::Type{Array}, f::FusionTree{G,2}) where {G} =
+    fusiontensor(f.uncoupled[1], f.uncoupled[2], f.coupled, f.vertices[1])
+
 function Base.convert(::Type{Array}, f::FusionTree{G}) where {G}
     tailout = (f.innerlines[1], TupleTools.tail2(f.uncoupled)...)
-    ftail = FusionTree(tailout, f.coupled, TupleTools.tail(f.innerlines), TupleTools.tail(f.vertices))
+    ftail = FusionTree(tailout, f.coupled, Base.tail(f.innerlines), Base.tail(f.vertices))
     Ctail = convert(Array, ftail)
     C1 = fusiontensor(f.uncoupled[1], f.uncoupled[2], f.innerlines[1], f.vertices[1])
     dtail = size(Ctail)
     d1 = size(C1)
-    C = reshape(C1, d1[1]*d1[2], d1[3])*reshape(Ctail, dtail[1], TupleTools.prod(TupleTools.tail(dtail)))
-    return reshape(C, (d1[1], d1[2], TupleTools.tail(dtail)...))
+    C = reshape(C1, d1[1]*d1[2], d1[3]) *
+            reshape(Ctail, dtail[1], prod(Base.tail(dtail)))
+    return reshape(C, (d1[1], d1[2], Base.tail(dtail)...))
 end
 
 # permute fusion tree
 """
-    function permute(t::FusionTree{<:Sector,N}, i) where {N} -> (Immutable)Dict{typeof(t),<:Number}
+    function permute(t::FusionTree, i) -> <:AbstractDict{typeof(t),<:Number}
 
 Perform a permutation of the uncoupled indices of the fusion tree `t` and returns the result
 as a `<:AbstractDict` of output trees and corresponding coefficients.
@@ -126,13 +147,14 @@ function permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
 end
 
 """
-    function braid(t::FusionTree{<:Sector,N}, i) where {N} -> <:AbstractDict{typeof(t),<:Number}
+    function braid(t::FusionTree, i) -> <:AbstractDict{typeof(t),<:Number}
 
 Perform a braid of neighbouring uncoupled indices `i` and `i+1` on a fusion tree `t`,
 and returns the result as a linked list of output trees and corresponding coefficients.
 """
 function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
-    1 <= i < N || throw(ArgumentError("Cannot swap outputs i=$i and i+1 out of only $N outputs"))
+    1 <= i < N ||
+        throw(ArgumentError("Cannot swap outputs i=$i and i+1 out of only $N outputs"))
     outer = t.uncoupled
     inner = t.innerlines
     if i == 1
@@ -141,9 +163,11 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
         outer = TupleTools.setindex(outer, b, 1)
         outer = TupleTools.setindex(outer, a, 2)
         if FusionStyle(G) isa Abelian
-            return SingletonDict(FusionTree{G}(outer, t.coupled, inner, t.vertices) => Rsymbol(a, b, c))
+            return SingletonDict(FusionTree{G}(outer, t.coupled, inner, t.vertices) =>
+                    Rsymbol(a, b, c))
         elseif FusionStyle(G) isa SimpleNonAbelian
-            return VectorDict(FusionTree{G}(outer, t.coupled, inner, t.vertices) => Rsymbol(a, b, c))
+            return FusionTreeDict(FusionTree{G}(outer, t.coupled, inner, t.vertices) =>
+                    Rsymbol(a, b, c))
         end
     end
     # case i > 1:
@@ -156,7 +180,8 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
     outer′ = TupleTools.setindex(outer′, b, i+1)
     if FusionStyle(G) isa Abelian
         inner′ = TupleTools.setindex(inner, first(a ⊗ d), i-1)
-        return SingletonDict(FusionTree{G}(outer′, t.coupled, inner′) => Rsymbol(b, d, first(b ⊗ d)))
+        return SingletonDict(FusionTree{G}(outer′, t.coupled, inner′) =>
+            Rsymbol(b, d, first(b ⊗ d)))
     elseif FusionStyle(G) isa SimpleNonAbelian
         iter = a ⊗ d
         next = iterate(iter)
@@ -164,12 +189,13 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
         c′, s = next
         while iszero(Nsymbol(b, c′, e))
             next = iterate(iter, s)
-            next === nothing && error("No valid fusion between $a ⊗ $d and dual(dual($e) ⊗ $b)?")
+            next === nothing &&
+                error("No valid fusion between $a ⊗ $d and dual(dual($e) ⊗ $b)?")
             c′, s = next
         end
         coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
         inner′ = TupleTools.setindex(inner, c′, i-1)
-        output = VectorDict(FusionTree{G}(outer′, t.coupled, inner′, t.vertices)=>coeff)
+        output = FusionTreeDict(FusionTree{G}(outer′, t.coupled, inner′, t.vertices)=>coeff)
         next = iterate(iter, s)
         while next !== nothing
             c′, s = next
@@ -190,15 +216,21 @@ end
 
 # repartition double fusion tree
 """
-    function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, ::StaticLength{N}) where {G,N₁,N₂,N} -> (Immutable)Dict{Tuple{FusionTree{G,N}, FusionTree{G,N₁+N₂-N}},<:Number}
+    function repartition(t1::FusionTree{G,N₁},
+                            t2::FusionTree{G,N₂},
+                            ::StaticLength{N}) where {G,N₁,N₂,N}
+        -> <:AbstractDict{Tuple{FusionTree{G,N}, FusionTree{G,N₁+N₂-N}},<:Number}
 
-Input is a double fusion tree that describes the fusion of a set of incoming uncoupled sectors
-to a set of outgoing uncoupled sectors, represented using the individual trees of outgoing (`t1`)
-and incoming sectors (`t2`) respectively (with identical coupled sector `t1.coupled == t2.coupled`).
-Computes new trees and corresponding coefficients obtained from repartitioning the tree by bending
-incoming to outgoing sectors (or vice versa) in order to have `N` outgoing sectors.
+Input is a double fusion tree that describes the fusion of a set of incoming uncoupled
+sectors to a set of outgoing uncoupled sectors, represented using the individual trees of
+outgoing (`t1`) and incoming sectors (`t2`) respectively (with identical coupled sector
+`t1.coupled == t2.coupled`). Computes new trees and corresponding coefficients obtained from
+repartitioning the tree by bending incoming to outgoing sectors (or vice versa) in order to
+have `N` outgoing sectors.
 """
-function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::StaticLength{N}) where {G<:Sector, N₁, N₂, N}
+function repartition(t1::FusionTree{G,N₁},
+                        t2::FusionTree{G,N₂},
+                        V::StaticLength{N}) where {G<:Sector, N₁, N₂, N}
     t1.coupled == t2.coupled || throw(SectorMismatch())
     @assert 0 <= N <= N₁+N₂
     V1 = V
@@ -207,8 +239,12 @@ function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::StaticLe
     if FusionStyle(t1) isa Abelian || FusionStyle(t1) isa SimpleNonAbelian
         coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
         outer = (t1.uncoupled..., map(dual, reverse(t2.uncoupled))...)
-        inner1ext = isa(StaticLength(N₁), StaticLength{0}) ? () : (isa(StaticLength(N₁), StaticLength{1}) ? (one(G),) : (one(G), first(outer), t1.innerlines...))
-        inner2ext = isa(StaticLength(N₂), StaticLength{0}) ? () : (isa(StaticLength(N₂), StaticLength{1}) ? (one(G),) : (one(G), dual(last(outer)), t2.innerlines...))
+        inner1ext = isa(StaticLength(N₁), StaticLength{0}) ? () :
+                        (isa(StaticLength(N₁), StaticLength{1}) ? (one(G),) :
+                            (one(G), first(outer), t1.innerlines...))
+        inner2ext = isa(StaticLength(N₂), StaticLength{0}) ? () :
+                        (isa(StaticLength(N₂), StaticLength{1}) ? (one(G),) :
+                            (one(G), dual(last(outer)), t2.innerlines...))
         innerext = (inner1ext..., t1.coupled, reverse(inner2ext)...) # length N₁+N₂+1
         for n = N₁+1:N
              # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
@@ -222,7 +258,8 @@ function repartition(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, V::StaticLe
             b = outer[n]
             a = innerext[n]
             c = innerext[n+1]
-            coeff *= sqrt(dim(b))*Bsymbol(a,b,c) # for Abelian: sqrt(dim(b)) = sqrt(1) is optimized out
+            coeff *= sqrt(dim(b))*Bsymbol(a,b,c)
+            # for Abelian: sqrt(dim(b)) = sqrt(1) is optimized out
         end
         uncoupled1 = TupleTools.getindices(outer, ntuple(n->n, V1))
         uncoupled2 = TupleTools.getindices(map(dual,outer), ntuple(n->N₁+N₂+1-n, V2))
@@ -240,15 +277,19 @@ end
 
 # permute double fusion tree
 """
-    function permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G,N₁,N₂} -> (Immutable)Dict{Tuple{FusionTree{G,N₁}, FusionTree{G,N₂}},<:Number}
+    function permute(t1::FusionTree{G}, t2::FusionTree{G},
+                        p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G,N₁,N₂}
+        -> <:AbstractDict{Tuple{FusionTree{G,N₁}, FusionTree{G,N₂}},<:Number}
 
-Input is a double fusion tree that describes the fusion of a set of incoming uncoupled sectors
-to a set of outgoing uncoupled sectors, represented using the individual trees of outgoing (`t1`)
-and incoming sectors (`t2`) respectively (with identical coupled sector `t1.coupled == t2.coupled`).
-Computes new trees and corresponding coefficients obtained from repartitioning and permuting the tree
-such that sectors `p1` become outgoing and sectors `p2` become incoming.
+Input is a double fusion tree that describes the fusion of a set of incoming uncoupled
+sectors to a set of outgoing uncoupled sectors, represented using the individual trees of
+outgoing (`t1`) and incoming sectors (`t2`) respectively (with identical coupled sector
+`t1.coupled == t2.coupled`). Computes new trees and corresponding coefficients obtained from
+repartitioning and permuting the tree such that sectors `p1` become outgoing and sectors
+`p2` become incoming.
 """
-function permute(t1::FusionTree{G}, t2::FusionTree{G}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
+function permute(t1::FusionTree{G}, t2::FusionTree{G},
+                    p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂
     p = linearizepermutation(p1, p2, length(t1), length(t2))
     if FusionStyle(t1) isa Abelian
@@ -288,16 +329,20 @@ function Base.show(io::IO, t::FusionTree{G,N,M,K,Nothing}) where {G<:Sector,N,M,
     print(io, "FusionTree{", G, "}(", t.uncoupled, ", ", t.coupled, ", ", t.innerlines, ")")
 end
 function Base.show(io::IO, t::FusionTree{G}) where {G<:Sector}
-    print(io, "FusionTree{", G, "}(", t.uncoupled, ", ", t.coupled, ", ", t.innerlines, ", ", t.vertices, ")")
+    print(io, "FusionTree{", G, "}(", t.uncoupled, ", ", t.coupled, ", ",
+                                        t.innerlines, ", ", t.vertices, ")")
 end
 
 # auxiliary routines
 
 # _abelianinner: generate the inner indices for given outer indices in the abelian case
 _abelianinner(outer::Tuple{}) = ()
-_abelianinner(outer::Tuple{G}) where {G<:Sector} = outer[1] == one(G) ? () : throw(SectorMismatch())
-_abelianinner(outer::Tuple{G,G}) where {G<:Sector} = outer[1] == dual(outer[2]) ? () : throw(SectorMismatch())
-_abelianinner(outer::Tuple{G,G,G}) where {G<:Sector} = first(⊗(outer...)) == one(G) ? () : throw(SectorMismatch())
+_abelianinner(outer::Tuple{G}) where {G<:Sector} =
+    outer[1] == one(G) ? () : throw(SectorMismatch())
+_abelianinner(outer::Tuple{G,G}) where {G<:Sector} =
+    outer[1] == dual(outer[2]) ? () : throw(SectorMismatch())
+_abelianinner(outer::Tuple{G,G,G}) where {G<:Sector} =
+    first(⊗(outer...)) == one(G) ? () : throw(SectorMismatch())
 function _abelianinner(outer::NTuple{N,G}) where {G<:Sector,N}
     c = first(outer[1] ⊗ outer[2])
     return (c, _abelianinner((c, TupleTools.tail2(outer)...))...)

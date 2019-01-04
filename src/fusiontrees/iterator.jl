@@ -12,18 +12,21 @@ end
 
 Base.IteratorSize(::FusionTreeIterator) = Base.SizeUnknown()
 Base.IteratorEltype(::FusionTreeIterator) = Base.HasEltype()
-Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} = fusiontreetype(G, StaticLength(N))
+Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} =
+    fusiontreetype(G, StaticLength(N))
 
 # * Iterator methods:
 #   Start with special cases:
-function Base.iterate(it::FusionTreeIterator{G,0}, state = (it.coupled != one(G))) where {G<:Sector}
+function Base.iterate(it::FusionTreeIterator{G,0},
+                        state = (it.coupled != one(G))) where {G<:Sector}
     state && return nothing
     T = vertex_labeltype(G)
     tree = FusionTree{G,0,0,0,T}((), one(G), (), ())
     return tree, true
 end
 
-function Base.iterate(it::FusionTreeIterator{G,1}, state = (it.uncoupled[1] != it.coupled)) where {G<:Sector}
+function Base.iterate(it::FusionTreeIterator{G,1},
+                        state = (it.uncoupled[1] != it.coupled)) where {G<:Sector}
     state && return nothing
     T = vertex_labeltype(G)
     tree = FusionTree{G,1,0,0,T}(it.uncoupled, it.coupled, (), ())
@@ -48,8 +51,12 @@ function Base.iterate(it::FusionTreeIterator{G,N} where {N}, state) where {G<:Se
     return f, (lines, vertices, states)
 end
 
-labelvertices(uncoupled::NTuple{2,G}, coupled::G, lines::Tuple{}, vertices::Tuple{Int}) where {G<:Sector} = (vertex_ind2label(vertices[1], uncoupled..., coupled),)
-function labelvertices(uncoupled::NTuple{N,G}, coupled::G, lines, vertices) where {G<:Sector,N}
+labelvertices(uncoupled::NTuple{2,G}, coupled::G, lines::Tuple{},
+                vertices::Tuple{Int}) where {G<:Sector} =
+    (vertex_ind2label(vertices[1], uncoupled..., coupled),)
+
+function labelvertices(uncoupled::NTuple{N,G}, coupled::G, lines,
+                        vertices) where {G<:Sector,N}
     c = lines[1]
     resttree = tuple(c, TupleTools.tail2(uncoupled)...)
     rest = labelvertices(resttree, coupled, tail(lines), tail(vertices))
@@ -58,7 +65,8 @@ function labelvertices(uncoupled::NTuple{N,G}, coupled::G, lines, vertices) wher
 end
 
 # Actual implementation
-@inline function _iterate(uncoupled::NTuple{2,G}, coupled::G, lines = (), vertices = (0,), states = ()) where {G<:Sector}
+@inline function _iterate(uncoupled::NTuple{2,G}, coupled::G, lines = (),
+                            vertices = (0,), states = ()) where {G<:Sector}
     a, b = uncoupled
     n = vertices[1] + 1
     n > Nsymbol(a,b, coupled) && return nothing
@@ -69,7 +77,8 @@ end
     a, b, = uncoupled
     it = a ⊗ b
     next = iterate(it)
-    next === nothing && return nothing # this should not happen: there should always be at least one fusion output
+    next === nothing && return nothing
+    # this should not happen: there should always be at least one fusion output
     c, s = next
     resttree = tuple(c, TupleTools.tail2(uncoupled)...)
     rest = _iterate(resttree, coupled)
@@ -87,7 +96,9 @@ end
     states = (s, reststates...)
     return lines, vertices, states
 end
-@inline function _iterate(uncoupled::NTuple{N,G}, coupled::G, lines, vertices, states) where {N, G<:Sector}
+
+@inline function _iterate(uncoupled::NTuple{N,G}, coupled::G, lines, vertices,
+                            states) where {N, G<:Sector}
     a, b, = uncoupled
     it = a ⊗ b
     c = lines[1]

@@ -14,7 +14,8 @@ frobeniusschur(a::AbelianIrrep) = 1
 Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 
-fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} = fill(Float64(Nsymbol(a,b,c)), (1,1,1))
+fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} =
+    fill(Float64(Nsymbol(a,b,c)), (1,1,1))
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 127?
 struct ZNIrrep{N} <: AbelianIrrep
@@ -37,11 +38,14 @@ const Parity = ZNIrrep{2}
 Base.show(io::IO, ::Type{ZNIrrep{2}}) = print(io, "ℤ₂")
 Base.show(io::IO, ::Type{ZNIrrep{3}}) = print(io, "ℤ₃")
 Base.show(io::IO, ::Type{ZNIrrep{4}}) = print(io, "ℤ₄")
-Base.show(io::IO, c::ZNIrrep{2}) = get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₂(", c.n, ")")
-Base.show(io::IO, c::ZNIrrep{3}) = get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₃(", c.n, ")")
-Base.show(io::IO, c::ZNIrrep{4}) = get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₄(", c.n, ")")
-Base.show(io::IO, c::ZNIrrep{N}) where {N} = get(io, :compact, false) ? print(io, c.n) :
-    print(io, "ZNIrrep{", N, "}(" , c.n, ")")
+Base.show(io::IO, c::ZNIrrep{2}) =
+    get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₂(", c.n, ")")
+Base.show(io::IO, c::ZNIrrep{3}) =
+    get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₃(", c.n, ")")
+Base.show(io::IO, c::ZNIrrep{4}) =
+    get(io, :compact, false) ? print(io, c.n) : print(io, "ℤ₄(", c.n, ")")
+Base.show(io::IO, c::ZNIrrep{N}) where {N} =
+    get(io, :compact, false) ? print(io, c.n) : print(io, "ZNIrrep{", N, "}(" , c.n, ")")
 
 # U1Irrep: irreps of U1 are labelled by integers
 struct U1Irrep <: AbelianIrrep
@@ -56,19 +60,22 @@ Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(HalfInteger, c))
 
 const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
-Base.show(io::IO, c::U1Irrep) = get(io, :compact, false) ? print(io, c.charge.num//2) : print(io, "U₁(", c.charge.num//2, ")")
+Base.show(io::IO, c::U1Irrep) =
+    get(io, :compact, false) ? print(io, c.charge.num//2) :
+        print(io, "U₁(", c.charge.num//2, ")")
 
 Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
-Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} = isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInteger) < c1.charge == -c2.charge
+Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
+    isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInteger) < c1.charge == -c2.charge
 Base.hash(c::ZNIrrep{N}, h::UInt64) where {N} = hash(c.n, h)
 Base.hash(c::U1Irrep, h::UInt64) = hash(c.charge, h)
-# NOTE: FractionalU1Charge?
 
 # Nob-abelian groups
 #------------------------------------------------------------------------------#
-# SU2Irrep: irreps of SU2 are labelled by half integers j, internally we use the integer dimension 2j+1 instead
+# SU2Irrep: irreps of SU2 are labelled by half integers j
 struct SU2IrrepException <: Exception end
-Base.show(io::IO, ::SU2IrrepException) = print(io, "Irreps of (bosonic or fermionic) `SU₂` should be labelled by non-negative half integers, i.e. elements of `Rational{Int}` with denominator 1 or 2")
+Base.show(io::IO, ::SU2IrrepException) =
+    print(io, "Irreps of (bosonic or fermionic) `SU₂` should be labelled by non-negative half integers, i.e. elements of `Rational{Int}` with denominator 1 or 2")
 
 struct SU2Irrep <: Sector
     j::HalfInteger
@@ -81,7 +88,8 @@ _getj(s::SU2Irrep) = s.j.num//2
 
 Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInteger))
 Base.conj(s::SU2Irrep) = s
-⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(HalfInteger, abs(s1.j.num-s2.j.num):2:(s1.j.num+s2.j.num) )
+⊗(s1::SU2Irrep, s2::SU2Irrep) =
+    SectorSet{SU2Irrep}(HalfInteger, abs(s1.j.num-s2.j.num):2:(s1.j.num+s2.j.num) )
 
 SU2Irrep(j::Real) = convert(SU2Irrep, j)
 Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(convert(HalfInteger, j))
@@ -92,7 +100,8 @@ Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
 Base.@pure BraidingStyle(::Type{SU2Irrep}) = Bosonic()
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
-Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep, s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
+Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
+        s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
     WignerSymbols.racahW(s1.j, s2.j, s4.j, s3.j, s5.j, s6.j)*sqrt(dim(s5)*dim(s6))
 function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
     Nsymbol(sa, sb, sc) || return 0.
@@ -111,7 +120,8 @@ end
 
 const SU₂ = SU2Irrep
 Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
-Base.show(io::IO, s::SU2Irrep) = get(io, :compact, false) ? print(io, s.j.num//2) : print(io, "SU₂(", s.j.num//2, ")")
+Base.show(io::IO, s::SU2Irrep) =
+    get(io, :compact, false) ? print(io, s.j.num//2) : print(io, "SU₂(", s.j.num//2, ")")
 
 Base.hash(s::SU2Irrep, h::UInt64) = hash(s.j, h)
 Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
@@ -119,13 +129,22 @@ Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 # U₁ ⋉ C (U₁ and charge conjugation)
 struct CU1Irrep <: Sector
     j::HalfInteger # value of the U1 charge
-    s::Int # rep of charge conjugation: if j == 0, s = 0 (trivial) or s = 1 (non-trivial), else s = 2 (two-dimensional representation)
+    s::Int # rep of charge conjugation:
+    # if j == 0, s = 0 (trivial) or s = 1 (non-trivial),
+    # else s = 2 (two-dimensional representation)
     # Let constructor take the actual half integer value j
-    CU1Irrep(j::HalfInteger, s::Int = ifelse(j>0, 2, 0)) = ((j > 0 && s == 2) || (j == 0 && (s == 0 || s == 1))) ? new(j, s) : error("Not a valid CU₁ irrep")
+    function CU1Irrep(j::HalfInteger, s::Int = ifelse(j>0, 2, 0))
+        if ((j > 0 && s == 2) || (j == 0 && (s == 0 || s == 1)))
+            new(j, s)
+        else
+            error("Not a valid CU₁ irrep")
+        end
+    end
 end
 _getj(s::CU1Irrep) = s.j.num//2
 Base.hash(c::CU1Irrep, h::UInt64) = hash(c.s, hash(c.j, h))
-Base.isless(c1::CU1Irrep, c2::CU1Irrep) = isless(c1.j, c2.j) || (c1.j == c2.j == 0 && c1.s < c2.s)
+Base.isless(c1::CU1Irrep, c2::CU1Irrep) =
+    isless(c1.j, c2.j) || (c1.j == c2.j == 0 && c1.s < c2.s)
 
 CU1Irrep(j::Real, s::Int = ifelse(j>0, 2, 0)) = CU1Irrep(convert(HalfInteger, j), s)
 
@@ -182,7 +201,8 @@ function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
         ifelse(c.s == 1, (a.j == b.j) & ((a.s == b.s == 2) | (a.s != b.s)),
         (c.j == a.j + b.j) | (c.j == abs(a.j - b.j)) ))
 end
-function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, d::CU1Irrep, e::CU1Irrep, f::CU1Irrep)
+function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
+        d::CU1Irrep, e::CU1Irrep, f::CU1Irrep)
     Nabe = convert(Int, Nsymbol(a,b,e))
     Necd = convert(Int, Nsymbol(e,c,d))
     Nbcf = convert(Int, Nsymbol(b,c,f))
@@ -311,8 +331,16 @@ const CU₁ = CU1Irrep
 Base.show(io::IO, ::Type{CU1Irrep}) = print(io, "CU₁")
 function Base.show(io::IO, c::CU1Irrep)
     if c.s == 1
-        get(io, :compact, false) ? print(io, "(", _getj(c), ", ", c.s, ")") : print(io, "CU₁(", _getj(c), ", ", c.s, ")")
+        if get(io, :compact, false)
+            print(io, "(", _getj(c), ", ", c.s, ")")
+        else
+            print(io, "CU₁(", _getj(c), ", ", c.s, ")")
+        end
     else
-        get(io, :compact, false) ? print(io, "(", _getj(c), ")") : print(io, "CU₁(", _getj(c), ")")
+        if get(io, :compact, false)
+            print(io, "(", _getj(c), ")")
+        else
+            print(io, "CU₁(", _getj(c), ")")
+        end
     end
 end
