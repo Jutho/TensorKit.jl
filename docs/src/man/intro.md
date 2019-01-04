@@ -92,8 +92,8 @@ denoted as a rank 2 tensor in ``V ⊗ W^*``, where ``W^*`` corresponds to the du
     ``V ⊗ W^*`` is not an equivalence but an isomorphism, which needs to be defined.
     Similarly, there is an isomorphism between between ``V ⊗ W`` and ``W ⊗ V`` that can be
     non-trivial (e.g. in the case of fermions / super vector spaces). The correct formalism
-    here is provided by theory of strict monoidal categories. Nonetheless, we try to hide
-    these canonical isomorphisms from the user wherever possible.
+    here is provided by theory of monoidal categories. Nonetheless, we try to hide these
+    canonical isomorphisms from the user wherever possible.
 
 This brings us to our final (yet formal) definition
 
@@ -140,7 +140,6 @@ quantum dimensions and the F-symbol (6j-symbol or more precisely Racah's W-symbo
 case of ``\mathsf{SU}_2``). In particular, we do not need the Clebsch-Gordan coefficients.
 
 Further details are provided in ["Sectors, representation spaces and fusion trees"](@ref).
-
 
 ## Properties of monoidal categories
 
