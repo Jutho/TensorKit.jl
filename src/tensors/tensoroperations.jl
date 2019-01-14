@@ -219,8 +219,8 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
             TC = eltype(C)
             C′ = TensorOperations.cached_similar_from_indices(syms[3], TC, oindA, oindB, p1′, p2′, A, B, :N, :N)
             mul!(C′, A′, B′)
-            add!(α, C′, β, C, p1, p2)
         end
+        add!(α, C′, β, C, p1, p2)
     end
     return C
 end

@@ -18,8 +18,11 @@ function permuteind(t::TensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}
         if p1 === codomainind(t) && p2 === domainind(t)
             return t
         elseif isa(t, TensorMap) && sectortype(S) == Trivial
-            s = strides(t[])
-            if s === TupleTools.getindices(s, (p1..., p2...))
+            stridet = i->stride(t[], i)
+            sizet = i->size(t[], i)
+            canfuse1, d1, s1 = TensorOperations._canfuse(sizet.(p1), stridet.(p1))
+            canfuse2, d2, s2 = TensorOperations._canfuse(sizet.(p2), stridet.(p2))
+            if canfuse1 && canfuse2 && s1 == 1 && (d2 == 1 || s2 == d1)
                 return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
             end
         end

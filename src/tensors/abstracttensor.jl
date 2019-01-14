@@ -49,6 +49,8 @@ const order = numind
 # tensormap implementation should provide codomain(t) and domain(t)
 codomain(t::AbstractTensorMap, i) = codomain(t)[i]
 domain(t::AbstractTensorMap, i) = domain(t)[i]
+source(t::AbstractTensorMap) = domain(t) # categorical terminology
+target(t::AbstractTensorMap) = codomain(t) # categorical terminology
 space(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = i <= N₁ ? codomain(t,i) : dual(domain(t, i-N₁))
 
 space(t::AbstractTensor) = codomain(t)
@@ -58,9 +60,10 @@ space(t::AbstractTensor, i) = space(t)[i]
 codomainind(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂} = ntuple(n->n, StaticLength(N₁))
 domainind(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂} = ntuple(n->N₁+n, StaticLength(N₂))
 
+adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = ifelse(i<=N₁, N₂+i, i-N₁)
+# NOTE: do we still need this
 tensor2spaceindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = ifelse(i<=N₁, i, 2N₁+N₂+1-i)
 space2tensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = ifelse(i<=N₁, i, 2N₁+N₂+1-i)
-adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} = ifelse(i<=N₁, N₂+i, i-N₁)
 
 # Defining vector spaces:
 #------------------------
