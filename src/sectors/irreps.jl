@@ -61,8 +61,8 @@ Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(HalfInteger, c))
 const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
 Base.show(io::IO, c::U1Irrep) =
-    get(io, :compact, false) ? print(io, c.charge.num//2) :
-        print(io, "U₁(", c.charge.num//2, ")")
+    get(io, :compact, false) ? print(io, c.charge) :
+        print(io, "U₁(", c.charge, ")")
 
 Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
 Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
@@ -84,17 +84,16 @@ struct SU2Irrep <: Sector
         new(j)
     end
 end
-_getj(s::SU2Irrep) = s.j.num//2
 
 Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInteger))
 Base.conj(s::SU2Irrep) = s
 ⊗(s1::SU2Irrep, s2::SU2Irrep) =
-    SectorSet{SU2Irrep}(HalfInteger, abs(s1.j.num-s2.j.num):2:(s1.j.num+s2.j.num) )
+    SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
 
 SU2Irrep(j::Real) = convert(SU2Irrep, j)
 Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(convert(HalfInteger, j))
 
-dim(s::SU2Irrep) = s.j.num+1
+dim(s::SU2Irrep) = s.j.numerator+1
 
 Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
 Base.@pure BraidingStyle(::Type{SU2Irrep}) = Bosonic()
@@ -121,7 +120,7 @@ end
 const SU₂ = SU2Irrep
 Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
 Base.show(io::IO, s::SU2Irrep) =
-    get(io, :compact, false) ? print(io, s.j.num//2) : print(io, "SU₂(", s.j.num//2, ")")
+    get(io, :compact, false) ? print(io, s.j) : print(io, "SU₂(", s.j, ")")
 
 Base.hash(s::SU2Irrep, h::UInt) = hash(s.j, h)
 Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
@@ -141,7 +140,6 @@ struct CU1Irrep <: Sector
         end
     end
 end
-_getj(s::CU1Irrep) = s.j.num//2
 Base.hash(c::CU1Irrep, h::UInt) = hash(c.s, hash(c.j, h))
 Base.isless(c1::CU1Irrep, c2::CU1Irrep) =
     isless(c1.j, c2.j) || (c1.j == c2.j == 0 && c1.s < c2.s)
@@ -332,15 +330,15 @@ Base.show(io::IO, ::Type{CU1Irrep}) = print(io, "CU₁")
 function Base.show(io::IO, c::CU1Irrep)
     if c.s == 1
         if get(io, :compact, false)
-            print(io, "(", _getj(c), ", ", c.s, ")")
+            print(io, "(", c.j, ", ", c.s, ")")
         else
-            print(io, "CU₁(", _getj(c), ", ", c.s, ")")
+            print(io, "CU₁(", c.j, ", ", c.s, ")")
         end
     else
         if get(io, :compact, false)
-            print(io, "(", _getj(c), ")")
+            print(io, "(", c.j, ")")
         else
-            print(io, "CU₁(", _getj(c), ")")
+            print(io, "CU₁(", c.j, ")")
         end
     end
 end
