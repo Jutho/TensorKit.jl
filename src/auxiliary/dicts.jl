@@ -99,6 +99,8 @@ struct SortedVectorDict{K,V} <: AbstractDict{K,V}
         end
         return new{K,V}(map(first, pairs), map(last, pairs))
     end
+    SortedVectorDict{K,V}(keys::Vector{K}, values::Vector{V}) where {K,V} =
+        new{K,V}(keys, values)
     SortedVectorDict{K,V}() where {K,V} = new{K,V}(Vector{K}(undef, 0), Vector{V}(undef, 0))
 end
 function SortedVectorDict{K,V}(kv) where {K,V}
@@ -119,7 +121,7 @@ Base.length(d::SortedVectorDict) = length(d.keys)
 Base.sizehint!(d::SortedVectorDict, newsz) =
     (sizehint!(d.keys, newsz); sizehint!(d.values, newsz); return d)
 
-Base.copy(d::SortedVectorDict) = SortedVectorDict(copy(d.keys), copy(d.values))
+Base.copy(d::SortedVectorDict{K,V}) where {K,V} = SortedVectorDict{K,V}(copy(d.keys), copy(d.values))
 Base.empty(::SortedVectorDict, ::Type{K}, ::Type{V}) where {K, V} = SortedVectorDict{K, V}()
 Base.empty!(d::SortedVectorDict) = (empty!(d.keys); empty!(d.values); return d)
 
@@ -181,7 +183,7 @@ function Base.get(d::SortedVectorDict{K}, k, default) where {K}
         return (i <= length(d) && isequal(d.keys[i], key)) ? d.values[i] : default
     end
 end
-function Base.get(f, d::SortedVectorDict{K}, k) where {K}
+function Base.get(f::Union{Function,Type}, d::SortedVectorDict{K}, k) where {K}
     key = convert(K, k)
     if !isequal(k, key)
         return f()
