@@ -30,7 +30,7 @@ GenericRepresentationSpace{G}(dims::Pair{<:Any,Int}...;
                                 dual::Bool = false) where {G<:Sector} =
     GenericRepresentationSpace{G}(map(d->convert(Pair{G,Int}, d), dims), dual)
 GenericRepresentationSpace{G}(g::Base.Generator; dual::Bool = false) where {G<:Sector} =
-    GenericRepresentationSpace{G}(g...; dual=dual)
+    GenericRepresentationSpace{G}(g..., dual)
 
 Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) =
     keys(V1.dims) == keys(V2.dims) &&
