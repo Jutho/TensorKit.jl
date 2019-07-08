@@ -65,8 +65,8 @@ using Strided
 import TensorOperations
 import TensorOperations: @tensor, @tensoropt
 
+using HalfIntegers
 using WignerSymbols
-using WignerSymbols: HalfInteger
 
 using Base: @boundscheck, @propagate_inbounds, OneTo, tail,
             tuple_type_head, tuple_type_tail, tuple_type_cons,

@@ -49,14 +49,13 @@ Base.show(io::IO, c::ZNIrrep{N}) where {N} =
 
 # U1Irrep: irreps of U1 are labelled by integers
 struct U1Irrep <: AbelianIrrep
-    charge::HalfInteger
+    charge::HalfInt
 end
 Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 ⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
 
-U1Irrep(j::Real) = convert(U1Irrep, j)
-Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(convert(HalfInteger, c))
+Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(c)
 
 const U₁ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
@@ -67,8 +66,8 @@ Base.show(io::IO, c::U1Irrep) =
 Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
 Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
 Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
-Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
-    isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInteger) < c1.charge == -c2.charge
+@inline Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
+    isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
 
 # Nob-abelian groups
 #------------------------------------------------------------------------------#
@@ -78,22 +77,22 @@ Base.show(io::IO, ::SU2IrrepException) =
     print(io, "Irreps of (bosonic or fermionic) `SU₂` should be labelled by non-negative half integers, i.e. elements of `Rational{Int}` with denominator 1 or 2")
 
 struct SU2Irrep <: Sector
-    j::HalfInteger
-    function SU2Irrep(j::HalfInteger)
-        j >= 0 || error("Not a valid SU₂ irrep")
+    j::HalfInt
+    function SU2Irrep(j)
+        j >= zero(j) || error("Not a valid SU₂ irrep")
         new(j)
     end
 end
 
-Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInteger))
+Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInt))
 Base.conj(s::SU2Irrep) = s
 ⊗(s1::SU2Irrep, s2::SU2Irrep) =
     SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
 
-SU2Irrep(j::Real) = convert(SU2Irrep, j)
-Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(convert(HalfInteger, j))
+# SU2Irrep(j::Real) = convert(SU2Irrep, j)
+Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(j)
 
-dim(s::SU2Irrep) = s.j.numerator+1
+dim(s::SU2Irrep) = twice(s.j)+1
 
 Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
 Base.@pure BraidingStyle(::Type{SU2Irrep}) = Bosonic()
@@ -127,13 +126,13 @@ Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 
 # U₁ ⋉ C (U₁ and charge conjugation)
 struct CU1Irrep <: Sector
-    j::HalfInteger # value of the U1 charge
+    j::HalfInt # value of the U1 charge
     s::Int # rep of charge conjugation:
     # if j == 0, s = 0 (trivial) or s = 1 (non-trivial),
     # else s = 2 (two-dimensional representation)
     # Let constructor take the actual half integer value j
-    function CU1Irrep(j::HalfInteger, s::Int = ifelse(j>0, 2, 0))
-        if ((j > 0 && s == 2) || (j == 0 && (s == 0 || s == 1)))
+    function CU1Irrep(j::Real, s::Int = ifelse(j>zero(j), 2, 0))
+        if ((j > zero(j) && s == 2) || (j == zero(j) && (s == 0 || s == 1)))
             new(j, s)
         else
             error("Not a valid CU₁ irrep")
@@ -142,14 +141,14 @@ struct CU1Irrep <: Sector
 end
 Base.hash(c::CU1Irrep, h::UInt) = hash(c.s, hash(c.j, h))
 Base.isless(c1::CU1Irrep, c2::CU1Irrep) =
-    isless(c1.j, c2.j) || (c1.j == c2.j == 0 && c1.s < c2.s)
+    isless(c1.j, c2.j) || (c1.j == c2.j == zero(HalfInt) && c1.s < c2.s)
 
-CU1Irrep(j::Real, s::Int = ifelse(j>0, 2, 0)) = CU1Irrep(convert(HalfInteger, j), s)
+# CU1Irrep(j::Real, s::Int = ifelse(j>0, 2, 0)) = CU1Irrep(convert(HalfInteger, j), s)
 
 Base.convert(::Type{CU1Irrep}, j::Real) = CU1Irrep(j)
 Base.convert(::Type{CU1Irrep}, js::Tuple{Real,Int}) = CU1Irrep(js...)
 
-Base.one(::Type{CU1Irrep}) = CU1Irrep(zero(HalfInteger), 0)
+Base.one(::Type{CU1Irrep}) = CU1Irrep(zero(HalfInt), 0)
 Base.conj(c::CU1Irrep) = c
 
 struct CU1ProdIterator
@@ -158,11 +157,11 @@ struct CU1ProdIterator
 end
 function Base.iterate(p::CU1ProdIterator, s::Int = 1)
     if s == 1
-        if p.a.j == p.b.j == zero(HalfInteger)
-            return CU1Irrep(zero(HalfInteger), xor(p.a.s, p.b.s)), 4
-        elseif p.a.j == zero(HalfInteger)
+        if p.a.j == p.b.j == zero(HalfInt)
+            return CU1Irrep(zero(HalfInt), xor(p.a.s, p.b.s)), 4
+        elseif p.a.j == zero(HalfInt)
             return p.b, 4
-        elseif p.b.j == zero(HalfInteger)
+        elseif p.b.j == zero(HalfInt)
             return p.a, 4
         elseif p.a == p.b # != zero
             return one(CU1Irrep), 2
@@ -170,7 +169,7 @@ function Base.iterate(p::CU1ProdIterator, s::Int = 1)
             return CU1Irrep(abs(p.a.j - p.b.j)),  3
         end
     elseif s == 2
-        return CU1Irrep(zero(HalfInteger), 1), 3
+        return CU1Irrep(zero(HalfInt), 1), 3
     elseif s == 3
         CU1Irrep(p.a.j + p.b.j), 4
     else
@@ -178,7 +177,7 @@ function Base.iterate(p::CU1ProdIterator, s::Int = 1)
     end
 end
 function Base.length(p::CU1ProdIterator)
-    if p.a.j == zero(HalfInteger) || p.b.j == zero(HalfInteger)
+    if p.a.j == zero(HalfInt) || p.b.j == zero(HalfInt)
         return 1
     elseif p.a == p.b
         return 3
@@ -189,7 +188,7 @@ end
 
 ⊗(a::CU1Irrep, b::CU1Irrep) = CU1ProdIterator(a, b)
 
-dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInteger), 1, 2)
+dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
 
 Base.@pure FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
 Base.@pure BraidingStyle(::Type{CU1Irrep}) = Bosonic()
@@ -218,7 +217,7 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
         return 1.
     end
     if a == om
-        if d.j == zero(HalfInteger)
+        if d.j == zero(HalfInt)
             return 1.
         else
             return (d.j == c.j - b.j) ? -1. : 1.
