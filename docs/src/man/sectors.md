@@ -1,4 +1,4 @@
-# Sectors, representation spaces and fusion trees
+# [Sectors, representation spaces and fusion trees](@id s_sectorsrepfusion)
 
 ```@setup tensorkit
 using TensorKit
@@ -48,7 +48,7 @@ of different sectors. In the last section, we explain the details of fusion tree
 their construction and manipulation. But first, we provide a quick theoretical overview of
 the required data of the representation theory of a group.
 
-## Representation theory and unitary fusion categories
+## [Representation theory and unitary fusion categories](@id ss_representationtheory)
 
 Let the different irreps or sectors be labeled as ``a``, ``b``, ``c``, … First and foremost,
 we need to specify the *fusion rules* ``a ⊗ b = ⨁ N_{a,b}^{c} c`` with ``N_{a,b}^c`` some
@@ -101,7 +101,7 @@ nonabelian. We find it useful to further finegrain between categories which have
 representations of ``\mathsf{SU}_2``, and those where some ``N_{a,b}^c`` are larger than
 one, e.g. the representations of ``\mathsf{SU}_3``.
 
-## Sectors
+## [Sectors](@id ss_sectors)
 
 We introduce a new abstract type to represent different possible sectors
 ```julia
@@ -207,7 +207,7 @@ Before discussing in more detail how a new sector type should be implemented, le
 the cases which have already been implemented. Currently, they all correspond to the irreps
 of groups.
 
-### Existing group representations
+### [Existing group representations](@id sss_groups)
 The first sector type is called `Trivial`, and corresponds to the case where there is
 actually no symmetry, or thus, the symmetry is the trivial group with only an identity
 operation and a trivial representation. Its representation theory is particularly simple:
@@ -389,7 +389,7 @@ So far, no sectors have been implemented with `FusionStyle(G) == DegenerateNonAb
 though an example would be the representation theory of ``\mathsf{SU}_3``. Such sectors are
 not yet fully supported; certain operations remain to be implemented.
 
-### Combining different sectors
+### [Combining different sectors](@id sss_productsectors)
 It is also possible to define two or more different types of symmetries, e.g. when the total
 symmetry group is a direct product of individual simple groups. Such sectors are obtained
 using the binary operator `×`, which can be entered as `\times`+TAB. Some examples
@@ -418,7 +418,7 @@ FusionStyle(c)
 ```
 We refer to the source file of [`ProductSector`](@ref) for implementation details.
 
-### Defining a new type of sector
+### [Defining a new type of sector](@id sss_newsectors)
 
 By know, it should be clear how to implement a new `Sector` subtype. Ideally, a new
 `G<:Sector` type is a `struct G ... end` (immutable) that has `isbitstype(G) == true` (see
@@ -476,7 +476,7 @@ end
 That is, `SectorSet(f, set)` behaves as an iterator that applies `x->convert(G, f(x))` on
 the elements of `set`; if `f` is not provided it is just taken as the function `identity`.
 
-### Generalizations
+### [Generalizations](@id sss_generalsectors)
 
 As mentioned before, the framework for sectors outlined above depends is in one-to-one
 correspondence to the topological data for specifying a unitary
@@ -496,7 +496,7 @@ basis for this space and from there on the discussion is completely equivalent.
 
 So far, none of these cases have been implemented, but it is a simple exercise to do so.
 
-## Representation spaces
+## [Representation spaces](@id ss_rep)
 We have introduced `Sector` subtypes as a way to label the irreps or sectors in the
 decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``. To actually represent such spaces, we now also
 introduce a corresponding type `RepresentationSpace`, which is a subtype of
@@ -650,7 +650,7 @@ fuse(W)
 blockdim(W, SU₂(0))
 ```
 
-## Fusion trees
+## [Fusion trees](@id ss_fusiontrees)
 
 **Work in progress**
 

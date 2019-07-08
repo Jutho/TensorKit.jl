@@ -1,4 +1,4 @@
-# Vector spaces
+# [Vector spaces](@id s_spaces)
 
 ```@setup tensorkit
 using TensorKit
@@ -29,7 +29,7 @@ of a number of elementary spaces of type `S`. So far, there is a single concrete
 type `S`. Its properties are discussed in the section on [Composite spaces](@ref), together
 with possible extensions for the future.
 
-## Fields
+## [Fields](@id ss_fields)
 
 Vector spaces are defined over a field of scalars. We define a type hierarchy to specify the
 scalar field, but so far only support real and complex numbers, via
@@ -58,7 +58,7 @@ and furthermore ––probably more usefully–– `ℝ^n` and `ℂ^n` create sp
 spaces as described in the next section. The underlying field of a vector space or tensor
 `a` can be obtained with `field(a)`.
 
-## Elementary vector spaces
+## [Elementary vector spaces](@id ss_elementaryspaces)
 
 As mentioned at the beginning of this section, vector spaces that are associated with the
 individual indices of a tensor should be implemented as subtypes of `ElementarySpace`. As
@@ -134,7 +134,7 @@ We refer to the next section on [Sectors, representation spaces and fusion trees
 further information about `RepresentationSpace`, which is a subtype of `EuclideanSpace{ℂ}` with
 an inner structure corresponding to the irreducible representations of a group.
 
-## Composite spaces
+## [Composite spaces](@id ss_compositespaces)
 
 Composite spaces are vector spaces that are built up out of individual elementary vector
 spaces. The most prominent (and currently only) example is a tensor product of `N` elementary spaces of the same type `S`, which is implemented as
