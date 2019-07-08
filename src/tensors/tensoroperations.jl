@@ -131,7 +131,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
                 end
             end
         else # debugging is easier this way
-            @inbounds for (f1,f2) in fusiontrees(tsrc)
+            for (f1,f2) in fusiontrees(tsrc)
                 _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
             end
         end
@@ -145,46 +145,49 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         elseif β != 1
             mul!(tdst, β, tdst)
         end
-        @inbounds for (f1,f2) in fusiontrees(tsrc)
+        for (f1,f2) in fusiontrees(tsrc)
             for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
-                for i in p2
+                @inbounds for i in p2
                     if i <= n && !isdual(cod[i])
                         b = f1.uncoupled[i]
                         coeff *= frobeniusschur(b) #*fermionparity(b)
                     end
                 end
-                for i in p1
+                @inbounds for i in p1
                     if i > n && isdual(dom[i-n])
                         b = f2.uncoupled[i-n]
                         coeff /= frobeniusschur(b) #*fermionparity(b)
                     end
                 end
-                axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
+                @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
             end
         end
     end
     return tdst
 end
 
-@inbounds function _addabelianblock!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, f1::FusionTree, f2::FusionTree)  where {S,N₁,N₂}
+function _addabelianblock!(α, tsrc::AbstractTensorMap{S},
+                            β, tdst::AbstractTensorMap{S,N₁,N₂},
+                            p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
+                            f1::FusionTree, f2::FusionTree) where {S,N₁,N₂}
     cod = codomain(tsrc)
     dom = domain(tsrc)
     n = length(cod)
     (f1′,f2′), coeff = first(permute(f1, f2, p1, p2))
-    for i in p2
+    @inbounds for i in p2
         if i <= n && !isdual(cod[i])
             b = f1.uncoupled[i]
             coeff *= frobeniusschur(b) #*fermionparity(b)
         end
     end
-    for i in p1
+    @inbounds for i in p1
         if i > n && isdual(dom[i-n])
             b = f2.uncoupled[i-n]
             coeff /= frobeniusschur(b) #*fermionparity(b)
         end
     end
     pdata = (p1...,p2...)
-    axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
+    @inbounds axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
 end
 
 

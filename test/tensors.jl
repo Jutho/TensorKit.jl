@@ -159,4 +159,14 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
             end
         end
     end
+    @testset "Exponentiation" begin
+        W = V1 ⊗ V2 ⊗ V3
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            t = TensorMap(rand, T, W, W)
+            s = dim(W)
+            expt = @inferred exp(t)
+            @test reshape(convert(Array, expt), (s,s)) ≈
+                    exp(reshape(convert(Array, t), (s,s)))
+        end
+    end
 end

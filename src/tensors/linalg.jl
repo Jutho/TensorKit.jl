@@ -12,15 +12,19 @@ function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
     return axpy!(-one(T), t2, copyto!(similar(t1, T), t1))
 end
 
-Base.:*(t::AbstractTensorMap, α::Number) = mul!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
-Base.:*(α::Number, t::AbstractTensorMap) = mul!(similar(t, promote_type(eltype(t), typeof(α))), α, t)
+Base.:*(t::AbstractTensorMap, α::Number) =
+    mul!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
+Base.:*(α::Number, t::AbstractTensorMap) =
+    mul!(similar(t, promote_type(eltype(t), typeof(α))), α, t)
 Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(α)/α)
 Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(α)/α)
 
 LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real = 2) = rmul!(t, inv(norm(t, p)))
-LinearAlgebra.normalize(t::AbstractTensorMap, p::Real = 2) = mul!(similar(t), t, inv(norm(t, p)))
+LinearAlgebra.normalize(t::AbstractTensorMap, p::Real = 2) =
+    mul!(similar(t), t, inv(norm(t, p)))
 
-Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
+Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) =
+    mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
 Base.exp(t::AbstractTensorMap) = exp!(copy(t))
 
 # Special purpose constructors
@@ -159,15 +163,26 @@ end
 
 # TensorMap exponentation:
 function exp!(t::TensorMap)
-    domain(t) == codomain(t) || error("Exponentional of a tensor only exist when domain == codomain.")
+    domain(t) == codomain(t) ||
+        error("Exponentional of a tensor only exist when domain == codomain.")
     for (c,b) in blocks(t)
-        copyto!(b, exp!(b))
+        copyto!(b, LinearAlgebra.exp!(b))
     end
     return t
 end
 
-# hcat and vcat of tensors
-function Base.hcat(t1::AbstractTensorMap{S,N₁,1}, t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
+# # concatenate tensors
+# function concatenate(t1::AbstractTensorMap{S}, ts::AbstractTensorMap{S}...; direction::Symbol) where {S}
+#     if direction = :domain
+#         numin(t1) == 1 || throw(SpaceMismatch("concatenation along domain"))
+#         for t2 in ts
+#             domain(t1) == domain(t2) || throw(SpaceMismatch())
+#         end
+#         t = t1
+#         for t2 in ts
+#             cat(t1)
+
+function catdomain(t1::AbstractTensorMap{S,N₁,1}, t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
     codomain(t1) == codomain(t2) || throw(SpaceMismatch())
 
     V1, = domain(t1)
@@ -182,7 +197,7 @@ function Base.hcat(t1::AbstractTensorMap{S,N₁,1}, t2::AbstractTensorMap{S,N₁
     end
     return t
 end
-function Base.vcat(t1::AbstractTensorMap{S,1,N₂}, t2::AbstractTensorMap{S,1,N₂}) where {S,N₂}
+function catcodomain(t1::AbstractTensorMap{S,1,N₂}, t2::AbstractTensorMap{S,1,N₂}) where {S,N₂}
     domain(t1) == domain(t2) || throw(SpaceMismatch())
 
     V1, = codomain(t1)
