@@ -12,6 +12,7 @@ WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
 
 [compat]
+WignerSymbols = "1"
 TupleTools = "1.1"
 julia = "1"
 
