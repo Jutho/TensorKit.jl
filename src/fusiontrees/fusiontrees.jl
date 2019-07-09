@@ -276,6 +276,7 @@ function repartition(t1::FusionTree{G,N₁},
 end
 
 # permute double fusion tree
+const permutedict = Dict{Any,Any}()
 """
     function permute(t1::FusionTree{G}, t2::FusionTree{G},
                         p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G,N₁,N₂}
@@ -289,6 +290,26 @@ repartitioning and permuting the tree such that sectors `p1` become outgoing and
 `p2` become incoming.
 """
 function permute(t1::FusionTree{G}, t2::FusionTree{G},
+                    p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
+    d = get!(permutedict, (t1, t2, p1, p2)) do
+        _permute(t1, t2, p1, p2)
+    end
+    if FusionStyle(t1) isa Abelian
+        u = one(G)
+        T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
+        F₁ = fusiontreetype(G, StaticLength(N₁))
+        F₂ = fusiontreetype(G, StaticLength(N₂))
+        return d::SingletonDict{Tuple{F₁,F₂}, T}
+    else
+        u = one(G)
+        T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
+        F₁ = fusiontreetype(G, StaticLength(N₁))
+        F₂ = fusiontreetype(G, StaticLength(N₂))
+        return d::Dict{Tuple{F₁,F₂}, T}
+    end
+end
+
+function _permute(t1::FusionTree{G}, t2::FusionTree{G},
                     p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂
     p = linearizepermutation(p1, p2, length(t1), length(t2))
@@ -318,6 +339,7 @@ function permute(t1::FusionTree{G}, t2::FusionTree{G},
         throw(MethodError(permute, (t1, t2, p1, p2)))
     end
 end
+
 # TODO: Make permute a @generated function that computes the result ones and stores it
 # TODO: take ideas from memoization
 
