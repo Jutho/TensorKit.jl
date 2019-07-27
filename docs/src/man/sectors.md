@@ -17,7 +17,7 @@ The corresponding vector spaces will be canonically represented as
 ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``, where ``a`` labels the different irreps, ``n_a`` is the number
 of times irrep ``a`` appears and ``R_a`` is the vector space associated with irrep ``a``.
 Irreps are also known as spin sectors (in the case of ``\mathsf{SU}_2``) or charge sectors
-(in the case of `\mathsf{U}_1`), and we henceforth refer to `a` as a sector. As is briefly
+(in the case of ``\mathsf{U}_1``), and we henceforth refer to ``a`` as a sector. As is briefly
 discussed below, the approach we follow does in fact go beyond the case of irreps of groups,
 and sectors would more generally correspond to simple objects in a (ribbon) fusion
 category. Nonetheless, every step can be appreciated by using the representation theory of
@@ -33,7 +33,7 @@ blocks. We refer to the latter as block sectors. The transformation from the unc
 sectors in the domain (or codomain) of the tensor map to the block sector is encoded in a
 fusion tree (or splitting tree). Essentially, it is a sequential application of pairwise
 fusion as described by the group's
-[Clebsch-Gordan (CG) coefficients](https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients).
+[Clebsch–Gordan (CG) coefficients](https://en.wikipedia.org/wiki/Clebsch–Gordan_coefficients).
 However, it turns out that we do not need the actual CG coefficients, but only how they
 transform under transformations such as interchanging the order of the incoming irreps or
 interchanging incoming and outgoing irreps. This information is known as the topological
@@ -43,7 +43,7 @@ it's actually [Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coe
 in the case of ``\mathsf{SU}_2``.
 
 Below, we describe how to specify a certain type of sector what information about them
-needs to be implemented. Then, we describe how to build a space `V` composed of a direct sum
+needs to be implemented. Then, we describe how to build a space ``V`` composed of a direct sum
 of different sectors. In the last section, we explain the details of fusion trees, i.e.
 their construction and manipulation. But first, we provide a quick theoretical overview of
 the required data of the representation theory of a group.
@@ -96,7 +96,7 @@ If, for every ``a`` and ``b``, there is a unique ``c`` such that ``a ⊗ b = c``
 Indeed, the representations of a group have this property if and only if the group
 multiplication law is commutative. In that case, all spaces ``R_{a}`` associated with the
 representation are one-dimensional and thus trivial. In all other cases, the category is
-nonabelian. We find it useful to further finegrain between categories which have all
+non-abelian. We find it useful to further distinguish between categories which have all
 ``N_{a,b}^c`` equal to zero or one (such that no multiplicity labels are needed), e.g. the
 representations of ``\mathsf{SU}_2``, and those where some ``N_{a,b}^c`` are larger than
 one, e.g. the representations of ``\mathsf{SU}_3``.
@@ -123,7 +123,7 @@ The minimal data to completely specify a type of sector are
 *   the identity object `u`, such that ``a ⊗ u = a = u ⊗ a``; this is implemented by the
     function `one(a)` (and also in type domain) from Julia Base
 *   the dual or conjugate representation ``\overline{a}`` for which
-    `N_{a,\overline{a}}^{u} = 1`; this is implemented by `conj(a)` from Julia Base;
+    ``N_{a,\overline{a}}^{u} = 1``; this is implemented by `conj(a)` from Julia Base;
     `dual(a)` also works as alias, but `conj(a)` is the method that should be defined
 *   the F-symbol or recoupling coefficients ``[F^{a,b,c}_{d}]^e_f``, implemented as the
     function [`Fsymbol(a,b,c,d,e,f)`](@ref)
@@ -186,7 +186,7 @@ transformation:
 
 *   [Braiding](@ref) or permuting as defined by ``σ_{a,b}: R_a ⊗ R_b → R_b ⊗ R_a``:
 
-    ``σ_{a,b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}
+    ``σ_{a,b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}``
 
 Furthermore, there is a relation between splitting vertices and fusion vertices given by the
 B-symbol, but we refer to the section on [Fusion trees](@ref) for the precise definition and
@@ -353,7 +353,7 @@ A final non-abelian representation theory is that of the semidirect product
 systems with particle hole symmetry and the non-trivial element of ``ℤ_2`` acts as charge
 conjugation `C`. It has the effect of interchaning ``\mathsf{U}_1`` irreps ``n`` and
 ``-n``, and turns them together in a joint 2-dimensional index, except for the case
-``n=0``. Irreps are therefore labeled by integers `n ≧ 0`, however for `n=0` the ``ℤ₂``
+``n=0``. Irreps are therefore labeled by integers ``n ≧ 0``, however for ``n=0`` the ``ℤ₂``
 symmetry can be realized trivially or non-trivially, resulting in an even and odd one-
 dimensional irrep with ``\mathsf{U})_1`` charge ``0``. Given
 ``\mathsf{U}_1 ≂ \mathsf{SO}_2``, this group is also simply known as ``\mathsf{O}_2``, and
@@ -486,7 +486,7 @@ called ribbon fusion category. However, the category does not need to be modular
 category of representations of a finite group[^1] corresponds to a typical example (which is
 not modular and which have a symmetric braiding). Other examples are the representation of
 quasi-triangular Hopf algebras, which are typically known as anyon theories in the physics
-literature, e.g. Fibonicci anyons, Ising anyons, … In those cases, quantum dimensions
+literature, e.g. Fibonacci anyons, Ising anyons, … In those cases, quantum dimensions
 ``d_a`` are non-integer, and there is no vector space interpretation to objects ``R_a``
 (which we can identify with just ``a``) in the decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``.
 The different sectors ``a``, … just represent abstract objects. However, there is still a
@@ -673,7 +673,7 @@ such that ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
 ``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
 
 The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the
-fusion tensors. For ``\mathsf{SU}_2``, their entries are given by the Clebsch-Gordan
+fusion tensors. For ``\mathsf{SU}_2``, their entries are given by the Clebsch–Gordan
 coefficients
 
 ### Canonical representation

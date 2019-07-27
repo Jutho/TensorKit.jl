@@ -15,7 +15,7 @@ definition of a tensor. A good starting point is the following:
 
     ``t ∈ V_1 ⊗ V_2 ⊗ … ⊗ V_N.``
 
-If you think of a tensor as an object with indices, a rank `N` tensor has `N` indices where
+If you think of a tensor as an object with indices, a rank ``N`` tensor has ``N`` indices where
 every index is associated with the corresponding vector space in that it labels a particular
 basis in that space. We will return to index notation at the very end of this manual.
 
@@ -51,7 +51,7 @@ reorganise which vector spaces appear in the domain and the codomain of the tens
 in which order. This amounts to defining canonical isomorphisms between the different ways
 to order and partition the tensor indices (i.e. the vector spaces). For example, a linear
 map ``W → V`` is often denoted as a rank 2 tensor in ``V ⊗ W^*``, where ``W^*`` corresponds
-to the dual space of `W`. This simple example introduces two new concepts.
+to the dual space of ``W``. This simple example introduces two new concepts.
 
 1.  Typical vector spaces can appear in the domain and codomain in different variants, e.g.
     as normal space or dual space. In fact, the most generic case is that every vector
@@ -81,7 +81,7 @@ to the dual space of `W`. This simple example introduces two new concepts.
 
     Finally, in ``ℝ^d`` with a Euclidean inner product, these four different spaces are
     equivalent and we only need one type of index. The space is completely characterized by
-    its dimension `d`. This is the setting of much of classical mechanics and we refer to
+    its dimension ``d``. This is the setting of much of classical mechanics and we refer to
     such tensors as cartesian tensors and the corresponding space as cartesian space. These
     are the tensors that can equally well be represented as multidimensional arrays (i.e.
     using some `AbstractArray{<:Real,N}` in Julia) without loss of structure.
@@ -106,9 +106,9 @@ This brings us to our final (yet formal) definition
 
 Physical problems often have some symmetry, i.e. the setup is invariant under the action of
 a group ``\mathsf{G}`` which acts on the vector spaces ``V`` in the problem according to a
-certain representation. Having quantum mechanics in mind, TensorKit.jl restricts so far to
+certain representation. Having quantum mechanics in mind, TensorKit.jl is so far restricted to
 unitary representations. A general representation space ``V`` can be specified as the
-number of times every irreducible representation (irrep) `a` of ``\mathsf{G}`` appears, i.e.
+number of times every irreducible representation (irrep) ``a`` of ``\mathsf{G}`` appears, i.e.
 
 ``V = \bigoplus_{a} ℂ^{n_a} ⊗ R_a``
 
@@ -123,7 +123,7 @@ representation
 with ``𝟙_{n_a}`` the ``n_a × n_a`` identity matrix. The total dimension of ``V`` is given
 by ``∑_a n_a d_a``.
 
-The reason of implementing symmetries is to exploit the compuation and memory gains
+The reason of implementing symmetries is to exploit the computation and memory gains
 resulting from restricting to tensor maps ``t:W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2} → V_1 ⊗ V_2 ⊗ … ⊗
 V_{N_1}`` that are invariant under the symmetry (i.e. that act as
 [intertwiners](https://en.wikipedia.org/wiki/Equivariant_map#Representation_theory)
@@ -131,15 +131,15 @@ between the symmetry action on the domain and the codomain). Indeed, such tensor
 block diagonal because of [Schur's lemma](https://en.wikipedia.org/wiki/Schur%27s_lemma),
 but only after we couple the individual irreps in the spaces ``W_i`` to a joint irrep,
 which is then again split into the individual irreps of the spaces ``V_i``. The basis
-change from the tensor product of irreps in the (co)domain to the joint irrep isimplemented
-by a sequence of Clebsch-Gordan coefficients, also known as a fusion (or splitting) tree.
+change from the tensor product of irreps in the (co)domain to the joint irrep is implemented
+by a sequence of Clebsch–Gordan coefficients, also known as a fusion (or splitting) tree.
 We implement the necessary machinery to manipulate these fusion trees under index
 permutations and repartitions for arbitrary groups ``\mathsf{G}``. In particular, this fits
-with the formalism of monoidal categories, and more specifically fusion categoreis,
+with the formalism of monoidal categories, and more specifically fusion categories,
 discussed below and only requires the *topological* data of the group, i.e. the fusion
 rules of the irreps, their quantum dimensions and the F-symbol (6j-symbol or more precisely
 Racah's W-symbol in the case of ``\mathsf{SU}_2``). In particular, we do not need the
-Clebsch-Gordan coefficients.
+Clebsch–Gordan coefficients.
 
 Further details are provided in [Sectors, representation spaces and fusion trees](@ref).
 
@@ -156,7 +156,7 @@ information. Furthermore, we recommend the nice introduction of [Beer et al.](^b
 To start, a category ``C`` consists of
 *   a class ``|C|`` of objects ``V``, ``W``, …
 *   for each pair of objects ``V`` and ``W``, a set ``hom(W,V)`` of morphisms ``f:W→V``;
-    for a given map `f`, `W` is called the *domain* or *source*, and `V` the *codomain* or
+    for a given map ``f``, ``W`` is called the *domain* or *source*, and ``V`` the *codomain* or
     *target*.
 *   an composition of morphisms ``f:W→V`` and ``g:X→W`` into ``(f ∘ g):X→V`` that is
     associative, such that for ``h:Y→X`` we have ``f ∘ (g ∘ h) = (f ∘ g) ∘ h``
@@ -264,7 +264,7 @@ It does makes sense to define or identify
 In fact, the above exact pairings are known as the left unit and co-unit, and ``V^*`` is the
 left dual of ``V``. There is also a notion of a right dual ``^*V`` and associated pairings,
 the right unit ``η'_V: I → ^*V ⊗ V`` and the right co-unit ``ϵ'_V: V ⊗ *^V → I``. An
-autonomous category `\mathbf{C}` is one where every object `V` has both a left and right
+autonomous category ``\mathbf{C}`` is one where every object ``V`` has both a left and right
 dual, and in this case they can be proven to be isomorphic. We will never distinguish
 between the two and refer simply to `dual(V)` for the dual of a vector space.
 
