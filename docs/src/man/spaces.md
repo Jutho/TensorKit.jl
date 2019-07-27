@@ -44,7 +44,7 @@ const ℂ = ComplexNumbers()
 ```
 Note that `ℝ` and `ℂ` can be typed as `\bbR`+TAB and `\bbC`+TAB. One reason for defining
 this new type hierarchy instead of recycling the types from Julia's `Number` hierarchy is
-to introduce some syntactic suggar without commiting type piracy. In particular, we now have
+to introduce some syntactic sugar without committing type piracy. In particular, we now have
 ```@repl tensorkit
 3 ∈ ℝ
 5.0 ∈ ℂ
@@ -54,7 +54,7 @@ ComplexF64 ⊆ ℂ
 ℝ ⊆ ℂ
 ℂ ⊆ ℝ
 ```
-and furthermore ––probably more usefully–– `ℝ^n` and `ℂ^n` create specific elementary vector
+and furthermore—probably more usefully—`ℝ^n` and `ℂ^n` create specific elementary vector
 spaces as described in the next section. The underlying field of a vector space or tensor
 `a` can be obtained with `field(a)`.
 
