@@ -10,11 +10,13 @@ TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
+LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 
 [compat]
 WignerSymbols = "1"
 TupleTools = "1.1"
 julia = "1"
+LRUCache = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

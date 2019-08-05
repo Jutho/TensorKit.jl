@@ -276,26 +276,7 @@ function repartition(t1::FusionTree{G,N₁},
 end
 
 # permute double fusion tree
-# const permutedict = Dict{Any,Any}()
-# function permute(t1::FusionTree{G}, t2::FusionTree{G},
-#                     p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
-#     d = get!(permutedict, (t1, t2, p1, p2)) do
-#         _permute(t1, t2, p1, p2)
-#     end
-#     if FusionStyle(t1) isa Abelian
-#         u = one(G)
-#         T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
-#         F₁ = fusiontreetype(G, StaticLength(N₁))
-#         F₂ = fusiontreetype(G, StaticLength(N₂))
-#         return d::SingletonDict{Tuple{F₁,F₂}, T}
-#     else
-#         u = one(G)
-#         T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
-#         F₁ = fusiontreetype(G, StaticLength(N₁))
-#         F₂ = fusiontreetype(G, StaticLength(N₂))
-#         return d::Dict{Tuple{F₁,F₂}, T}
-#     end
-# end
+const permutecache = LRU{Any,Any}(; maxsize = 10^5)
 """
     function permute(t1::FusionTree{G}, t2::FusionTree{G},
                         p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G,N₁,N₂}
@@ -308,6 +289,25 @@ outgoing (`t1`) and incoming sectors (`t2`) respectively (with identical coupled
 repartitioning and permuting the tree such that sectors `p1` become outgoing and sectors
 `p2` become incoming.
 """
+function permute(t1::FusionTree{G}, t2::FusionTree{G},
+                    p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
+    d = get!(permutecache, (t1, t2, p1, p2)) do
+        _permute(t1, t2, p1, p2)
+    end
+    if FusionStyle(t1) isa Abelian
+        u = one(G)
+        T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
+        F₁ = fusiontreetype(G, StaticLength(N₁))
+        F₂ = fusiontreetype(G, StaticLength(N₂))
+        return d::SingletonDict{Tuple{F₁,F₂}, T}
+    else
+        u = one(G)
+        T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
+        F₁ = fusiontreetype(G, StaticLength(N₁))
+        F₂ = fusiontreetype(G, StaticLength(N₂))
+        return d::Dict{Tuple{F₁,F₂}, T}
+    end
+end
 function permute(t1::FusionTree{G}, t2::FusionTree{G},
                     p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂

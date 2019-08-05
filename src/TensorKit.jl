@@ -65,6 +65,8 @@ using Strided
 import TensorOperations
 import TensorOperations: @tensor, @tensoropt
 
+using LRUCache
+
 using HalfIntegers
 using WignerSymbols
 
