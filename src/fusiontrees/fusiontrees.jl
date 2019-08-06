@@ -308,7 +308,7 @@ function permute(t1::FusionTree{G}, t2::FusionTree{G},
         return d::Dict{Tuple{F₁,F₂}, T}
     end
 end
-function permute(t1::FusionTree{G}, t2::FusionTree{G},
+function _permute(t1::FusionTree{G}, t2::FusionTree{G},
                     p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂
     p = linearizepermutation(p1, p2, length(t1), length(t2))
