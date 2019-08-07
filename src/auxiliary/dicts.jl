@@ -9,7 +9,7 @@ Base.keys(d::SingletonDict) = (d.key,)
 Base.values(d::SingletonDict) = (d.value,)
 Base.haskey(d::SingletonDict, key) = isequal(d.key, key)
 Base.getindex(d::SingletonDict, key) = isequal(d.key, key) ? d.value : throw(KeyError(key))
-Base.get(dict::SingletonDict, key, default) = isequal(d.key, key) ? d.value : default
+Base.get(d::SingletonDict, key, default) = isequal(d.key, key) ? d.value : default
 
 Base.iterate(d::SingletonDict, s = true) = s ? ((d.key => d.value), false) : nothing
 
