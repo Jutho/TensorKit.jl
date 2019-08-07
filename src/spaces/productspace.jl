@@ -137,7 +137,8 @@ Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,
 Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 
 Base.convert(::Type{<:ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
-Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val) = ProductSpace(ntuple(n->V, p))
+Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val{N}) where N =
+    ProductSpace{typeof(V), N}(ntuple(n->V, p))
 Base.convert(::Type{S}, P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
 Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 fuse(P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
