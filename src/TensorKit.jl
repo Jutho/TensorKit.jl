@@ -25,7 +25,7 @@ export space, field, dual, dim, dims, fuse, flip, isdual
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
-export fusiontrees, braid, repartition
+export fusiontrees, braid, repartition, insertat
 
 # some unicode
 export ⊕, ⊗, ×, ℂ, ℝ, ←, →
@@ -70,7 +70,7 @@ using LRUCache
 using HalfIntegers
 using WignerSymbols
 
-using Base: @boundscheck, @propagate_inbounds, OneTo, tail,
+using Base: @boundscheck, @propagate_inbounds, OneTo, tail, front,
             tuple_type_head, tuple_type_tail, tuple_type_cons,
             SizeUnknown, HasLength, HasShape, IsInfinite, EltypeUnknown, HasEltype
 using Base.Iterators: product, filter

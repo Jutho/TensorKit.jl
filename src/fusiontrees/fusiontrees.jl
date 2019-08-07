@@ -147,6 +147,169 @@ function permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
 end
 
 """
+    function merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂})
+        -> <:AbstractDict{<:FusionTree{G,N₁+N₂},<:Number}
+
+Merge two fusion trees together to a linear combination of fusion trees whose uncoupled sectors are those of `t1` followed by those of `t2`.
+"""
+function Base.merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}) where {G,N₁,N₂}
+    if FusionStyle(G) == Abelian
+        c = first(t1.coupled ⊗ t2.coupled)
+        t0 = first(fusiontrees((t1.coupled, t2.coupled), c))
+        t, coeff = first(insertat(t0, 1, t1)) # takes fast path, single output
+        @assert coeff == one(coeff)
+        return insertat(t, N₁+1, t2)
+    else
+        local newtrees
+        for c in t1.coupled ⊗ t2.coupled
+            for t0 in fusiontrees((t1.coupled, t2.coupled), c)
+                t, coeff = first(insertat(t0, 1, t1)) # takes fast path, single output
+                @assert coeff == one(coeff)
+                if @isdefined newtrees
+                    for (t′, coeff′) in insertat(t, N₁+1, t2)
+                        newtrees[t′] = get(newtrees, t′, zero(coeff′)) + coeff′
+                    end
+                else
+                    newtrees = insertat(t, N₁+1, t2)
+                end
+            end
+        end
+        return newtrees
+    end
+end
+
+"""
+    function insertat(t::FusionTree{G,N₁}, i, t2::FusionTree{G,N₂})
+        -> <:AbstractDict{<:FusionTree{G,N₁+N₂-1},<:Number}
+
+Attach a fusion tree `t2` to the uncoupled leg `i` of the fusion tree `t1` and bring it into a linear combination of fusion trees in standard form. This requires that `t2.coupled == t1.uncoupled[i]`.
+"""
+function insertat(t1::FusionTree{G}, i, t2::FusionTree{G,0}) where {G}
+    # this actually removes uncoupled line i
+    t1.uncoupled[i] == t2.coupled || # t2.coupled = one(G)
+        throw(SectorMismatch("cannot connect $(t2.uncoupled) to $(t1.uncoupled[i])"))
+    coeff = Fsymbol(one(G), one(G), one(G), one(G), one(G), one(G))
+
+    outer = TupleTools.deleteat(t1.uncoupled, i)
+    inner = TupleTools.deleteat(t1.innerlines, max(1,i-2))
+    vertices = TupleTools.deleteat(t1.vertices, max(1, i-1))
+    t = FusionTree(outer, t1.coupled, inner, vertices)
+    if FusionStyle(G) isa Abelian
+        return SingletonDict(t => coeff)
+    elseif FusionStyle(G) isa SimpleNonAbelian
+        return FusionTreeDict(t => coeff)
+    end
+end
+function insertat(t1::FusionTree{G}, i, t2::FusionTree{G,1}) where {G}
+    # identity operation
+    t1.uncoupled[i] == t2.coupled ||
+        throw(SectorMismatch("cannot connect $(t2.uncoupled) to $(t1.uncoupled[i])"))
+    coeff = Fsymbol(one(G), one(G), one(G), one(G), one(G), one(G))
+    if FusionStyle(G) isa Abelian
+        return SingletonDict(t1 => coeff)
+    elseif FusionStyle(G) isa SimpleNonAbelian
+        return FusionTreeDict(t1 => coeff)
+    end
+end
+function insertat(t1::FusionTree{G}, i, t2::FusionTree{G,2}) where {G}
+    t1.uncoupled[i] == t2.coupled ||
+        throw(SectorMismatch("cannot connect $(t2.uncoupled) to $(t1.uncoupled[i])"))
+    return _insertat(t1, i, t2.uncoupled[1], t2.uncoupled[2], t2.vertices[1])
+end
+function insertat(t1::FusionTree{G}, i, t2::FusionTree{G}) where {G}
+    t1.uncoupled[i] == t2.coupled ||
+        throw(SectorMismatch("cannot connect $(t2.uncoupled) to $(t1.uncoupled[i])"))
+    if i == 1
+        outer = (t2.uncoupled..., tail(t1.uncoupled)...)
+        inner = (t2.innerlines..., t2.coupled, t1.innerlines...)
+        vertices = (t2.vertices..., t1.vertices...)
+        coupled = t1.coupled
+        t′ = FusionTree(outer, coupled, inner, vertices)
+        coeff = Fsymbol(one(G), one(G), one(G), one(G), one(G), one(G))
+        if FusionStyle(G) isa Abelian
+            return SingletonDict(t′ => coeff)
+        elseif FusionStyle(G) isa SimpleNonAbelian
+            return FusionTreeDict(t′ => coeff)
+        end
+    end
+
+    b = t2.innerlines[end]
+    c = t2.uncoupled[end]
+    v = t2.vertices[end]
+    t2′ = FusionTree(front(t2.uncoupled), b, front(t2.innerlines), front(t2.vertices))
+    if FusionStyle(G) isa Abelian
+        t, coeff = first(_insertat(t1, i, b, c, v))
+        t′, coeff′ = first(insertat(t, i, t2′))
+        return SingletonDict(t′=>coeff*coeff′)
+    else
+        local newtrees
+        for (t, coeff) in _insertat(t1, i, b, c, v)
+            if @isdefined newtrees
+                for (t′, coeff′) in insertat(t, i, t2′)
+                    newtrees[t′] = get(newtrees, t′, zero(coeff′)) + coeff*coeff′
+                end
+            else
+                newtrees = insertat(t, i, t2′)
+                for (t′, coeff′) in newtrees
+                    newtrees[t′] = coeff*coeff′
+                end
+            end
+        end
+        return newtrees
+    end
+end
+
+function _insertat(t::FusionTree{G,N}, i, b::G, c::G, v = nothing) where {G,N}
+    1 <= i <= N || throw(ArgumentError("Cannot attach to output $i of only $N outputs"))
+    outer = t.uncoupled
+    iszero(Nsymbol(b,c,outer[i])) &&
+        throw(ArgumentError("Cannot attach $b and $c to $(outer[i])"))
+    inner = t.innerlines
+    if i == 1
+        outer′ = (b, c, tail(outer)...)
+        inner′ = (outer[1], inner...)
+        vertices′ = (t.vertices..., v)
+        coeff = Fsymbol(one(G), one(G), one(G), one(G), one(G), one(G))
+        t′ = FusionTree(outer′, t.coupled,  inner′, vertices′)
+        if FusionStyle(G) isa Abelian
+            return SingletonDict(t′ => coeff)
+        elseif FusionStyle(G) isa SimpleNonAbelian
+            return FusionTreeDict(t′ => coeff)
+        end
+    end
+    outer′ = TupleTools.insertafter(TupleTools.setindex(outer, b, i), i, (c,))
+    a = i == 2 ? outer[1] : inner[i-2]
+    d = i == N ? t.coupled : inner[i-1]
+    f = outer[i]
+    if FusionStyle(G) isa Abelian
+        e = first(a ⊗ b)
+        inner′ = TupleTools.insertafter(inner, i-2, (e,))
+        t′ = FusionTree(outer′, t.coupled, inner′)
+        coeff = conj(Fsymbol(a,b,c,d,e,f))
+        return SingletonDict(t′ => coeff)
+    elseif FusionStyle(G) isa SimpleNonAbelian
+        local newtrees
+        for e in a ⊗ b
+            inner′ = TupleTools.insertafter(inner, i-2, (e,))
+            t′ = FusionTree(outer′, t.coupled, inner′)
+            coeff = conj(Fsymbol(a,b,c,d,e,f))
+            if coeff != zero(coeff)
+                if @isdefined newtrees
+                    newtrees[t′] = coeff
+                else
+                    newtrees = FusionTreeDict(t′ => coeff)
+                end
+            end
+        end
+        return newtrees
+    else
+        # TODO: implement DegenerateNonAbelian case
+        throw(MethodError(attach, (t, i, b, c, v)))
+    end
+end
+
+
+"""
     function braid(t::FusionTree, i) -> <:AbstractDict{typeof(t),<:Number}
 
 Perform a braid of neighbouring uncoupled indices `i` and `i+1` on a fusion tree `t`,
@@ -183,31 +346,20 @@ function braid(t::FusionTree{G,N}, i) where {G<:Sector, N}
         return SingletonDict(FusionTree{G}(outer′, t.coupled, inner′) =>
             Rsymbol(b, d, first(b ⊗ d)))
     elseif FusionStyle(G) isa SimpleNonAbelian
-        iter = a ⊗ d
-        next = iterate(iter)
-        next === nothing && error("Empty fusion channel $a and $d ?")
-        c′, s = next
-        while iszero(Nsymbol(b, c′, e))
-            next = iterate(iter, s)
-            next === nothing &&
-                error("No valid fusion between $a ⊗ $d and dual(dual($e) ⊗ $b)?")
-            c′, s = next
-        end
-        coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
-        inner′ = TupleTools.setindex(inner, c′, i-1)
-        output = FusionTreeDict(FusionTree{G}(outer′, t.coupled, inner′, t.vertices)=>coeff)
-        next = iterate(iter, s)
-        while next !== nothing
-            c′, s = next
-            next = iterate(iter, s)
-            iszero(Nsymbol(b, c′, e)) && continue
+        local newtrees
+        for c′ in a ⊗ d
             coeff = conj(Rsymbol(b,a,c))*Fsymbol(b,a,d,e,c,c′)*Rsymbol(b,c′,e)
             inner′ = TupleTools.setindex(inner, c′, i-1)
+            t′ = FusionTree{G}(outer′, t.coupled, inner′)
             if coeff != zero(coeff)
-                push!(output, FusionTree{G}(outer′, t.coupled, inner′, t.vertices) => coeff)
+                if @isdefined newtrees
+                    newtrees[t′] = coeff
+                else
+                    newtrees = FusionTreeDict(t′ => coeff)
+                end
             end
         end
-        return output
+        return newtrees
     else
         # TODO: implement DegenerateNonAbelian case
         throw(MethodError(braid, (t, i)))
@@ -319,18 +471,14 @@ function _permute(t1::FusionTree{G}, t2::FusionTree{G},
         return SingletonDict((t1′,t2′)=>coeff1*coeff2*coeff3)
     elseif FusionStyle(t1) isa SimpleNonAbelian
         (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
-        trees = permute(t, p)
-        next = iterate(trees)
-        next === nothing && error("empty set of trees?")
-        (t, coeff2), s = next
-        (t1′, t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
-        newtrees = Dict((t1′,t2′)=>coeff1*coeff2*coeff3)
-        next = iterate(trees, s)
-        while next !== nothing
-            (t, coeff2), s = next
+        local newtrees
+        for (t, coeff2) in permute(t, p)
             (t1′, t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
-            push!(newtrees, (t1′,t2′)=>coeff1*coeff2*coeff3)
-            next = iterate(trees, s)
+            if @isdefined newtrees
+                newtrees[(t1′,t2′)] = coeff1*coeff2*coeff3
+            else
+                newtrees = Dict((t1′,t2′)=>coeff1*coeff2*coeff3)
+            end
         end
         return newtrees
     else
@@ -355,6 +503,13 @@ function Base.show(io::IO, t::FusionTree{G}) where {G<:Sector}
 end
 
 # auxiliary routines
+# add contents of dictionary 2 to dictionary 1, hereby adding the coefficient (value) associated with common fusion trees (keys)
+function _mergeadd!(d1::FusionTreeDict{F}, d2::FusionTreeDict{F}) where {F<:FusionTree}
+    for (k,v) in d2
+        d1[k] = get(d1, k, zero(v)) + v
+    end
+    return d1
+end
 
 # _abelianinner: generate the inner indices for given outer indices in the abelian case
 _abelianinner(outer::Tuple{}) = ()

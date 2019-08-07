@@ -93,6 +93,7 @@
 
         @inferred braid(f, 2)
 
+        # test permutation
         p = tuple(randperm(N)...,)
         ip = invperm(p)
 
@@ -119,6 +120,80 @@
                 Afp2 .+= coeff .* convert(Array, f1)
             end
             @test Afp ≈ Afp2
+        end
+
+        # test insertat
+        N = 4
+        out2 = ntuple(n->randsector(G), StaticLength(N))
+        in2 = rand(collect(⊗(out2...)))
+        f2 = rand(collect(fusiontrees(out2, in2)))
+        for i = 1:N
+            out1 = ntuple(n->randsector(G), StaticLength(N))
+            out1 = Base.setindex(out1, in2, i)
+            in1 = rand(collect(⊗(out1...)))
+            f1 = rand(collect(fusiontrees(out1, in1)))
+
+            trees = @inferred insertat(f1, i, f2)
+            @test norm(values(trees)) ≈ 1
+
+            gen = Base.Generator(TensorKit.permute(f1, (i, (1:i-1)..., (i+1:N)...))) do (t, coeff)
+                (t′, coeff′) = first(insertat(t, 1, f2))
+                @test coeff′ == one(coeff′)
+                return t′ => coeff
+            end
+            trees2 = Dict(gen)
+            trees3 = empty(trees2)
+            for (t,coeff) in trees2
+                p = ((N .+ (1:i-1))..., (1:N)..., ((N-1) .+ (i+1:N))...)
+                for (t′,coeff′) in TensorKit.permute(t, p)
+                    trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
+                end
+            end
+            for (t, coeff) in trees3
+                @test get(trees, t, zero(coeff)) ≈ coeff atol = 1e-12
+            end
+
+            if hasmethod(fusiontensor, Tuple{G,G,G})
+                Af1 = convert(Array, f1)
+                Af2 = convert(Array, f2)
+                Af = TensorOperations.tensorcontract(Af1, [1:i-1; -1; N-1 .+ (i+1:N+1)],
+                                                     Af2, [i-1 .+ (1:N); -1], 1:2N)
+                Af′ = zero(Af)
+                for (f, coeff) in trees
+                    Af′ .+= coeff .* convert(Array, f)
+                end
+                @test Af ≈ Af′
+            end
+        end
+
+        # test merge
+        N = 3
+        out1 = ntuple(n->randsector(G), StaticLength(N))
+        in1 = rand(collect(⊗(out1...)))
+        f1 = rand(collect(fusiontrees(out1, in1)))
+        out2 = ntuple(n->randsector(G), StaticLength(N))
+        in2 = rand(collect(⊗(out2...)))
+        f2 = rand(collect(fusiontrees(out2, in2)))
+        trees = @inferred merge(f1, f2)
+        @test sum(abs2(c)*dim(f.coupled) for (f,c) in trees) ≈ dim(f1.coupled)*dim(f2.coupled)
+
+        if hasmethod(fusiontensor, Tuple{G,G,G})
+            Af1 = convert(Array, f1)
+            Af2 = convert(Array, f2)
+            for c in f1.coupled ⊗ f2.coupled
+                Af0 = convert(Array, FusionTree((f1.coupled, f2.coupled), c, ()))
+                _Af = TensorOperations.tensorcontract(Af1, [1:N;-1],
+                                                        Af0, [-1;N+1;N+2], 1:N+2)
+                Af = TensorOperations.tensorcontract(Af2, [N .+ (1:N); -1],
+                                                        _Af, [1:N; -1; 2N+1], 1:2N+1)
+                Af′ = zero(Af)
+                for (f, coeff) in trees
+                    if f.coupled == c
+                        Af′ .+= coeff .* convert(Array, f)
+                    end
+                end
+                @test Af ≈ Af′
+            end
         end
     end
     @testset "Sector $G: Double fusion trees" begin
