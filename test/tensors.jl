@@ -108,6 +108,8 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V5 ⊗ V4)
             t = @inferred (t1 ⊗ t2)
             @test norm(t) ≈ norm(t1) * norm(t2)
+            @tensor t′[1 2 3 4 5 6; 7 8 9 10] := t1[1,2,3,7,8]*t2[4,5,6,9,10]
+            @test t ≈ t′
         end
     end
 
