@@ -177,6 +177,8 @@ function Base.merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}) where {G,N�
         return newtrees
     end
 end
+Base.merge(t1::FusionTree{G,0}, t2::FusionTree{G,0}) where {G} =
+    SingletonDict(t1=>Fsymbol(one(G),one(G),one(G),one(G),one(G),one(G)))
 
 """
     function insertat(t::FusionTree{G,N₁}, i, t2::FusionTree{G,N₂})
