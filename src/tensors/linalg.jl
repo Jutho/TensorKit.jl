@@ -190,10 +190,10 @@ function catdomain(t1::AbstractTensorMap{S,N₁,1}, t2::AbstractTensorMap{S,N₁
     isdual(V1) == isdual(V2) || throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
 
     V = V1 ⊕ V2
-    t = TensorMap(undef, promote_type(eltype(t1),eltype(t2)), codomain(t1), V)
+    t = TensorMap(undef, promote_type(eltype(t1), eltype(t2)), codomain(t1), V)
     for c in sectors(V)
-        block(t,c)[:,1:dim(V1, c)] .= block(t1,c)
-        block(t,c)[:,dim(V1,c) .+ (1:dim(V2, c))] .= block(t2,c)
+        block(t, c)[:,1:dim(V1, c)] .= block(t1, c)
+        block(t, c)[:,dim(V1, c) .+ (1:dim(V2, c))] .= block(t2, c)
     end
     return t
 end
@@ -207,8 +207,46 @@ function catcodomain(t1::AbstractTensorMap{S,1,N₂}, t2::AbstractTensorMap{S,1,
     V = V1 ⊕ V2
     t = TensorMap(undef, promote_type(eltype(t1),eltype(t2)), V, domain(t1))
     for c in sectors(V)
-        block(t,c)[1:dim(V1, c),:] .= block(t1,c)
-        block(t,c)[dim(V1,c) .+ (1:dim(V2, c)),:] .= block(t2,c)
+        block(t, c)[1:dim(V1, c),:] .= block(t1, c)
+        block(t, c)[dim(V1,c) .+ (1:dim(V2, c)),:] .= block(t2, c)
+    end
+    return t
+end
+
+# tensor product of tensors
+function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where S
+    cod1, cod2 = codomain(t1), codomain(t2)
+    dom1, dom2 = domain(t1), domain(t2)
+    cod = cod1 ⊗ cod2
+    dom = dom1 ⊗ dom2
+    t = TensorMap(zeros, promote_type(eltype(t1), eltype(t2)), cod, dom)
+    if sectortype(S) === Trivial
+        d1 = dim(cod1)
+        d2 = dim(cod2)
+        d3 = dim(dom1)
+        d4 = dim(dom2)
+        m1 = reshape(t1[], (d1, 1, d3, 1))
+        m2 = reshape(t2[], (1, d2, 1, d4))
+        m = reshape(t[], (d1, d2, d3, d4))
+        m .= m1 .* m2
+    else
+        for (f1l, f1r) in fusiontrees(t1)
+            for (f2l, f2r) in fusiontrees(t2)
+                for (fl, coeff1) in merge(f1l, f2l)
+                    for (fr, coeff2) in merge(f1r, f2r)
+                        fl.coupled == fr.coupled || continue
+                        d1 = dim(cod1, f1l.uncoupled)
+                        d2 = dim(cod2, f2l.uncoupled)
+                        d3 = dim(dom1, f1r.uncoupled)
+                        d4 = dim(dom2, f2r.uncoupled)
+                        m1 = reshape(t1[f1l,f1r], (d1, 1, d3, 1))
+                        m2 = reshape(t2[f2l,f2r], (1, d2, 1, d4))
+                        m = reshape(t[fl, fr], (d1, d2, d3, d4))
+                        m .+= coeff1 .* coeff2 .* m1 .* m2
+                    end
+                end
+            end
+        end
     end
     return t
 end

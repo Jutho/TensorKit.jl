@@ -102,6 +102,15 @@ VSU₂ = (ℂ[SU₂](0=>1, 1//2=>1, 1=>2),
             end
         end
     end
+    @testset "Tensor product" begin
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V4, V1 ⊗ V5)
+            t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V5 ⊗ V4)
+            t = @inferred (t1 ⊗ t2)
+            @test norm(t) ≈ norm(t1) * norm(t2)
+        end
+    end
+
     @testset "Tensor contraction: test via conversion" begin
         A1 = TensorMap(randn, ComplexF64, V1*V2, V3)
         A2 = TensorMap(randn, ComplexF64, V3*V4, V5)
