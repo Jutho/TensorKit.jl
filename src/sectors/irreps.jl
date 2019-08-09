@@ -111,7 +111,7 @@ function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Nothing = nothin
     ja, jb, jc = a.j, b.j, c.j
 
     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
-        C[ka,kb,kc] = WignerSymbols.clebschgordan(ja, ka-ja-1, jb, kb-jb-1, jc, kc-jc-1)
+        C[ka,kb,kc] = WignerSymbols.clebschgordan(ja, ja+1-ka, jb, jb+1-kb, jc, jc+1-kc)
     end
     return C
 end
