@@ -5,6 +5,7 @@ using Combinatorics
 using TensorKit
 using TensorKit: ProductSector, fusiontensor
 using TensorOperations
+TensorOperations.disable_cache() # avoids memory overflow during CI?
 using TupleTools
 using TupleTools: StaticLength
 
