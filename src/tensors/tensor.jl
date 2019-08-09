@@ -253,13 +253,13 @@ end
 # For a tensor with trivial symmetry, allow direct indexing
 @inline function Base.getindex(t::TrivialTensorMap, I::Vararg{Int})
     data = t[]
-    @boundscheck checkbounds(data, I)
+    @boundscheck checkbounds(data, I...)
     @inbounds v = data[I...]
     return v
 end
 @inline function Base.setindex!(t::TrivialTensorMap, v, I::Vararg{Int})
     data = t[]
-    @boundscheck checkbounds(data, I)
+    @boundscheck checkbounds(data, I...)
     @inbounds data[I...] = v
     return v
 end
