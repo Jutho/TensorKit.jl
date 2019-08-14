@@ -478,7 +478,11 @@ function eig!(t::TensorMap{S}; kwargs...) where S
         T = complex(eltype(t))
         d = length(values)
         D = copyto!(similar(values, T, (d,d)), Diagonal(values))
-        V = copyto!(similar(vectors, T), vectors)
+        if eltype(vectors) == T
+            V = vectors
+        else
+            V = copyto!(similar(vectors, T), vectors)
+        end
         if length(domain(t)) == 1 && dim(domain(t)[1]) == d
             W = domain(t)[1]
         else
@@ -497,7 +501,11 @@ function eig!(t::TensorMap{S}; kwargs...) where S
             values, vectors = eigen!(b; kwargs...)
             d = length(values)
             Ddata[c] = copyto!(similar(values, T, (d,d)), Diagonal(values))
-            Vdata[c] = copyto!(similar(vectors, T), vectors)
+            if eltype(vectors) == T
+                Vdata[c] = vectors
+            else
+                Vdata[c] = copyto!(similar(vectors, T), vectors)
+            end
             dims[c] = d
         end
         if length(domain(t)) == 1 && domain(t)[1].dims == dims
@@ -508,9 +516,9 @@ function eig!(t::TensorMap{S}; kwargs...) where S
         return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
     end
 end
-function LinearAlgebra.isposdef!(t::TensorMap{S}) where {S}
+function LinearAlgebra.isposdef!(t::TensorMap)
     domain(t) == codomain(t) ||
-        throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
+        throw(SpaceMismatch("`isposdef` requires domain and codomain to be the same"))
     if sectortype(t) === Trivial
         return isposdef!(block(t, Trivial()))
     else

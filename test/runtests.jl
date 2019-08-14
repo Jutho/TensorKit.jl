@@ -9,6 +9,8 @@ TensorOperations.disable_cache() # avoids memory overflow during CI?
 using TupleTools
 using TupleTools: StaticLength
 
+Random.seed!(1234)
+
 smallset(::Type{ZNIrrep{N}}) where {N} = map(ZNIrrep{N}, 1:N)
 smallset(::Type{CU₁}) =
     map(t->CU₁(t[1],t[2]), [(0,0), (0,1), (1//2,2), (1,2), (3//2,2), (2,2), (5//2,2),
