@@ -114,22 +114,97 @@ only implemented for `spacetype(t)<:EuclideanSpace`.
 rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; alg::OrthogonalFactorizationAlgorithm = LQ()) = rightnull!(permuteind(t, p1, p2; copy = true); alg = alg)
 
 """
-    eig(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> D, V
+    eigen(t::AbstractTensor, leftind::Tuple, rightind::Tuple; kwargs...) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 
-If `leftind` and `rightind` are not specified, the current partition of left and right indices
-of `t` is used. In that case, less memory is allocated if one allows the data in `t` to
-be destroyed/overwritten, by using `eig!(t)`.
+If `leftind` and `rightind` are not specified, the current partition of left and right
+indices of `t` is used. In that case, less memory is allocated if one allows the data in `t` to be destroyed/overwritten, by using `eigen!(t)`. Note that the permuted tensor on which `eigen!` is called should have equal domain and codomain, as otherwise the eigenvalue decomposition is meaningless and cannot satisfy
+```
+permuteind(t, leftind, rightind) * V = V * D
+```
+
+Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense matrices. See the corresponding documentation for more information.
+
+See also `eig` and `eigh`
 """
-eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) = eig!(permuteind(t, p1, p2; copy = true))
+LinearAlgebra.eigen(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    eigen!(permuteind(t, p1, p2; copy = true); kwargs...)
+
+"""
+    eig(t::AbstractTensor, leftind::Tuple, rightind::Tuple; kwargs...) -> D, V
+
+Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
+The function `eig` assumes that the linear map is not hermitian and returns type stable
+complex valued `D` and `V` tensors for both real and complex valued `t`. See `eigh` for
+hermitian linear maps
+
+If `leftind` and `rightind` are not specified, the current partition of left and right
+indices of `t` is used. In that case, less memory is allocated if one allows the data in
+`t` to be destroyed/overwritten, by using `eig!(t)`. Note that the permuted tensor on
+which `eig!` is called should have equal domain and codomain, as otherwise the eigenvalue
+decomposition is meaningless and cannot satisfy
+```
+permuteind(t, leftind, rightind) * V = V * D
+```
+
+Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense matrices. See the corresponding documentation for more information.
+
+See also `eigen` and `eigh`.
+"""
+eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    eig!(permuteind(t, p1, p2; copy = true); kwargs...)
+
+
+"""
+    eigh(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> D, V
+
+Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
+The function `eigh` assumes that the linear map is hermitian and `D` and `V` tensors with
+the same `eltype` as `t`. See `eig` and `eigen` for non-hermitian tensors. Hermiticity
+requires that the tensor acts on inner product spaces, and the current implementation
+requires `spacetyp(t) <: EuclideanSpace`.
+
+If `leftind` and `rightind` are not specified, the current partition of left and right
+indices of `t` is used. In that case, less memory is allocated if one allows the data in
+`t` to be destroyed/overwritten, by using `eigh!(t)`. Note that the permuted tensor on
+which `eigh!` is called should have equal domain and codomain, as otherwise the eigenvalue
+decomposition is meaningless and cannot satisfy
+```
+permuteind(t, leftind, rightind) * V = V * D
+```
+
+See also `eigen` and `eig`.
+"""
+eigh(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) =
+    eigh!(permuteind(t, p1, p2; copy = true))
+
+
+"""
+    isposdef(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> ::Bool
+
+Test whether a tensor `t` is positive definite as linear map from `rightind` to `leftind`.
+
+If `leftind` and `rightind` are not specified, the current partition of left and right
+indices of `t` is used. In that case, less memory is allocated if one allows the data in
+`t` to be destroyed/overwritten, by using `isposdef!(t)`. Note that the permuted tensor on
+which `isposdef!` is called should have equal domain and codomain, as otherwise it is
+meaningless
+
+Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense matrices. See the corresponding documentation for more information.
+"""
+LinearAlgebra.isposdef(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) =
+    isposdef!(permuteind(t, p1, p2; copy = true))
 
 LinearAlgebra.svd(t::AbstractTensorMap; trunc::TruncationScheme = NoTruncation(), p::Real = 2, alg::Union{SVD,SDD} = SDD()) = svd!(copy(t); trunc = trunc, p = p, alg = alg)
 leftorth(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = QRpos()) = leftorth!(copy(t); alg = alg)
 rightorth(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = LQpos()) = rightorth!(copy(t); alg = alg)
 leftnull(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = QRpos()) = leftnull!(copy(t); alg = alg)
 rightnull(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = LQpos()) = rightnull!(copy(t); alg = alg)
-eig(t::AbstractTensorMap) = eig!(copy(t))
+LinearAlgebra.eigen(t::AbstractTensorMap; kwargs...) = eigen!(copy(t); kwargs...)
+eig(t::AbstractTensorMap; kwargs...) = eig!(copy(t); kwargs...)
+eigh(t::AbstractTensorMap; kwargs...) = eigh!(copy(t); kwargs...)
+LinearAlgebra.isposdef(t::AbstractTensorMap) = isposdef!(copy(t))
 
 # Orthogonal factorizations (mutation for recycling memory): only correct if Euclidean inner product
 #----------------------------------------------------------------------------------------------------
@@ -152,28 +227,29 @@ end
 function leftorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
     if sectortype(t) === Trivial
         Q, R = _leftorth!(block(t, Trivial()), alg)
-        V = S(size(Q,2))
+        d = size(Q,2)
+        if length(codomain(t)) == 1 && dim(codomain(t)[1]) == d
+            V = codomain(t)[1]
+        elseif length(domain(t)) == 1 && dim(domain(t)[1]) == d
+            V = domain(t)[1]
+        else
+            V = S(d)
+        end
         return TensorMap(Q, codomain(t)←V), TensorMap(R, V←domain(t))
     else
         Qdata = empty(t.data)
         Rdata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
-        for c in blocksectors(t)
-            Q, R = _leftorth!(block(t,c), alg)
+        for (c,b) in blocks(t)
+            Q, R = _leftorth!(b, alg)
             Qdata[c] = Q
             Rdata[c] = R
             dims[c] = size(Q,2)
         end
-        if length(domain(t)) == 1
-            V = domain(t)[1]
-            if V.dims != dims
-                V = S(dims)
-            end
-        elseif length(codomain(t)) == 1
+        if length(codomain(t)) == 1 && codomain(t)[1].dims == dims
             V = codomain(t)[1]
-            if V.dims != dims
-                V = S(dims)
-            end
+        elseif length(domain(t)) == 1 && domain(t)[1].dims == dims
+            V = domain(t)[1]
         else
             V = S(dims)
         end
@@ -201,28 +277,29 @@ end
 function rightorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
     if sectortype(t) === Trivial
         L, Q = _rightorth!(block(t, Trivial()), alg)
-        V = S(size(Q, 1))
+        d = size(Q,1)
+        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
+            V = domain(t)[1]
+        elseif length(codomain(t)) == 1 && dim(codomain(t)[1]) == d
+            V = codomain(t)[1]
+        else
+            V = S(d)
+        end
         return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
     else
         Ldata = empty(t.data)
         Qdata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
-        for c in blocksectors(t)
-            L, Q = _rightorth!(block(t,c), alg)
+        for (c,b) in blocks(t)
+            L, Q = _rightorth!(b, alg)
             Ldata[c] = L
             Qdata[c] = Q
             dims[c] = size(Q,1)
         end
-        if length(domain(t)) == 1
+        if length(domain(t)) == 1 && domain(t)[1].dims == dims
             V = domain(t)[1]
-            if V.dims != dims
-                V = S(dims)
-            end
-        elseif length(codomain(t)) == 1
+        elseif length(codomain(t)) == 1 && codomain(t)[1].dims == dims
             V = codomain(t)[1]
-            if V.dims != dims
-                V = S(dims)
-            end
         else
             V = S(dims)
         end
@@ -254,42 +331,61 @@ function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncat
         dmax = length(Σ)
         Σ, truncerr = _truncate!(Σ, trunc, p)
         d = length(Σ)
-        W = S(d)
         if d < dmax
             U = U[:,1:d]
             V = V[1:d,:]
         end
         Σm = copyto!(similar(Σ, (d,d)), Diagonal(Σ))
+        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
+            W = domain(t)[1]
+        elseif length(codomain(t)) == 1 && dim(codomain(t)[1]) == d
+            W = codomain(t)[1]
+        else
+            W = S(d)
+        end
         return TensorMap(U, codomain(t)←W), TensorMap(Σm, W←W), TensorMap(V, W←domain(t)), truncerr
         #TODO: make this work with Diagonal(Σ) in such a way that it is type stable and
         # robust for all further operations on that tensor
     else
         G = sectortype(t)
-        it = blocksectors(t)
-        dims = SectorDict{sectortype(t), Int}()
-        next = iterate(it)
-        if next === nothing
-            emptyrealdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
-            W = S(dims)
-            truncerr = abs(zero(eltype(t)))
-            return TensorMap(empty(t.data), codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(empty(t.data), W←domain(t)), truncerr
-        end
-        c, s = next
-        U,Σ,V = _svd!(block(t,c), alg)
-        Udata = SectorDict(c=>U)
-        Σdata = SectorDict(c=>Σ)
-        Vdata = SectorDict(c=>V)
-        dims[c] = length(Σ)
-        next = iterate(it, s)
-        while next !== nothing
-            c, s = next
-            U,Σ,V = _svd!(block(t,c), alg)
+        Udata = empty(t.data)
+        Σdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
+        Vdata = empty(t.data)
+        dims = SectorDict{G, Int}()
+        truncerr = abs(zero(eltype(t)))
+        for (c, b) in blocks(t)
+            U,Σ,V = _svd!(b, alg)
             Udata[c] = U
             Σdata[c] = Σ
             Vdata[c] = V
             dims[c] = length(Σ)
-            next = iterate(it, s)
         end
+        # G = sectortype(t)
+        # it = blocksectors(t)
+        # dims = SectorDict{sectortype(t), Int}()
+        # next = iterate(it)
+        # if next === nothing
+        #     emptyrealdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
+        #     W = S(dims)
+        #     truncerr = abs(zero(eltype(t)))
+        #     return TensorMap(empty(t.data), codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(empty(t.data), W←domain(t)), truncerr
+        # end
+        # c, s = next
+        # U,Σ,V = _svd!(block(t,c), alg)
+        # Udata = SectorDict(c=>U)
+        # Σdata = SectorDict(c=>Σ)
+        # Vdata = SectorDict(c=>V)
+        # dims[c] = length(Σ)
+        # next = iterate(it, s)
+        # while next !== nothing
+        #     c, s = next
+        #     U,Σ,V = _svd!(block(t,c), alg)
+        #     Udata[c] = U
+        #     Σdata[c] = Σ
+        #     Vdata[c] = V
+        #     dims[c] = length(Σ)
+        #     next = iterate(it, s)
+        # end
         if !isa(trunc, NoTruncation)
             Σdata, truncerr = _truncate!(Σdata, trunc, p)
             truncdims = SectorDict{sectortype(t), Int}()
@@ -310,9 +406,9 @@ function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncat
             dims = truncdims
             W = S(dims)
         else
-            if length(domain(t)) == 1
+            if length(domain(t)) == 1 && domain(t)[1].dims == dims
                 W = domain(t)[1]
-            elseif length(codomain(t)) == 1
+            elseif length(codomain(t)) == 1 && codomain(t)[1].dims == dims
                 W = codomain(t)[1]
             else
                 W = S(dims)
@@ -321,5 +417,106 @@ function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncat
         end
         Σmdata = SectorDict(c=>copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ)) for (c,Σ) in Σdata)
         return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W), TensorMap(Vdata, W←domain(t)), truncerr
+    end
+end
+function LinearAlgebra.ishermitian(t::TensorMap)
+    domain(t) == codomain(t) || return false
+    spacetype(t) <: EuclideanSpace || return false # hermiticity only defined for euclidean
+    if sectortype(t) == Trivial
+        return ishermitian(block(t, Trivial()))
+    else
+        for (c,b) in blocks(t)
+            ishermitian(b) || return false
+        end
+        return true
+    end
+end
+
+LinearAlgebra.eigen!(t::TensorMap) = ishermitian(t) ? eigh!(t) : eig!(t)
+
+function eigh!(t::TensorMap{S}; kwargs...) where {S<:EuclideanSpace}
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
+    if sectortype(t) === Trivial
+        values, vectors = eigen!(Hermitian(block(t, Trivial())); kwargs...)
+        d = length(values)
+        D = copyto!(similar(values, (d,d)), Diagonal(values))
+        V = vectors
+        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
+            W = domain(t)[1]
+        else
+            W = S(d)
+        end
+        return TensorMap(D, W←W), TensorMap(V, domain(t)←W)
+        #TODO: make this work with Diagonal(values) in such a way that it is type stable and
+        # robust for all further operations on that tensor
+    else
+        G = sectortype(t)
+        Ddata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
+        Vdata = SectorDict{G,similarstoragetype(t, eltype(t))}()
+        dims = SectorDict{G,Int}()
+        for (c,b) in blocks(t)
+            values, vectors = eigen!(Hermitian(b); kwargs...)
+            d = length(values)
+            Ddata[c] = copyto!(similar(values, (d,d)), Diagonal(values))
+            Vdata[c] = vectors
+            dims[c] = d
+        end
+        if length(domain(t)) == 1 && domain(t)[1].dims == dims
+            W = domain(t)[1]
+        else
+            W = S(dims)
+        end
+        return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
+    end
+end
+function eig!(t::TensorMap{S}; kwargs...) where S
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
+    if sectortype(t) === Trivial
+        values, vectors = eigen!(block(t, Trivial()); kwargs...)
+        T = complex(eltype(t))
+        d = length(values)
+        D = copyto!(similar(values, T, (d,d)), Diagonal(values))
+        V = copyto!(similar(vectors, T), vectors)
+        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
+            W = domain(t)[1]
+        else
+            W = S(d)
+        end
+        return TensorMap(D, W←W), TensorMap(V, domain(t)←W)
+        #TODO: make this work with Diagonal(values) in such a way that it is type stable and
+        # robust for all further operations on that tensor
+    else
+        G = sectortype(t)
+        T = complex(eltype(t))
+        Ddata = SectorDict{G,similarstoragetype(t, T)}()
+        Vdata = SectorDict{G,similarstoragetype(t, T)}()
+        dims = SectorDict{G,Int}()
+        for (c,b) in blocks(t)
+            values, vectors = eigen!(b; kwargs...)
+            d = length(values)
+            Ddata[c] = copyto!(similar(values, T, (d,d)), Diagonal(values))
+            Vdata[c] = copyto!(similar(vectors, T), vectors)
+            dims[c] = d
+        end
+        if length(domain(t)) == 1 && domain(t)[1].dims == dims
+            W = domain(t)[1]
+        else
+            W = S(dims)
+        end
+        return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
+    end
+end
+function LinearAlgebra.isposdef!(t::TensorMap{S}) where {S}
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
+    if sectortype(t) === Trivial
+        return isposdef!(block(t, Trivial()))
+    else
+        for (c,b) in blocks(t)
+            isposdef!(b) || return false
+        end
+        return true
     end
 end

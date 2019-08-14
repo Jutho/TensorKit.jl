@@ -32,10 +32,7 @@ function VectorDict{K,V}(kv) where {K,V}
     return VectorDict{K,V}(keys, values)
 end
 VectorDict(kv::Pair{K,V}...) where {K,V} = VectorDict{K,V}(kv)
-function VectorDict(g::Base.Generator)
-    v = collect(g)
-    VectorDict(first.(v), last.(v))
-end
+VectorDict(g::Base.Generator) = VectorDict(g...)
 
 Base.length(d::VectorDict) = length(d.keys)
 Base.sizehint!(d::VectorDict, newsz) = (sizehint!(d.keys, newsz); sizehint!(d.values, newsz); return d)
@@ -115,7 +112,7 @@ function SortedVectorDict{K,V}(kv) where {K,V}
 end
 SortedVectorDict(pairs::Vector{Pair{K,V}}) where {K,V} = SortedVectorDict{K,V}(pairs)
 SortedVectorDict(kv::Pair{K,V}...) where {K,V} = SortedVectorDict{K,V}(kv)
-SortedVectorDict(g::Base.Generator) = SortedVectorDict(collect(g))
+SortedVectorDict(g::Base.Generator) = SortedVectorDict(g...)
 
 Base.length(d::SortedVectorDict) = length(d.keys)
 Base.sizehint!(d::SortedVectorDict, newsz) =

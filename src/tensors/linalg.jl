@@ -161,6 +161,55 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,  tB::A
     return tC
 end
 
+# TensorMap inverse
+function Base.inv(t::TensorMap)
+    domain(t) == codomain(t) ||
+        SpaceMismatch("Inverse of a tensor only exist when domain == codomain; check pinv")
+    if sectortype(t) === Trivial
+        return TensorMap(inv(block(t, Trivial())), domain(t)←codomain(t))
+    else
+        data = empty(t.data)
+        for (c,b) in blocks(t)
+            data[c] = inv(b)
+        end
+        return TensorMap(data, domain(t)←codomain(t))
+    end
+end
+function LinearAlgebra.pinv(t::TensorMap; kwargs...)
+    if sectortype(t) === Trivial
+        return TensorMap(pinv(block(t, Trivial()); kwargs...), domain(t)←codomain(t))
+    else
+        data = empty(t.data)
+        for (c,b) in blocks(t)
+            data[c] = pinv(b; kwargs...)
+        end
+        return TensorMap(data, domain(t)←codomain(t))
+    end
+end
+function Base.:(\)(t1::TensorMap, t2::TensorMap)
+    codomain(t1) == codomain(t2) ||
+        SpaceMismatch("non-matching codomains in t1 \\ t2")
+    if sectortype(t1) === Trivial
+        data = block(t1, Trivial()) \ block(t2, Trivial())
+        return TensorMap(data, domain(t1)←domain(t2))
+    else
+        cod = codomain(t1)
+        data = SectorDict(c=>block(t1,c) / block(t2,c) for c in blocksectors(codomain(t1)))
+        return TensorMap(data, domain(t1)←domain(t2))
+    end
+end
+function Base.:(/)(t1::TensorMap, t2::TensorMap)
+    domain(t1) == domain(t2) ||
+        SpaceMismatch("non-matching domains in t1 / t2")
+    if sectortype(t1) === Trivial
+        data = block(t1, Trivial()) / block(t2, Trivial())
+        return TensorMap(data, codomain(t1)←codomain(t2))
+    else
+        data = SectorDict(c=>block(t1,c) / block(t2,c) for c in blocksectors(domain(t1)))
+        return TensorMap(data, codomain(t1)←codomain(t2))
+    end
+end
+
 # TensorMap exponentation:
 function exp!(t::TensorMap)
     domain(t) == codomain(t) ||

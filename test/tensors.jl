@@ -194,6 +194,22 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 @test VVd ≈ one(VVd)
                 @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
             end
+            t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
+            @testset "eig and isposdef" begin
+                D, V = eigen(t, (1,3), (2,4))
+                @test isposdef(V'*V)
+                t2 = permuteind(t, (1,3), (2,4))
+                @test t2*V ≈ V*D
+                @test !isposdef(t2) # unlikely for non-hermitian map
+                t2 = (t2 + t2');
+                D, V = eigen(t2)
+                VdV = V'*V
+                @test VdV ≈ one(VdV)
+                λ = minimum(minimum(real(diag(b))) for (c,b) in blocks(D))
+                @test isposdef(t2) == isposdef(λ)
+                @test isposdef(t2 - λ*one(t2) + 0.1*one(t2))
+                @test !isposdef(t2 - λ*one(t2) - 0.1*one(t2))
+            end
         end
     end
     @testset "Exponentiation" begin

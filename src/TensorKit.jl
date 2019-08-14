@@ -41,8 +41,11 @@ export randuniform, randnormal, randisometry
 export one!
 
 # tensor algebra and factorizations
-export vecnorm, vecdot
-export leftorth, rightorth, leftnull, rightnull, leftorth!, rightorth!, leftnull!, rightnull!, svd!, svd, exp, exp!
+export dot, norm, normalize, normalize!
+export mul!, lmul!, rmul!, adjoint!, pinv, axpy!, axpby!
+export leftorth, rightorth, leftnull, rightnull,
+        leftorth!, rightorth!, leftnull!, rightnull!,
+        svd!, svd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos, SVD, Polar
