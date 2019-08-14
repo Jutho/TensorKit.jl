@@ -347,45 +347,45 @@ function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncat
         #TODO: make this work with Diagonal(Σ) in such a way that it is type stable and
         # robust for all further operations on that tensor
     else
-        G = sectortype(t)
-        Udata = empty(t.data)
-        Σdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
-        Vdata = empty(t.data)
-        dims = SectorDict{G, Int}()
-        truncerr = abs(zero(eltype(t)))
-        for (c, b) in blocks(t)
-            U,Σ,V = _svd!(b, alg)
-            Udata[c] = U
-            Σdata[c] = Σ
-            Vdata[c] = V
-            dims[c] = length(Σ)
-        end
         # G = sectortype(t)
-        # it = blocksectors(t)
-        # dims = SectorDict{sectortype(t), Int}()
-        # next = iterate(it)
-        # if next === nothing
-        #     emptyrealdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
-        #     W = S(dims)
-        #     truncerr = abs(zero(eltype(t)))
-        #     return TensorMap(empty(t.data), codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(empty(t.data), W←domain(t)), truncerr
-        # end
-        # c, s = next
-        # U,Σ,V = _svd!(block(t,c), alg)
-        # Udata = SectorDict(c=>U)
-        # Σdata = SectorDict(c=>Σ)
-        # Vdata = SectorDict(c=>V)
-        # dims[c] = length(Σ)
-        # next = iterate(it, s)
-        # while next !== nothing
-        #     c, s = next
-        #     U,Σ,V = _svd!(block(t,c), alg)
+        # Udata = empty(t.data)
+        # Σdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
+        # Vdata = empty(t.data)
+        # dims = SectorDict{G, Int}()
+        # truncerr = abs(zero(eltype(t)))
+        # for (c, b) in blocks(t)
+        #     U,Σ,V = _svd!(b, alg)
         #     Udata[c] = U
         #     Σdata[c] = Σ
         #     Vdata[c] = V
         #     dims[c] = length(Σ)
-        #     next = iterate(it, s)
         # end
+        G = sectortype(t)
+        it = blocksectors(t)
+        dims = SectorDict{sectortype(t), Int}()
+        next = iterate(it)
+        if next === nothing
+            emptyrealdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
+            W = S(dims)
+            truncerr = abs(zero(eltype(t)))
+            return TensorMap(empty(t.data), codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(empty(t.data), W←domain(t)), truncerr
+        end
+        c, s = next
+        U,Σ,V = _svd!(block(t,c), alg)
+        Udata = SectorDict(c=>U)
+        Σdata = SectorDict(c=>Σ)
+        Vdata = SectorDict(c=>V)
+        dims[c] = length(Σ)
+        next = iterate(it, s)
+        while next !== nothing
+            c, s = next
+            U,Σ,V = _svd!(block(t,c), alg)
+            Udata[c] = U
+            Σdata[c] = Σ
+            Vdata[c] = V
+            dims[c] = length(Σ)
+            next = iterate(it, s)
+        end
         if !isa(trunc, NoTruncation)
             Σdata, truncerr = _truncate!(Σdata, trunc, p)
             truncdims = SectorDict{sectortype(t), Int}()
