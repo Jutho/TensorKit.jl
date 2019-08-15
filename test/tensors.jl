@@ -200,13 +200,6 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 D, V = eigen(t, (1,3), (2,4))
                 VdV = V'*V
                 VdV = (VdV + VdV')/2
-                if !isposdef(VdV)
-                    @show ishermitian(VdV)
-                    S, U = eigh(VdV)
-                    for (c,b) in blocks(S)
-                        @show c, diag(b)
-                    end
-                end
                 @test isposdef(VdV)
                 t2 = permuteind(t, (1,3), (2,4))
                 @test t2*V ≈ V*D
