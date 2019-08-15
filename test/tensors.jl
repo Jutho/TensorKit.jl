@@ -202,7 +202,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 if !isposdef(VdV)
                     @show ishermitian(VdV)
                     D, V = eigh(VdV)
-                    for (c,b) in blocks D
+                    for (c,b) in blocks(D)
                         @show c, diag(b)
                     end
                 end
