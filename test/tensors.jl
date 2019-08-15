@@ -199,14 +199,15 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @testset "eig and isposdef" begin
                 D, V = eigen(t, (1,3), (2,4))
                 VdV = V'*V
+                VdV = (VdV + VdV')/2
                 if !isposdef(VdV)
                     @show ishermitian(VdV)
-                    D, V = eigh(VdV)
-                    for (c,b) in blocks(D)
+                    S, U = eigh(VdV)
+                    for (c,b) in blocks(S)
                         @show c, diag(b)
                     end
                 end
-                @test isposdef(V'*V)
+                @test isposdef(VdV)
                 t2 = permuteind(t, (1,3), (2,4))
                 @test t2*V ≈ V*D
                 @test !isposdef(t2) # unlikely for non-hermitian map
