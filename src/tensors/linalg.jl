@@ -162,9 +162,9 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,  tB::A
 end
 
 # TensorMap inverse
-function Base.inv(t::TensorMap)
+function Base.inv(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
-        SpaceMismatch("Inverse of a tensor only exist when domain == codomain; check pinv")
+        throw(SpaceMismatch("Inverse of a tensor only exist when domain == codomain; check pinv"))
     if sectortype(t) === Trivial
         return TensorMap(inv(block(t, Trivial())), domain(t)←codomain(t))
     else
@@ -175,7 +175,7 @@ function Base.inv(t::TensorMap)
         return TensorMap(data, domain(t)←codomain(t))
     end
 end
-function LinearAlgebra.pinv(t::TensorMap; kwargs...)
+function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
     if sectortype(t) === Trivial
         return TensorMap(pinv(block(t, Trivial()); kwargs...), domain(t)←codomain(t))
     else
@@ -186,21 +186,21 @@ function LinearAlgebra.pinv(t::TensorMap; kwargs...)
         return TensorMap(data, domain(t)←codomain(t))
     end
 end
-function Base.:(\)(t1::TensorMap, t2::TensorMap)
+function Base.:(\)(t1::AbstractTensorMap, t2::AbstractTensorMap)
     codomain(t1) == codomain(t2) ||
-        SpaceMismatch("non-matching codomains in t1 \\ t2")
+        throw(SpaceMismatch("non-matching codomains in t1 \\ t2"))
     if sectortype(t1) === Trivial
         data = block(t1, Trivial()) \ block(t2, Trivial())
         return TensorMap(data, domain(t1)←domain(t2))
     else
         cod = codomain(t1)
-        data = SectorDict(c=>block(t1,c) / block(t2,c) for c in blocksectors(codomain(t1)))
+        data = SectorDict(c=>block(t1,c) \ block(t2,c) for c in blocksectors(codomain(t1)))
         return TensorMap(data, domain(t1)←domain(t2))
     end
 end
-function Base.:(/)(t1::TensorMap, t2::TensorMap)
+function Base.:(/)(t1::AbstractTensorMap, t2::AbstractTensorMap)
     domain(t1) == domain(t2) ||
-        SpaceMismatch("non-matching domains in t1 / t2")
+        throw(SpaceMismatch("non-matching domains in t1 / t2"))
     if sectortype(t1) === Trivial
         data = block(t1, Trivial()) / block(t2, Trivial())
         return TensorMap(data, codomain(t1)←codomain(t2))

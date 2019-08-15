@@ -105,59 +105,76 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset "Tensor product: test via norm preservation" begin
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
-            t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
-            t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
-            t = @inferred (t1 ⊗ t2)
-            @test norm(t) ≈ norm(t1) * norm(t2)
-        end
-    end
-    @testset "Tensor product: test via conversion" begin
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
-            t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
-            t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
-            t = @inferred (t1 ⊗ t2)
-            d1 = dim(codomain(t1))
-            d2 = dim(codomain(t2))
-            d3 = dim(domain(t1))
-            d4 = dim(domain(t2))
-            At = convert(Array, t)
-            @show sizeof(At)
-            @test reshape(At, (d1, d2, d3, d4)) ≈
-                    reshape(convert(Array, t1), (d1, 1, d3, 1)) .*
-                    reshape(convert(Array, t2), (1, d2, 1, d4))
-        end
-    end
-    @testset "Tensor product: test via tensor contraction" begin
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
-            t1 = Tensor(rand, T, V2 ⊗ V3 ⊗ V1)
-            t2 = Tensor(rand, T, V2 ⊗ V1 ⊗ V3)
-            t = @inferred (t1 ⊗ t2)
-            @tensor t′[1, 2, 3, 4, 5, 6] := t1[1,2,3]*t2[4,5,6]
-            @test t ≈ t′
-        end
-    end
-
     @testset "Tensor contraction: test via conversion" begin
-        A1 = TensorMap(randn, ComplexF64, V1*V2, V3)
+        A1 = TensorMap(randn, ComplexF64, V1'*V2', V3')
         A2 = TensorMap(randn, ComplexF64, V3*V4, V5)
         rhoL = TensorMap(randn, ComplexF64, V1, V1)
-        rhoR = TensorMap(randn, ComplexF64, V5, V5)
+        rhoR = TensorMap(randn, ComplexF64, V5, V5)' # test adjoint tensor
         H = TensorMap(randn, ComplexF64, V2*V4, V2*V4)
-        @tensor HrA12[a, s1, s2, c] := rhoL[a, a'] * A1[a', t1, b] *
+        @tensor HrA12[a, s1, s2, c] := rhoL[a, a'] * conj(A1[a', t1, b]) *
             A2[b, t2, c'] * rhoR[c', c] * H[s1, s2, t1, t2]
 
         @tensor HrA12array[a, s1, s2, c] := convert(Array, rhoL)[a, a'] *
-            convert(Array, A1)[a', t1, b] *
+            conj(convert(Array, A1)[a', t1, b]) *
             convert(Array, A2)[b, t2, c'] *
             convert(Array, rhoR)[c', c] *
             convert(Array, H)[s1, s2, t1, t2]
 
         @test HrA12array ≈ convert(Array, HrA12)
     end
+    @testset "Multiplication and inverse: test compatibility" begin
+        W1 = V1 ⊗ V2 ⊗ V3
+        W2 = V4 ⊗ V5
+        for T in (Float64, ComplexF64)
+            t1 = TensorMap(rand, T, W1, W1)
+            t2 = TensorMap(rand, T, W2, W2)
+            t = TensorMap(rand, T, W1, W2)
+            @test t1*(t1\t) ≈ t
+            @test (t/t2)*t2 ≈ t
+            @test t1\one(t1) ≈ inv(t1)
+            @test one(t1)/t1 ≈ pinv(t1)
+            @test_throws SpaceMismatch inv(t)
+            @test_throws SpaceMismatch t2\t
+            @test_throws SpaceMismatch t/t1
+            tp = pinv(t)*t
+            @test tp ≈ tp*tp
+        end
+    end
+    @testset "Multiplication and inverse: test via conversion" begin
+        W1 = V1 ⊗ V2 ⊗ V3
+        W2 = V4 ⊗ V5
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            t1 = TensorMap(rand, T, W1, W1)
+            t2 = TensorMap(rand, T, W2, W2)
+            t = TensorMap(rand, T, W1, W2)
+            d1 = dim(W1)
+            d2 = dim(W2)
+            At1 = reshape(convert(Array, t1), d1, d1)
+            At2 = reshape(convert(Array, t2), d2, d2)
+            At = reshape(convert(Array, t), d1, d2)
+            @test reshape(convert(Array, t1*t), d1, d2) ≈ At1*At
+            @test reshape(convert(Array, t1'*t), d1, d2) ≈ At1'*At
+            @test reshape(convert(Array, t2*t'), d2, d1) ≈ At2*At'
+            @test reshape(convert(Array, t2'*t'), d2, d1) ≈ At2'*At'
 
+            @test reshape(convert(Array, inv(t1)), d1, d1) ≈ inv(At1)
+            @test reshape(convert(Array, pinv(t)), d2, d1) ≈ pinv(At)
 
+            if T == Float32 || T == ComplexF32
+                continue
+            end
+
+            @test reshape(convert(Array, t1\t), d1, d2) ≈ At1\At
+            @test reshape(convert(Array, t1'\t), d1, d2) ≈ At1'\At
+            @test reshape(convert(Array, t2\t'), d2, d1) ≈ At2\At'
+            @test reshape(convert(Array, t2'\t'), d2, d1) ≈ At2'\At'
+
+            @test reshape(convert(Array, t2/t), d2, d1) ≈ At2/At
+            @test reshape(convert(Array, t2'/t), d2, d1) ≈ At2'/At
+            @test reshape(convert(Array, t1/t'), d1, d2) ≈ At1/At'
+            @test reshape(convert(Array, t1'/t'), d1, d2) ≈ At1'/At'
+        end
+    end
     @testset "Factorization" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)
@@ -223,6 +240,39 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             expt = @inferred exp(t)
             @test reshape(convert(Array, expt), (s,s)) ≈
                     exp(reshape(convert(Array, t), (s,s)))
+        end
+    end
+    @testset "Tensor product: test via norm preservation" begin
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
+            t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
+            t = @inferred (t1 ⊗ t2)
+            @test norm(t) ≈ norm(t1) * norm(t2)
+        end
+    end
+    @testset "Tensor product: test via conversion" begin
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
+            t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
+            t = @inferred (t1 ⊗ t2)
+            d1 = dim(codomain(t1))
+            d2 = dim(codomain(t2))
+            d3 = dim(domain(t1))
+            d4 = dim(domain(t2))
+            At = convert(Array, t)
+            @show sizeof(At)
+            @test reshape(At, (d1, d2, d3, d4)) ≈
+                    reshape(convert(Array, t1), (d1, 1, d3, 1)) .*
+                    reshape(convert(Array, t2), (1, d2, 1, d4))
+        end
+    end
+    @testset "Tensor product: test via tensor contraction" begin
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            t1 = Tensor(rand, T, V2 ⊗ V3 ⊗ V1)
+            t2 = Tensor(rand, T, V2 ⊗ V1 ⊗ V3)
+            t = @inferred (t1 ⊗ t2)
+            @tensor t′[1, 2, 3, 4, 5, 6] := t1[1,2,3]*t2[4,5,6]
+            @test t ≈ t′
         end
     end
 end
