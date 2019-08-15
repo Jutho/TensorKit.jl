@@ -194,9 +194,18 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 @test VVd ≈ one(VVd)
                 @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
             end
+
             t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
             @testset "eig and isposdef" begin
                 D, V = eigen(t, (1,3), (2,4))
+                VdV = V'*V
+                if !isposdef(VdV)
+                    @show ishermitian(VdV)
+                    D, V = eigh(VdV)
+                    for (c,b) in blocks D
+                        @show c, diag(b)
+                    end
+                end
                 @test isposdef(V'*V)
                 t2 = permuteind(t, (1,3), (2,4))
                 @test t2*V ≈ V*D
