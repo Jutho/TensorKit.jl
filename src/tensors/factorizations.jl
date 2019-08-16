@@ -499,9 +499,6 @@ function eig!(t::TensorMap{S}; kwargs...) where S
         dims = SectorDict{G,Int}()
         for (c,b) in blocks(t)
             values, vectors = eigen!(b; kwargs...)
-            if any(isnan, values)
-                @show c, b, values
-            end
             d = length(values)
             Ddata[c] = copyto!(similar(values, T, (d,d)), Diagonal(values))
             if eltype(vectors) == T
