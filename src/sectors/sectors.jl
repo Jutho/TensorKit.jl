@@ -28,6 +28,12 @@ and if `BraidingStyle(G) == Fermionic()`
 """
 abstract type Sector end
 
+# iterator over the values in the sector
+struct SectorValues{G<:Sector} end
+Base.IteratorEltype(::Type{<:SectorValues}) = HasEltype()
+Base.eltype(::Type{SectorValues{G}}) where {G<:Sector} = G
+Base.values(::Type{G}) where {G<:Sector} = SectorValues{G}()
+
 # Define a sector for ungraded vector spaces
 struct Trivial <: Sector
 end
@@ -209,6 +215,23 @@ function frobeniusschur(a::Sector)
 end
 
 """
+    function twist(a::Sector)
+
+Return the twist of a sector `a`
+"""
+function twist(a::Sector)
+    if FusionStyle(a) isa Abelian || FusionStyle(a) isa SimpleNonAbelian
+        θ = sum(dim(b)/dim(a)*Rsymbol(a,a,b) for b in a ⊗ a)
+    else
+        # TODO: is this correct?
+        # θ = sum(dim(b)/dim(a)*tr(Rsymbol(a,a,b)) for b in a ⊗ a)
+        throw(MethodError(twist, (a,)))
+    end
+    return θ
+end
+
+
+"""
     function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
 
 Return the value of B^{a,b}_c which appears in transforming a splitting vertex
@@ -314,4 +337,5 @@ end
 # possible sectors
 include("irreps.jl") # irreps of symmetry groups, with bosonic braiding
 # include("fermions.jl") # irreps with defined fermionparity and fermionic braiding
+include("anyons.jl") # non-group sectors
 include("product.jl") # direct product of different sectors

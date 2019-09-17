@@ -90,8 +90,23 @@ end
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
-@testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, U₁, CU₁, SU₂, ℤ₂ × ℤ₂ × ℤ₂, U₁ × SU₂, SU₂ × SU₂)
-    V = @inferred RepresentationSpace((randsector(G)=>rand(1:10) for k in 1:5)...)
+@testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
+    if Base.IteratorSize(values(G)) === Base.IsInfinite()
+        set = unique([randsector(G) for k = 1:10])
+        gen = (c=>2 for c in set)
+    else
+        gen = (values(G)[k]=>k for k in 1:length(values(G)))
+    end
+    V = RepresentationSpace(gen)
+    @test V' == RepresentationSpace(gen; dual = true)
+    @test V == @inferred RepresentationSpace(gen...)
+    @test V' == @inferred RepresentationSpace(gen...; dual = true)
+    @test V == @inferred RepresentationSpace(tuple(gen...))
+    @test V' == @inferred RepresentationSpace(tuple(gen...); dual = true)
+    @test V == @inferred RepresentationSpace{G}(gen)
+    @test V' == @inferred RepresentationSpace{G}(gen; dual = true)
+    @test V == @inferred RepresentationSpace{G}(gen...)
+    @test V' == @inferred RepresentationSpace{G}(gen...; dual = true)
     @test eval(Meta.parse(sprint(show,V))) == V
     @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     @test isa(V, VectorSpace)
@@ -100,13 +115,18 @@ end
     @test isa(V, EuclideanSpace)
     @test isa(V, RepresentationSpace)
     @test isa(V, RepresentationSpace{G})
+    @test isa(V, Base.IteratorSize(values(G)) == Base.IsInfinite() ?
+                    TensorKit.GenericRepresentationSpace{G} :
+                    TensorKit.FiniteRepresentationSpace{G})
     @test @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V)) != V
     @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == G
     slist = @inferred sectors(V)
     @test @inferred(TensorKit.hassector(V, first(slist)))
     @test @inferred(dim(V)) == sum((@inferred(dim(s)*dim(V,s))) for s in slist)
-    @test @inferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
+    if hasfusiontensor(G)
+        @test @inferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
+    end
     @inferred(⊕(V,V))
     @test_throws SpaceMismatch (⊕(V, V'))
 end

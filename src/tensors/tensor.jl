@@ -46,7 +46,7 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
             size(data) == (dims(codom)..., dims(dom)...))
             throw(DimensionMismatch())
         end
-        eltype(data) ⊆ field(S) || warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))")
+        eltype(data) ⊆ field(S) || @warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))")
 
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
@@ -84,7 +84,7 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
             end
         end
         (haskey(data, c) && size(data[c]) == (offset1, offset2)) || throw(DimensionMismatch())
-        eltype(data[c]) ⊆ field(S) || warn("eltype(data) = $(eltype(data[c])) ⊈ $(field(S)))")
+        eltype(data[c]) ⊆ field(S) || @warn("eltype(data) = $(eltype(data[c])) ⊈ $(field(S)))")
         push!(rowr, c=>rowrc)
         push!(colr, c=>colrc)
     end

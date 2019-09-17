@@ -5,6 +5,34 @@ const SectorTuple = Tuple{Vararg{Sector}}
 struct ProductSector{T<:SectorTuple} <: Sector
     sectors::T
 end
+_sectors(::Type{Tuple{}}) = ()
+_sectors(::Type{T}) where {T<:SectorTuple} =
+    (Base.tuple_type_head(T),  _sectors(Base.tuple_type_tail(T))...)
+
+Base.IteratorSize(::Type{SectorValues{ProductSector{T}}}) where {T<:SectorTuple} =
+    Base.IteratorSize(Base.Iterators.product(values.(_sectors(T))...))
+Base.@pure Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple} =
+    map(s->length(values(s)), _sectors(T))
+Base.@pure Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
+
+function Base.iterate(::SectorValues{ProductSector{T}}, args...) where {T<:SectorTuple}
+    next = iterate(product(values.(_sectors(T))...), args...)
+    next === nothing && return nothing
+    val, state = next
+    return ProductSector{T}(val), state
+end
+function Base.getindex(P::SectorValues{ProductSector{T}}, i::Int) where {T<:SectorTuple}
+    Base.IteratorSize(P) isa IsInfinite &&
+        throw(ArgumentError("cannot index into infinite product sector"))
+    ProductSector{T}(getindex.(values.(_sectors(T)), Tuple(CartesianIndices(size(P))[i])))
+end
+function findindex(P::SectorValues{ProductSector{T}}, c::ProductSector{T}) where
+                                                                    {T<:SectorTuple}
+    Base.IteratorSize(P) isa IsInfinite &&
+        throw(ArgumentError("cannot index into infinite product sector"))
+    LinearIndices(size(P))[CartesianIndex(findindex.(values.(_sectors(T)), c.sectors))]
+end
+
 ProductSector{T}(args...) where {T<:SectorTuple} = ProductSector{T}(args)
 Base.convert(::Type{ProductSector{T}}, t::Tuple) where {T<:SectorTuple} =
     ProductSector{T}(convert(T, t))
@@ -64,26 +92,19 @@ fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T},
                 v::Nothing = nothing) where {T<:Tuple{<:Sector}} =
     fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1])
 
-FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _FusionStyle(T)
-_FusionStyle(::Type{Tuple{}}) = Abelian()
-_FusionStyle(::Type{T}) where {T<:SectorTuple} =
-    FusionStyle(Base.tuple_type_head(T)) & _FusionStyle(Base.tuple_type_tail(T))
+FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
+    mapreduce(FusionStyle, &, _sectors(T))
+BraidingStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
+    mapreduce(BraidingStyle, &, _sectors(T))
 
-BraidingStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _BraidingStyle(T)
-_BraidingStyle(::Type{Tuple{}}) = Bosonic()
-_BraidingStyle(::Type{T}) where {T<:SectorTuple} =
-    BraidingStyle(Base.tuple_type_head(T)) & _BraidingStyle(Base.tuple_type_tail(T))
-
-fermionparity(P::ProductSector) = _fermionparity(P.sectors)
-_fermionparity(::Tuple{}) = false
-_fermionparity(t::Tuple) = xor(fermionparity(t[1]), _fermionparity(tail(t)))
+fermionparity(P::ProductSector) = mapreduce(fermionparity, xor, P.sectors)
 
 dim(p::ProductSector) = prod(dim, p.sectors)
 
 Base.isequal(p1::ProductSector, p2::ProductSector) = isequal(p1.sectors, p2.sectors)
 Base.hash(p::ProductSector, h::UInt) = hash(p.sectors, h)
 Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
-    isless(p1.sectors, p2.sectors)
+    isless(reverse(p1.sectors), reverse(p2.sectors))
 
 # Default construction from tensor product of sectors
 #-----------------------------------------------------

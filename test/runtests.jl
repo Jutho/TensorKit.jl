@@ -8,27 +8,39 @@ using TensorOperations
 TensorOperations.disable_cache() # avoids memory overflow during CI?
 using TupleTools
 using TupleTools: StaticLength
+using Base.Iterators: take, product
 
 Random.seed!(1234)
 
-smallset(::Type{ZNIrrep{N}}) where {N} = map(ZNIrrep{N}, 1:N)
-smallset(::Type{CU₁}) =
-    map(t->CU₁(t[1],t[2]), [(0,0), (0,1), (1//2,2), (1,2), (3//2,2), (2,2), (5//2,2),
-    (3,2), (7//2,2), (4,2), (9//2,2), (5,2)])
-smallset(::Type{U₁}) = map(U₁, -10:10)
-smallset(::Type{SU₂}) = map(SU₂, 1//2:1//2:2) # no zero, such that always non-trivial
-smallset(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2} =
-    rand([i × j for i in smallset(G1), j in smallset(G2) if dim(i)*dim(j) <= 6], 5)
-
-randsector(::Type{ZNIrrep{N}}) where {N} = rand(smallset(ZNIrrep{N}))
-randsector(::Type{CU₁}) = rand(smallset(CU₁))
-randsector(::Type{U₁}) = rand(smallset(U₁))
-randsector(::Type{SU₂}) = rand(smallset(SU₂))
-randsector(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2} =
-    rand([i × j for i in smallset(G1), j in smallset(G2) if dim(i)*dim(j) <= 6])
-randsector(::Type{ProductSector{Tuple{G1,G2,G3}}}) where {G1,G2,G3} =
-    randsector(G1) × randsector(G2) × randsector(G3)
+smallset(::Type{G}) where {G<:Sector} = take(values(G), 6)
+function smallset(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2}
+    iter = product(smallset(G1),smallset(G2))
+    s = collect(i × j for (i,j) in iter if dim(i)*dim(j) <= 6)
+    return length(s) > 6 ? rand(s, 6) : s
+end
+function smallset(::Type{ProductSector{Tuple{G1,G2,G3}}}) where {G1,G2,G3}
+    iter = product(smallset(G1),smallset(G2),smallset(G3))
+    s = collect(i × j × k for (i,j,k) in iter if dim(i)*dim(j)*dim(k) <= 6)
+    return length(s) > 6 ? rand(s, 6) : s
+end
+function randsector(::Type{G}) where {G<:Sector}
+    s = collect(smallset(G))
+    a = rand(s)
+    while a == one(a) # don't use trivial label
+        a = rand(s)
+    end
+    return a
+end
+function hasfusiontensor(G::Type{<:Sector})
+    try
+        fusiontensor(one(G), one(G), one(G))
+        return true
+    catch
+        return false
+    end
+end
 
 include("sectors.jl")
+include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")
