@@ -16,10 +16,10 @@
     @testset "Fusion tree $G: braiding" begin
         for in = ⊗(out...)
             for f in fusiontrees(out, in)
-                d1 = @inferred braid(f, 2)
+                d1 = @inferred artin_braid(f, 2)
                 d2 = empty(d1)
                 for (f1, coeff1) in d1
-                    for (f2,coeff2) in braid(f1, 2; inv = true)
+                    for (f2,coeff2) in artin_braid(f1, 2; inv = true)
                         d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
                     end
                 end
@@ -34,24 +34,24 @@
         end
 
         f = rand(collect(it))
-        d1 = braid(f, 2)
+        d1 = artin_braid(f, 2)
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2,coeff2) in braid(f1, 3)
+            for (f2,coeff2) in artin_braid(f1, 3)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
             end
         end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2,coeff2) in braid(f1, 3; inv = true)
+            for (f2,coeff2) in artin_braid(f1, 3; inv = true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
             end
         end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2,coeff2) in braid(f1, 2; inv = true)
+            for (f2,coeff2) in artin_braid(f1, 2; inv = true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
             end
         end
@@ -64,28 +64,28 @@
             end
         end
     end
-    @testset "Fusion tree $G: permutation" begin
-        if BraidingStyle(G) isa SymmetricBraiding
-            p = tuple(randperm(N)...,)
-            ip = invperm(p)
+    @testset "Fusion tree $G: braiding and permuting" begin
+        p = tuple(randperm(N)...,)
+        ip = invperm(p)
 
-            d = @inferred TensorKit.permute(f, p)
-            d2 = Dict{typeof(f), valtype(d)}()
-            for (f2, coeff) in d
-                for (f1,coeff2) in TensorKit.permute(f2, ip)
-                    d2[f1] = get(d2, f1, zero(coeff)) + coeff2*coeff
-                end
+        levels = ntuple(identity, N)
+        d = @inferred braid(f, p, levels)
+        d2 = Dict{typeof(f), valtype(d)}()
+        levels2 = p
+        for (f2, coeff) in d
+            for (f1,coeff2) in braid(f2, ip, levels2)
+                d2[f1] = get(d2, f1, zero(coeff)) + coeff2*coeff
             end
-            for (f1, coeff2) in d2
-                if f1 == f
-                    @test coeff2 ≈ 1
-                else
-                    @test isapprox(coeff2, 0; atol = 10*eps())
-                end
+        end
+        for (f1, coeff2) in d2
+            if f1 == f
+                @test coeff2 ≈ 1
+            else
+                @test isapprox(coeff2, 0; atol = 10*eps())
             end
         end
 
-        if hasfusiontensor(G)
+        if (BraidingStyle(G) isa Bosonic) && hasfusiontensor(G)
             Af = convert(Array, f)
             Afp = permutedims(Af, (p..., N+1))
             Afp2 = zero(Afp)
@@ -109,27 +109,26 @@
             trees = @inferred insertat(f1, i, f2)
             @test norm(values(trees)) ≈ 1
 
-            if BraidingStyle(G) isa SymmetricBraiding
-            # TODO: fix for AnyonicBraiding
-                gen = Base.Generator(TensorKit.permute(f1, (i, (1:i-1)..., (i+1:N)...))) do (t, coeff)
-                    (t′, coeff′) = first(insertat(t, 1, f2))
-                    @test coeff′ == one(coeff′)
-                    return t′ => coeff
-                end
-                trees2 = Dict(gen)
-                trees3 = empty(trees2)
-                for (t,coeff) in trees2
-                    p = ((N .+ (1:i-1))..., (1:N)..., ((N-1) .+ (i+1:N))...)
-                    for (t′,coeff′) in TensorKit.permute(t, p)
-                        trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
-                    end
-                end
-                for (t, coeff) in trees3
-                    @test get(trees, t, zero(coeff)) ≈ coeff atol = 1e-12
+            levels = ntuple(identity, N)
+            gen = Base.Generator(braid(f1, (i, (1:i-1)..., (i+1:N)...), levels)) do (t, c)
+                (t′, c′) = first(insertat(t, 1, f2))
+                @test c′ == one(c′)
+                return t′ => c
+            end
+            trees2 = Dict(gen)
+            trees3 = empty(trees2)
+            p = ((N+1:N+i-1)..., (1:N)..., (N+i:2N-1)...)
+            levels = ((i:N+i-1)..., (1:i-1)..., (i+N:2N-1)...)
+            for (t,coeff) in trees2
+                for (t′,coeff′) in braid(t, p, levels)
+                    trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
                 end
             end
+            for (t, coeff) in trees3
+                @test get(trees, t, zero(coeff)) ≈ coeff atol = 1e-12
+            end
 
-            if hasfusiontensor(G)
+            if (BraidingStyle(G) isa Bosonic) && hasfusiontensor(G)
                 Af1 = convert(Array, f1)
                 Af2 = convert(Array, f2)
                 Af = TensorOperations.tensorcontract(Af1, [1:i-1; -1; N-1 .+ (i+1:N+1)],
@@ -142,18 +141,33 @@
             end
         end
     end
-    @testset "Fusion tree$G: merging" begin
+    @testset "Fusion tree $G: merging" begin
         N = 3
-        out1 = ntuple(n->randsector(G), StaticLength(N))
+        out1 = ntuple(n->randsector(G), StaticLength(N-1))
         in1 = rand(collect(⊗(out1...)))
-        f1 = rand(collect(fusiontrees(out1, in1)))
+        f1 = rand(collect(fusiontrees((out1..., dual(in1)), one(in1))))
         out2 = ntuple(n->randsector(G), StaticLength(N))
         in2 = rand(collect(⊗(out2...)))
         f2 = rand(collect(fusiontrees(out2, in2)))
-        trees = @inferred merge(f1, f2)
-        @test sum(abs2(c)*dim(f.coupled) for (f,c) in trees) ≈ dim(f1.coupled)*dim(f2.coupled)
+        trees1 = @inferred merge(f1, f2)
+        @test sum(abs2(c)*dim(f.coupled) for (f,c) in trees1) ≈
+                dim(f1.coupled)*dim(f2.coupled)
 
-        if hasfusiontensor(G)
+        # test merge and braid interplay
+        trees2 = merge(f2, f1)
+        perm = ( (N.+(1:N))... , (1:N)...)
+        levels = ntuple(identity, 2*N)
+        trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()
+        for (t, coeff) in trees1
+            for (t′, coeff′) in braid(t, perm, levels)
+                trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
+            end
+        end
+        for (t, coeff) in trees3
+            @test isapprox(coeff, get(trees2, t, zero(coeff)); atol = 10*eps())
+        end
+
+        if (BraidingStyle(G) isa Bosonic) && hasfusiontensor(G)
             Af1 = convert(Array, f1)
             Af2 = convert(Array, f2)
             for c in f1.coupled ⊗ f2.coupled
@@ -163,7 +177,7 @@
                 Af = TensorOperations.tensorcontract(Af2, [N .+ (1:N); -1],
                                                         _Af, [1:N; -1; 2N+1], 1:2N+1)
                 Af′ = zero(Af)
-                for (f, coeff) in trees
+                for (f, coeff) in trees1
                     if f.coupled == c
                         Af′ .+= coeff .* convert(Array, f)
                     end

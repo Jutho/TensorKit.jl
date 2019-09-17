@@ -18,7 +18,7 @@ Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} =
 Base.length(iter::FusionTreeIterator) = _fusiondim(iter.uncoupled, iter.coupled)
 _fusiondim(u::Tuple{}, c::G) where {G<:Sector} = Int(one(c) == c)
 _fusiondim(u::Tuple{G}, c::G) where {G<:Sector} = Int(u[1] == c)
-_fusiondim((a,b)::Tuple{G,G}, c::G) where {G<:Sector} = Nsymbol(a, b, c)
+_fusiondim((a,b)::Tuple{G,G}, c::G) where {G<:Sector} = Int(Nsymbol(a, b, c))
 function _fusiondim(u::Tuple{G,G,Vararg{G}}, c::G) where {G<:Sector}
     a = u[1]
     b = u[2]

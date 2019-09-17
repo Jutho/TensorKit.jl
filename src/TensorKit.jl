@@ -27,7 +27,7 @@ export space, field, dual, dim, dims, fuse, flip, isdual
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
-export fusiontrees, braid, repartition, insertat
+export fusiontrees, artin_braid, braid, repartition, insertat
 
 # some unicode
 export ⊕, ⊗, ×, ℂ, ℝ, ←, →

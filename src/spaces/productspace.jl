@@ -100,9 +100,7 @@ function blockdim(P::ProductSpace, c::Sector)
     d = 0
     for s in sectors(P)
         ds = dim(P, s)
-        for f in fusiontrees(s, c)
-            d += ds
-        end
+        d += length(fusiontrees(s, c))*ds
     end
     return d
 end

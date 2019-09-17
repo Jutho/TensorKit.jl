@@ -10,7 +10,7 @@ _sectors(::Type{T}) where {T<:SectorTuple} =
     (Base.tuple_type_head(T),  _sectors(Base.tuple_type_tail(T))...)
 
 Base.IteratorSize(::Type{SectorValues{ProductSector{T}}}) where {T<:SectorTuple} =
-    Base.IteratorSize(Base.Iterators.product(values.(_sectors(T))...))
+    Base.IteratorSize(Base.Iterators.product(map(values, _sectors(T))...))
 Base.@pure Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple} =
     map(s->length(values(s)), _sectors(T))
 Base.@pure Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
@@ -42,8 +42,13 @@ Base.one(::Type{ProductSector{T}}) where {G<:Sector, T<:Tuple{G,Vararg{Sector}}}
     one(G) × one(ProductSector{Base.tuple_type_tail(T)})
 
 Base.conj(p::ProductSector) = ProductSector(map(conj, p.sectors))
-⊗(p1::P, p2::P) where {P<:ProductSector} =
-    SectorSet{P}(product(map(⊗,p1.sectors,p2.sectors)...))
+function ⊗(p1::P, p2::P) where {P<:ProductSector}
+    if FusionStyle(P) isa Abelian
+        (P(first(product(map(⊗, p1.sectors, p2.sectors)...))),)
+    else
+        return SectorSet{P}(product(map(⊗,p1.sectors,p2.sectors)...))
+    end
+end
 
 Nsymbol(a::P, b::P, c::P) where {P<:ProductSector} =
     prod(map(Nsymbol, a.sectors, b.sectors, c.sectors))
@@ -93,9 +98,9 @@ fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T},
     fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1])
 
 FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
-    Base.:&(FusionStyle.(_sectors(T))...)
+    Base.:&(map(FusionStyle, _sectors(T))...)
 BraidingStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
-    Base.:&(BraidingStyle.(_sectors(T))...)
+    Base.:&(map(BraidingStyle, _sectors(T))...)
 
 fermionparity(P::ProductSector) = mapreduce(fermionparity, xor, P.sectors)
 
