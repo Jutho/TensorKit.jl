@@ -10,10 +10,24 @@ struct FusionTreeIterator{G<:Sector,N}
     coupled::G
 end
 
-Base.IteratorSize(::FusionTreeIterator) = Base.SizeUnknown()
+Base.IteratorSize(::FusionTreeIterator) = Base.HasLength()
 Base.IteratorEltype(::FusionTreeIterator) = Base.HasEltype()
 Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} =
     fusiontreetype(G, StaticLength(N))
+
+Base.length(iter::FusionTreeIterator) = _fusiondim(iter.uncoupled, iter.coupled)
+_fusiondim(u::Tuple{}, c::G) where {G<:Sector} = Int(one(c) == c)
+_fusiondim(u::Tuple{G}, c::G) where {G<:Sector} = Int(u[1] == c)
+_fusiondim((a,b)::Tuple{G,G}, c::G) where {G<:Sector} = Nsymbol(a, b, c)
+function _fusiondim(u::Tuple{G,G,Vararg{G}}, c::G) where {G<:Sector}
+    a = u[1]
+    b = u[2]
+    d = 0
+    for c′ in a ⊗ b
+        d += Nsymbol(a, b, c′)*_fusiondim((c′, TupleTools.tail2(u)...), c)
+    end
+    return d
+end
 
 # * Iterator methods:
 #   Start with special cases:
@@ -73,7 +87,7 @@ end
     return (), (n,), ()
 end
 
-@inline function _iterate(uncoupled::NTuple{N,G}, coupled::G) where {N, G<:Sector}
+function _iterate(uncoupled::NTuple{N,G}, coupled::G) where {N, G<:Sector}
     a, b, = uncoupled
     it = a ⊗ b
     next = iterate(it)
@@ -97,7 +111,7 @@ end
     return lines, vertices, states
 end
 
-@inline function _iterate(uncoupled::NTuple{N,G}, coupled::G, lines, vertices,
+function _iterate(uncoupled::NTuple{N,G}, coupled::G, lines, vertices,
                             states) where {N, G<:Sector}
     a, b, = uncoupled
     it = a ⊗ b

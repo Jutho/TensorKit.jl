@@ -93,13 +93,13 @@ fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T},
     fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1])
 
 FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
-    mapreduce(FusionStyle, &, _sectors(T))
+    Base.:&(FusionStyle.(_sectors(T))...)
 BraidingStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
-    mapreduce(BraidingStyle, &, _sectors(T))
+    Base.:&(BraidingStyle.(_sectors(T))...)
 
 fermionparity(P::ProductSector) = mapreduce(fermionparity, xor, P.sectors)
 
-dim(p::ProductSector) = prod(dim, p.sectors)
+dim(p::ProductSector) = *(dim.(p.sectors)...)
 
 Base.isequal(p1::ProductSector, p2::ProductSector) = isequal(p1.sectors, p2.sectors)
 Base.hash(p::ProductSector, h::UInt) = hash(p.sectors, h)
