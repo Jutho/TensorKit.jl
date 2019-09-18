@@ -109,6 +109,8 @@ end
     @test V' == @inferred RepresentationSpace{G}(gen...; dual = true)
     @test eval(Meta.parse(sprint(show,V))) == V
     @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
+    W = RepresentationSpace(one(G)=>1) # space with a single sector
+    @test eval(Meta.parse(sprint(show,W))) == W
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
     @test isa(V, InnerProductSpace)

@@ -21,7 +21,10 @@ function GenericRepresentationSpace{G}(dims; dual::Bool = false) where {G<:Secto
     end
     return GenericRepresentationSpace{G}(d, dual)
 end
-GenericRepresentationSpace{G}(d1, dims...; dual::Bool = false) where {G<:Sector} =
+GenericRepresentationSpace{G}(d1::Pair; dual::Bool = false) where {G<:Sector} =
+    GenericRepresentationSpace{G}((d1, ); dual = dual)
+GenericRepresentationSpace{G}(d1::Pair, dims::Vararg{Pair};
+                                dual::Bool = false) where {G<:Sector} =
     GenericRepresentationSpace{G}((d1, dims...); dual = dual)
 
 Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) =
@@ -53,7 +56,11 @@ function FiniteRepresentationSpace{G}(dims; dual::Bool = false) where {G<:Sector
     end
     return FiniteRepresentationSpace{G,N}(d, dual)
 end
-FiniteRepresentationSpace{G}(d1, dims...; dual::Bool = false) where {G<:Sector} =
+FiniteRepresentationSpace{G}(d1::Pair; dual::Bool = false) where {G<:Sector} =
+    FiniteRepresentationSpace{G}((d1,); dual = dual)
+
+FiniteRepresentationSpace{G}(d1::Pair, dims::Vararg{Pair};
+                                dual::Bool = false) where {G<:Sector} =
     FiniteRepresentationSpace{G}((d1, dims...); dual = dual)
 # get rid of N parameter
 function FiniteRepresentationSpace{G,N}(args...; dual::Bool = false) where {G<:Sector, N}
