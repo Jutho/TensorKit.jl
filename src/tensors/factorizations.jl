@@ -374,6 +374,7 @@ function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncat
         U,Σ,V = _svd!(block(t,c), alg)
         Udata = SectorDict(c=>U)
         Σdata = SectorDict(c=>Σ)
+        Σmdata = SectorDict(c=>copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ)))
         Vdata = SectorDict(c=>V)
         dims[c] = length(Σ)
         next = iterate(it, s)
@@ -415,8 +416,12 @@ function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncat
             end
             truncerr = abs(zero(eltype(t)))
         end
-        Σmdata = SectorDict(c=>copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ)) for (c,Σ) in Σdata)
-        return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W), TensorMap(Vdata, W←domain(t)), truncerr
+        empty!(Σmdata)
+        for (c,Σ) in Σdata
+            Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
+        end
+        return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
+                TensorMap(Vdata, W←domain(t)), truncerr
     end
 end
 function LinearAlgebra.ishermitian(t::TensorMap)

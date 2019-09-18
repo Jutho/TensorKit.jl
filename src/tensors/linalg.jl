@@ -135,7 +135,7 @@ function _norm(blockiterator, p::Real)
         sum(dim(c)*norm(b, p) for (c,b) in blockiterator)
     else
         s = sum(dim(c)*norm(b, p)^p for (c,b) in blockiterator)
-        return exp(log(s)/p) # (s^(1/p) is promoting Float32 to Float64)
+        return s^inv(oftype(s, p))
     end
 end
 

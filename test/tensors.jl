@@ -232,6 +232,32 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
+    @testset "Tensor truncation" begin
+        for T in (Float32, Float64, ComplexF32, ComplexF64)
+            for p in (1, 2, 3, Inf)
+                t = TensorMap(randn, T, V1 ⊗ V2 ⊗ V3 , V4 ⊗ V5)
+                U₀, S₀, V₀, = svd(t)
+                t = rmul!(t, 1/norm(S₀, p))
+                U, S, V, ϵ = @inferred svd(t; trunc = truncerr(5e-1), p = p)
+                # @show p, ϵ
+                # @show domain(S)
+                # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                U′, S′, V′, ϵ′ = svd(t; trunc = truncerr(nextfloat(ϵ)), p = p)
+                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                U′, S′, V′, ϵ′ = svd(t; trunc = truncdim(dim(domain(S))), p = p)
+                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
+                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
+                U, S, V, ϵ = svd(t; trunc = truncbelow(1/dim(domain(S₀))), p = p)
+                # @show p, ϵ
+                # @show domain(S)
+                # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
+                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+            end
+        end
+    end
     @testset "Exponentiation" begin
         W = V1 ⊗ V2 ⊗ V3
         for T in (Float32, Float64, ComplexF32, ComplexF64)
