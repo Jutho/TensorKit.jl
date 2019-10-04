@@ -11,6 +11,7 @@ end
 
 function permutation2swaps(perm)
     p = collect(perm)
+    @assert isperm(p)
     swaps = Vector{Int}()
     N = length(p)
     for k = 1:N-1

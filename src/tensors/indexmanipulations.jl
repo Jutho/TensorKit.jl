@@ -34,9 +34,9 @@ function permuteind(t::TensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}
 end
 
 function permuteind(t::AdjointTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {S,N₁,N₂}
-    p1′ = map(n->adjointtensorindex(t, p2))
-    p2′ = map(n->adjointtensorindex(t, p1))
-    adjoint(permuteind(adjoint(t), p1′, p2′); copy = copy)
+    p1′ = map(n->adjointtensorindex(t, n), p2)
+    p2′ = map(n->adjointtensorindex(t, n), p1)
+    adjoint(permuteind(adjoint(t), p1′, p2′; copy = copy))
 end
 
 
