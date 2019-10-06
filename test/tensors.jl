@@ -105,6 +105,23 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
+    @testset "Trace: test via conversion" begin
+        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
+        @tensor t2[a,b] := t[c,d,b,d,c,a]
+        @tensor t3[a,b] := convert(Array, t)[c,d,b,d,c,a]
+        @test t3 ≈ convert(Array, t2)
+        @tensor t4[a,b,c,d] := t[d,e,b,e,c,a]
+        @tensor t5[a,b] := t4[a,b,c,c]
+        @test t2 ≈ t5
+    end
+    @testset "Trace and contraction" begin
+        t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3);
+        t2 = Tensor(rand, ComplexF64, V2' ⊗ V4 ⊗ V1');
+        t3 = t1 ⊗ t2
+        @tensor ta[a,b] := t1[x,y,a]*t2[y,b,x]
+        @tensor tb[a,b] := t3[x,y,a,y,b,x]
+        @test ta ≈ tb
+    end
     @testset "Tensor contraction: test via conversion" begin
         A1 = TensorMap(randn, ComplexF64, V1'*V2', V3')
         A2 = TensorMap(randn, ComplexF64, V3*V4, V5)

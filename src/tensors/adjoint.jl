@@ -1,10 +1,12 @@
 # AdjointTensorMap: lazy adjoint
 #==========================================================#
-struct AdjointTensorMap{S<:IndexSpace, N₁, N₂, G<:Sector, A, F₁, F₂} <: AbstractTensorMap{S, N₁, N₂}
+struct AdjointTensorMap{S<:IndexSpace, N₁, N₂, G<:Sector, A, F₁, F₂} <:
+                                                            AbstractTensorMap{S, N₁, N₂}
     parent::TensorMap{S,N₂,N₁,G,A,F₂,F₁}
 end
 
-const AdjointTrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} = AdjointTensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}
+const AdjointTrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} =
+    AdjointTensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}
 
 # Constructor: construct from taking adjoint of a tensor
 Base.adjoint(t::TensorMap) = AdjointTensorMap(t)
@@ -30,21 +32,28 @@ blocks(t::AdjointTensorMap) = (c=>b' for (c,b) in blocks(t.parent))
 fusiontrees(::AdjointTrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::AdjointTensorMap) = TensorKeyIterator(t.parent.colr, t.parent.rowr)
 
-function Base.getindex(t::AdjointTensorMap{S,N₁,N₂,G}, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
+function Base.getindex(t::AdjointTensorMap{S,N₁,N₂,G},
+                        f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G}
     c = f1.coupled
     @boundscheck begin
         c == f2.coupled || throw(SectorMismatch())
         hassector(codomain(t), f1.uncoupled) && hassector(domain(t), f2.uncoupled)
     end
-    return sreshape((StridedView(t.parent.data[c])[t.parent.rowr[c][f2], t.parent.colr[c][f1]])', (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))
+    return sreshape(
+            (StridedView(t.parent.data[c])[t.parent.rowr[c][f2], t.parent.colr[c][f1]])',
+            (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))
 end
-@propagate_inbounds Base.setindex!(t::AdjointTensorMap{S,N₁,N₂}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} = copyto!(getindex(t, f1, f2), v)
+@propagate_inbounds Base.setindex!(t::AdjointTensorMap{S,N₁,N₂}, v,
+                        f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} =
+    copyto!(getindex(t, f1, f2), v)
 
-@inline Base.getindex(t::AdjointTrivialTensorMap) = sreshape(StridedView(t.parent.data)', (dims(codomain(t))..., dims(domain(t))...))
+@inline Base.getindex(t::AdjointTrivialTensorMap) =
+    sreshape(StridedView(t.parent.data)', (dims(codomain(t))..., dims(domain(t))...))
 @inline Base.setindex!(t::AdjointTrivialTensorMap, v) = copyto!(getindex(t), v)
 
 @inline Base.getindex(t::AdjointTrivialTensorMap, ::Tuple{Nothing,Nothing}) = getindex(t)
-@inline Base.setindex!(t::AdjointTrivialTensorMap, v, ::Tuple{Nothing,Nothing}) = setindex!(t, v)
+@inline Base.setindex!(t::AdjointTrivialTensorMap, v, ::Tuple{Nothing,Nothing}) =
+    setindex!(t, v)
 
 # For a tensor with trivial symmetry, allow direct indexing
 @inline function Base.getindex(t::AdjointTrivialTensorMap, I::Vararg{Int})

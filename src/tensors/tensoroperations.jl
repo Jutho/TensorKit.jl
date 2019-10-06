@@ -98,8 +98,9 @@ end
 
 scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} = dim(codomain(t)) == dim(domain(t)) == 1 ? first(blocks(t))[2][1,1] : throw(SpaceMismatch())
 
-function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
-    # TODO: check Frobenius-Schur indicators!, and  add fermions!
+function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂},
+     p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
+    # TODO: check Frobenius-Schur indicators!, and add fermions!
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)),
@@ -190,6 +191,111 @@ function _addabelianblock!(α, tsrc::AbstractTensorMap{S},
     @inbounds axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
 end
 
+function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂},
+                p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
+                q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {S,N₁,N₂,N₃}
+    # TODO: check Frobenius-Schur indicators!, and  add fermions!
+    @boundscheck begin
+        all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
+            throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
+                    tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
+        all(i->space(tsrc, p2[i]) == space(tdst, N₁+i), 1:N₂) ||
+            throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
+                    tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
+        all(i->space(tsrc, q1[i]) == dual(space(tsrc, q2[i])), 1:N₃) ||
+            throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
+                    q1 = $(p1), q2 = $(q2)"))
+    end
+
+    G = sectortype(S)
+    if G === Trivial
+        cod = codomain(tsrc)
+        dom = domain(tsrc)
+        n = length(cod)
+        pdata = (p1..., p2...)
+        TensorOperations._trace!(α, tsrc[], β, tdst[], pdata, q1, q2)
+    # elseif FusionStyle(G) isa Abelian
+    #     K = Threads.nthreads()
+    #     if K > 1
+    #         let iterator = fusiontrees(tsrc)
+    #             Threads.@threads for k = 1:K
+    #                 counter = 0
+    #                 for (f1,f2) in iterator
+    #                     counter += 1
+    #                     if mod1(counter, K) == k
+    #                         _traceabelianblock!(α, tsrc, β, tdst, p1, p2, q1, q2, f1, f2)
+    #                     end
+    #                 end
+    #             end
+    #         end
+    #     else # debugging is easier this way
+    #         for (f1,f2) in fusiontrees(tsrc)
+    #             _traceabelianblock!(α, tsrc, β, tdst, p1, p2, q1, q2, f1, f2)
+    #         end
+    #     end
+    else
+        cod = codomain(tsrc)
+        dom = domain(tsrc)
+        n = length(cod)
+        pdata = (p1...,p2...)
+        if iszero(β)
+            fill!(tdst, β)
+        elseif β != 1
+            mul!(tdst, β, tdst)
+        end
+        r1 = (p1..., q1...)
+        r2 = (p2..., q2...)
+        for (f1,f2) in fusiontrees(tsrc)
+            for ((f1′,f2′), coeff) in permute(f1, f2, r1, r2)
+                @inbounds for i in r2
+                    if i <= n && !isdual(cod[i])
+                        b = f1.uncoupled[i]
+                        coeff *= frobeniusschur(b) #*fermionparity(b)
+                    end
+                end
+                @inbounds for i in r1
+                    if i > n && isdual(dom[i-n])
+                        b = f2.uncoupled[i-n]
+                        coeff /= frobeniusschur(b) #*fermionparity(b)
+                    end
+                end
+                f1′′, g1 = split(f1′, StaticLength(N₁))
+                f2′′, g2 = split(f2′, StaticLength(N₂))
+                if g1 == g2
+                    coeff *= dim(g1.coupled)/dim(g1.uncoupled[1])
+                    TensorOperations._trace!(α*coeff, tsrc[f1,f2],
+                                                true, tdst[f1′′,f2′′],
+                                                pdata, q1, q2)
+                end
+            end
+        end
+    end
+    return tdst
+end
+
+# function _addabelianblock!(α, tsrc::AbstractTensorMap{S},
+#                             β, tdst::AbstractTensorMap{S,N₁,N₂},
+#                             p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
+#                             f1::FusionTree, f2::FusionTree) where {S,N₁,N₂}
+#     cod = codomain(tsrc)
+#     dom = domain(tsrc)
+#     n = length(cod)
+#     (f1′,f2′), coeff = first(permute(f1, f2, p1, p2))
+#     @inbounds for i in p2
+#         if i <= n && !isdual(cod[i])
+#             b = f1.uncoupled[i]
+#             coeff *= frobeniusschur(b) #*fermionparity(b)
+#         end
+#     end
+#     @inbounds for i in p1
+#         if i > n && isdual(dom[i-n])
+#             b = f2.uncoupled[i-n]
+#             coeff /= frobeniusschur(b) #*fermionparity(b)
+#         end
+#     end
+#     pdata = (p1...,p2...)
+#     @inbounds axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
+# end
 
 # TODO: contraction with either A or B a rank (1,1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
@@ -277,6 +383,26 @@ function TensorOperations.add!(α, tsrc::AbstractTensorMap{S}, CA::Symbol, β,
         pl = TupleTools.getindices(p, codomainind(tdst))
         pr = TupleTools.getindices(p, domainind(tdst))
         add!(α, adjoint(tsrc), β, tdst, pl, pr)
+    end
+    return tdst
+end
+
+function TensorOperations.trace!(α, tsrc::AbstractTensorMap{S}, CA::Symbol, β,
+    tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple,
+    q1::IndexTuple, q2::IndexTuple) where {S,N₁,N₂}
+
+    if CA == :N
+        p = (p1..., p2...)
+        pl = TupleTools.getindices(p, codomainind(tdst))
+        pr = TupleTools.getindices(p, domainind(tdst))
+        trace!(α, tsrc, β, tdst, pl, pr, q1, q2)
+    else
+        p = map(i->adjointtensorindex(tsrc, i), (p1..., p2...))
+        pl = TupleTools.getindices(p, codomainind(tdst))
+        pr = TupleTools.getindices(p, domainind(tdst))
+        ql = map(i->adjointtensorindex(tsrc, i), q1)
+        qr = map(i->adjointtensorindex(tsrc, i), q2)
+        trace!(α, adjoint(tsrc), β, tdst, pl, pr, ql, qr)
     end
     return tdst
 end

@@ -69,11 +69,11 @@
         ip = invperm(p)
 
         levels = ntuple(identity, N)
-        d = @inferred braid(f, p, levels)
+        d = @inferred braid(f, levels, p)
         d2 = Dict{typeof(f), valtype(d)}()
         levels2 = p
         for (f2, coeff) in d
-            for (f1,coeff2) in braid(f2, ip, levels2)
+            for (f1,coeff2) in braid(f2, levels2, ip)
                 d2[f1] = get(d2, f1, zero(coeff)) + coeff2*coeff
             end
         end
@@ -109,8 +109,12 @@
             trees = @inferred insertat(f1, i, f2)
             @test norm(values(trees)) ≈ 1
 
+            f1a, f1b = split(f1, StaticLength(i))
+            @test length(insertat(f1b, 1, f1a)) == 1
+            @test first(insertat(f1b, 1, f1a)) == (f1 => 1)
+
             levels = ntuple(identity, N)
-            gen = Base.Generator(braid(f1, (i, (1:i-1)..., (i+1:N)...), levels)) do (t, c)
+            gen = Base.Generator(braid(f1, levels, (i, (1:i-1)..., (i+1:N)...))) do (t, c)
                 (t′, c′) = first(insertat(t, 1, f2))
                 @test c′ == one(c′)
                 return t′ => c
@@ -120,7 +124,7 @@
             p = ((N+1:N+i-1)..., (1:N)..., (N+i:2N-1)...)
             levels = ((i:N+i-1)..., (1:i-1)..., (i+N:2N-1)...)
             for (t,coeff) in trees2
-                for (t′,coeff′) in braid(t, p, levels)
+                for (t′,coeff′) in braid(t, levels, p)
                     trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
                 end
             end
@@ -159,7 +163,7 @@
         levels = ntuple(identity, 2*N)
         trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()
         for (t, coeff) in trees1
-            for (t′, coeff′) in braid(t, perm, levels)
+            for (t′, coeff′) in braid(t, levels, perm)
                 trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
             end
         end

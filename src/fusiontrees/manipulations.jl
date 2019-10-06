@@ -67,7 +67,7 @@ end
 
 # braid fusion tree
 """
-    function braid(t::FusionTree, perm::NTuple{N,Int}, levels::NTuple{N,Int})
+    function braid(t::FusionTree, levels::NTuple{N,Int}, perm::NTuple{N,Int})
         -> <:AbstractDict{typeof(t),<:Number}
 
 Perform a braiding of the uncoupled indices of the fusion tree `t` and returns the result
@@ -79,8 +79,8 @@ and `j` cross, `σ_{i,j}` is applied if `levels[i] < levels[j]` and `σ_{j,i}^{-
 `levels[i] > levels[j]`. This does not allow to encode the most general braid, but a
 general braid can be obtained by combining such operations.
 """
-function braid(t::FusionTree{G,N}, perm::NTuple{N,Int},
-                                    levels::NTuple{N,Int}) where {G<:Sector, N}
+function braid(t::FusionTree{G,N}, levels::NTuple{N,Int},
+                                    perm::NTuple{N,Int}) where {G<:Sector, N}
     if BraidingStyle(G) isa SymmetricBraiding
         return permute(t, perm) # over or under doesn't matter
     end
@@ -139,6 +139,44 @@ function permute(t::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
         end
         return trees
     end
+end
+
+"""
+    function split(t::FusionTree{G,N}, ::StaticLength(M))
+        -> (::FusionTree{G,M}, ::FusionTree{G,N-M+1})
+
+Split a fusion tree with the first M outgoing indices, and an incoming index corresponding to the internal fusion tree index between outgoing indices N and N+1 of the original tree t; and a second fusion tree whose first outgoing index is that same internal index. Its remaining outgoing indices are the N-M outgoing indices of the original tree `t`, and also the incoming index is the same. This is in the inverse of `insertat` in the sense that if `t1, t2 = split(t, StaticLength(M)) ⇒ t == insertat(t2, 1, t1)`.
+"""
+Base.split(t::FusionTree{G,N}, ::StaticLength{N}) where {G,N} =
+    (t, FusionTree{G}((t.coupled,), t.coupled, (), ()))
+Base.split(t::FusionTree{G,N}, ::StaticLength{1}) where {G,N} =
+    (FusionTree{G}((t.uncoupled[1],), t.uncoupled[1], (), ()), t)
+function Base.split(t::FusionTree{G,N}, ::StaticLength{0}) where {G,N}
+    t1 = FusionTree{G}((), one(G), (), ())
+    uncoupled2 = (one(G), t.uncoupled...)
+    coupled2 = t.coupled
+    innerlines2 = N >= 2 ? (t.uncoupled[1], t.innerlines...) : ()
+    if FusionStyle(G) isa DegenerateNonAbelian
+        vertices2 = (1, t.vertices...)
+        return t1, FusionTree(uncoupled2, coupled2, innerlines2, vertices2)
+    else
+        return t1, FusionTree(uncoupled2, coupled2, innerlines2)
+    end
+end
+function Base.split(t::FusionTree{G,N}, ::StaticLength{M}) where {G,N,M}
+    @assert 1 < M < N
+    uncoupled1 = ntuple(n->t.uncoupled[n], Val(M))
+    innerlines1 = M>2 ? ntuple(n->t.innerlines[n], Val(M-2)) : ()
+    coupled1 = t.innerlines[M-1]
+    vertices1 = ntuple(n->t.vertices[n], Val(M-1))
+    t1 = FusionTree(uncoupled1, coupled1, innerlines1, vertices1)
+
+    uncoupled2 = (coupled1, ntuple(n->t.uncoupled[M+n], Val(N-M))...)
+    innerlines2 = ntuple(n->t.innerlines[M-1+n], Val(N-M-1))
+    coupled2 = t.coupled
+    vertices2 = ntuple(n->t.vertices[M-1+n], Val(N-M))
+    t2 = FusionTree(uncoupled2, coupled2, innerlines2, vertices2)
+    return t1, t2
 end
 
 """
@@ -216,6 +254,14 @@ end
 function insertat(t1::FusionTree{G}, i, t2::FusionTree{G}) where {G}
     t1.uncoupled[i] == t2.coupled ||
         throw(SectorMismatch("cannot connect $(t2.uncoupled) to $(t1.uncoupled[i])"))
+    if length(t1) == 1
+        coeff = Fsymbol(one(G), one(G), one(G), one(G), one(G), one(G))
+        if FusionStyle(G) isa Abelian
+            return SingletonDict(t2 => coeff)
+        elseif FusionStyle(G) isa SimpleNonAbelian
+            return FusionTreeDict(t2 => coeff)
+        end
+    end
     if i == 1
         outer = (t2.uncoupled..., tail(t1.uncoupled)...)
         inner = (t2.innerlines..., t2.coupled, t1.innerlines...)
@@ -229,7 +275,6 @@ function insertat(t1::FusionTree{G}, i, t2::FusionTree{G}) where {G}
             return FusionTreeDict(t′ => coeff)
         end
     end
-
     b = t2.innerlines[end]
     c = t2.uncoupled[end]
     v = t2.vertices[end]
@@ -396,7 +441,7 @@ function permute(t1::FusionTree{G}, t2::FusionTree{G},
         T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
         F₁ = fusiontreetype(G, StaticLength(N₁))
         F₂ = fusiontreetype(G, StaticLength(N₂))
-        return d::Dict{Tuple{F₁,F₂}, T}
+        return d::FusionTreeDict{Tuple{F₁,F₂}, T}
     end
 end
 function _permute(t1::FusionTree{G}, t2::FusionTree{G},
