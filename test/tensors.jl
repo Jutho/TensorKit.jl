@@ -111,10 +111,8 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         s = @inferred tr(t2)
         @test conj(s) ≈ tr(t2')
         @tensor s2 = t[a,b,b,a]
-        @tensor begin
-            t3[a,b] := t[a,c,c,b]
-            s3 = t3[a,a]
-        end
+        @tensor t3[a,b] := t[a,c,c,b]
+        @tensor s3 = t3[a,a]
         @test s ≈ s2
         @test s ≈ s3
     end
