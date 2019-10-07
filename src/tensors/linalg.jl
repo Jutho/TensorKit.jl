@@ -139,6 +139,13 @@ function _norm(blockiterator, p::Real)
     end
 end
 
+# TensorMap trace
+function LinearAlgebra.tr(t::AbstractTensorMap)
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("Trace of a tensor only exist when domain == codomain"))
+    return sum(dim(c)*tr(b) for (c,b) in blocks(t))
+end
+
 # TensorMap multiplication:
 function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,  tB::AbstractTensorMap, α = true, β = false)
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB))

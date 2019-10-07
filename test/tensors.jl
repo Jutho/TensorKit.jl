@@ -105,14 +105,31 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
+    @testset "Full trace: test self-consistency" begin
+        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1');
+        t2 = permuteind(t, (1,2), (4,3))
+        s = @inferred tr(t2)
+        @test conj(s) ≈ tr(t2')
+        @tensor s2 = t[a,b,b,a]
+        @tensor begin
+            t3[a,b] := t[a,c,c,b]
+            s3 = t3[a,a]
+        end
+        @test s ≈ s2
+        @test s ≈ s3
+    end
+    @testset "Partial trace: test self-consistency" begin
+        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
+        @tensor t2[a,b] := t[c,d,b,d,c,a]
+        @tensor t4[a,b,c,d] := t[d,e,b,e,c,a]
+        @tensor t5[a,b] := t4[a,b,c,c]
+        @test t2 ≈ t5
+    end
     @testset "Trace: test via conversion" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
         @tensor t2[a,b] := t[c,d,b,d,c,a]
         @tensor t3[a,b] := convert(Array, t)[c,d,b,d,c,a]
         @test t3 ≈ convert(Array, t2)
-        @tensor t4[a,b,c,d] := t[d,e,b,e,c,a]
-        @tensor t5[a,b] := t4[a,b,c,c]
-        @test t2 ≈ t5
     end
     @testset "Trace and contraction" begin
         t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3);
