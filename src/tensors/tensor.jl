@@ -88,7 +88,12 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
         push!(rowr, c=>rowrc)
         push!(colr, c=>colrc)
     end
-    t = TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data, codom, dom, rowr, colr)
+    if !isreal(G) && eltype(valtype(A)) <: Real
+        data2 = SectorDict((c=>complex(d)) for (c,d) in data)
+        return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data2, codom, dom, rowr, colr)
+    else
+        return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data, codom, dom, rowr, colr)
+    end
 end
 
 # without data: generic constructor from callable:
@@ -103,7 +108,13 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
     else
         F₁ = fusiontreetype(G, StaticLength(N₁))
         F₂ = fusiontreetype(G, StaticLength(N₂))
-        A = typeof(f((1,1)))
+        # TODO: the current approach is not very efficient and somewhat wasteful
+        sampledata = f((1,1))
+        if !isreal(G) && eltype(sampledata) <: Real
+            A = typeof(complex(sampledata))
+        else
+            A = typeof(sampledata)
+        end
         data = SectorDict{G,A}()
         rowr = SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}()
         colr = SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}()
@@ -181,6 +192,17 @@ Base.similar(t::AbstractTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomai
     TensorMap(d->storagetype(t)(undef, d), P)
 Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} =
     Tensor(d->storagetype(t)(undef, d), P)
+
+function Base.complex(t::AbstractTensorMap)
+    if eltype(t) <: Complex
+        return t
+    elseif t.data isa AbstractArray
+        return TensorMap(complex(t.data), codomain(t), domain(t))
+    else
+        data = SectorDict(c=>complex(d) for (c,d) in t.data)
+        return TensorMap(data, codomain(t), domain(t))
+    end
+end
 
 # Getting and setting the data
 #------------------------------

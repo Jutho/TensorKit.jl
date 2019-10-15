@@ -57,6 +57,14 @@ Return the conjugate label `conj(a)`.
 dual(a::Sector) = conj(a)
 Base.conj(::Trivial) = Trivial()
 
+"""
+    function isreal(::Type{<:Sector}) -> Bool
+
+Return whether the topological data (Fsymbol, Rsymbol) of the sector is real or not (in
+which case it is complex).
+"""
+Base.isreal(::Type{Trivial}) = true
+
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
 """

@@ -32,6 +32,7 @@ dim(a::FibonacciAnyon) = isone(a) ? one(_goldenratio) : _goldenratio
 
 Base.@pure FusionStyle(::Type{FibonacciAnyon}) = SimpleNonAbelian()
 Base.@pure BraidingStyle(::Type{FibonacciAnyon}) = Anyonic()
+Base.isreal(::Type{FibonacciAnyon}) = false
 
 ⊗(a::FibonacciAnyon, b::FibonacciAnyon) = FibonacciIterator(a,b)
 

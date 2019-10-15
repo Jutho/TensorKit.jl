@@ -33,14 +33,19 @@ function permuteind(t::TensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}
     end
 end
 
-function permuteind(t::AdjointTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {S,N₁,N₂}
+function permuteind(t::AdjointTensorMap{S}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}=();
+                    copy::Bool = false) where {S,N₁,N₂}
     p1′ = map(n->adjointtensorindex(t, n), p2)
     p2′ = map(n->adjointtensorindex(t, n), p1)
     adjoint(permuteind(adjoint(t), p1′, p2′; copy = copy))
 end
 
 
-@propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂} = add!(1,tsrc,0,tdst,p1,p2)
+@propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂},
+                                tsrc::AbstractTensorMap{S},
+                                p1::IndexTuple{N₁},
+                                p2::IndexTuple{N₂}=()) where {S,N₁,N₂} =
+                                add!(true, tsrc, false, tdst, p1, p2)
 
 # Index manipulations that increase or decrease the number of indices
 

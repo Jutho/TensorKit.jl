@@ -470,3 +470,32 @@ function _permute(t1::FusionTree{G}, t2::FusionTree{G},
         throw(MethodError(permute, (t1, t2, p1, p2)))
     end
 end
+
+function braid(t1::FusionTree{G}, t2::FusionTree{G},
+                    levels1::IndexTuple, levels2::IndexTuple,
+                    p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {G<:Sector, N₁,N₂}
+    @assert length(t1) + length(t2) == N₁ + N₂
+    p = linearizepermutation(p1, p2, length(t1), length(t2))
+    levels = (levels1..., reverse(levels2)...)
+    if FusionStyle(t1) isa Abelian
+        (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
+        t, coeff2 = first(braid(t, p, levels))
+        (t1′,t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
+        return SingletonDict((t1′,t2′)=>coeff1*coeff2*coeff3)
+    elseif FusionStyle(t1) isa SimpleNonAbelian
+        (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
+        local newtrees
+        for (t, coeff2) in braid(t, levels, p)
+            (t1′, t2′), coeff3 = first(repartition(t, t0, StaticLength(N₁)))
+            if @isdefined newtrees
+                newtrees[(t1′,t2′)] = coeff1*coeff2*coeff3
+            else
+                newtrees = FusionTreeDict((t1′,t2′)=>coeff1*coeff2*coeff3)
+            end
+        end
+        return newtrees
+    else
+        # TODO: implement DegenerateNonAbelian case
+        throw(MethodError(permute, (t1, t2, p1, p2)))
+    end
+end

@@ -54,7 +54,7 @@ export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos, SVD, Polar
 
 # tensor operations
-export @tensor, @tensoropt
+export @tensor, @tensoropt, @btensor
 export scalar, add!, contract!
 
 # truncation schemes
@@ -68,8 +68,8 @@ import TupleTools: permute
 
 using Strided
 
-import TensorOperations
-import TensorOperations: @tensor, @tensoropt
+using TensorOperations: TensorOperations, @tensor, @tensoropt
+const TO = TensorOperations
 
 using LRUCache
 
@@ -85,16 +85,12 @@ using LinearAlgebra
 
 const IndexTuple{N} = NTuple{N,Int}
 
-
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/dicts.jl")
 include("auxiliary/linalg.jl")
 include("auxiliary/random.jl")
-
-# include("auxiliary/juarray.jl")
-# export JuArray
 
 #--------------------------------------------------------------------
 # experiment with different dictionaries
@@ -154,5 +150,8 @@ include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
+
+# include("braidedtensors/braidedtensormacro.jl")
+# include("braidedtensors/braidedtensor.jl")
 
 end
