@@ -122,10 +122,16 @@ end
 # inner product and norm only valid for spaces with Euclidean inner product
 function LinearAlgebra.dot(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where {S<:EuclideanSpace}
     (codomain(t1) == codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
-    return sum(dim(c)*dot(block(t1,c), block(t2,c)) for c in blocksectors(t1))
+    iter = blocksectors(t1)
+    if isempty(iter)
+        return zero(eltype(t1))*zero(eltype(t2))
+    else
+        return sum(dim(c)*dot(block(t1,c), block(t2,c)) for c in blocksectors(t1))
+    end
 end
 
-LinearAlgebra.norm(t::AbstractTensorMap{<:EuclideanSpace}, p::Real) = _norm(blocks(t), p)
+LinearAlgebra.norm(t::AbstractTensorMap{<:EuclideanSpace}, p::Real) =
+    isempty(t.data) ? zero(real(eltype(t))) : _norm(blocks(t), p)
 function _norm(blockiterator, p::Real)
     if p == Inf
         maximum(norm(b, p) for (c,b) in blockiterator)
