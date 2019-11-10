@@ -254,8 +254,8 @@ end
     c = f1.coupled
     @boundscheck begin
         c == f2.coupled || throw(SectorMismatch())
-        hassector(codomain(t), f1.uncoupled) || throw(SectorMismatch())
-        hassector(domain(t), f2.uncoupled) || throw(SectorMismatch())
+        haskey(t.rowr[c], f1) || throw(SectorMismatch())
+        haskey(t.colr[c], f2) || throw(SectorMismatch())
     end
     @inbounds begin
         return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))

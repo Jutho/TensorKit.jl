@@ -270,8 +270,8 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     p1::IndexTuple, p2::IndexTuple,
                     syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
     if syms === nothing
-        A′ = cached_permuteind(nothing, A, oindA, cindA)
-        B′ = cached_permuteind(nothing, B, cindB, oindB)
+        A′ = permuteind(A, oindA, cindA)
+        B′ = permuteind(B, cindB, oindB)
     else
         A′ = cached_permuteind(syms[1], A, oindA, cindA)
         B′ = cached_permuteind(syms[2], B, cindB, oindB)
