@@ -131,7 +131,7 @@ function LinearAlgebra.dot(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) w
 end
 
 LinearAlgebra.norm(t::AbstractTensorMap{<:EuclideanSpace}, p::Real) =
-    isempty(t.data) ? zero(real(eltype(t))) : _norm(blocks(t), p)
+    isempty(blocks(t)) ? zero(real(eltype(t))) : _norm(blocks(t), p)
 function _norm(blockiterator, p::Real)
     if p == Inf
         maximum(norm(b, p) for (c,b) in blockiterator)
