@@ -9,7 +9,9 @@ the codomain or range of the map, and indices in `p2` indicating the domain.
 
 To permute into an existing `tdst`, use `permuteind!(tdst, tsrc, p1, p2)`.
 """
-function permuteind(t::TensorMap{S}, p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=(); copy::Bool = false) where {S,N₁,N₂}
+function permuteind(t::TensorMap{S},
+                    p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=();
+                    copy::Bool = false) where {S,N₁,N₂}
     cod = ProductSpace{S,N₁}(map(n->space(t, n), p1))
     dom = ProductSpace{S,N₂}(map(n->dual(space(t, n)), p2))
 

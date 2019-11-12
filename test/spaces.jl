@@ -52,7 +52,10 @@ end
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
     @test ⊕(V,V) == ℝ^(2d)
+    @test @inferred min(V, ℝ^3) == V
+    @test @inferred max(V', ℝ^3) == ℝ^3
 end
+
 @testset "ElementarySpace: ComplexSpace" begin
     d = 2
     V = ℂ^d
@@ -73,7 +76,10 @@ end
     @test @inferred(⊕(V,V)) == ℂ^(2d)
     @test_throws SpaceMismatch (⊕(V, V'))
     @test_throws MethodError (⊕(ℝ^d, ℂ^d))
+    @test @inferred min(V, ℂ^3) == V
+    @test @inferred max(V', ℂ[3]') == ℂ[3]'
 end
+
 @testset "ElementarySpace: GeneralSpace" begin
     d = 2
     V = GeneralSpace{ℂ}(d)
@@ -90,14 +96,16 @@ end
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
+
 @testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
     if Base.IteratorSize(values(G)) === Base.IsInfinite()
-        set = unique([randsector(G) for k = 1:10])
+        set = unique(vcat(one(G), [randsector(G) for k = 1:10]))
         gen = (c=>2 for c in set)
     else
-        gen = (values(G)[k]=>k for k in 1:length(values(G)))
+        gen = (values(G)[k]=>(k+1) for k in 1:length(values(G)))
     end
     V = RepresentationSpace(gen)
+    @test eval(Meta.parse(sprint(show,V))) == V
     @test V' == RepresentationSpace(gen; dual = true)
     @test V == @inferred RepresentationSpace(gen...)
     @test V' == @inferred RepresentationSpace(gen...; dual = true)
@@ -110,6 +118,9 @@ end
     @test eval(Meta.parse(sprint(show,V))) == V
     @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     W = RepresentationSpace(one(G)=>1) # space with a single sector
+    @test W == RepresentationSpace(one(G)=>1, randsector(G) => 0)
+    # randsector never returns trivial sector, so this cannot error
+    @test_throws ArgumentError RepresentationSpace(one(G)=>1, randsector(G) => 0, one(G)=>3)
     @test eval(Meta.parse(sprint(show,W))) == W
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
@@ -129,6 +140,8 @@ end
     if hasfusiontensor(G)
         @test @inferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     end
-    @inferred(⊕(V,V))
+    @test @inferred(⊕(V,V)) == @inferred max(V, ⊕(V,V))
+    @test V == @inferred min(V, ⊕(V,V))
+    @test min(V, RepresentationSpace(one(G)=>3)) == RepresentationSpace(one(G)=>2)
     @test_throws SpaceMismatch (⊕(V, V'))
 end

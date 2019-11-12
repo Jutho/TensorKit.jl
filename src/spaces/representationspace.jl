@@ -16,8 +16,8 @@ function GenericRepresentationSpace{G}(dims; dual::Bool = false) where {G<:Secto
     d = SectorDict{G,Int}()
     for (c, dc) in dims
         k = convert(G, c)
-        haskey(d, k) && throw(ArgumentError("sector $k appears multiple times"))
-        push!(d, k=>dc)
+        haskey(d, k) && throw(ArgumentError("Sector $k appears multiple times"))
+        !iszero(dc) && push!(d, k=>dc)
     end
     return GenericRepresentationSpace{G}(d, dual)
 end
@@ -51,8 +51,12 @@ end
 function FiniteRepresentationSpace{G}(dims; dual::Bool = false) where {G<:Sector}
     N = length(values(G))
     d = ntuple(n->0, StaticLength(N))
+    isset = ntuple(n->false, StaticLength(N))
     for (c,dc) in dims
-        d = TupleTools.setindex(d, dc, findindex(values(G), convert(G, c)))
+        i = findindex(values(G), convert(G, c))
+        isset[i] && throw(ArgumentError("Sector $c appears multiple times"))
+        isset = TupleTools.setindex(isset, true, i)
+        d = TupleTools.setindex(d, dc, i)
     end
     return FiniteRepresentationSpace{G,N}(d, dual)
 end

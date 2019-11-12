@@ -61,10 +61,14 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test norm(t+t, Inf) ≈ 2*norm(t, Inf)
             p = 3*rand(Float64)
             @test norm(t+t, p) ≈ 2*norm(t, p)
+            @test norm(t) ≈ norm(t')
 
             t2 = TensorMap(rand, T, W)
             β = rand(T)
             @test dot(β*t2,α*t) ≈ conj(β)*α*conj(dot(t,t2))
+            @test dot(t2,t) ≈ conj(dot(t, t2))
+            @test dot(t2,t) ≈ conj(dot(t2', t'))
+            @test dot(t2,t) ≈ dot(t', t2')
         end
     end
     @testset "Basic linear algebra: test via conversion" begin
