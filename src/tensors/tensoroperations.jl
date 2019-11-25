@@ -50,24 +50,6 @@ function checked_similar_from_indices(tC, ::Type{T}, oindA::IndexTuple, oindB::I
     end
 end
 
-function has_shared_permuteind(t::AbstractTensorMap{S}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
-    if p1 === codomainind(t) && p2 === domainind(t)
-        return true
-    elseif isa(t, TensorMap) && sectortype(S) === Trivial
-        stridet = i->stride(t[], i)
-        sizet = i->size(t[], i)
-        canfuse1, d1, s1 = TO._canfuse(sizet.(p1), stridet.(p1))
-        canfuse2, d2, s2 = TO._canfuse(sizet.(p2), stridet.(p2))
-        return canfuse1 && canfuse2 && s1 == 1 && (d2 == 1 || s2 == d1)
-    elseif isa(t, AdjointTensorMap)
-        p1′ = adjointtensorindices(t, p2)
-        p2′ = adjointtensorindices(t, p1)
-        return has_shared_permuteind(t', p1′, p2′)
-    else
-        return false
-    end
-end
-
 function cached_permuteind(sym::Symbol, t::TensorMap{S},
                             p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂}
     cod = ProductSpace{S,N₁}(map(n->space(t, n), p1))
@@ -269,6 +251,25 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     oindB::IndexTuple{N₂}, cindB::IndexTuple,
                     p1::IndexTuple, p2::IndexTuple,
                     syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
+
+    # check if it is beneficial to chagne the role of A and B
+    hsp = has_shared_permuteind
+    ipC = TupleTools.invperm((p1..., p2...))
+    oindAinC = TupleTools.getindices(ipC, ntuple(n->n, StaticLength(N₁)))
+    oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, StaticLength(N₂)))
+    memcost1 = dim(A)*(!hsp(A, oindA, cindA))
+                + dim(B)*(!hsp(B, cindB, oindB))
+                + dim(C)*(!hsp(C, oindAinC, oindBinC))
+    memcost2 = dim(B)*(!hsp(B, oindB, cindB))
+                + dim(A)*(!hsp(B, cindA, oindA))
+                + dim(C)*(!hsp(C, oindBinC, oindAinC))
+
+    if memcost1 > memcost2
+        p1′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p1)
+        p2′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p2)
+        return contract!(α, B, A, β, C, oindB, cindB, oindA, cindA, p1′, p2′, syms)
+    end
+
     if syms === nothing
         A′ = permuteind(A, oindA, cindA)
         B′ = permuteind(B, cindB, oindB)
@@ -277,8 +278,8 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
         B′ = cached_permuteind(syms[2], B, cindB, oindB)
     end
     ipC = TupleTools.invperm((p1..., p2...))
-    oindAinC = TupleTools.getindices(ipC, ntuple(identity, StaticLength(N₁)))
-    oindBinC = TupleTools.getindices(ipC, ntuple(n->n+length(oindA), StaticLength(N₂)))
+    oindAinC = TupleTools.getindices(ipC, ntuple(n->n, StaticLength(N₁)))
+    oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, StaticLength(N₂)))
     if has_shared_permuteind(C, oindAinC, oindBinC)
         C′ = permuteind(C, oindAinC, oindBinC)
         mul!(C′, A′, B′, α, β)

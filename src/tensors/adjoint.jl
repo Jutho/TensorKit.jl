@@ -21,7 +21,7 @@ blocksectors(t::AdjointTensorMap) = blocksectors(t.parent)
 Base.@pure storagetype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where {N₁,N₂,A<:DenseMatrix} = A
 Base.@pure storagetype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,G,<:SectorDict{G,A}}}) where {N₁,N₂,G<:Sector,A<:DenseMatrix} = A
 
-Base.length(t::AdjointTensorMap) = length(t.parent)
+dim(t::AdjointTensorMap) = dim(t.parent)
 
 # Indexing
 #----------

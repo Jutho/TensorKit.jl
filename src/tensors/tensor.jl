@@ -34,7 +34,7 @@ Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) wh
 Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,G,<:SectorDict{G,A}}}) where
     {N₁,N₂,G<:Sector,A<:DenseMatrix} = A
 
-# Base.length(t::TensorMap) = sum(length(b) for (c,b) in blocks(t)) # total number of free parameters, in order to use e.g. KrylovKit
+dim(t::TensorMap) = sum(length(b) for (c,b) in blocks(t))
 
 # General TensorMap constructors
 #--------------------------------

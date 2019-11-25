@@ -19,14 +19,8 @@ function permuteind(t::TensorMap{S},
         # share data if possible
         if p1 === codomainind(t) && p2 === domainind(t)
             return t
-        elseif isa(t, TensorMap) && sectortype(S) == Trivial
-            stridet = i->stride(t[], i)
-            sizet = i->size(t[], i)
-            canfuse1, d1, s1 = TensorOperations._canfuse(sizet.(p1), stridet.(p1))
-            canfuse2, d2, s2 = TensorOperations._canfuse(sizet.(p2), stridet.(p2))
-            if canfuse1 && canfuse2 && s1 == 1 && (d2 == 1 || s2 == d1)
-                return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
-            end
+        elseif has_shared_permuteind(t, p1, p2)
+            return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
         end
     end
     # general case
@@ -42,6 +36,25 @@ function permuteind(t::AdjointTensorMap{S}, p1::IndexTuple{N₁}, p2::IndexTuple
     adjoint(permuteind(adjoint(t), p1′, p2′; copy = copy))
 end
 
+function has_shared_permuteind(t::TensorMap, p1, p2)
+    if p1 === codomainind(t) && p2 === domainind(t)
+        return true
+    elseif sectortype(t) === Trivial
+        stridet = i->stride(t[], i)
+        sizet = i->size(t[], i)
+        canfuse1, d1, s1 = TO._canfuse(sizet.(p1), stridet.(p1))
+        canfuse2, d2, s2 = TO._canfuse(sizet.(p2), stridet.(p2))
+        return canfuse1 && canfuse2 && s1 == 1 && (d2 == 1 || s2 == d1)
+    else
+        return false
+    end
+end
+
+function has_shared_permuteind(t::AdjointTensorMap, p1, p2)
+    p1′ = adjointtensorindices(t, p2)
+    p2′ = adjointtensorindices(t, p1)
+    return has_shared_permuteind(t', p1′, p2′)
+end
 
 @propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂},
                                 tsrc::AbstractTensorMap{S},
