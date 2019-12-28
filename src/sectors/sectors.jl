@@ -64,6 +64,10 @@ Return whether the topological data (Fsymbol, Rsymbol) of the sector is real or 
 which case it is complex).
 """
 Base.isreal(::Type{Trivial}) = true
+function Base.isreal(::Type{G}) where {G<:Sector}
+    u = one(G)
+    return (eltype(Fsymbol(u,u,u,u,u,u))<:Real) && (eltype(Rsymbol(u,u,u))<:Real)
+end
 
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
@@ -308,7 +312,8 @@ Base.:&(::Fermionic,::Anyonic) = Anyonic()
 Return the type of braiding behavior of sectors of type G, which can be either
 *   `Bosonic()`: trivial exchange
 *   `Fermionic()`: fermionic exchange depending on `fermionparity`
-*   `Anyonic()`: requires general R_(a,b)^c phase or matrix (depending on `SimpleNonAbelian` or `DegenerateNonAbelian` fusion)
+*   `Anyonic()`: requires general R_(a,b)^c phase or matrix
+    (depending on `SimpleNonAbelian` or `DegenerateNonAbelian` fusion)
 
 Note that `Bosonic` and `Fermionic` are subtypes of `SymmetricBraiding`, which means that
 braids are in fact equivalent to crossings (i.e. braiding twice is an identity:

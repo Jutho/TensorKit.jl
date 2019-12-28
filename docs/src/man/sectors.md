@@ -10,19 +10,19 @@ tensor index separately. The group action on a single index, or thus, on the cor
 vector space, can be decomposed into irreducible representations (irreps). Here, we
 restrict to unitary representations, such that the corresponding vector spaces also have a
 natural Euclidean inner product. In particular, the Euclidean inner product between two
-vectors is invariant under the group action and thus transformas according to the trivial
+vectors is invariant under the group action and thus transforms according to the trivial
 representation of the group.
 
 The corresponding vector spaces will be canonically represented as
 ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``, where ``a`` labels the different irreps, ``n_a`` is the number
 of times irrep ``a`` appears and ``R_a`` is the vector space associated with irrep ``a``.
 Irreps are also known as spin sectors (in the case of ``\mathsf{SU}_2``) or charge sectors
-(in the case of ``\mathsf{U}_1``), and we henceforth refer to ``a`` as a sector. As is briefly
-discussed below, the approach we follow does in fact go beyond the case of irreps of groups,
-and sectors would more generally correspond to simple objects in a (ribbon) fusion
-category. Nonetheless, every step can be appreciated by using the representation theory of
-``\mathsf{SU}_2`` or ``\mathsf{SU}_3`` as example. The vector space ``V`` is completely
-specified by the values of ``n_a``.
+(in the case of ``\mathsf{U}_1``), and we henceforth refer to ``a`` as a sector. As is
+briefly discussed below, the approach we follow does in fact go beyond the case of irreps
+of groups, and sectors would more generally correspond to simple objects in a (ribbon)
+fusion category. Nonetheless, every step can be appreciated by using the representation
+theory of ``\mathsf{SU}_2`` or ``\mathsf{SU}_3`` as example. The vector space ``V`` is
+completely specified by the values of ``n_a``.
 
 The gain in efficiency (both in memory occupation and computation time) obtained from using
 symmetric tensor maps is that, by Schur's lemma, they are block diagonal in the basis of
@@ -42,11 +42,12 @@ coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol) (more acc
 it's actually [Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient))
 in the case of ``\mathsf{SU}_2``.
 
-Below, we describe how to specify a certain type of sector what information about them
-needs to be implemented. Then, we describe how to build a space ``V`` composed of a direct sum
-of different sectors. In the last section, we explain the details of fusion trees, i.e.
-their construction and manipulation. But first, we provide a quick theoretical overview of
-the required data of the representation theory of a group.
+Below, we describe how to specify a certain type of sector and what information about them
+needs to be implemented. Then, we describe how to build a space ``V`` composed of a direct
+sum of different sectors. In the third section, we explain the details of fusion trees, i.e.
+their construction and manipulation. Finally, we elaborate on the case of general fusion
+categories and the possibility of having fermionic or anyonic twists. But first, we provide
+a quick theoretical overview of the required data of the representation theory of a group.
 
 ## [Representation theory and unitary fusion categories](@id ss_representationtheory)
 
@@ -54,9 +55,13 @@ Let the different irreps or sectors be labeled as ``a``, ``b``, ``c``, … First
 we need to specify the *fusion rules* ``a ⊗ b = ⨁ N_{a,b}^{c} c`` with ``N_{a,b}^c`` some
 non-negative integers. There should always exists a unique trivial sector ``u`` such that
 ``a ⊗ u = a = u ⊗ a``. Furthermore, there should exist a unique sector ``\overline{a}``
-such that ``N_{a,\overline{a}}^{u} = 1``, whereas for all ``b ≂̸ \overline{a}``,
-``N_{a,b}^{u} = 0``. For example, for the representations of ``\mathsf{SU}_2``, all irreps
-are self-dual (i.e. ``a = \overline{a}``) and the trivial sector corresponds to spin zero.
+such that ``N_{a,\overline{a}}^{u} = 1``, whereas for all ``b \neq \overline{a}``,
+``N_{a,b}^{u} = 0``. For unitary irreps of groups, ``\overline{a}`` corresponds to the
+complex conjugate of the representation ``a``, or a representation isomorphic to it. For
+example, for the representations of ``\mathsf{SU}_2``, the trivial sector corresponds to
+spin zero and all irreps are self-dual (i.e. ``a = \overline{a}``), meaning that the
+conjugate representation is isomorphic to the non-conjugated one (they are however not
+equal).
 
 The meaning of the fusion rules is that the space of transformations ``R_a ⊗ R_b → R_c``
 (or vice versa) has dimension ``N_{a,b}^c``. In particular, we assume the existence of a
@@ -128,16 +133,40 @@ The minimal data to completely specify a type of sector are
 *   the F-symbol or recoupling coefficients ``[F^{a,b,c}_{d}]^e_f``, implemented as the
     function [`Fsymbol(a,b,c,d,e,f)`](@ref)
 *   the R-symbol ``R_{a,b}^c``, implemented as the function [`Rsymbol(a,b,c)`](@ref)
-*   for practical reasons: a hash function `hash(a, h)`, because sectors and objects
-    created from them are used as keys in lookup tables (i.e. dictionaries), and a
-    canonical order of sectors via `isless(a,b)`, in order to unambiguously represent
-    representation spaces ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``.
+
+For practical reasons, we also require some additional methods to be defined:
+*   `isreal(::Type{<:Sector})` returns whether the topological data of this type of sector
+    is real-valued or not (in which case it is complex-valued). Note that this does not
+    necessarily require that the representation itself, or the Clebsch-Gordan coefficients,
+    are real. There is a fallback implementation that checks whether the F-symbol and R-symbol evaluated with all sectors equal to the identity sector have real `eltype`.
+*   `hash(a, h)` creates a hash of sectors, because sectors and objects created from them
+    are used as keys in lookup tables (i.e. dictionaries)
+*   `isless(a,b)` associates a canonical order to sectors (of the same type), in order to
+    unambiguously represent representation spaces ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``.
 
 Further information, such as the quantum dimensions ``d_a`` and Frobenius-Schur indicator
 ``χ_a`` (only if ``a == \overline{a}``) are encoded in the F-symbol. They are obtained as
-`dim(a)` and [`frobeniusschur(a)`](@ref). These functions have default definitions which
-extract the requested data from `Fsymbol(a,conj(a),a,a,one(a),one(a))`, but they can be
-overloaded in case the value can be computed more efficiently.
+[`dim(a)`](@ref) and [`frobeniusschur(a)`](@ref). These functions have default definitions
+which extract the requested data from `Fsymbol(a,conj(a),a,a,one(a),one(a))`, but they can
+be overloaded in case the value can be computed more efficiently.
+
+We also define a parametric type to represent an indexable iterator over the different
+values of a sector as
+```julia
+struct SectorValues{G<:Sector} end
+Base.IteratorEltype(::Type{<:SectorValues}) = HasEltype()
+Base.eltype(::Type{SectorValues{G}}) where {G<:Sector} = G
+Base.values(::Type{G}) where {G<:Sector} = SectorValues{G}()
+```
+where new sectors `G<:Sector` should define
+```julia
+Base.iterate(::SectorValues{G}[, state]) = ...
+Base.IteratorSize(::Type{SectorValues{G}}) = # HasLenght() or IsInfinite()
+# if previous function returns HasLength():
+Base.length(::SectorValues{G}) = ...
+Base.getindex(::SectorValues{G}, i::Int) = ...
+findindex(::SectorValues{G}, c::G) = ...
+```
 
 It is useful to distinguish between three cases with respect to the fusion rules. For irreps
 of Abelian groups, we have that for every ``a`` and ``b``, there exists a unique ``c`` such
@@ -667,7 +696,6 @@ fuse together two sectors into a single coupled sector, which is then fused with
 uncoupled sector. For this, we assume the existence of unitary tensor maps
 ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` introduced in the section [Sectors](@ref).
 
-
 such that ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
 
 ``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
@@ -694,8 +722,8 @@ TODO
     Annals of Physics, 321(1), 2-111.
 
 [^1]:
-    Strictly speaking the number of sectors, i.e. simple objects, in a fusion category needs to
-    be finite, so that ``Rep\{\mathsf{G}\}`` is only a fusion category for a finite group ``\mathsf{G}``.
-    It is clear our formalism also works for compact Lie groups with an infinite number of irreps,
-    since any finite-dimensional vector space will only have a finite number of all possible
-    irreps in its decomposition.
+    Strictly speaking the number of sectors, i.e. simple objects, in a fusion category
+    needs to be finite, so that ``Rep\{\mathsf{G}\}`` is only a fusion category for a finite
+    group ``\mathsf{G}``. It is clear our formalism also works for compact Lie groups with
+    an infinite number of irreps, since any finite-dimensional vector space will only have a
+    finite number of all possible irreps in its decomposition.

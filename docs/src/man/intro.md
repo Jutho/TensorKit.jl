@@ -15,9 +15,10 @@ definition of a tensor. A good starting point is the following:
 
     ``t ∈ V_1 ⊗ V_2 ⊗ … ⊗ V_N.``
 
-If you think of a tensor as an object with indices, a rank ``N`` tensor has ``N`` indices where
-every index is associated with the corresponding vector space in that it labels a particular
-basis in that space. We will return to index notation at the very end of this manual.
+If you think of a tensor as an object with indices, a rank ``N`` tensor has ``N`` indices
+where every index is associated with the corresponding vector space in that it labels a
+particular basis in that space. We will return to index notation at the very end of this
+manual.
 
 As the tensor product of vector spaces is itself a vector space, this implies that a tensor
 behaves as a vector, i.e. tensors from the same tensor product space can be added and
@@ -41,7 +42,7 @@ term "tensor map" as follows:
 
     ``t:W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2} → V_1 ⊗ V_2 ⊗ … ⊗ V_{N_1}.``
 
-A *tensor* of rank `N` is then just a special case of a tensor map with ``N_1 = N`` and
+A *tensor* of rank ``N`` is then just a special case of a tensor map with ``N_1 = N`` and
 ``N_2 = 0``. A contraction between two tensors is just a composition of linear maps (i.e.
 matrix multiplication), where the contracted indices correspond to the domain of the first
 tensor and the codomain of the second tensor.
@@ -100,15 +101,18 @@ This brings us to our final (yet formal) definition
 *   A tensor (map) is a homorphism between two objects from the category ``\mathbf{Vect}``
     (or some subcategory thereof). In practice, this will be ``\mathbf{FinVect}``, the
     category of finite dimensional vector spaces. More generally, our concept of a tensor
-    makes sense, in principle, for any ``\mathbf{Vect}``-enriched monoidal category. We refer to the section "[Monoidal categories and their properties (optional)](@ref)".
+    makes sense, in principle, for any linear (a.k.a. ``\mathbf{Vect}``-enriched) monoidal
+    category. We refer to the section
+    "[Monoidal categories and their properties (optional)](@ref)".
 
 ## [Symmetries and block sparsity](@id ss_symmetries)
 
 Physical problems often have some symmetry, i.e. the setup is invariant under the action of
 a group ``\mathsf{G}`` which acts on the vector spaces ``V`` in the problem according to a
-certain representation. Having quantum mechanics in mind, TensorKit.jl is so far restricted to
-unitary representations. A general representation space ``V`` can be specified as the
-number of times every irreducible representation (irrep) ``a`` of ``\mathsf{G}`` appears, i.e.
+certain representation. Having quantum mechanics in mind, TensorKit.jl is so far restricted
+to unitary representations. A general representation space ``V`` can be specified as the
+number of times every irreducible representation (irrep) ``a`` of ``\mathsf{G}`` appears,
+i.e.
 
 ``V = \bigoplus_{a} ℂ^{n_a} ⊗ R_a``
 
@@ -123,7 +127,7 @@ representation
 with ``𝟙_{n_a}`` the ``n_a × n_a`` identity matrix. The total dimension of ``V`` is given
 by ``∑_a n_a d_a``.
 
-The reason of implementing symmetries is to exploit the computation and memory gains
+The reason for implementing symmetries is to exploit the computation and memory gains
 resulting from restricting to tensor maps ``t:W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2} → V_1 ⊗ V_2 ⊗ … ⊗
 V_{N_1}`` that are invariant under the symmetry (i.e. that act as
 [intertwiners](https://en.wikipedia.org/wiki/Equivariant_map#Representation_theory)
@@ -138,12 +142,12 @@ permutations and repartitions for arbitrary groups ``\mathsf{G}``. In particular
 with the formalism of monoidal categories, and more specifically fusion categories,
 discussed below and only requires the *topological* data of the group, i.e. the fusion
 rules of the irreps, their quantum dimensions and the F-symbol (6j-symbol or more precisely
-Racah's W-symbol in the case of ``\mathsf{SU}_2``). In particular, we do not need the
-Clebsch–Gordan coefficients.
+Racah's W-symbol in the case of ``\mathsf{SU}_2``). In particular, we don't actually need
+the Clebsch–Gordan coefficients themselves (but they can be useful for checking purposes).
 
 Further details are provided in [Sectors, representation spaces and fusion trees](@ref).
 
-## [Monoidal categories and their properties (optional)](@id ss_category)
+## [Monoidal categories and their properties (optional)](@id ss_categories)
 
 The purpose of this final introductory section (which can safely be skipped), is to explain
 how certain concepts and terminology from the theory of monoidal categories apply in the
@@ -156,9 +160,9 @@ information. Furthermore, we recommend the nice introduction of [Beer et al.](^b
 To start, a category ``C`` consists of
 *   a class ``|C|`` of objects ``V``, ``W``, …
 *   for each pair of objects ``V`` and ``W``, a set ``hom(W,V)`` of morphisms ``f:W→V``;
-    for a given map ``f``, ``W`` is called the *domain* or *source*, and ``V`` the *codomain* or
-    *target*.
-*   an composition of morphisms ``f:W→V`` and ``g:X→W`` into ``(f ∘ g):X→V`` that is
+    for a given map ``f``, ``W`` is called the *domain* or *source*, and ``V`` the
+    *codomain* or *target*.
+*   composition of morphisms ``f:W→V`` and ``g:X→W`` into ``(f ∘ g):X→V`` that is
     associative, such that for ``h:Y→X`` we have ``f ∘ (g ∘ h) = (f ∘ g) ∘ h``
 *   for each object ``V``, an identity morphism ``\mathrm{id}_V:V→V`` such that
     ``f ∘ \mathrm{id}_W = f = \mathrm{id}_V ∘ f``.
@@ -166,8 +170,8 @@ To start, a category ``C`` consists of
 In our case, i.e. the category ``\mathbf{Vect}`` (or some subcategory thereof), the objects
 are vector spaces, and the morphisms are linear maps between these vector spaces with
 "matrix multiplication" as composition. We refer to these morphisms as tensor maps exactly
-because there is a binary operation `⊗`, the tensor product, that allows to combine objects
-into new objects. This makes ``\mathbf{Vect}`` into a **tensor category**, a.k.a
+because there is a binary operation ``⊗``, the tensor product, that allows to combine
+objects into new objects. This makes ``\mathbf{Vect}`` into a **tensor category**, a.k.a
 a *monoidal category*, which has
 *   a binary operation on objects ``⊗: |C| × |C| → |C|``
 *   a binary operation on morphisms, also denoted as ``⊗``, such that
@@ -182,30 +186,31 @@ a *monoidal category*, which has
     *triangle equation* and *pentagon equation*.
 In abstract terms, ``⊗`` is a (bi)functor from the product category ``C × C`` to ``C``.
 
-For the category ``\mathbf{Vect}``, the identity object ``I`` is just the scalar field,
-which can be identified with a one-dimensional vector space. Every monoidal category is
-equivalent to a strict tensor category, where the left and right unitor and associator
-act as the identity and their domain and codomain are truly identical. Nonetheless, for
-tensor maps, we do actually discriminate between ``V``, ``I ⊗ V`` and ``V ⊗ I`` because
-this amounts to adding or removing an extra factor `I` to the tensor product structure of
-the (co)domain, i.e. the left and right unitor are analogous to removing extra dimensions
-of size 1 from an array, and an actual operation is required to do so (this has in fact led
-to some controversy in several programming languages that provide native support for
-multidimensional arrays). For what concerns the associator, the distinction between
-``(V_1 ⊗ V_2) ⊗ V_3`` and ``V_1 ⊗ (V_2 ⊗ V_3)`` is typically absent for simple tensors or
-multidimensional arrays. However, this grouping can be taken to indicate how to build the
-fusion tree for coupling irreps to a joint irrep in the case of symmetric tensors. As such,
-going from one to the other requires a recoupling (F-move) which has a non-trivial action
-on the reduced blocks. We return to this in
-[the section on fusion trees](@ref s_sectorsrepfusion). However, we can already note that
-we will always represent tensor products using a canonical order
+For the category ``\mathbf{Vect}``, the identity object ``I`` is just the scalar field
+``𝕜`` over which the vector spaces are defined, and which can be identified with a one-
+dimensional vector space. Every monoidal category is equivalent to a strict tensor
+category, where the left and right unitor and associator act as the identity and their
+domain and codomain are truly identical. Nonetheless, for tensor maps, we do actually
+discriminate between ``V``, ``I ⊗ V`` and ``V ⊗ I`` because this amounts to adding or
+removing an extra factor `I` to the tensor product structure of the (co)domain, i.e. the
+left and right unitor are analogous to removing extra dimensions of size 1 from an array,
+and an actual operation is required to do so (this has in fact led to some controversy in
+several programming languages that provide native support for multidimensional arrays). For
+what concerns the associator, the distinction between ``(V_1 ⊗ V_2) ⊗ V_3`` and
+``V_1 ⊗ (V_2 ⊗ V_3)`` is typically absent for simple tensors or multidimensional arrays.
+However, this grouping can be taken to indicate how to build the fusion tree for coupling
+irreps to a joint irrep in the case of symmetric tensors. As such, going from one to the
+other requires a recoupling (F-move) which has a non-trivial action on the reduced blocks.
+We return to this in [the section on fusion trees](@ref s_sectorsrepfusion). However, we
+can already note that we will always represent tensor products using a canonical order
 ``(…((V_1 ⊗ V_2) ⊗ V_3) … ⊗ V_N)``. A similar approach can be followed to map any tensor
 category into a strict tensor category (see Section XI.5 of [^kassel]).
 
 With these definitions, we have the minimal requirements for defining tensor maps. In
 principle, we could use a more general definition and define tensor maps as morphism of any
 tensor category where the hom-sets are themselves vector spaces, such that we can add
-morphisms and multiply them with scalars. Such categories are called
+morphisms and multiply them with scalars. Furthermore, the composition of morphisms and the
+tensor product of morphisms are bilinear operations. Such categories are called linear or
 ``\mathbf{Vect}``-enriched.
 
 In order to make tensor (maps) useful and to define operations with them, we can now
@@ -215,7 +220,9 @@ the morphisms.
 ### [Braiding](@id sss_braiding)
 
 To reorder tensor indices, or, equivalently, to reorder objects in the tensor product
-``V_1 ⊗ V_2 ⁠⊗ … V_N``, we need at the very least a **braided tensor category** which has, ``∀ V, W ∈ |C|``, a braiding ``σ_{V,W}: V⊗W → W⊗V``. A valid braiding needs to satisfy consistency condition with the associator ``α`` known as the *hexagon equation*.
+``V_1 ⊗ V_2 ⁠⊗ … V_N``, we need at the very least a **braided tensor category** which has,
+``∀ V, W ∈ |C|``, a braiding ``σ_{V,W}: V⊗W → W⊗V``. A valid braiding needs to satisfy
+consistency condition with the associator ``α`` known as the *hexagon equation*.
 
 However, for general braidings, there is no unique choice to identify a tensor in ``V⊗W``
 and ``W⊗V``, as any of the maps ``σ_{V,W}``, ``σ_{W,V}^{-1}``,
@@ -233,24 +240,24 @@ implementations arise in the context of tensors with symmetries (where the fusio
 needs to be reordered) or in the case of fermions (described using so-called super vector
 spaces where the braiding is given by the Koszul sign rule).
 
-### [Duals](@id sss_dual)
+### [Duals and pivotal structure](@id sss_dual)
 
 For tensor maps, the braiding structure only allows to reorder the objects within the domain
 or within the codomain separately. An **autonomous** or **rigid** monoidal category is one
 where objects have duals, defined via an exact pairing, i.e. two families of canonical maps,
 the unit ``η_V: I → V ⊗ V^*`` and the co-unit ``ϵ_V: V^* ⊗ V → I`` that satisfy the "snake
-rules"
+rules":
 
 ``ρ_V ∘ (\mathrm{id}_V ⊗ ϵ_V) ∘ (η_V ⊗ \mathrm{id}_V) ∘ λ_V^{-1} = \mathrm{id}_V``
 
 ``λ_{V^*}^{-1} ∘ (ϵ_V ⊗ \mathrm{id}_{V^*}) ∘ (\mathrm{id}_{V^*} ⊗ η_V) ∘ ρ_{V^*}^{-1} = \mathrm{id}_{V^*}``
 
-Given a morphism ``t::W→V``, we can now identify it with ``(t ⊗ \mathrm{id}_{W^*}) ∘ η_W``
+Given a morphism ``t:W→V``, we can now identify it with ``(t ⊗ \mathrm{id}_{W^*}) ∘ η_W``
 to obtain a morphism ``I→V⊗W^*``. For the category ``\mathbf{Vect}``, this is the
 identification between linear maps ``W→V`` and tensors in ``V⊗W^*``. In particular, for
 complex vector spaces, using a bra-ket notation and a generic basis ``{|n⟩}`` for ``V`` and
 dual basis ``{⟨m|}`` for ``V^*`` (such that ``⟨m|n⟩ = δ_{m,n}``), the unit is
-``η_V:ℂ → V ⊗ V^*:λ → λ ∑_n |n⟩ ⊗ ⟨n|`` and the co-unit is
+``η_V:ℂ → V ⊗ V^*:α → α ∑_n |n⟩ ⊗ ⟨n|`` and the co-unit is
 ``⁠ϵ_V:V^* ⊗ V → ℂ: ⟨m| ⊗ |n⟩ → δ_{m,n}``. Note that this does not require an inner
 product, i.e. no mapping from ``|n⟩`` to ``⟨n|`` was defined.
 
@@ -259,57 +266,120 @@ successively applying ``η_{W_{N_2}}``, ``η_{W_{N_2-1}}``, …, ``η_{W_{1}}`` 
 right unitor) but no braiding, we obtain a tensor in
 ``V_1 ⊗ V_2 ⊗ … ⊗ V_{N_1} ⊗ W_{N_2}^* ⊗ … ⊗ W_{1}^*``.
 It does makes sense to define or identify
-``(W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2})^* = W_{N_2}^* ⊗ … ⊗ W_{1}^*``.
+``(W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2})^* = W_{N_2}^* ⊗ … ⊗ W_{1}^*``. Indeed, it can be shown that an
+exact pairing between ``V ⊗ W`` and ``W^* ⊗ V^*`` can be constructed out of the unit and
+counit of ``V`` and ``W``.
 
-In fact, the above exact pairings are known as the left unit and co-unit, and ``V^*`` is the
-left dual of ``V``. There is also a notion of a right dual ``^*V`` and associated pairings,
-the right unit ``η'_V: I → ^*V ⊗ V`` and the right co-unit ``ϵ'_V: V ⊗ *^V → I``. An
-autonomous category ``\mathbf{C}`` is one where every object ``V`` has both a left and right
-dual, and in this case they can be proven to be isomorphic. We will never distinguish
-between the two and refer simply to `dual(V)` for the dual of a vector space.
+These exact pairings are known as the right unit and co-unit, and ``V^*`` is the
+right dual of ``V``. Likewise, then, ``V`` is a left dual of ``V^*``, and we can also
+define a left dual ``^*V`` of ``V`` and associated pairings, the left unit
+``η'_V: I → {^*V} ⊗ V`` and the left co-unit ``ϵ'_V: V ⊗ {^*V} → I``. An autonomous category
+``\mathbf{C}`` is one where every object ``V`` has both a left and right dual. If we have a
+natural isomorphism between both, typically expressed via a pivotal structure
+``δ_V : {^*V} → V^*`` which satisfies ``δ_{V ⊗ W} = δ_W ⊗ δ_V``, we do not have to
+distinguish between both. The resulting category is known as a *pivotal category*. Indeed,
+in TensorKit.jl we assume to be working with **pivotal categories** and simply refer to
+`dual(V)` for the dual of a vector space.
+
+For a pivotal category, there is a well defined notion of a transpose ``f^*:V^* → W^*``
+(also called adjoint mate) of a morphism ``f:W→V``, namely as as
+
+``f^* = λ_{W^*} ∘ (ϵ_V ⊗ \mathrm{id}_{W^*}) ∘ (\mathrm{id}_{V^*} ⊗ f ⊗ \mathrm{id}_{W^*}) ∘ (\mathrm{id}_{V^*} ⊗ η_{W}) ∘ ρ_{V^*}^{-1}``
+
+``{^*f} = ρ_{W^*} ∘ (\mathrm{id}_{W^*} ⊗ ϵ_{V^*}) ∘ (\mathrm{id}_{V^*} ⊗ f ⊗ \mathrm{id}_{W^*}) ∘ (η_{W^*} ⊗ \mathrm{id}_{V^*}) ∘ λ_{V^*}^{-1}``
+
+and both definitions coincide (which is not the case if the category is not pivotal). In a
+graphical representation, this means that boxes (representing tensor maps or morphisms more
+generally) can be rotated. The transpose corresponds to a 180˚ rotation (either way).
+
+Furthermore, in a pivotal category, we can define a map from endomorphisms of an object
+``V``, i.e. a morphism ``f:V→V`` to endomorphisms of the identity object ``I``, i.e.
+scalars, known as the trace of ``f``. In fact, we can define both a left trace as
+
+``tr(f) = ϵ'_V ∘ (f ⊗ \mathrm{id}_{V^*}) ∘ η_V``
+
+and a right trace as
+
+``tr'(f) = ϵ_V ∘ (\mathrm{id}_{V^*} ⊗ f) ∘ η'_V``
+
+In a **spherical** category, both definitions coincide for all ``V`` and we simply refer to
+the trace of an endomorphism. The particular value ``d_V = tr(\mathrm{id}_V)`` is known as
+the (quantum) dimension of the object ``V``, referred to as `dim(V)` in TensorKit.jl.
+
+### [Twists and ribbons](@id sss_twists)
 
 The braiding of a space and a dual space also follows naturally, it is given by
 ``σ_{V^*,W} = λ_{W ⊗ V^*} ∘ (ϵ_V ⊗ \mathrm{id}_{W ⊗ V^*}) ∘ (\mathrm{id}_{V^*} ⊗ σ_{V,W}^{-1} ⊗ \mathrm{id}_{V^*}) ∘ (\mathrm{id}_{V^*⊗ W} ⊗ η_V) ∘ ρ_{V^* ⊗ W}^{-1}``
 
+Furthermore, in a braided pivotal category, we can define a family of natural isomorphisms
+``θ_V:V→V`` (i.e. for ``f:W→V``, ``θ_V ∘ f = f ∘ θ_W``) as
 
+``θ_V = ρ_V ∘ (\mathrm{id}_V ⊗ ϵ'_V) ∘ (σ_{V,V} ⊗ \mathrm{id}_{V^*}) ∘ (\mathrm{id}_V ⊗ η_V) ∘ ρ_V^{-1}``
 
+which satisfy
 
-In general categories, one can distinguish between a left and right dual, but we always
-assume that both objects are naturally isomorphic. Equivalently, ``V^{**} ≂ V`` and the
-category is said to be  **pivotal**. For every morphism ``f:W→V``, there is then a well
-defined notion of a transpose (also called adjoint mate) ``f^*:V^* → W^*`` as
+``θ_{V⊗W} = σ_{W,V} ∘ (θ_W ⊗ θ_V) ∘ σ_{V,W} = (θ_V ⊗ θ_W) ∘ σ_{W,V} ∘ σ_{V,W}``
 
-``f^* = λ_{W^*} ∘ (ϵ_V ⊗ \mathrm{id}_{W^*}) ∘ (\mathrm{id}_{V^*} ⊗ f ⊗ \mathrm{id}_{W^*}) ∘ (\mathrm{id}_{V^*} ⊗ η_{W}) ∘ ρ_{V^*}^{-1}``
+A family of natural isomorphisms satisfying this relation is called a **twist**, and the resulting category is called a **balanced** monoidal category.  Here, we defined the twist
+via the exact pairings, and ultimately via the pivotal structure, i.e. the
+``\mathrm{id}_{V^*}`` in the definition of ``θ_V`` should have been a ``δ_V^{-1}``. The
+interaction between the twist and the braiding is consistent with the graphical rules of a
+ribbon. However, for the graphical rules of ribbons to also be compatible with the exact
+pairing, we furthermore need the condition ``θ_{V^*} = θ_V^*`` (i.e. the transpose), in
+which case the category is said to be **tortile** or also a **ribbon category**.
 
-``f^* = ρ_{W^*} ∘ (\mathrm{id}_{W^*} ⊗ ϵ_{V^*}) ∘ (\mathrm{id}_{V^*} ⊗ f ⊗ \mathrm{id}_{W^*}) ∘ (η_{W^*} ⊗ \mathrm{id}_{V^*}) ∘ λ_{V^*}^{-1}``
+Alternatively, we can start with a balanced and autonomous category and use the twist to
+define the pivotal structure. In particular, we can express the left unit and counit in
+terms of the right unit and counit, the braiding and the twist, as
 
-and both definitions coincide (which is not the case if the category is not pivotal). In a graphical representation, this means that boxes (representing tensor maps or morphisms more generally) can be rotated. The transpose corresponds to a 180˚ rotation (either way).
+``η'_V = (\mathrm{id}_{V^*} ⊗ θ_V) ∘ σ_{V,V^*} ∘ η_V``
 
-A braiding ``σ_{V,V^*}`` provides a particular way to construct an maps
-``ϵ_{V^*} = ϵ_V ∘ σ_{V,V^*} : V⊗V^* → I`` and
-``η_{V^*} = σ_{V^*,V}^{-1} \circ η_V: I→ V^*⊗V``, but these maps are not canonical for
-general braidings, so that a braided autonomous category is not automatically pivotal. A
-category that is both braided and pivotal automatically has a twist (and is thus balanced),
-vice versa a balanced autonomous category is automatically pivotal. However, the graphical
-representation using ribbons is only consistent if we furthermore have
-``θ_{V^*} = θ_V^*`` (i.e. the transpose), in which case the category is said to be
-**tortile** or also a **ribbon category**.
+``ϵ'_V = ϵ_V ∘ σ_{V,V^*} ∘ (θ_V ⊗ \mathrm{id}_{V^*})``
 
-In the case of a symmetric braiding, most of these difficulties go away and the pivotal
-structure follows. A symmetric monoidal category with duals is known as a **compact closed
-category**.
+The trace of an endomorphism ``f:V→V`` is then given by
 
-We can extend a braided category with a **twist** ``θ_V``, i.e. a family of isomorphisms
-``θ_V:V→V`` that satisfy ``θ_{V⊗W} = σ_{W,V} ∘ (θ_W ⊗ θ_V) ∘ σ_{V,W}`` and the resulting
-category is called a **balanced** monoidal category. The corresponding graphical
-representation is that where objects are denoted by ribbons instead of lines, and a twist
-is consistent with the graphical representation of a twisted ribbon and how it combines
-with braidings.
+``tr(f) = ϵ_V ∘ σ_{V,V^*} ∘ (( θ_V ∘ f) ⊗ \mathrm{id}_{V^*}) ∘ η_V``
 
+and it can be verified using the naturality of the braiding that the resulting category is
+spherical, i.e. that this is equal to
 
+``tr(f) = ϵ_V ∘ (\mathrm{id}_{V^*} ⊗ (f ∘ θ_V)) ∘ σ_{V,V^*} ∘ η_V``
+
+Note finally, that a ribbon category where the braiding is symmetric, is known as a
+**compact closed category**. For a symmetric braiding, the trivial twist
+``θ_V = \mathrm{id}_V`` is always a valid choice, but it might not be the choice that one
+necessarily want to use. This brings us to the final paragraph.
 
 ### [Adjoints](@id sss_adjoints)
 
+A final aspect of categories as they are relevant to physics, and in particular quantum
+physics, is the notion of an adjoint or dagger. A **dagger category** ``C`` is a category
+together with an involutive functor ``†:C→C`` that acts as the identity on objects, whereas
+on morphisms ``f:W→V`` it defines a morphism ``f^†:V→W`` such that
+* ``\mathrm{id}_V^† = \mathrm{id}_V``
+* ``(g ∘ f)^† = f^† ∘ g^†``
+* ``(f^†)^† = f``
+
+In a dagger category, a morphism ``f:W→V`` is said to be unitary if it is an isomorphism
+and ``f^{-1} = f^†``. Furthermore, an endomorphism ``f:V→V`` is hermitian or self-adjoint if
+``f^† = f``.
+
+A dagger monoidal category is one in which the associator and left and right unitor are
+unitary morphisms. Similarly, a dagger braided category also has a unitary braiding, and a
+dagger balanced category in addition has a unitary twist.
+
+There is more to be said about the interplay between the dagger and duals. Given a right
+unit ``η_V: I → V ⊗ V^*`` and co-unit ``ϵ_V: V^* ⊗ V → I``, we can define a left unit and
+co-unit ``η'_V = (ϵ_V)^†`` and ``ϵ'_V = (η_V)^†``, and from this, a unitary pivotal
+structure. Hence, right autonomous dagger categories are automatically pivotal dagger
+categories.
+
+The twist defined via the pivotal structure now becomes
+
+``θ_V = ρ_V ∘ (\mathrm{id}_V ⊗ (η_V)^†) ∘ (σ_{V,V} ⊗ \mathrm{id}_{V^*}) ∘ (\mathrm{id}_V ⊗ η_V) ∘ ρ_V^{-1}``
+
+and is itself unitary. Even for a symmetric category, the twist defined as such must not be
+the identity. We will return to this in the discussion of fermions.
 
 ## Bibliography
 
@@ -325,5 +395,5 @@ with braidings.
 [^beer]:        From categories to anyons: a travelogue
                 Kerstin Beer, Dmytro Bondarenko, Alexander Hahn, Maria Kalabakov, Nicole
                 Knust, Laura Niermann, Tobias J. Osborne, Christin Schridde, Stefan
-                Seckmeyer, Deniz E. Stiege- mann, and Ramona Wolf
+                Seckmeyer, Deniz E. Stiegemann, and Ramona Wolf
                 [https://arxiv.org/pdf/1811.06670.pdf](https://arxiv.org/pdf/1811.06670.pdf)

@@ -70,12 +70,12 @@ methods
 
 *   `dim(::ElementarySpace) -> ::Int` returns the dimension of the space as an `Int`
 
-*   `dual{S<:ElementarySpace}(::S) -> ::S` returns the
+*   `dual(::S) where {S<:ElementarySpace} -> ::S` returns the
     [dual space](http://en.wikipedia.org/wiki/Dual_space) `dual(V)`, using an instance of
     the same concrete type (i.e. not via type parameters); this should satisfy
     `dual(dual(V)==V`
 
-*   `conj{S<:ElementarySpace}(::S) -> ::S` returns the
+*   `conj(::S) where {S<:ElementarySpace} -> ::S` returns the
     [complex conjugate space](http://en.wikipedia.org/wiki/Complex_conjugate_vector_space)
     `conj(V)`, using an instance of the same concrete type (i.e. not via type parameters);
     this should satisfy `conj(conj(V))==V` and we automatically have
@@ -131,13 +131,15 @@ isdual((ℝ^5)')
 dual(ℂ^5) == (ℂ^5)' == conj(ℂ^5)
 ```
 We refer to the next section on [Sectors, representation spaces and fusion trees](@ref) for
-further information about `RepresentationSpace`, which is a subtype of `EuclideanSpace{ℂ}` with
-an inner structure corresponding to the irreducible representations of a group.
+further information about `RepresentationSpace`, which is another subtype of
+`EuclideanSpace{ℂ}` with an inner structure corresponding to the irreducible
+representations of a group.
 
 ## [Composite spaces](@id ss_compositespaces)
 
 Composite spaces are vector spaces that are built up out of individual elementary vector
-spaces. The most prominent (and currently only) example is a tensor product of `N` elementary spaces of the same type `S`, which is implemented as
+spaces. The most prominent (and currently only) example is a tensor product of `N`
+elementary spaces of the same type `S`, which is implemented as
 ```julia
 struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
     spaces::NTuple{N, S}
@@ -160,7 +162,7 @@ dual(V1 ⊗ V2)
 ```
 Here, the new function `dims` maps `dim` to the individual spaces in a `ProductSpace` and
 returns the result as a tuple. Note that the rationale for the last result was explained in
-the subsection [Duals](@ref) of [Properties of monoidal categories](@ref).
+the subsection [Duals](@ref) of [Monoidal categories and their properties (optional)](@ref).
 
 Following Julia's Base library, the function `one` applied to a `ProductSpace{S,N}` returns
 the multiplicative identity, which is `ProductSpace{S,0}`. The same result is obtained when
@@ -202,7 +204,7 @@ flip(ℂ^4)
 We also define the direct sum `V1` and `V2` as `V1 ⊕ V2`, where `⊕` is obtained by typing
 `\oplus`+TAB. This is possible only if `isdual(V1) == isdual(V2)`. With a little pun on
 Julia Base, `oneunit` applied to an elementary space (in the value or type domain) returns
-the one-dimensional space, which is isomorphic to the scalar field of the spaceitself. Some
+the one-dimensional space, which is isomorphic to the scalar field of the space itself. Some
 examples illustrate this better
 ```@repl tensorkit
 ℝ^5 ⊕ ℝ^3
@@ -222,6 +224,6 @@ min(ℝ^5, ℝ^3)
 max(ℂ^5, ℂ^3)
 max(ℂ^5, (ℂ^3)')
 ```
-Again, we impose `isdual(V1) == isdual(V2)`. Again, the use of these methods is to construct
-unitary or isometric tensors that map between different spaces, which will be elaborated
-upon in the section on Tensors.
+Again, we impose `isdual(V1) == isdual(V2)`. As before, the use of these methods is to
+construct unitary or isometric tensors that map between different spaces, which will be
+elaborated upon in the section on Tensors.

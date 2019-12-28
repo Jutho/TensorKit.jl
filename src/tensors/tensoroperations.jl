@@ -155,10 +155,10 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
     return tdst
 end
 
-function _addabelianblock!(α, tsrc::AbstractTensorMap{S},
-                            β, tdst::AbstractTensorMap{S,N₁,N₂},
-                            p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
-                            f1::FusionTree, f2::FusionTree) where {S,N₁,N₂}
+function _addabelianblock!(α, tsrc::AbstractTensorMap,
+                            β, tdst::AbstractTensorMap,
+                            p1::IndexTuple, p2::IndexTuple,
+                            f1::FusionTree, f2::FusionTree)
     cod = codomain(tsrc)
     dom = domain(tsrc)
     n = length(cod)

@@ -12,6 +12,7 @@ ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} =
     ProductSpace{S,N}(spaces)
 ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} =
     ProductSpace{S,N}(spaces)
+ProductSpace{S}(spaces) where {S<:ElementarySpace} = ProductSpace{S,length(spaces)}(spaces)
 
 # Corresponding methods
 #-----------------------
