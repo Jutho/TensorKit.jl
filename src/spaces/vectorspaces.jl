@@ -208,6 +208,11 @@ sectortype(V::VectorSpace) = sectortype(typeof(V))
 sectortype(::Type{<:ElementarySpace}) = Trivial
 sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 
+"""
+    function hassector(V::VectorSpace, a::Sector) -> Bool
+
+Return whether a vector space `V` has a subspace corresponding to sector `a` with non-zero dimension, i.e. `dim(V, a) > 0`.
+"""
 hassector(::ElementarySpace, ::Trivial) = true
 Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
 

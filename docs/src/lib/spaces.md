@@ -15,7 +15,7 @@ CartesianSpace
 ComplexSpace
 RepresentationSpace
 GenericRepresentationSpace
-ZNSpace
+FiniteRepresentationSpace
 CompositeSpace
 ProductSpace
 ```
@@ -29,6 +29,7 @@ U1Irrep
 SU2Irrep
 CU1Irrep
 FusionStyle
+BraidingStyle
 Abelian
 NonAbelian
 SimpleNonAbelian
@@ -46,8 +47,8 @@ dims
 blocksectors
 blockdim
 ```
-The following methods act specifically `ElementarySpace` spaces
-```
+The following methods act specifically on `ElementarySpace` spaces:
+```@docs
 isdual
 dual
 conj
@@ -57,8 +58,10 @@ oneunit
 ```
 or also on `ProductSpace`
 
-```
+```@docs
 fuse
 :⊗
 one
+min
+max
 ```

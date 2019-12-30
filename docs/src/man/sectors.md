@@ -124,7 +124,7 @@ The minimal data to completely specify a type of sector are
     ``N_{a,b}^c``, it might be costly or impossible to iterate over all possible values of
     `c` and test `Nsymbol(a,b,c)`; instead we implement for `a ⊗ b` to return an iterable
     object (e.g. tuple, array or a custom Julia type that listens to `Base.iterate`) and
-    which generates all `c` for which ``N_{a,b}^c ≂̸ 0``
+    which generates all `c` for which ``N_{a,b}^c ≂̸ 0`` (just once even if ``N_{a,b}^c>1``)
 *   the identity object `u`, such that ``a ⊗ u = a = u ⊗ a``; this is implemented by the
     function `one(a)` (and also in type domain) from Julia Base
 *   the dual or conjugate representation ``\overline{a}`` for which
@@ -158,7 +158,8 @@ Base.IteratorEltype(::Type{<:SectorValues}) = HasEltype()
 Base.eltype(::Type{SectorValues{G}}) where {G<:Sector} = G
 Base.values(::Type{G}) where {G<:Sector} = SectorValues{G}()
 ```
-where new sectors `G<:Sector` should define
+Note that an instance of the singleton type `SectorValues{G}` is obtained as `values(G)`.
+A new sector `G<:Sector` should define
 ```julia
 Base.iterate(::SectorValues{G}[, state]) = ...
 Base.IteratorSize(::Type{SectorValues{G}}) = # HasLenght() or IsInfinite()
@@ -167,6 +168,14 @@ Base.length(::SectorValues{G}) = ...
 Base.getindex(::SectorValues{G}, i::Int) = ...
 findindex(::SectorValues{G}, c::G) = ...
 ```
+If the number of values in a sector `G` is finite (i.e.
+`IteratorSize(values(G)) == HasLength()`), the methods `getindex` and `findindex` provide a
+way to map the different sector values from and to the standard range 1, 2, …,
+`length(values(G))`. This is used to efficiently represent `RepresentationSpace`
+objects for this type of sector, as discussed in the next section on
+[Representation Spaces](@ref ss_rep). Note that `findindex` acts similar to `Base.indexin`,
+but with the order of the arguments reversed (so that is more similar to `getindex`), and
+returns an `Int` rather than an `Array{0,Union{Int,Nothing}}`.
 
 It is useful to distinguish between three cases with respect to the fusion rules. For irreps
 of Abelian groups, we have that for every ``a`` and ``b``, there exists a unique ``c`` such
@@ -192,45 +201,29 @@ end
 New sector types `G<:Sector` should then indicate which fusion style they have by defining
 `FusionStyle(::Type{G})`.
 
-In the representation and manipulation of symmetric tensors, it will be important to couple
-or fuse different sectors together into a single block sector. The section on
-[Fusion trees](@ref) describes the details of this process, which consists of pairwise
-fusing two sectors into a single coupled sector, which is then fused with the next
-uncoupled sector. For this, we assume the existence of a basis of unitary tensor maps
-``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` such that
-
-*   ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
-
-*   ``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
-
-The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the
-fusion tensors. For ``\mathsf{SU}_2``, their entries are precisely given by the CG
-coefficients. The point is that we do not need to know the tensors ``X_{a,b}^{c,μ}``, the
-topological data of (the representation category of) the group describes the following
-transformation:
-
-*   F-move or recoupling: the transformation between ``(a ⊗ b) ⊗ c`` to ``a ⊗ (b ⊗ c)``:
-
-    ``(X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) ∘ X_{e,c}^{d,ν} = ∑_{f,κ,λ} [F^{a,b,c}_{d}]^{e,μν}_{f,κλ} (X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) X_{e,c}^{d,ν} (\mathrm{id}_a ⊗ X_{b,c}^{f,κ}) ∘ X_{a,f}^{d,λ}``
-
-*   [Braiding](@ref) or permuting as defined by ``σ_{a,b}: R_a ⊗ R_b → R_b ⊗ R_a``:
-
-    ``σ_{a,b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}``
-
-Furthermore, there is a relation between splitting vertices and fusion vertices given by the
-B-symbol, but we refer to the section on [Fusion trees](@ref) for the precise definition and
-further information. The required data is completely encoded in the the F-symbol, and
-corresponding Julia function `Bsymbol(a,b,c)` is implemented as
+In a similar manner, it is useful to distinguish between different styles of braiding.
+Remember that for group representations, braiding acts as swapping or permuting the vector
+spaces involved. By definition, applying this operation twice leads us back to the original
+situation. If that is the case, the braiding is said to be symmetric. For more general
+fusion categories, associated with the physics of anyonic particles, this is generally not
+the case and, as a result, permutations of tensor indices are not unambiguously defined.
+The correct description is in terms of the braid group. This will be discussed in more
+detail below. Fermions are somewhat in between, as their braiding is symmetric, but they
+have a non-trivial *twist*. We thereto define a new type hierarchy
 ```julia
-function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
-    if FusionStyle(G) isa Abelian || FusionStyle(G) isa SimpleNonAbelian
-        Fsymbol(a, b, dual(b), a, c, one(a))
-    else
-        reshape(Fsymbol(a,b,dual(b),a,c,one(a)), (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
-    end
-end
+abstract type BraidingStyle end # generic braiding
+abstract type SymmetricBraiding <: BraidingStyle end
+struct Bosonic <: SymmetricBraiding end
+struct Fermionic <: SymmetricBraiding end
+struct Anyonic <: BraidingStyle end
 ```
-but a more efficient implementation may be provided.
+New sector types `G<:Sector` should then indicate which fusion style they have by defining
+`BraidingStyle(::Type{G})`. Note that `Bosonic()` braiding does not mean that all
+permutations are trivial and `R_{a,b}^c = 1`, but that `R_{a,b}^c R_{b,a}^c = 1`. For
+example, for the irreps of ``\mathsf{SU}_2``, the R-symbol associated with the fusion of
+two spin-1/2 particles to spin zero is ``-1``, i.e. the singlet of two spin-1/2 particles
+is antisymmetric. For a `Bosonic()` braiding style, all twists are simply ``+1``. The case
+of fermions and anyons are discussed below.
 
 Before discussing in more detail how a new sector type should be implemented, let us study
 the cases which have already been implemented. Currently, they all correspond to the irreps
@@ -248,9 +241,11 @@ Base.one(::Type{Trivial}) = Trivial()
 Base.conj(::Trivial) = Trivial()
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
 Nsymbol(::Trivial, ::Trivial, ::Trivial) = true
-FusionStyle(::Type{Trivial}) = Abelian()
 Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 Rsymbol(::Trivial, ::Trivial, ::Trivial) = 1
+Base.isreal(::Type{Trivial}) = true
+FusionStyle(::Type{Trivial}) = Abelian()
+BraidingStyle(::Type{Trivial}) = Bosonic()
 ```
 The `Trivial` sector type is special cased in the construction of tensors, so that most of
 these definitions are not actually used.
@@ -268,9 +263,10 @@ Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:AbelianIrrep} =
 frobeniusschur(a::AbelianIrrep) = 1
 Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
+Base.isreal(::Type{<:AbelianIrrep}) = true
 ```
 With these common definition, we implement the representation theory of the two most common
-Abelian groups
+Abelian groups, namely ``ℤ_N``
 ```julia
 struct ZNIrrep{N} <: AbelianIrrep
     n::Int8
@@ -282,28 +278,49 @@ Base.one(::Type{ZNIrrep{N}}) where {N} =ZNIrrep{N}(0)
 Base.conj(c::ZNIrrep{N}) where {N} = ZNIrrep{N}(-c.n)
 ⊗(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = (ZNIrrep{N}(c1.n+c2.n),)
 
+Base.IteratorSize(::Type{SectorValues{ZNIrrep{N}}}) where N = HasLength()
+Base.length(::SectorValues{ZNIrrep{N}}) where N = N
+Base.iterate(::SectorValues{ZNIrrep{N}}, i = 0) where N =
+    return i == N ? nothing : (ZNIrrep{N}(i), i+1)
+Base.getindex(::SectorValues{ZNIrrep{N}}, i::Int) where N =
+    1 <= i <= N ? ZNIrrep{N}(i-1) : throw(BoundsError(values(ZNIrrep{N}), i))
+findindex(::SectorValues{ZNIrrep{N}}, c::ZNIrrep{N}) where N = c.n + 1
+```
+and ``\mathsf{U}_1``
+```julia
 struct U1Irrep <: AbelianIrrep
     charge::HalfInteger
 end
 Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 ⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
+
+Base.IteratorSize(::Type{SectorValues{U1Irrep}}) = IsInfinite()
+Base.iterate(::SectorValues{U1Irrep}, i = 0) =
+    return i <= 0 ? (U1Irrep(half(i)), (-i + 1)) : (U1Irrep(half(i)), -i)
+# the following are not used and thus not really necessary
+function Base.getindex(::SectorValues{U1Irrep}, i::Int)
+    i < 1 && throw(BoundsError(values(U1Irrep), i))
+    return U1Irrep(iseven(i) ? half(i>>1) : -half(i>>1))
+end
+findindex(::SectorValues{U1Irrep}, c::U1Irrep) = (n = twice(c.charge); 2*abs(n)+(n<=0))
 ```
-together with some abbreviated Unicode aliases
+We also define some abbreviated Unicode aliases
 ```julia
 const ℤ₂ = ZNIrrep{2}
 const ℤ₃ = ZNIrrep{3}
 const ℤ₄ = ZNIrrep{4}
 const U₁ = U1Irrep
 ```
-In the definition of `U1Irrep`, `HalfInteger<:Number` is a Julia type defined in [WignerSymbols.jl](https://github.com/Jutho/WignerSymbols.jl),
-which is also used for `SU2Irrep` below, that stores integer or half integer numbers using
-twice their value. Strictly speaking, the linear representations of `U₁` can only have
-integer charges, and fractional charges lead to a projective representation. It can be
-useful to allow half integers in order to describe spin 1/2 systems with an axis rotation
-symmetry. As a user, you should not worry about the details of `HalfInteger`, and
-additional methods for automatic conversion and pretty printing are provided, as
-illustrated by the following example
+In the definition of `U1Irrep`, `HalfInteger<:Number` is a Julia type defined in
+[WignerSymbols.jl](https://github.com/Jutho/WignerSymbols.jl), which is also used for
+`SU2Irrep` below, that stores integer or half integer numbers using twice their value.
+Strictly speaking, the linear representations of `U₁` can only have integer charges, and
+fractional charges lead to a projective representation. It can be useful to allow half
+integers in order to describe spin 1/2 systems with an axis rotation symmetry. As a user,
+you should not worry about the details of `HalfInteger`, and additional methods for
+automatic conversion and pretty printing are provided, as illustrated by the following
+example
 ```@repl tensorkit
 U₁(0.5)
 U₁(0.4)
@@ -455,8 +472,9 @@ Julia's manual), and implements the following minimal set of methods
 ```julia
 Base.one(::Type{G}) = G(...)
 Base.conj(a::G) = G(...)
-TensorKit.FusionStyle(::Type{G}) = ...
-    # choose one: Abelian(), SimpleNonAbelian(), DegenerateNonAbelian()
+Base.isreal(::Type{G}) = ... # true or false
+TensorKit.FusionStyle(::Type{G}) = ... # Abelian(), SimpleNonAbelian(), DegenerateNonAbelian()
+TensorKit.BraidingStyle(::Type{G}) = ... # Bosonic(), Fermionic(), Anyonic()
 TensorKit.Nsymbol(a::G, b::G, c::G) = ...
     # Bool or Integer if FusionStyle(G) == DegenerateNonAbelian()
 Base.:⊗(a::G, b::G) = ... # some iterable object that generates all possible fusion outputs
@@ -464,6 +482,12 @@ TensorKit.Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G)
 TensorKit.Rsymbol(a::G, b::G, c::G)
 Base.hash(a::G, h::UInt)
 Base.isless(a::G, b::G)
+Base.iterate(::TensorKit.SectorValues{G}[, state]) = ...
+Base.IteratorSize(::Type{TensorKit.SectorValues{G}}) = ... # HasLenght() or IsInfinite()
+# if previous function returns HasLength():
+Base.length(::TensorKit.SectorValues{G}) = ...
+Base.getindex(::TensorKit.SectorValues{G}, i::Int) = ...
+TensorKit.findindex(::TensorKit.SectorValues{G}, c::G) = ...
 ```
 
 Additionally, suitable definitions can be given for
@@ -523,8 +547,6 @@ vector space associated with the homomorphisms ``a ⊗ b → c``, whose dimensio
 ``N_{a,b}^c``. The objects ``X_{a,b}^{c,μ}`` for ``μ = 1,…,N_{a,b}^c`` serve as an abstract
 basis for this space and from there on the discussion is completely equivalent.
 
-So far, none of these cases have been implemented, but it is a simple exercise to do so.
-
 ## [Representation spaces](@id ss_rep)
 We have introduced `Sector` subtypes as a way to label the irreps or sectors in the
 decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``. To actually represent such spaces, we now also
@@ -543,18 +565,24 @@ struct GenericRepresentationSpace{G<:Sector} <: RepresentationSpace{G}
     dims::SectorDict{G,Int}
     dual::Bool
 end
-struct ZNSpace{N} <: RepresentationSpace{ZNIrrep{N}}
+struct FiniteRepresentationSpace{G<:Sector,N} <: RepresentationSpace{G}
     dims::NTuple{N,Int}
     dual::Bool
 end
 ```
-The `GenericRepresentationSpace` is the default implementation and stores the different
-sectors ``a`` and their corresponding degeneracy ``n_a`` as key value pairs in an
-`Associative` array, i.e. a dictionary `dims::SectorDict`. `SectorDict` is a constant type
-alias for a specific dictionary implementation, either Julia's default `Dict` or the type
-`SortedVectorDict` implemented in TensorKit.jl. Note that only sectors ``a`` with non-zero
-``n_a`` are stored. The second implementation `ZNSpace{N}` is a dedicated implementation for
-`ZNIrrep{N}` symmetries, and just stores all `N` different values ``n_a`` in a tuple.
+The `GenericRepresentationSpace` implementation stores the different sectors ``a`` and
+their corresponding degeneracy ``n_a`` as key value pairs in an `Associative` array, i.e. a
+dictionary `dims::SectorDict`. `SectorDict` is a constant type alias for a specific
+dictionary implementation, either Julia's default `Dict` or the type `SortedVectorDict`
+implemented in TensorKit.jl. Note that only sectors ``a`` with non-zero ``n_a`` are stored.
+This implementation is used for sectors `G` which have
+`IteratorSize(values(G)) == IsInfinite()`.
+
+If `IteratorSize(values(G)) == HasLength()`, the second implementation
+`FiniteRepresentationSpace` is used instead, which stores the values ``n_a`` for the
+different sectors in a tuple, the lenght of which is given by `N = length(values(G))`. The
+methods `getindex(values(G), i)` and `findindex(values(G), a)` are used to map between a
+sector `a::G` and a corresponding index `i ∈ 1:N`.
 
 As mentioned, creating instances of these types goes via `RepresentationSpace`, using a list
 of pairs `a=>n_a`, i.e. `V = RepresentationSpace(a=>n_a, b=>n_b, c=>n_c)`. In this case, the
@@ -596,8 +624,8 @@ vector spaces, in which case it returns [`Trivial`](@ref). The function [`sector
 returns an iterator over the different sectors `a` with non-zero `n_a`, for other
 `ElementarySpace` types it returns `(Trivial,)`. The degeneracy dimensions `n_a` can be
 extracted as `dim(V, a)`, it properly returns `0` if sector `a` is not present in the
-decomposition of `V`. With `hassector(V, a)` one can check if `V` contains a sector `a` with
-`dim(V,a)>0`. Finally, `dim(V)` returns the total dimension of the space `V`, i.e.
+decomposition of `V`. With [`hassector(V, a)`](@ref) one can check if `V` contains a sector
+`a` with `dim(V,a)>0`. Finally, `dim(V)` returns the total dimension of the space `V`, i.e.
 ``∑_a n_a d_a`` or thus `dim(V) = sum(dim(V,a) * dim(a) for a in sectors(V))`.
 
 Other methods for `ElementarySpace`, such as [`dual`](@ref), [`fuse`](@ref) and
@@ -644,7 +672,7 @@ min(V1,V2)
 max(V1,V2)
 ⊕(V1,V2)
 W = ⊗(V1,V2)
-(sectors(W)...,)
+collect(sectors(W))
 dims(W, (U₁(0), U₁(0)))
 dim(W, (U₁(0), U₁(0)))
 hassector(W, (U₁(0), U₁(0)))
@@ -656,7 +684,7 @@ blockdim(W, U₁(0))
 and then with ``\mathsf{SU}_2``:
 ```@repl tensorkit
 V1 = RepresentationSpace{SU₂}(0=>3, 1//2=>2, 1=>1)
-V1 == SU2Space(0=>3, 1//2=>2, 1=>1) == SU₂Space(0=>3, 1//2=>2, 1=>1)
+V1 == SU2Space(0=>3, 1/2=>2, 1=>1) == SU₂Space(0=>3, 0.5=>2, 1=>1)
 (sectors(V1)...,)
 dim(V1, SU₂(1))
 dim(V1)
@@ -669,7 +697,7 @@ min(V1,V2)
 max(V1,V2)
 ⊕(V1,V2)
 W = ⊗(V1,V2)
-(sectors(W)...,)
+collect(sectors(W))
 dims(W, (SU₂(0), SU₂(0)))
 dim(W, (SU₂(0), SU₂(0)))
 hassector(W, (SU₂(0), SU₂(0)))
@@ -703,6 +731,52 @@ such that ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
 The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the
 fusion tensors. For ``\mathsf{SU}_2``, their entries are given by the Clebsch–Gordan
 coefficients
+
+
+
+
+
+
+In the representation and manipulation of symmetric tensors, it will be important to couple
+or fuse different sectors together into a single block sector. The section on
+[Fusion trees](@ref) describes the details of this process, which consists of pairwise
+fusing two sectors into a single coupled sector, which is then fused with the next
+uncoupled sector. For this, we assume the existence of a basis of unitary tensor maps
+``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` such that
+
+*   ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
+
+*   ``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
+
+The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the
+fusion tensors. For ``\mathsf{SU}_2``, their entries are precisely given by the CG
+coefficients. The point is that we do not need to know the tensors ``X_{a,b}^{c,μ}``, the
+topological data of (the representation category of) the group describes the following
+transformation:
+
+*   F-move or recoupling: the transformation between ``(a ⊗ b) ⊗ c`` to ``a ⊗ (b ⊗ c)``:
+
+    ``(X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) ∘ X_{e,c}^{d,ν} = ∑_{f,κ,λ} [F^{a,b,c}_{d}]^{e,μν}_{f,κλ} (X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) X_{e,c}^{d,ν} (\mathrm{id}_a ⊗ X_{b,c}^{f,κ}) ∘ X_{a,f}^{d,λ}``
+
+*   [Braiding](@ref) or permuting as defined by ``σ_{a,b}: R_a ⊗ R_b → R_b ⊗ R_a``:
+
+    ``σ_{a,b} ∘ X_{a,b}^{c,μ} = ∑_{ν} [R_{a,b}^c]^μ_ν X_{b,a}^{c,ν}``
+
+Furthermore, there is a relation between splitting vertices and fusion vertices given by the
+B-symbol, but we refer to the section on [Fusion trees](@ref) for the precise definition and
+further information. The required data is completely encoded in the the F-symbol, and
+corresponding Julia function `Bsymbol(a,b,c)` is implemented as
+```julia
+function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
+    if FusionStyle(G) isa Abelian || FusionStyle(G) isa SimpleNonAbelian
+        Fsymbol(a, b, dual(b), a, c, one(a))
+    else
+        reshape(Fsymbol(a,b,dual(b),a,c,one(a)), (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
+    end
+end
+```
+but a more efficient implementation may be provided.
+
 
 ### Canonical representation
 
