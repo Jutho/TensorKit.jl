@@ -23,17 +23,14 @@ ProductSpace
 The type hierarchy for representing sectors
 ```@docs
 Sector
+FusionStyle
+BraidingStyle
+Irrep
 AbelianIrrep
-ZNIrrep{N}
+ZNIrrep
 U1Irrep
 SU2Irrep
 CU1Irrep
-FusionStyle
-BraidingStyle
-Abelian
-NonAbelian
-SimpleNonAbelian
-DegenerateNonAbelian
 ```
 
 Methods often apply similar to e.g. spaces and corresponding tensors or tensor maps, e.g.:

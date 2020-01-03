@@ -2,11 +2,28 @@
 #==============================================================================#
 # Irreps of Abelian groups
 #------------------------------------------------------------------------------#
-abstract type Irrep <: Sector end # irreps have integer quantum dimensions
-abstract type AbelianIrrep <: Irrep end
+"""
+    abstract type Irrep <: Sector end
 
+Abstract supertype for sectors which corresponds to irreps (irreducible representations) of
+groups. As we assume unitary representations, these would be finite groups or compact Lie
+groups. Note that this could also include projective rather than linear representations.
+
+All irreps have [`BraidingStyle`](@ref) equal to `Bosonic()` and thus trivial twists.
+A fermionic sector can be created using [`Fermion`](@ref).
+"""
+abstract type Irrep <: Sector end # irreps have integer quantum dimensions
+Base.@pure BraidingStyle(::Type{<:Irrep}) = Bosonic()
+
+"""
+    abstract type AbelianIrrep <: Irrep end
+
+Abstract supertype for sectors which corresponds to irreps (irreducible representations) of
+abelian groups. They all have `FusionStyle` equal to `Abelian()` and thus trivial
+topological data, which is real valued.
+"""
+abstract type AbelianIrrep <: Irrep end
 Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
-Base.@pure BraidingStyle(::Type{<:AbelianIrrep}) = Bosonic()
 Base.isreal(::Type{<:AbelianIrrep}) = true
 
 Nsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = c == first(a ⊗ b)
@@ -20,9 +37,19 @@ fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} =
     fill(Float64(Nsymbol(a,b,c)), (1,1,1))
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 127?
+"""
+    struct ZNIrrep{N} <: AbelianIrrep
+        n::Int8
+    end
+
+Represents irreps of the group ``ℤ_N`` for some value of `N<64`. Unicode synonyms are
+available for the cases `N=2,3,4` as `ℤ₂`, `ℤ₃`, `ℤ₄`. Also the name `Parity` can be used
+as synonym for `ℤ₂`.
+"""
 struct ZNIrrep{N} <: AbelianIrrep
     n::Int8
     function ZNIrrep{N}(n::Integer) where {N}
+        @assert N < 64
         new{N}(mod(n, N))
     end
 end
@@ -60,6 +87,16 @@ Base.show(io::IO, c::ZNIrrep{N}) where {N} =
         print(io, c.n) : print(io, "ZNIrrep{", N, "}(" , c.n, ")")
 
 # U1Irrep: irreps of U1 are labelled by integers
+"""
+    struct U1Irrep <: AbelianIrrep
+        charge::HalfInt
+    end
+
+Represents irreps of the group `U₁ == SO₂`, both of which are valid unicode synonyms.
+The irrep is labelled by a charge, which should be an integer for a linear representation.
+However, it is often useful to allow half integers to represent irreps of `U₁` subgroups of
+``SU₂``. Hence, the charge is stored as a `HalfInt` from the package HalfIntegers.jl.
+"""
 struct U1Irrep <: AbelianIrrep
     charge::HalfInt
 end
@@ -80,6 +117,7 @@ Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(c)
 
 const U₁ = U1Irrep
+const SO₂ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
 Base.show(io::IO, c::U1Irrep) =
     get(io, :typeinfo, nothing) === U1Irrep ? print(io, c.charge) :
@@ -98,6 +136,16 @@ struct SU2IrrepException <: Exception end
 Base.show(io::IO, ::SU2IrrepException) =
     print(io, "Irreps of (bosonic or fermionic) `SU₂` should be labelled by non-negative half integers, i.e. elements of `Rational{Int}` with denominator 1 or 2")
 
+"""
+    struct SU2Irrep <: Irrep
+        j::HalfInt
+    end
+
+Represents irreps of the group `SU₂`, which is also a valid unicode synonym. The irrep is
+labelled by a half integer `j`, stored as a `HalfInt` from the HalfIntegers.jl package.
+Half-integer and integer irreps of `SU₂` are also projective and linear representation of
+`SO₃`, which is another valid unicode synonym.
+"""
 struct SU2Irrep <: Irrep
     j::HalfInt
     function SU2Irrep(j)
@@ -114,8 +162,7 @@ findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j)+1
 
 Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInt))
 Base.conj(s::SU2Irrep) = s
-⊗(s1::SU2Irrep, s2::SU2Irrep) =
-    SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
+⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
 
 # SU2Irrep(j::Real) = convert(SU2Irrep, j)
 Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(j)
@@ -123,7 +170,6 @@ Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(j)
 dim(s::SU2Irrep) = twice(s.j)+1
 
 Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
-Base.@pure BraidingStyle(::Type{SU2Irrep}) = Bosonic()
 Base.isreal(::Type{SU2Irrep}) = true
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
@@ -146,6 +192,7 @@ function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Nothing = nothin
 end
 
 const SU₂ = SU2Irrep
+const SO₃ = SU2Irrep
 Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "SU₂")
 Base.show(io::IO, s::SU2Irrep) =
     get(io, :typeinfo, nothing) === SU2Irrep ? print(io, s.j) : print(io, "SU₂(", s.j, ")")
@@ -154,6 +201,19 @@ Base.hash(s::SU2Irrep, h::UInt) = hash(s.j, h)
 Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 
 # U₁ ⋉ C (U₁ and charge conjugation)
+"""
+    struct CU1Irrep <: Irrep
+        j::HalfInt # value of the U1 charge
+        s::Int # rep of charge conjugation:
+    end
+
+Represents irreps of the group ``U₁ ⋉ C`` (``U₁`` and charge conjugation or reflection),
+which is also known as just `O₂`. Unicode synomyms are thus `CU₁` or `O₂`. The irrep is
+labelled by a positive half integer `j` (the ``U₁`` charge) and an integer `s` indicating
+the behaviour under charge conjugation. They take values:
+*   if j == 0, s = 0 (trivial charge conjugation) or s = 1 (non-trivial charge conjugation)
+*   if j > 0, s = 2 (two-dimensional representation)
+"""
 struct CU1Irrep <: Irrep
     j::HalfInt # value of the U1 charge
     s::Int # rep of charge conjugation:
@@ -244,7 +304,6 @@ end
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
 
 Base.@pure FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
-Base.@pure BraidingStyle(::Type{CU1Irrep}) = Bosonic()
 Base.isreal(::Type{CU1Irrep}) = true
 
 function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)

@@ -21,7 +21,7 @@ Irreps are also known as spin sectors (in the case of ``\mathsf{SU}_2``) or char
 briefly discussed below, the approach we follow does in fact go beyond the case of irreps
 of groups, and sectors would more generally correspond to simple objects in a (ribbon)
 fusion category. Nonetheless, every step can be appreciated by using the representation
-theory of ``\mathsf{SU}_2`` or ``\mathsf{SU}_3`` as example. The vector space ``V`` is
+theory of ``\mathsf{SU}_2`` or ``\mathsf{SU}_3`` as example. For practical reasons, we assume that there is a canonical order of the sectors, so that the vector space ``V`` is
 completely specified by the values of ``n_a``.
 
 The gain in efficiency (both in memory occupation and computation time) obtained from using
@@ -39,8 +39,9 @@ transform under transformations such as interchanging the order of the incoming 
 interchanging incoming and outgoing irreps. This information is known as the topological
 data of the group, i.e. mainly the F-symbols, which are also known as recoupling
 coefficients or [6j-symbols](https://en.wikipedia.org/wiki/6-j_symbol) (more accurately,
-it's actually [Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient))
-in the case of ``\mathsf{SU}_2``.
+the F-symbol is actually
+[Racah's W-coefficients](https://en.wikipedia.org/wiki/Racah_W-coefficient)
+in the case of ``\mathsf{SU}_2``).
 
 Below, we describe how to specify a certain type of sector and what information about them
 needs to be implemented. Then, we describe how to build a space ``V`` composed of a direct
@@ -61,7 +62,7 @@ complex conjugate of the representation ``a``, or a representation isomorphic to
 example, for the representations of ``\mathsf{SU}_2``, the trivial sector corresponds to
 spin zero and all irreps are self-dual (i.e. ``a = \overline{a}``), meaning that the
 conjugate representation is isomorphic to the non-conjugated one (they are however not
-equal).
+equal but related by a similarity transform).
 
 The meaning of the fusion rules is that the space of transformations ``R_a ⊗ R_b → R_c``
 (or vice versa) has dimension ``N_{a,b}^c``. In particular, we assume the existence of a
@@ -79,12 +80,12 @@ fusion tensors. They are only determined up to a unitary basis transform within 
 i.e. acting on the multiplicity label ``μ = 1, …, N_{a,b}^c``. For ``\mathsf{SU}_2``, where
 ``N_{a,b}^c`` is zero or one and the multiplicity labels are absent, the entries of
 ``X_{a,b}^{c}`` are precisely given by the CG coefficients. The point is that we do not
-need to know the tensors ``X_{a,b}^{c,μ}``, the topological data of (the representation
-category of) the group describes the following transformation:
+need to know the tensors ``X_{a,b}^{c,μ}`` explicitly, but only the topological data of
+(the representation category of) the group, which describes the following transformation:
 
 *   F-move or recoupling: the transformation between ``(a ⊗ b) ⊗ c`` to ``a ⊗ (b ⊗ c)``:
 
-    ``(X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) ∘ X_{e,c}^{d,ν} = ∑_{f,κ,λ} [F^{a,b,c}_{d}]^{e,μν}_{f,κλ} (X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) X_{e,c}^{d,ν} (\mathrm{id}_a ⊗ X_{b,c}^{f,κ}) ∘ X_{a,f}^{d,λ}``
+    ``(X_{a,b}^{e,μ} ⊗ \mathrm{id}_c) ∘ X_{e,c}^{d,ν} = ∑_{f,κ,λ} [F^{a,b,c}_{d}]^{e,μν}_{f,κλ} (\mathrm{id}_a ⊗ X_{b,c}^{f,κ}) ∘ X_{a,f}^{d,λ}``
 
 *   [Braiding](@ref) or permuting as defined by ``σ_{a,b}: R_a ⊗ R_b → R_b ⊗ R_a``:
 
@@ -289,7 +290,7 @@ findindex(::SectorValues{ZNIrrep{N}}, c::ZNIrrep{N}) where N = c.n + 1
 and ``\mathsf{U}_1``
 ```julia
 struct U1Irrep <: AbelianIrrep
-    charge::HalfInteger
+    charge::HalfInt
 end
 Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
@@ -312,13 +313,13 @@ const ℤ₃ = ZNIrrep{3}
 const ℤ₄ = ZNIrrep{4}
 const U₁ = U1Irrep
 ```
-In the definition of `U1Irrep`, `HalfInteger<:Number` is a Julia type defined in
-[WignerSymbols.jl](https://github.com/Jutho/WignerSymbols.jl), which is also used for
+In the definition of `U1Irrep`, `HalfInt<:Number` is a Julia type defined in
+[HalfIntegers.jl](https://github.com/sostock/HalfIntegers.jl), which is also used for
 `SU2Irrep` below, that stores integer or half integer numbers using twice their value.
 Strictly speaking, the linear representations of `U₁` can only have integer charges, and
 fractional charges lead to a projective representation. It can be useful to allow half
 integers in order to describe spin 1/2 systems with an axis rotation symmetry. As a user,
-you should not worry about the details of `HalfInteger`, and additional methods for
+you should not worry about the details of `HalfInt`, and additional methods for
 automatic conversion and pretty printing are provided, as illustrated by the following
 example
 ```@repl tensorkit
@@ -344,7 +345,7 @@ Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
 Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
 Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
 Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
-    isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInteger) < c1.charge == -c2.charge
+    isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
 ```
 Since sectors or objects made out of tuples of sectors (see the section on
 [Fusion Trees](@ref) below) are often used as keys in look-up tables (i.e. subtypes of
@@ -359,12 +360,11 @@ The first example of a non-abelian representation category is that of ``\mathsf{
 implementation of which is summarized by
 ```julia
 struct SU2Irrep <: Sector
-    j::HalfInteger
+    j::HalfInt
 end
-Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInteger))
+Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInt))
 Base.conj(s::SU2Irrep) = s
-⊗(s1::SU2Irrep, s2::SU2Irrep) =
-    SectorSet{SU2Irrep}(HalfInteger, abs(s1.j.num-s2.j.num):2:(s1.j.num+s2.j.num) )
+⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
 dim(s::SU2Irrep) = s.j.num+1
 Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
@@ -633,11 +633,10 @@ Other methods for `ElementarySpace`, such as [`dual`](@ref), [`fuse`](@ref) and
 in this case it is different then `dual`. The existence of flip originates from the
 non-trivial isomorphism between ``R_{\overline{a}}`` and ``R_{a}^*``, i.e. the
 representation space of the dual ``\overline{a}`` of sector ``a`` and the dual of the
-representation space of sector ``a``.
-
-In order for `flip(V)` to be isomorphic to `V`, it is such that, if
-`V = RepresentationSpace(a=>n_a,...)` then
+representation space of sector ``a``. In order for `flip(V)` to be isomorphic to `V`, it is
+such that, if `V = RepresentationSpace(a=>n_a,...)` then
 `flip(V) = dual(RepresentationSpace(dual(a)=>n_a,....))`.
+
 Furthermore, for two spaces `V1 = RepresentationSpace(a=>n1_a, ...)` and
 `V2 = RepresentationSpace(a=>n2_a, ...)`, we have
 `min(V1,V2) = RepresentationSpace(a=>min(n1_a,n2_a), ....)` and similarly for `max`,
@@ -652,8 +651,8 @@ function `dims(W, as)` returns the corresponding tuple with degeneracy dimension
 list (of type `Vector`) with all possible "block sectors" or total/coupled sectors that can
 result from fusing the individual uncoupled sectors in `W`. Correspondingly,
 [`blockdim(W, a)`](@ref) counts the total dimension of coupled sector `a` in `W`. The
-machinery for computing this is the topic of the next section on [Fusion trees](@ref), but
-first, it's time for some examples.
+machinery for computing this is the topic of the next section on
+[Fusion trees](@ref ss_fusiontrees), but first, it's time for some examples.
 
 ### Examples
 Let's start with an example involving ``\mathsf{U}_1``:
@@ -721,8 +720,8 @@ We refer to the latter as block sectors, as we already encountered in the previo
 
 To couple or fuse the different sectors together into a single block sector, we sequentially
 fuse together two sectors into a single coupled sector, which is then fused with the next
-uncoupled sector. For this, we assume the existence of unitary tensor maps
-``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` introduced in the section [Sectors](@ref).
+uncoupled sector. For this, we assume the existence of a basis of unitary tensor maps
+``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b``, introduced in the section on [representation theory](@ref ss_representationtheory).
 
 such that ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
 
@@ -733,23 +732,7 @@ fusion tensors. For ``\mathsf{SU}_2``, their entries are given by the Clebsch–
 coefficients
 
 
-
-
-
-
-In the representation and manipulation of symmetric tensors, it will be important to couple
-or fuse different sectors together into a single block sector. The section on
-[Fusion trees](@ref) describes the details of this process, which consists of pairwise
-fusing two sectors into a single coupled sector, which is then fused with the next
-uncoupled sector. For this, we assume the existence of a basis of unitary tensor maps
-``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` such that
-
-*   ``(X_{a,b}^{c,μ})^† X_{a,b}^{c,μ} = \mathrm{id}_{R_c}`` and
-
-*   ``\sum_{c} \sum_{μ = 1}^{N_{a,b}^c} X_{a,b}^{c,μ} (X_{a,b}^{c,μ})^\dagger = \mathrm{id}_{R_a ⊗ R_b}``
-
-The tensors ``X_{a,b}^{c,μ}`` are the splitting tensors, their hermitian conjugate are the
-fusion tensors. For ``\mathsf{SU}_2``, their entries are precisely given by the CG
+For ``\mathsf{SU}_2``, their entries are precisely given by the CG
 coefficients. The point is that we do not need to know the tensors ``X_{a,b}^{c,μ}``, the
 topological data of (the representation category of) the group describes the following
 transformation:

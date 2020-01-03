@@ -23,14 +23,14 @@ manual.
 As the tensor product of vector spaces is itself a vector space, this implies that a tensor
 behaves as a vector, i.e. tensors from the same tensor product space can be added and
 multiplied by scalars. The tensor product is only defined for vector spaces over the same
-field, i.e. there is no meaning in ``ℝ^5 ⊗ ℂ^3``. When all the vector spaces in the tensor
-product have an inner product, this also implies an inner product for the tensor product
-space. It is hence clear that the different vector spaces in the tensor product should have
-some form of homogeneity in their structure, yet they do not need to be all equal and can
-e.g. have different dimensions. It goes without saying that defining the vector spaces and
-their properties will be an important part of the definition of a tensor. As a consequence,
-this also constitutes a significant part of the implementation, and is discussed in the
-section on [Vector spaces](@ref).
+field of scalars, e.g. there is no meaning in ``ℝ^5 ⊗ ℂ^3``. When all the vector spaces in
+the tensor product have an inner product, this also implies an inner product for the tensor
+product space. It is hence clear that the different vector spaces in the tensor product
+should have some form of homogeneity in their structure, yet they do not need to be all
+equal and can e.g. have different dimensions. It goes without saying that defining the
+vector spaces and their properties will be an important part of the definition of a tensor.
+As a consequence, this also constitutes a significant part of the implementation, and is
+discussed in the section on [Vector spaces](@ref).
 
 Aside from the interpretation of a tensor as a vector, we also want to interpret it as a
 matrix (or more correctly, a linear map) in order to decompose tensors using linear algebra
@@ -54,8 +54,8 @@ to order and partition the tensor indices (i.e. the vector spaces). For example,
 map ``W → V`` is often denoted as a rank 2 tensor in ``V ⊗ W^*``, where ``W^*`` corresponds
 to the dual space of ``W``. This simple example introduces two new concepts.
 
-1.  Typical vector spaces can appear in the domain and codomain in different variants, e.g.
-    as normal space or dual space. In fact, the most generic case is that every vector
+1.  Typical vector spaces can appear in the domain and codomain in different related forms,
+    e.g. as normal space or dual space. In fact, the most generic case is that every vector
     space ``V`` has associated with it
     a [dual space](https://en.wikipedia.org/wiki/Dual_space) ``V^*``,
     a [conjugate space](https://en.wikipedia.org/wiki/Complex_conjugate_vector_space)
@@ -80,7 +80,7 @@ to the dual space of ``W``. This simple example introduces two new concepts.
     conjugate representation of the unitary group are the same). Again we only need upper
     and lower indices (or kets and bras).
 
-    Finally, in ``ℝ^d`` with a Euclidean inner product, these four different spaces are
+    Finally, in ``ℝ^d`` with a Euclidean inner product, these four different spaces are all
     equivalent and we only need one type of index. The space is completely characterized by
     its dimension ``d``. This is the setting of much of classical mechanics and we refer to
     such tensors as cartesian tensors and the corresponding space as cartesian space. These
@@ -100,10 +100,10 @@ This brings us to our final (yet formal) definition
 
 *   A tensor (map) is a homorphism between two objects from the category ``\mathbf{Vect}``
     (or some subcategory thereof). In practice, this will be ``\mathbf{FinVect}``, the
-    category of finite dimensional vector spaces. More generally, our concept of a tensor
-    makes sense, in principle, for any linear (a.k.a. ``\mathbf{Vect}``-enriched) monoidal
-    category. We refer to the section
-    "[Monoidal categories and their properties (optional)](@ref)".
+    category of finite dimensional vector spaces. More generally even, our concept of a
+    tensor makes sense, in principle, for any linear (a.k.a. ``\mathbf{Vect}``-enriched)
+    monoidal category. We refer to the section
+    "[Monoidal categories and their properties](@ref ss_categories)".
 
 ## [Symmetries and block sparsity](@id ss_symmetries)
 
@@ -129,9 +129,9 @@ by ``∑_a n_a d_a``.
 
 The reason for implementing symmetries is to exploit the computation and memory gains
 resulting from restricting to tensor maps ``t:W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2} → V_1 ⊗ V_2 ⊗ … ⊗
-V_{N_1}`` that are invariant under the symmetry (i.e. that act as
+V_{N_1}`` that are invariant under the symmetry, i.e. that act as
 [intertwiners](https://en.wikipedia.org/wiki/Equivariant_map#Representation_theory)
-between the symmetry action on the domain and the codomain). Indeed, such tensors should be
+between the symmetry action on the domain and the codomain. Indeed, such tensors should be
 block diagonal because of [Schur's lemma](https://en.wikipedia.org/wiki/Schur%27s_lemma),
 but only after we couple the individual irreps in the spaces ``W_i`` to a joint irrep,
 which is then again split into the individual irreps of the spaces ``V_i``. The basis
@@ -145,17 +145,19 @@ rules of the irreps, their quantum dimensions and the F-symbol (6j-symbol or mor
 Racah's W-symbol in the case of ``\mathsf{SU}_2``). In particular, we don't actually need
 the Clebsch–Gordan coefficients themselves (but they can be useful for checking purposes).
 
-Further details are provided in [Sectors, representation spaces and fusion trees](@ref).
+Further details are provided in
+[Sectors, representation spaces and fusion trees](@ref s_sectorsrepfusion).
 
 ## [Monoidal categories and their properties (optional)](@id ss_categories)
 
 The purpose of this final introductory section (which can safely be skipped), is to explain
 how certain concepts and terminology from the theory of monoidal categories apply in the
-context of tensors.  In the end, identifying tensor manipulations in TensorKit.jl with
-concepts from category theory is to put the diagrammatic formulation of tensor networks in
-the most general context on a firmer footing. The following definitions are mostly based on
-[^selinger], [^kassel] and [``n``Lab](https://ncatlab.org/), to which we refer for further
-information. Furthermore, we recommend the nice introduction of [Beer et al.](^beer)
+context of tensors.  In the end, the goal of identifying tensor manipulations in
+TensorKit.jl with concepts from category theory is to put the diagrammatic formulation of
+tensor networks in the most general context on a firmer footing. The following definitions
+are mostly based on [^selinger], [^kitaev], [^kassel], [^turaev] and [``n``Lab](https://ncatlab.org/),
+to which  we refer for further information. Furthermore, we recommend the nice introduction
+of [Beer et al.](^beer)
 
 To start, a category ``C`` consists of
 *   a class ``|C|`` of objects ``V``, ``W``, …
@@ -176,7 +178,7 @@ a *monoidal category*, which has
 *   a binary operation on objects ``⊗: |C| × |C| → |C|``
 *   a binary operation on morphisms, also denoted as ``⊗``, such that
     ``⊗: hom(W_1,V_1) × hom(W_2,V_2) → hom(W_1 ⊗ W_2, V_1 ⊗ V_2)``
-*   an identity object ``I``
+*   an identity or unit object ``I``
 *   three families of natural isomorphisms:
     *   ``∀ V ∈ |C|``, a left unitor ``λ_V: I ⊗ V → V``
     *   ``∀ V ∈ |C|``, a right unitor ``ρ_V: V ⊗ I → V``
@@ -391,6 +393,16 @@ the identity. We will return to this in the discussion of fermions.
 [^selinger]:    Selinger, P. (2010). A survey of graphical languages for monoidal
                 categories.
                 In New structures for physics (pp. 289-355). Springer, Berlin, Heidelberg.
+
+[^kitaev]:      Kitaev, A. (2006). Anyons in an exactly solved model and beyond.
+                Annals of Physics, 321(1), 2-111.
+
+[^kassel]:      Kassel, C. (2012). Quantum groups (Vol. 155).
+                Springer Science & Business Media.
+
+[^turaev]:      Turaev, V. G., & Virelizier, A. (2017). Monoidal categories and topological
+                field theory (Vol. 322).
+                Birkhäuser.
 
 [^beer]:        From categories to anyons: a travelogue
                 Kerstin Beer, Dmytro Bondarenko, Alexander Hahn, Maria Kalabakov, Nicole
