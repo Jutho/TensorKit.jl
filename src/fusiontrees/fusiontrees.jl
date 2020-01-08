@@ -51,7 +51,7 @@ function Base.hash(f::FusionTree{G}, h::UInt) where {G}
         hash(f.vertices, hash(f.innerlines, hash(f.uncoupled, hash(f.coupled, h))))
     end
 end
-function Base.isequal(f1::FusionTree{G,N}, f2::FusionTree{G,N}) where {G,N}
+function Base.isequal(f1::FusionTree{G,N}, f2::FusionTree{G,N}) where {G<:Sector,N}
     f1.coupled == f2.coupled || return false
     @inbounds for i = 1:N
         f1.uncoupled[i] == f2.uncoupled[i] || return false
@@ -68,7 +68,7 @@ function Base.isequal(f1::FusionTree{G,N}, f2::FusionTree{G,N}) where {G,N}
     end
     return true
 end
-Base.isequal(f1::FusionTree{G1,N1}, f2::FusionTree{G2,N2}) where {G1,G2,N1,N2} = false
+Base.isequal(f1::FusionTree, f2::FusionTree) = false
 
 # Facilitate getting correct fusion tree types
 Base.@pure fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} =

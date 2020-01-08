@@ -9,7 +9,8 @@ corresponding coefficients.
 The keyword `inv` determines whether index `i` will braid above or below index `i+1`, i.e.
 applying `artin_braid(t′, i; inv = true)` to all the outputs `t′` of
 `artin_braid(t, i; inv = false)` and collecting the results should yield a single fusion
-tree with non-zero coefficient, namely `t` with coefficient `1`. This keyword has no effect if  `BraidingStyle(sectortype(t)) isa SymmetricBraiding`.
+tree with non-zero coefficient, namely `t` with coefficient `1`. This keyword has no effect
+if  `BraidingStyle(sectortype(t)) isa SymmetricBraiding`.
 """
 function artin_braid(t::FusionTree{G,N}, i; inv::Bool = false) where {G<:Sector, N}
     1 <= i < N ||
@@ -145,7 +146,12 @@ end
     function split(t::FusionTree{G,N}, ::StaticLength(M))
         -> (::FusionTree{G,M}, ::FusionTree{G,N-M+1})
 
-Split a fusion tree with the first M outgoing indices, and an incoming index corresponding to the internal fusion tree index between outgoing indices N and N+1 of the original tree t; and a second fusion tree whose first outgoing index is that same internal index. Its remaining outgoing indices are the N-M outgoing indices of the original tree `t`, and also the incoming index is the same. This is in the inverse of `insertat` in the sense that if `t1, t2 = split(t, StaticLength(M)) ⇒ t == insertat(t2, 1, t1)`.
+Split a fusion tree with the first M outgoing indices, and an incoming index corresponding
+to the internal fusion tree index between outgoing indices N and N+1 of the original tree
+`t`; and a second fusion tree whose first outgoing index is that same internal index. Its
+remaining outgoing indices are the N-M outgoing indices of the original tree `t`, and also
+the incoming index is the same. This is in the inverse of `insertat` in the sense that if
+`t1, t2 = split(t, StaticLength(M)) ⇒ t == insertat(t2, 1, t1)`.
 """
 Base.split(t::FusionTree{G,N}, ::StaticLength{N}) where {G,N} =
     (t, FusionTree{G}((t.coupled,), t.coupled, (), ()))
@@ -183,7 +189,8 @@ end
     function merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂})
         -> <:AbstractDict{<:FusionTree{G,N₁+N₂},<:Number}
 
-Merge two fusion trees together to a linear combination of fusion trees whose uncoupled sectors are those of `t1` followed by those of `t2`.
+Merge two fusion trees together to a linear combination of fusion trees whose uncoupled
+sectors are those of `t1` followed by those of `t2`.
 """
 function Base.merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}) where {G,N₁,N₂}
     if FusionStyle(G) == Abelian
@@ -217,7 +224,9 @@ Base.merge(t1::FusionTree{G,0}, t2::FusionTree{G,0}) where {G} =
     function insertat(t::FusionTree{G,N₁}, i, t2::FusionTree{G,N₂})
         -> <:AbstractDict{<:FusionTree{G,N₁+N₂-1},<:Number}
 
-Attach a fusion tree `t2` to the uncoupled leg `i` of the fusion tree `t1` and bring it into a linear combination of fusion trees in standard form. This requires that `t2.coupled == t1.uncoupled[i]`.
+Attach a fusion tree `t2` to the uncoupled leg `i` of the fusion tree `t1` and bring it
+into a linear combination of fusion trees in standard form. This requires that
+`t2.coupled == t1.uncoupled[i]`.
 """
 function insertat(t1::FusionTree{G}, i, t2::FusionTree{G,0}) where {G}
     # this actually removes uncoupled line i
@@ -426,27 +435,35 @@ repartitioning and permuting the tree such that sectors `p1` become outgoing and
 `p2` become incoming.
 """
 function permute(t1::FusionTree{G}, t2::FusionTree{G},
-                    p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
-    d = get!(permutecache, (t1, t2, p1, p2)) do
-        _permute(t1, t2, p1, p2)
-    end
-    if FusionStyle(t1) isa Abelian
+                    p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {G<:Sector,N₁,N₂}
+    @assert length(t1) + length(t2) == N₁ + N₂
+    @assert TupleTools.isperm((p1..., p2...))
+    if FusionStyle(G) isa Abelian
         u = one(G)
         T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
         F₁ = fusiontreetype(G, StaticLength(N₁))
         F₂ = fusiontreetype(G, StaticLength(N₂))
-        return d::SingletonDict{Tuple{F₁,F₂}, T}
+        D = SingletonDict{Tuple{F₁,F₂}, T}
     else
         u = one(G)
         T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
         F₁ = fusiontreetype(G, StaticLength(N₁))
         F₂ = fusiontreetype(G, StaticLength(N₂))
-        return d::FusionTreeDict{Tuple{F₁,F₂}, T}
+        D = FusionTreeDict{Tuple{F₁,F₂}, T}
     end
+    return _get_permute(D, (t1, t2, p1, p2))
 end
-function _permute(t1::FusionTree{G}, t2::FusionTree{G},
-                    p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int}) where {G<:Sector, N₁,N₂}
-    @assert length(t1) + length(t2) == N₁ + N₂
+
+function _get_permute(::Type{D}, @nospecialize(key)) where D
+    d::D = get!(permutecache, key) do
+        _permute(key)
+    end
+    return d
+end
+
+const PermuteFusionTreeKey{G<:Sector,N₁,N₂} =
+    Tuple{<:FusionTree{G},<:FusionTree{G},IndexTuple{N₁},IndexTuple{N₂}}
+function _permute((t1, t2, p1, p2)::PermuteFusionTreeKey{G,N₁,N₂}) where {G<:Sector,N₁,N₂}
     p = linearizepermutation(p1, p2, length(t1), length(t2))
     if FusionStyle(t1) isa Abelian
         (t,t0), coeff1 = first(repartition(t1, t2, StaticLength(N₁) + StaticLength(N₂)))
@@ -473,7 +490,7 @@ end
 
 function braid(t1::FusionTree{G}, t2::FusionTree{G},
                     levels1::IndexTuple, levels2::IndexTuple,
-                    p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {G<:Sector, N₁,N₂}
+                    p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {G<:Sector,N₁,N₂}
     @assert length(t1) + length(t2) == N₁ + N₂
     p = linearizepermutation(p1, p2, length(t1), length(t2))
     levels = (levels1..., reverse(levels2)...)
