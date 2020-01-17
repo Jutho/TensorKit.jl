@@ -8,7 +8,7 @@ makedocs(modules=[TensorKit],
                                         mathengine = MathJax()),
             pages = [
                 "Home" => "index.md",
-                "Manual" => ["man/intro.md", "man/spaces.md",
+                "Manual" => ["man/intro.md", "man/categories.md", "man/spaces.md",
                                 "man/sectors.md", "man/tensors.md"],
                 "Library" => ["lib/spaces.md"],
                 "Index" => ["index/index.md"]

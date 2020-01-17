@@ -33,7 +33,7 @@ GPUs for the different operations defined on tensors.
 ## Contents of the manual
 
 ```@contents
-Pages = ["man/intro.md", "man/spaces.md", "man/sectors.md", "man/tensors.md"]
+Pages = ["man/intro.md", "man/categories.md", "man/spaces.md", "man/sectors.md", "man/tensors.md"]
 Depth = 3
 ```
 

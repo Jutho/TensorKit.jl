@@ -774,6 +774,9 @@ TODO
 TODO
 
 ## Bibliography
+[^tung]:        Tung, W. K. (1985). Group theory in physics: an introduction to symmetry principles, group representations, and special functions in classical and quantum physics.
+                World Scientific Publishing Company.
+
 [^kitaev]:
     Kitaev, A. (2006). Anyons in an exactly solved model and beyond.
     Annals of Physics, 321(1), 2-111.
