@@ -76,7 +76,7 @@ as a `<:AbstractDict` of output trees and corresponding coefficients. The braidi
 specified by specifying that index `i` goes to position `perm[i]` and assinging to every
 index a distinct level `levels[i]`. This permutation is then decomposed into elementary
 swaps between neighbouring indices, where the swaps are applied as braids such that if `i`
-and `j` cross, `σ_{i,j}` is applied if `levels[i] < levels[j]` and `σ_{j,i}^{-1}` if
+and `j` cross, `τ_{i,j}` is applied if `levels[i] < levels[j]` and `τ_{j,i}^{-1}` if
 `levels[i] > levels[j]`. This does not allow to encode the most general braid, but a
 general braid can be obtained by combining such operations.
 """
@@ -186,39 +186,30 @@ function Base.split(t::FusionTree{G,N}, ::StaticLength{M}) where {G,N,M}
 end
 
 """
-    function merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂})
+    function merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}, c::G, μ = nothing)
         -> <:AbstractDict{<:FusionTree{G,N₁+N₂},<:Number}
 
 Merge two fusion trees together to a linear combination of fusion trees whose uncoupled
-sectors are those of `t1` followed by those of `t2`.
+sectors are those of `t1` followed by those of `t2`, and where the two coupled sectors of
+`t1` and `t2` are further fused to `c`. In case of
+`FusionStyle(G) == DegenerateNonAbelian()`, also a degeneracy label `μ` for the fusion of
+the coupled sectors of `t1` and `t2` to `c` needs to be specified.
 """
-function Base.merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂}) where {G,N₁,N₂}
-    if FusionStyle(G) == Abelian
-        c = first(t1.coupled ⊗ t2.coupled)
-        t0 = first(fusiontrees((t1.coupled, t2.coupled), c))
-        t, coeff = first(insertat(t0, 1, t1)) # takes fast path, single output
-        @assert coeff == one(coeff)
-        return insertat(t, N₁+1, t2)
-    else
-        local newtrees
-        for c in t1.coupled ⊗ t2.coupled
-            for t0 in fusiontrees((t1.coupled, t2.coupled), c)
-                t, coeff = first(insertat(t0, 1, t1)) # takes fast path, single output
-                @assert coeff == one(coeff)
-                if @isdefined newtrees
-                    for (t′, coeff′) in insertat(t, N₁+1, t2)
-                        newtrees[t′] = get(newtrees, t′, zero(coeff′)) + coeff′
-                    end
-                else
-                    newtrees = insertat(t, N₁+1, t2)
-                end
-            end
-        end
-        return newtrees
+function Base.merge(t1::FusionTree{G,N₁}, t2::FusionTree{G,N₂},
+                    c::G, μ = nothing) where {G,N₁,N₂}
+    if !(c in t1.coupled ⊗ t2.coupled)
+        throw(SectorMismatch("cannot fuse sectors $(t1.coupled) and $(t2.coupled) to $c"))
     end
+    t0 = FusionTree((t1.coupled, t2.coupled), c, (), (μ,))
+    t, coeff = first(insertat(t0, 1, t1)) # takes fast path, single output
+    @assert coeff == one(coeff)
+    return insertat(t, N₁+1, t2)
 end
-Base.merge(t1::FusionTree{G,0}, t2::FusionTree{G,0}) where {G} =
-    SingletonDict(t1=>Fsymbol(one(G),one(G),one(G),one(G),one(G),one(G)))
+function Base.merge(t1::FusionTree{G,0}, t2::FusionTree{G,0}, c::G, μ =nothing) where {G}
+    c == one(G) ||
+        throw(SectorMismatch("cannot fuse sectors $(t1.coupled) and $(t2.coupled) to $c"))
+    return SingletonDict(t1=>Fsymbol(one(G),one(G),one(G),one(G),one(G),one(G)))
+end
 
 """
     function insertat(t::FusionTree{G,N₁}, i, t2::FusionTree{G,N₂})

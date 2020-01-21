@@ -1,4 +1,4 @@
-# Vector spaces
+# Vector spaces, symmetry sectors an fusion trees
 
 ```@meta
 CurrentModule = TensorKit
@@ -53,7 +53,7 @@ flip
 :⊕
 oneunit
 ```
-or also on `ProductSpace`
+while the following also work on `ProductSpace`
 
 ```@docs
 fuse

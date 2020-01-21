@@ -4,9 +4,8 @@
 using TensorKit
 ```
 
-From the [Introduction](@ref), it should be clear that an important aspect in the definition
-of a tensor (map) is specifying the vector spaces and their structure in the domain and
-codomain of the map. The starting point is an abstract type `VectorSpace`
+From the [Introduction](@ref s_intro), it should be clear that an important aspect in the
+definition of a tensor (map) is specifying the vector spaces and their structure in the domain and codomain of the map. The starting point is an abstract type `VectorSpace`
 ```julia
 abstract type VectorSpace end
 ```
@@ -21,13 +20,14 @@ abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 Here, `ElementarySpace` is a super type for all vector spaces that can be associated with
 the individual indices of a tensor, as hinted to by its alias `IndexSpace`. It is
 parametrically dependent on `𝕜`, the field of scalars (see the next section on
-[Fields](@ref)).
+[Fields](@ref ss_fields)).
 
 On the other hand, subtypes of `CompositeSpace{S}` where `S<:ElementarySpace` are composed
 of a number of elementary spaces of type `S`. So far, there is a single concrete type
 `ProductSpace{S,N}` that represents the homogeneous tensor product of `N` vector spaces of
-type `S`. Its properties are discussed in the section on [Composite spaces](@ref), together
-with possible extensions for the future.
+type `S`. Its properties are discussed in the section on
+[Composite spaces](@ref ss_compositespaces), together with possible extensions for the
+future.
 
 ## [Fields](@id ss_fields)
 
@@ -58,7 +58,7 @@ and furthermore—probably more usefully—`ℝ^n` and `ℂ^n` create specific e
 spaces as described in the next section. The underlying field of a vector space or tensor
 `a` can be obtained with `field(a)`.
 
-## [Elementary vector spaces](@id ss_elementaryspaces)
+## [Elementary spaces](@id ss_elementaryspaces)
 
 As mentioned at the beginning of this section, vector spaces that are associated with the
 individual indices of a tensor should be implemented as subtypes of `ElementarySpace`. As
@@ -95,7 +95,7 @@ end
 
 We furthermore define the abstract type
 ```julia
-abstract InnerProductSpace{𝕜} <: ElementarySpace{𝕜}
+abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
 ```
 to contain all vector spaces `V` which have an inner product and thus a canonical mapping
 from `dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This
@@ -104,16 +104,19 @@ currently implemented.
 
 Finally there is
 ```julia
-abstract EuclideanSpace{𝕜} <: InnerProductSpace{𝕜}
+abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end
 ```
 to contain all spaces `V` with a standard Euclidean inner product (i.e. where the metric is
 the identity). These spaces have the natural isomorphisms `dual(V) == V` (for `𝕜 == ℝ`)
-or `dual(V) == conj(V)` (for ` 𝕜 == ℂ`). In particular, we have two concrete types
+or `dual(V) == conj(V)` (for ` 𝕜 == ℂ`). In the language of the previous section on
+[categories](@ref s_categories), this subtype represents
+[dagger or unitary categories](@ref ss_adjoints), and support an `adjoint` operation. In
+particular, we have two concrete types
 ```julia
-immutable CartesianSpace <: EuclideanSpace{ℝ}
+struct CartesianSpace <: EuclideanSpace{ℝ}
     d::Int
 end
-immutable ComplexSpace <: EuclideanSpace{ℂ}
+struct ComplexSpace <: EuclideanSpace{ℂ}
   d::Int
   dual::Bool
 end
@@ -130,10 +133,10 @@ isdual((ℂ^5)')
 isdual((ℝ^5)')
 dual(ℂ^5) == (ℂ^5)' == conj(ℂ^5)
 ```
-We refer to the next section on [Sectors, representation spaces and fusion trees](@ref) for
-further information about `RepresentationSpace`, which is another subtype of
-`EuclideanSpace{ℂ}` with an inner structure corresponding to the irreducible
-representations of a group.
+We refer to the subsection on [representation spaces](@ref s_rep) on the
+[next page](@ref s_sectorsrepfusion) for further information about `RepresentationSpace`,
+which is another subtype of `EuclideanSpace{ℂ}` with an inner structure corresponding to
+the irreducible representations of a group.
 
 ## [Composite spaces](@id ss_compositespaces)
 
@@ -162,7 +165,8 @@ dual(V1 ⊗ V2)
 ```
 Here, the new function `dims` maps `dim` to the individual spaces in a `ProductSpace` and
 returns the result as a tuple. Note that the rationale for the last result was explained in
-the subsection [Duals](@ref) of [Monoidal categories and their properties (optional)](@ref).
+the subsection on [duality](@ref ss_dual) in the introduction to
+[category theory](@ref s_categories).
 
 Following Julia's Base library, the function `one` applied to a `ProductSpace{S,N}` returns
 the multiplicative identity, which is `ProductSpace{S,0}`. The same result is obtained when
@@ -194,7 +198,7 @@ space. Again, isomorphism here implies that a unitary map (but there is no canon
 choice) can be constructed between both spaces. `flip(V1)` is different from `dual(V1)` in
 the case of [`RepresentationSpace`](@ref). It is useful to flip a tensor index from a ket
 to a bra (or vice versa), by contracting that index with a unitary map from `V1` to
-`flip(V1)`. We refer to `[Index operations](@ref)` for further information. Some examples:
+`flip(V1)`. We refer to [Index operations](@ref) for further information. Some examples:
 ```@repl tensorkit
 fuse(ℝ^5, ℝ^3)
 fuse(ℂ^3, (ℂ^5)', ℂ^2)
@@ -224,6 +228,8 @@ min(ℝ^5, ℝ^3)
 max(ℂ^5, ℂ^3)
 max(ℂ^5, (ℂ^3)')
 ```
-Again, we impose `isdual(V1) == isdual(V2)`. As before, the use of these methods is to
-construct unitary or isometric tensors that map between different spaces, which will be
-elaborated upon in the section on Tensors.
+Again, we impose `isdual(V1) == isdual(V2)`. There is a more technical definition, which
+will be necessary for the case of `RepresentationSpace`. `min(V1,V2)` should be a space `V`
+that admits an isometry (i.e. a map with its dagger as left inverse, but possibly without
+right inverse) from both `V` to `V1` and `V` to `V2`. Vice versa, `max(V1,V2)` should be a
+space `V` such that there exist isometries `V1→V` and `V2→V`.

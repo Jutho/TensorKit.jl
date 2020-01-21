@@ -137,11 +137,13 @@ LinearAlgebra.:×(G1::Type{<:Sector}, G2::Type{<:Sector}) = ProductSector{Tuple{
 
 function Base.show(io::IO, P::ProductSector)
     sectors = P.sectors
-    sep = get(io, :compact, false) ? ", " : " × "
+    compact = get(io, :typeinfo, nothing) === typeof(P)
+    sep = compact ? ", " : " × "
     print(io,"(")
     for i = 1:length(sectors)
         i == 1 || print(io, sep)
-        print(io, sectors[i])
+        io2 = compact ? IOContext(io, :typeinfo => typeof(sectors[i])) : io
+        print(io2, sectors[i])
     end
     print(io,")")
 end

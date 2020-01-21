@@ -131,7 +131,7 @@ end
 """
     function Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:Sector}
 
-Return the F-symbol F^{a,b,c}_d that associates the two different fusion orders of sectors
+Return the F-symbol F^{abc}_d that associates the two different fusion orders of sectors
 `a`, `b` and `c` into an ouput sector `d`, using either an intermediate sector `a ⊗ b → e`
 or `b ⊗ c → f`:
 ```
@@ -151,7 +151,7 @@ Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 """
     function Rsymbol(a::G, b::G, c::G) where {G<:Sector}
 
-Returns the R-symbol R^{c}_{a,b} that maps between `a ⊗ b → c` and `b ⊗ a → c` as in
+Returns the R-symbol R^{ab}_c that maps between `a ⊗ b → c` and `b ⊗ a → c` as in
 ```
 a -<-μ-<- c                                 b -<-ν-<- c
      ∨          -> Rsymbol(a,b,c)[μ,ν]           ∧
@@ -246,7 +246,7 @@ end
 """
     function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
 
-Return the value of B^{a,b}_c which appears in transforming a splitting vertex
+Return the value of B^{ab}_c which appears in transforming a splitting vertex
 into a fusion vertex using the transformation
 ```
 a -<-μ-<- c                                 a -<-ν-<- c

@@ -3,7 +3,7 @@
 Before providing a typical "user guide" and discussing the implementation of TensorKit.jl
 on the next pages, let us discuss some of the rationale behind this package.
 
-## [What is a tensor?](@id ss_tensor)
+## [What is a tensor?](@id ss_whatistensor)
 
 At the very start we should ponder about the most suitable and sufficiently general
 definition of a tensor. A good starting point is the following:
@@ -30,7 +30,7 @@ should have some form of homogeneity in their structure, yet they do not need to
 equal and can e.g. have different dimensions. It goes without saying that defining the
 vector spaces and their properties will be an important part of the definition of a tensor.
 As a consequence, this also constitutes a significant part of the implementation, and is
-discussed in the section on [Vector spaces](@ref).
+discussed in the section on [Vector spaces](@ref s_spaces).
 
 Aside from the interpretation of a tensor as a vector, we also want to interpret it as a
 matrix (or more correctly, a linear map) in order to decompose tensors using linear algebra
@@ -63,9 +63,9 @@ to the dual space of ``W``. This simple example introduces two new concepts.
     vector spaces ``V``, ``V^*``, ``\overline{V}`` and ``\overline{V}^*`` correspond to the
     representation spaces of respectively the fundamental, dual or contragredient, complex
     conjugate and dual complex conjugate representation of the general linear group
-    ``\mathsf{GL}(V)`` [^tung]. In index notation these spaces are denoted with
-    respectively contravariant (upper), covariant (lower), dotted contravariant
-    and dotted covariant indices.
+    ``\mathsf{GL}(V)``. In index notation these spaces are denoted with respectively
+    contravariant (upper), covariant (lower), dotted contravariant and dotted covariant
+    indices.
 
     For real vector spaces, the conjugate (dual) space is identical to the normal (dual)
     space and we only have upper and lower indices, i.e. this is the setting of e.g.
@@ -87,7 +87,7 @@ to the dual space of ``W``. This simple example introduces two new concepts.
     are the tensors that can equally well be represented as multidimensional arrays (i.e.
     using some `AbstractArray{<:Real,N}` in Julia) without loss of structure.
 
-    The implementation of all of this is discussed in [Vector spaces](@ref).
+    The implementation of all of this is discussed in [Vector spaces](@ref s_spaces).
 
 2.  In the generic case, the identification between maps ``W → V`` and tensors in
     ``V ⊗ W^*`` is not an equivalence but an isomorphism, which needs to be defined.
@@ -103,8 +103,8 @@ This brings us to our final (yet formal) definition
     (or some subcategory thereof). In practice, this will be ``\mathbf{FinVect}``, the
     category of finite dimensional vector spaces. More generally even, our concept of a
     tensor makes sense, in principle, for any linear (a.k.a. ``\mathbf{Vect}``-enriched)
-    monoidal category. We refer to the section
-    "[Monoidal categories and their properties](@ref ss_categories)".
+    monoidal category. We refer to the next page on
+    "[Monoidal categories and their properties](@ref s_categories)".
 
 ## [Symmetries and block sparsity](@id ss_symmetries)
 
@@ -120,8 +120,8 @@ i.e.
 with ``R_a`` the space associated with irrep ``a`` of ``\mathsf{G}``, which itself has
 dimension ``d_a`` (often called the quantum dimension), and ``n_a`` the number of times
 this irrep appears in ``V``. If the unitary irrep ``a`` for ``g ∈ \mathsf{G}`` is given by
-``u_a(g)``, then the group action of ``\mathsf{G}`` on ``V`` is given by the unitary
-representation
+``u_a(g)``, then there exists a specific basis for ``V`` such that the group action of
+``\mathsf{G}`` on ``V`` is given by the unitary representation
 
 ``u(g) = \bigoplus_{a}  𝟙_{n_a} ⊗ u_a(g)``
 
@@ -130,7 +130,7 @@ by ``∑_a n_a d_a``.
 
 The reason for implementing symmetries is to exploit the computation and memory gains
 resulting from restricting to tensor maps ``t:W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2} → V_1 ⊗ V_2 ⊗ … ⊗
-V_{N_1}`` that are invariant under the symmetry, i.e. that act as
+V_{N_1}`` that are equivariant under the symmetry, i.e. that act as
 [intertwiners](https://en.wikipedia.org/wiki/Equivariant_map#Representation_theory)
 between the symmetry action on the domain and the codomain. Indeed, such tensors should be
 block diagonal because of [Schur's lemma](https://en.wikipedia.org/wiki/Schur%27s_lemma),
@@ -146,5 +146,6 @@ their quantum dimensions and the F-symbol (6j-symbol or more precisely Racah's W
 the case of ``\mathsf{SU}_2``). In particular, we don't actually need the Clebsch–Gordan
 coefficients themselves (but they can be useful for checking purposes).
 
-Further details are provided in
+Hence, a second major part of TensorKit.jl is the interface and implementation for
+specifying symmetries, and further details are provided in
 [Sectors, representation spaces and fusion trees](@ref s_sectorsrepfusion).

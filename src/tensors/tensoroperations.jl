@@ -251,24 +251,59 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     oindB::IndexTuple{N₂}, cindB::IndexTuple,
                     p1::IndexTuple, p2::IndexTuple,
                     syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
-
-    # check if it is beneficial to chagne the role of A and B
+    # find optimal contraction scheme
     hsp = has_shared_permuteind
     ipC = TupleTools.invperm((p1..., p2...))
     oindAinC = TupleTools.getindices(ipC, ntuple(n->n, StaticLength(N₁)))
     oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, StaticLength(N₂)))
-    memcost1 = dim(A)*(!hsp(A, oindA, cindA))
-                + dim(B)*(!hsp(B, cindB, oindB))
-                + dim(C)*(!hsp(C, oindAinC, oindBinC))
-    memcost2 = dim(B)*(!hsp(B, oindB, cindB))
-                + dim(A)*(!hsp(B, cindA, oindA))
-                + dim(C)*(!hsp(C, oindBinC, oindAinC))
 
-    if memcost1 > memcost2
+    qA = TupleTools.sortperm(cindA)
+    cindA′ = TupleTools.getindices(cindA, qA)
+    cindB′ = TupleTools.getindices(cindB, qA)
+
+    qB = TupleTools.sortperm(cindB)
+    cindA′′ = TupleTools.getindices(cindA, qB)
+    cindB′′ = TupleTools.getindices(cindB, qB)
+
+    dA, dB, dC = dim(A), dim(B), dim(C)
+
+    # keep order A en B, check possibilities for cind
+    memcost1 = memcost2 = dC*(!hsp(C, oindAinC, oindBinC))
+    memcost1 += dA*(!hsp(A, oindA, cindA′)) +
+                dB*(!hsp(B, cindB′, oindB))
+    memcost2 += dA*(!hsp(A, oindA, cindA′′)) +
+                dB*(!hsp(B, cindB′′, oindB))
+
+    # reverse order A en B, check possibilities for cind
+    memcost3 = memcost4 = dC*(!hsp(C, oindBinC, oindAinC))
+    memcost3 += dB*(!hsp(B, oindB, cindB′)) +
+                dA*(!hsp(A, cindA′, oindA))
+    memcost4 += dB*(!hsp(B, oindB, cindB′′)) +
+                dA*(!hsp(A, cindA′′, oindA))
+
+    if min(memcost1, memcost2) <= min(memcost3, memcost4)
+        if memcost1 <= memcost2
+            return _contract!(α, A, B, β, C, oindA, cindA′, oindB, cindB′, p1, p2, syms)
+        else
+            return _contract!(α, A, B, β, C, oindA, cindA′′, oindB, cindB′′, p1, p2, syms)
+        end
+    else
         p1′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p1)
         p2′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p2)
-        return contract!(α, B, A, β, C, oindB, cindB, oindA, cindA, p1′, p2′, syms)
+        if memcost3 <= memcost4
+            return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′, syms)
+        else
+            return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′, syms)
+        end
     end
+end
+
+function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
+                    β, C::AbstractTensorMap{S},
+                    oindA::IndexTuple{N₁}, cindA::IndexTuple,
+                    oindB::IndexTuple{N₂}, cindB::IndexTuple,
+                    p1::IndexTuple, p2::IndexTuple,
+                    syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
 
     if syms === nothing
         A′ = permuteind(A, oindA, cindA)
