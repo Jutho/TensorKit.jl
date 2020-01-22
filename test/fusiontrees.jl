@@ -153,12 +153,12 @@
         out2 = ntuple(n->randsector(G), StaticLength(N))
         in2 = rand(collect(⊗(out2...)))
         f2 = rand(collect(fusiontrees(out2, in2)))
-        trees1 = @inferred merge(f1, f2)
-        @test sum(abs2(c)*dim(f.coupled) for (f,c) in trees1) ≈
-                dim(f1.coupled)*dim(f2.coupled)
+        trees1 = @inferred merge(f1, f2, first(f1.coupled ⊗ f2.coupled))
+        @test sum(abs2(coeff)*dim(c) for c in f1.coupled ⊗ f2.coupled
+                    for (f,coeff) in merge(f1, f2, c)) ≈ dim(f1.coupled)*dim(f2.coupled)
 
         # test merge and braid interplay
-        trees2 = merge(f2, f1)
+        trees2 = merge(f2, f1, first(f1.coupled ⊗ f2.coupled))
         perm = ( (N.+(1:N))... , (1:N)...)
         levels = ntuple(identity, 2*N)
         trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()
