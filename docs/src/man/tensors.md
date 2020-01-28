@@ -1,4 +1,4 @@
-# Tensors and the `TensorMap` type
+# [Tensors and the `TensorMap` type](@id s_tensors)
 
 TODO
 

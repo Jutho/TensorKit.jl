@@ -1,5 +1,5 @@
 
-# [Introduction to category theory (optional)](@id s_categories)
+# [Optional introduction to category theory](@id s_categories)
 
 The purpose of this page (which can safely be skipped), is to explain how certain
 concepts and terminology from the theory of monoidal categories apply in the context of
@@ -59,8 +59,8 @@ composition. More importantly, the morphism spaces ``\mathrm{Hom}(W,V)`` are the
 vector spaces. More general categories where the morphism spaces are vector spaces over a
 field ``𝕜`` (or modules over a ring ``𝕜``) and the composition of morphisms is a bilinear
 operation are called ``𝕜``-linear categories (or ``𝕜``-algebroids, or
-``\mathbf{Vect}_{𝕜}``-enriched categories). In that case, the endomorphisms ``End(V)`` are
-a ``𝕜``-algebra with ``\mathrm{id}_V`` as the identity.
+``\mathbf{Vect}_{𝕜}``-enriched categories). In that case, the endomorphisms
+``\mathrm{End}(V)`` are a ``𝕜``-algebra with ``\mathrm{id}_V`` as the identity.
 
 We also introduce some definitions which will be useful further on. A **functor** ``F``
 between two categories ``C`` and ``D`` is, colloquially speaking, a mapping between
@@ -149,9 +149,9 @@ state that for ``f, g ∈ End_C(I)``, ``f ∘ g = ρ_I ∘ (f ⊗ g) ∘ λ_I^{-
 tensor product of morphisms in ``End_C(I)`` can be related to morphism composition in
 ``End_C(I)``, and furthermore, the monoid of endomorphisms ``End_C(I)`` is commutative
 (abelian). In the case of a ``𝕜``-linear category, it is an abelian ``𝕜``-algebra. In the
-case of ``\mathbf{Vect}``, ``End(I)`` is indeed isomorphic to the field of scalars ``𝕜``.
-We return to the general case where ``End_C(I)`` is isomorphic to ``𝕜`` itself in the
-section on [pre-fusion categories](@ref ss_fusion).
+case of ``\mathbf{Vect}``, ``\mathrm{End}(I)`` is indeed isomorphic to the field of scalars
+``𝕜``. We return to the general case where ``End_C(I)`` is isomorphic to ``𝕜`` itself in
+the section on [pre-fusion categories](@ref ss_fusion).
 
 Furthermore, *Mac Lane's coherence theorem* states that the triangle and pentagon
 condition are sufficient to ensure that any consistent diagram made of associators and
@@ -320,10 +320,10 @@ graphical representation and suppress the natural isomorphism ``δ``. Note, as a
 suggested by the graphical notation above, that we can interpret transposing a morphism as
 rotating its graphical notation by 180 degrees (either way).
 
-Furthermore, in a pivotal category, we can define a map from ``End(V)``, the endomorphisms
-of an object ``V`` to endomorphisms of the identity object ``I``, i.e. the field of scalars
-in the case of the category ``\mathbf{Vect}``, known as the trace of ``f``. In fact, we can
-define both a left trace as
+Furthermore, in a pivotal category, we can define a map from ``\mathrm{End}(V)``, the
+endomorphisms of an object ``V`` to endomorphisms of the identity object ``I``, i.e. the
+field of scalars in the case of the category ``\mathbf{Vect}``, known as the trace of
+``f``. In fact, we can define both a left trace as
 
 ``\mathrm{tr}_{\mathrm{l}}(f) = ϵ_V ∘ (\mathrm{id}_{V^*} ⊗ f) ∘ \tilde{η}_V``
 
@@ -343,8 +343,8 @@ corresponding (left or right) dimension of the object ``V``, i.e.
 ``\mathrm{dim}_{\mathrm{l}/\mathrm{r}}(V) = tr_{\mathrm{l}/\mathrm{r}}(\mathrm{id}_V)``. In
 a **spherical** category, both definitions of the trace coincide for all ``V`` and we simply
 refer to the trace ``\mathrm{tr}(f)`` of an endomorphism. The particular value
-``\mathrm{dim}(V) = tr(\mathrm{id}_V)`` is known as the (quantum) dimension of the object
-``V``, referred to as `dim(V)` in TensorKit.jl.
+``\mathrm{dim}(V) = \mathrm{tr}(\mathrm{id}_V)`` is known as the (quantum) dimension of the
+object ``V``, referred to as `dim(V)` in TensorKit.jl.
 
 For further information and a more detailed treatment of rigid and pivotal categories, we
 refer to [^turaev] and [^selinger]. We conclude this section by studying the example of
@@ -358,7 +358,7 @@ product and satisfies the snake rules. For the right evaluation and coevaluation
 two natural choices, namely
 ``⁠\tilde{ϵ}_V:V ⊗ V^* → ℂ: |n⟩ ⊗_\mathrm{g} ⟨m| → (±1)^{|n|} δ_{m,n}`` and
 ``\tilde{η}_V:ℂ → V^* ⊗ V: α → ∑_n (±1)^{|n|} ⟨n| ⊗_\mathrm{g} |n⟩``. The resulting trace
-of an endomorphism ``f ∈ End(V)`` is given by
+of an endomorphism ``f ∈ \mathrm{End}(V)`` is given by
 ``\mathrm{tr}^{\mathrm{l}}(f) = \mathrm{tr}^{\mathrm{r}}(f) = \mathrm{tr}(f) = ∑_n (± 1)^{|n|} ⟨n|f|n⟩``
 and is known as either the regular trace (in the case of ``+1``) or the *supertrace* (in the
 case of ``-1``). In particular, ``\mathrm{dim}(V) = \mathrm{dim}(V_0) ± \mathrm{dim}(V_1)``,
@@ -467,7 +467,7 @@ we defined the pivotal structure so as to make it compatible with the graphical
 representation. This construction of the pivotal structure can than be used to define the
 trace, which is spherical, i.e.
 
-``tr(f) = ϵ_V ∘ τ_{V,V^*} ∘ (( θ_V ∘ f) ⊗ \mathrm{id}_{V^*}) ∘ η_V = ϵ_V ∘ (\mathrm{id}_{V^*} ⊗ (f ∘ θ_V)) ∘ τ_{V,V^*} ∘ η_V``
+``\mathrm{tr}(f) = ϵ_V ∘ τ_{V,V^*} ∘ (( θ_V ∘ f) ⊗ \mathrm{id}_{V^*}) ∘ η_V = ϵ_V ∘ (\mathrm{id}_{V^*} ⊗ (f ∘ θ_V)) ∘ τ_{V,V^*} ∘ η_V``
 
 Note finally, that a ribbon category where the braiding is symmetric, is known as a
 **compact closed category**. For a symmetric braiding, the trivial twist
@@ -591,16 +591,16 @@ background of working with symmetries. We first need two new concepts:
 
 In particular, for a pivotal ``𝕜``-linear category where ``I`` is simple, it holds that
 the left and right dimensions of any simple object ``V`` are invertible in ``𝕜``, and that
-any endomorphism ``f ∈ End(V)`` can be written as
+any endomorphism ``f ∈ \mathrm{End}(V)`` can be written as
 
 ``f = (\mathrm{dim}_\mathrm{l}(V))^{-1} \mathrm{tr}_{\mathrm{l}}(V) \mathrm{id}_V =
 (\mathrm{dim}_\mathrm{r}(V))^{-1} \mathrm{tr}_{\mathrm{r}}(V) \mathrm{id}_V``
 
 Strictly speaking, this holds only if the category is non-degenerate, which means that
 ``I`` is simple and that any non-degenerate pairing ``e:V ⊗ W → I`` induces a non-
-degenerate pairing ``\mathrm{Hom}(I,V) ⊗ \mathrm{Hom}(I,W) → End(I)``. This property is
-always satisfied for a **pre-fusion category** ``C``, i.e. a monoidal ``𝕜``-linear
-category having a set ``\mathcal{S} ⊂ \mathrm{Ob}(C)`` of simple objects
+degenerate pairing ``\mathrm{Hom}(I,V) ⊗ \mathrm{Hom}(I,W) → \mathrm{End}(I)``. This
+property is always satisfied for a **pre-fusion category** ``C``, i.e. a monoidal ``𝕜``-
+linear category having a set ``\mathcal{S} ⊂ \mathrm{Ob}(C)`` of simple objects
 ``\mathcal{S}=\{I, V_1, V_2, \ldots\}`` such that
 *   the monoidal unit ``I_C ∈ \mathcal{S}``;
 *   ``\mathrm{Hom}_C(V_i,V_j) = 0`` (the singleton set containing only the zero
@@ -628,10 +628,10 @@ and thus that the rank of ``\mathrm{Hom}(W,V)`` is given by ``∑_i N^W_i N^V_i`
 
 A **fusion category** is a pre-fusion category that has (left or right) duals, i.e. that is
 rigid, and that only has a finite number of isomorphism classes of simple objects. Note
-that the duality functor maps ``End(V)`` to ``End(V^*)``, such that, if ``V`` is a simple
-object, so must be ``V^*``. Henceforth, we will be sloppy about the distinction between a
-pre-fusion or fusion category, only use the latter term, even when it is not fully
-justified.
+that the duality functor maps ``\mathrm{End}(V)`` to ``\mathrm{End}(V^*)``, such that, if
+``V`` is a simple object, so must be ``V^*``. Henceforth, we will be sloppy about the
+distinction between a pre-fusion or fusion category, only use the latter term, even when it
+is not fully justified.
 
 Before continuing, let us use some examples to sketch the relevance of the concept of
 fusion categories. As mentioned, the categories ``\mathbf{Vect}_𝕜`` and
@@ -765,11 +765,11 @@ where the left dual objects are identical to the right dual objects, and the lef
 object ``a^*`` of a simple object ``a`` is simple, and thus, it must be isomorphic to one
 of the representives ``\bar{a}`` of the different isomorphism classes of simple objects
 that we have chosen. Note that it can happen that ``\bar{a}=a``. Duality implies an
-isomorphism between ``\mathrm{Hom}(W,V)`` and ``\mathrm{Hom}(I,V⊗W^*)``, and thus, for a simple object ``a``,
-``End(a) ≂ 𝕜`` is isomorphic to ``\mathrm{Hom}(1,a⊗a^*)``, such that the latter is also isomorphic
-to ``𝕜``, or thus ``N^{a\bar{a}}_1 = 1``. Also, all possible duals of ``a`` must be
-isomorphic, and thus there is a single representive ``\bar{a}``, meaning that
-``N^{ab}_1 = δ^{b,\bar{a}}``, i.e. for all other ``b ≠ \bar{a}``,
+isomorphism between ``\mathrm{Hom}(W,V)`` and ``\mathrm{Hom}(I,V⊗W^*)``, and thus, for a
+simple object ``a``, ``\mathrm{End}(a) ≂ 𝕜`` is isomorphic to ``\mathrm{Hom}(1,a⊗a^*)``,
+such that the latter is also isomorphic to ``𝕜``, or thus ``N^{a\bar{a}}_1 = 1``. Also,
+all possible duals of ``a`` must be isomorphic, and thus there is a single representive
+``\bar{a}``, meaning that ``N^{ab}_1 = δ^{b,\bar{a}}``, i.e. for all other ``b ≠ \bar{a}``,
 ``\mathrm{Hom}(1,a⊗b) ≂ \mathrm{Hom}(b^*,a) = 0``. Note that also ``\bar{\bar{a}}=a``.
 
 Let us now be somewhat careful with respect to the isomorphism between ``a^*`` and
@@ -788,11 +788,11 @@ element, ``Z_a``, which is a unitary isomorphism such that
 ``Z_a^* ∈ \mathrm{Hom}(\bar{a}^*,a)``, and thus it is proportional to ``Z_{\bar{a}}``, i.e.
 ``Z_a^* = χ_a Z_{\bar{a}}`` with ``χ_a`` a complex phase (assuming ``𝕜 = ℂ``). Another
 transpose results in ``Z_{\bar{a}}^* = χ_{\bar{a}} Z_a`` with
-``χ_{\bar{a}} = \bar{χ}_{a}``, where bar of a scalar quantity denotes its complex conjugate
-to avoid confusion with the transpose functor. If ``a``and ``\bar{a}`` are distinct, we can
-essentially choose ``Z_{\bar{a}}`` such that ``χ_a`` is ``1``. However, for ``a=\bar{a}``,
-the value of ``χ_a`` cannot be changed, but must satisfy ``χ_a^2 = 1``, or thus
-``χ_a = ±1``. This value is a topological invariant known as the
+``χ_{\bar{a}} = \overline{χ_{a}}``, where bar of a scalar quantity denotes its complex
+conjugate to avoid confusion with the transpose functor. If ``a``and ``\bar{a}`` are
+distinct, we can essentially choose ``Z_{\bar{a}}`` such that ``χ_a`` is ``1``. However,
+for ``a=\bar{a}``, the value of ``χ_a`` cannot be changed, but must satisfy ``χ_a^2 = 1``,
+or thus ``χ_a = ±1``. This value is a topological invariant known as the
 *Frobenius-Schur indicator*. Graphically, we represent this isomorphism and its relations as
 
 ![Zisomorphism](img/diagram-Zisomorphism.svg)
@@ -805,12 +805,14 @@ splitting tensor as
 
 The prefactor takes care of normalization, i.e. with ``η_a^† = \tilde{ϵ}_a``, we find
 ``η_a^† ∘ η_a = \tilde{ϵ}_a ∘ η_a = \mathrm{tr}(\mathrm{id}_a) = d_a \mathrm{id}_1``, and
-thus ``(X^{a\bar{a}}_{1})^† ∘ X^{a\bar{a}}_{1} = \mathrm{id}_1``. With this
-information, we can then compute ``[F^{a\bar{a}a}_a]``, which has a single element (it's a
-``1 × 1`` matrix), and find ``[F^{a\bar{a}a}_a] = \frac{χ_a}{d_a}``, where we've used
-``\tilde{η}_a = ϵ_a^†`` and the snake rules. Hence, both the quantum dimensions and the
-Frobenius-Schur indicator are encoded in the F-symbol. Hence, they do not represent new
-independent data. Again, the graphical representation is more enlightning:
+thus ``(X^{a\bar{a}}_{1})^† ∘ X^{a\bar{a}}_{1} = \mathrm{id}_1``. Here, we have denoted
+``d_a = \mathrm{dim}(a) = \mathrm{tr}(\mathrm{id}_a)`` for the quantum dimension of the
+simple objects ``a``. With this information, we can then compute ``[F^{a\bar{a}a}_a]``,
+which has a single element (it's a ``1 × 1`` matrix), and find
+``[F^{a\bar{a}a}_a] = \frac{χ_a}{d_a}``, where we've used ``\tilde{η}_a = ϵ_a^†`` and the
+snake rules. Hence, both the quantum dimensions and the Frobenius-Schur indicator are
+encoded in the F-symbol. Hence, they do not represent new independent data. Again, the
+graphical representation is more enlightning:
 
 ![ZtoF](img/diagram-ZtoF.svg)
 
@@ -823,20 +825,32 @@ where again bar denotes complex conjugation in the second line, and we introduce
 families of matrices ``A^{ab}_c`` and ``B^{ab}_c``, whose entries are composed out of
 entries of the F-symbol, namely
 
-``[A^{ab}_c]^\nu_\mu = \sqrt{\frac{d_a d_b}{d_c}} \  \overline{[F^{\bar{a}ab}_b]_{(111)}^{(cμν)}}``
+``[A^{ab}_c]^\nu_\mu = \sqrt{\frac{d_a d_b}{d_c}} χ_{\bar{a}} \  \overline{[F^{\bar{a}ab}_b]_{(111)}^{(cμν)}}``
 
 and
 
 ``[B^{ab}_c]^\nu_\mu = \sqrt{\frac{d_a d_b}{d_c}} [F^{ab\bar{b}}_b]^{(111)}_{(cμν)}.``
 
 Composing the left hand side of first graphical equation with its dagger, and noting that
-the resulting element ``f∈End(a)`` must satisfy ``f = d_a^{-1} tr(f) \mathrm{id}_a``, i.e.
+the resulting element ``f ∈ \mathrm{End}(a)`` must satisfy
+``f = d_a^{-1} \mathrm{tr}(f) \mathrm{id}_a``, i.e.
 
 ![Brelation](img/diagram-Brelation.svg)
 
 allows to conclude that
 ``∑_ν [B^{ab}_c]^{ν}_{μ} \overline{[B^{ab}_c]^{ν}_{μ′}} = \delta_{μ,μ′}``, i.e. ``B^{ab}_c``
 is a unitary matrix. The same result follows for ``A^{ab}_c`` in analogue fashion.
+
+!!! note
+    In the context of fusion categories, one often resorts to the so-called *isotopic*
+    normalization convention, where splitting tensors are normalized as
+    ``(X^{ab}_{c,μ})^† ∘ X^{ab}_{c′,\mu′} = \sqrt{\frac{d_a d_b}{d_c}} δ_{c,c′} δ_{μ,μ′} \mathrm{id}_c``.
+    This kills some of the quantum dimensions in formulas like the ones above and
+    essentially allows to rotate the graphical notation of splitting and fusion tensors (up
+    to a unitary transformation). Nonetheless, for our implementation of tensors and
+    manipulations thereof (in particular orthonormal factorizations such as the singular
+    value decomposition), we find it more convenient to work with the original normalization
+    convention.
 
 Let us again study in more detail the example ``\mathbf{Rep}_{\mathsf{G}}``. The quantum
 dimension ``d_a`` of an irrep ``a`` is just the normal vector space dimension (over ``𝕜``)

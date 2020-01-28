@@ -138,6 +138,19 @@ We refer to the subsection on [representation spaces](@ref s_rep) on the
 which is another subtype of `EuclideanSpace{ℂ}` with an inner structure corresponding to
 the irreducible representations of a group.
 
+!!! note
+    For `ℂ^n` the dual space is equal (or naturally isomorphic) to the conjugate space, but
+    not to the space itself. This means that even for `ℂ^n`, arrows matter in the
+    diagrammatic notation for categories or for tensors, and in particular that a
+    contraction between two tensor indices will check that one is living in the space and
+    the other in the dual space. This is in contrast with several other software packages,
+    especially in the context of tensor networks, where arrows are only introduced when
+    discussing symmetries. We believe that our more purist approach can be useful to detect
+    errors (e.g. unintended contractions). Only with `ℝ^n` will their be no distinction
+    between a space and its dual. When creating tensors with indices in `ℝ^n` that have
+    complex data, a one-time warning will be printed, but most operations should continue
+    to work nonetheless.
+
 ## [Composite spaces](@id ss_compositespaces)
 
 Composite spaces are vector spaces that are built up out of individual elementary vector
@@ -229,7 +242,8 @@ max(ℂ^5, ℂ^3)
 max(ℂ^5, (ℂ^3)')
 ```
 Again, we impose `isdual(V1) == isdual(V2)`. There is a more technical definition, which
-will be necessary for the case of `RepresentationSpace`. `min(V1,V2)` should be a space `V`
-that admits an isometry (i.e. a map with its dagger as left inverse, but possibly without
-right inverse) from both `V` to `V1` and `V` to `V2`. Vice versa, `max(V1,V2)` should be a
-space `V` such that there exist isometries `V1→V` and `V2→V`.
+will be necessary for the case of `RepresentationSpace`. `min(V1,V2)` should be the maximal
+space `V` (in terms of dimensions) that admits an isometry (i.e. a map with its dagger as
+left inverse, but possibly without right inverse) from both `V` to `V1` and `V` to `V2`.
+Vice versa, `max(V1,V2)` should be the minimal space space `V` such that there exist
+isometries `V1→V` and `V2→V`.
