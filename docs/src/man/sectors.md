@@ -2,6 +2,7 @@
 
 ```@setup tensorkit
 using TensorKit
+using LinearAlgebra
 ```
 
 Symmetries in a physical system often result in tensors which are invariant under the action
@@ -660,7 +661,13 @@ returns an iterator over the different sectors `a` with non-zero `n_a`, for othe
 extracted as `dim(V, a)`, it properly returns `0` if sector `a` is not present in the
 decomposition of `V`. With [`hassector(V, a)`](@ref) one can check if `V` contains a sector
 `a` with `dim(V,a)>0`. Finally, `dim(V)` returns the total dimension of the space `V`, i.e.
-``∑_a n_a d_a`` or thus `dim(V) = sum(dim(V,a) * dim(a) for a in sectors(V))`.
+``∑_a n_a d_a`` or thus `dim(V) = sum(dim(V,a) * dim(a) for a in sectors(V))`. Note that a
+representation space `V` has certain sectors `a` with dimensions `n_a`, then its dual `V'`
+will report to have sectors `dual(a)`, and `dim(V', dual(a)) == n_a`. There is a subtelty
+regarding the difference between the dual of a representation space ``R_a^*``, on which the
+conjugate representation acts, and the representation space of the irrep `dual(a)==conj(a)`
+that is isomorphic to the conjugate representation, i.e. `R_{\bar{a}} ≂ R_a^*` but they are
+not equal. We return to this in the section on [fusion trees](@ref ss_fusiontrees).
 
 Other methods for `ElementarySpace`, such as [`dual`](@ref), [`fuse`](@ref) and
 [`flip`](@ref) also work. In fact, `RepresentationSpace` is the reason `flip` exists, cause
@@ -697,7 +704,7 @@ V1 = RepresentationSpace{U₁}(0=>3, 1=>2, -1=>1)
 V1 == U1Space(0=>3, 1=>2, -1=>1) == U₁Space(-1=>1, 1=>2,0=>3) # order doesn't matter
 (sectors(V1)...,)
 dim(V1, U₁(1))
-dim(V1)
+dim(V1', U₁(1)) == dim(V1, conj(U₁(1))) == dim(V1, U₁(-1))
 hassector(V1, U₁(1))
 hassector(V1, U₁(2))
 dual(V1)
@@ -722,6 +729,7 @@ V1 = RepresentationSpace{SU₂}(0=>3, 1//2=>2, 1=>1)
 V1 == SU2Space(0=>3, 1/2=>2, 1=>1) == SU₂Space(0=>3, 0.5=>2, 1=>1)
 (sectors(V1)...,)
 dim(V1, SU₂(1))
+dim(V1', SU₂(1)) == dim(V1, conj(SU₂(1))) == dim(V1, SU₂(1))
 dim(V1)
 hassector(V1, SU₂(1))
 hassector(V1, SU₂(2))
@@ -782,6 +790,28 @@ the vertices of the splitting tree. In the case of `FusionStyle(G) isa Abelian`,
 internal sectors ``e_1``, …, ``e_{N-2}`` are completely fixed, for
 `FusionStyle(G) isa NonAbelian` they can also take different values.
 
+There is one subtle remark that we have so far ignored. Within the specific subtypes of
+`Sector`, we do not explicitly distinguish between ``R_a^*`` (simply denoted as ``a`^*``
+and graphically depicted as an upgoing arrow ``a``) and ``R_{\bar{a}}`` (simply denoted as
+``\bar{a}`` and depicted with a downgoing arrow), i.e. between the dual space of ``R_a`` on
+which the conjugated irrep acts, or the irrep ``\bar{a}`` to which the complex conjugate of
+irrep ``a`` is isomorphic. This distinction is however important, when certain uncoupled
+sectors in the fusion tree actually originate from a dual space. We use the isomorphisms
+``Z_a:R_a^* → R_{\bar{a}}`` and its adjoint ``Z_a^†:R_{\bar{a}}→R_a^*``, as introduced in
+the section on [topological data of a fusion category](@ref ss_topologicalfusion), to build
+fusion and splitting trees that take the distinction between irreps and their conjugates
+into account. Hence, in the previous example, if e.g. the first and third space in the
+codomain and the second space in the domain of the tensor were dual spaces, the actual pair
+of splitting and fusion tree would look as
+
+![extended double fusion tree](img/tree-extended.svg)
+
+The presence of these isomorphisms will be important when we start to bend lines, to move
+uncoupled sectors from the incoming to the outgoing part of the fusion-splitting tree. Note
+that we can still represent the fusion tree as the adjoint of a corresponding splitting
+tree, because we also use the adjoint of the ``Z`` isomorphisms in the splitting part, and
+the ``Z`` isomorphism in the fusion part
+
 We represent splitting trees and their adjoints using a specific immutable type called
 `FusionTree` (which actually represents a splitting tree, but fusion tree is a more common
 term), defined as
@@ -789,15 +819,21 @@ term), defined as
 struct FusionTree{G<:Sector,N,M,L,T}
     uncoupled::NTuple{N,G}
     coupled::G
+    isdual::NTuple{N,Bool}
     innerlines::NTuple{M,G} # fixed to M = N-2
     vertices::NTuple{L,T} # fixed to L = N-1
 end
 ```
-This type has a number of basic properties and capabilities, such as checking for equality
-with `==` and support for `hash(f::FusionTree, h::UInt)`, as splitting and fusion trees
-are used as keys in look-up tables (i.e. `AbstractDictionary` instances) to look up certain
-parts of the data of a tensor. The type of `L` of the vertex labels can be `Nothing` when
-they are not needed (i.e. if `FusionStyle(G) ∈ (Abelian(), NonAbelian())`).
+Here, the fields are probably self-explanotary. The `isdual` field indicates whether an
+isomorphism is present (if the corresponding value is `true`) or not. Note that the field
+`uncoupled` contains the sectors coming out of the splitting trees, before the possible
+``Z`` isomorphism, i.e. the splitting tree in the above example would have
+`sectors = (a₁, a₂, a₃, a₄)`. The `FusionTree` type has a number of basic properties and
+capabilities, such as checking for equality with `==` and support for
+`hash(f::FusionTree, h::UInt)`, as splitting and fusion trees are used as keys in look-up
+tables (i.e. `AbstractDictionary` instances) to look up certain parts of the data of a
+tensor. The type of `L` of the vertex labels can be `Nothing` when they are not needed
+(i.e. if `FusionStyle(G) ∈ (Abelian(), NonAbelian())`).
 
 `FusionTree` instances are not checked for consistency (i.e. valid fusion rules etc) upon
 creation, hence, they are assumed to be created correctly. The most natural way to create
@@ -813,7 +849,7 @@ illustrated with some examples
 ```@repl tensorkit
 s = SU₂(1/2)
 collect(fusiontrees((s,s,s,s)))
-collect(fusiontrees((s,s,s,s,s), s))
+collect(fusiontrees((s,s,s,s,s), s, (true, false, false, true, false)))
 iter = fusiontrees(ntuple(n->s, 16))
 sum(n->1, iter)
 length(iter)
@@ -836,7 +872,9 @@ We now discuss elementary manipulations that we want to perform on or between fu
 (where we actually mean splitting trees), which will form the building block for more
 general manipulations on a pair of a fusion and splitting tree discussed in the next
 subsection, and then for casting a general index manipulation of a tensor map as a linear
-operation in the basis of canonically ordered splitting and fusion trees.
+operation in the basis of canonically ordered splitting and fusion trees. In this section,
+we will ignore the ``Z`` isomorphisms, as they are just trivially reshuffled under the
+different operations that we describe.
 
 The first operation we discuss is an elementary braid of two neighbouring sectors
 (indices), i.e. a so-called Artin braid or Artin generator of the braid group. Because
@@ -897,9 +935,10 @@ Other manipulations which are sometimes needed are
 
 *   [insertat(f1::FusionTree{G,N₁}, i::Int, f2::FusionTree{G,N₂})](@ref) : inserts a fusion
     tree `f2` at the `i`th uncoupled sector of fusion tree `f1` (this requires that the
-    coupled sector `f2` matches with the `i`th uncoupled sector of `f1`), and recouple this
-    into a linear combination of trees in canonical order, with `N₁+N₂-1` uncoupled
-    sectors, i.e. diagrammatically for `i=3`
+    coupled sector `f2` matches with the `i`th uncoupled sector of `f1`, and that
+    `!f1.isdual[i]`, i.e. that there is no ``Z``-isomorphism on the `i`th line of `f1`),
+    and recouple this into a linear combination of trees in canonical order, with `N₁+N₂-1`
+    uncoupled sectors, i.e. diagrammatically for `i=3`
 
     ![insertat](img/tree-insertat.svg)
 
@@ -945,57 +984,32 @@ then use the manipulations from the previous section, and then again use the lef
 to bring this back to a pair of splitting and fusion tree with `N₂′` incoming and `N₁′`
 incoming sectors (with `N₁′ + N₂′ == N₁ + N₂`).
 
-There is one subtle remark that we have so far ignored. Within the specific subtypes of
-`Sector`, we do not explicitly distinguish between ``R_a^*`` (simply denoted as ``a`^*``)
-and ``R_{\bar{a}}`` (simply denoted as ``\bar{a}``), i.e. the dual space of ``R_a`` on which the conjugated irrep acts, or the irrep ``\bar{a}`` to which the complex conjugate of
-irrep ``a`` is isomorphic. This information is encoded in the corresponding
-`RepresentationSpace` instance (i.e. whether it is a dual space or not). Hence, the fusion
-tree and fusion and splitting tensors only contain downward pointing arrows. We use the
-isomorphisms ``Z_a:R_a^* → R_{\bar{a}}`` and its adjoint ``Z_a^†:R_{\bar{a}}→R_a^*``, as
-introduced in the section on
-[topological data of a fusion category](@ref ss_topologicalfusion), to build fusion and
-splitting trees that take the distinction between irreps and their conjugates into account.
-In the example from the first subsection, if e.g. the first and third space in the codomain
-and the second space in the domain of the tensor were dual spaces, the actual pair of
-splitting and fusion tree would look as
-
-![extended double fusion tree](img/tree-extended.svg)
-
-The `FusionTree` object only stores information that represents the splitting tensors and
-make no distinction between ``\bar{a}`` and ``a^*`` (because the objects of some `Sector`
-subtype only label isomorphism classes and thus cannot represent this distinction). This
-distincion is only known to the tensor, which stores the spaces and can check whether some
-index space is a dual space or not. Hence, any contributions arising from the
-``Z``-isomorphisms are applied afterwards in the tensor routines.  In the manipulations
-discussed in the previous subsection, in particular the braiding of sectors within one of
-the trees, these isomorphisms are just moved along and do any additional contributions.
-
-We now discuss how to bend lines using the left duality, where we exploit the relations
+We now discuss how to actually bend lines, and thus, move sectors from the incoming part
+(fusion tree) to the outgoing part (splitting tree). Hereby, we exploit the relations
 between the (co)evaluation (exact pairing) and the fusion tensors, discussed in
 [topological data of a fusion category](@ref ss_topologicalfusion). The main ingredient
 that we need is summarized in
 
 ![line bending](img/tree-linebending.svg)
 
-As we will only use the left duality, we only need the B-symbol and not the A-symbol.
-Applying the left evaluation on the second sector of a splitting tensor thus yields a
-linear combination of fusion tensors (when `FusionStyle(G) == DegenerateNonAbelian()`, or
-just a scalar times the corresponding fusion tensor otherwise), with corresponding
-``Z``-ismorphism. The latter is implicitly assumed to be present, because this operation
-will be combined with moving a space from the codomain of a tensor map to become a dual
-space in the domain. Hence, we can ignore the ``Z``-isomorphism. Taking the adjoint of this
-relation yields the required relation to move a space from the domain to a dual space in
-the codomain.
+We will only need the B-symbol and not the A-symbol. Applying the left evaluation on the
+second sector of a splitting tensor thus yields a linear combination of fusion tensors
+(when `FusionStyle(G) == DegenerateNonAbelian()`, or just a scalar times the corresponding
+fusion tensor otherwise), with corresponding ``Z`` ismorphism. Taking the adjoint of this
+relation yields the required relation to transform a fusion tensor into a splitting tensor
+with an added ``Z^†`` isomorphism.
 
-However, we have to be careful if we start out with a dual space in e.g. the codomain. This
-implies that a ``Z``-isomorphism (actually its adjoint) is already present. This yields the
-relation
+However, we have to be careful if we bend a line on which a ``Z`` isomorphism (or its
+adjoint) is already present. Indeed, it is exactly for this operation that we explicitly
+need to take the presence of these isomorphisms into account. Indeed, we obtain the relation
 
 ![dual line bending](img/tree-linebending2.svg)
 
-Hence, moving a dual space from the codomain to a normal space in the domain yields an
-additional Frobenius-Schur factor. As mentioned above, this additional contribution is
-taken care of in the corresponding `TensorMap` routine (i.e. `permuteind`).
+Hence, bending an `isdual` sector from the splitting tree to the fusion tree yields an
+additional Frobenius-Schur factor, and of course leads to a normal sector (which is no
+longer `isdual` and does thus not come with a ``Z``-isomorphism) on the fusion side. We
+again use the adjoint of this relation to bend an `isdual` sector from the fusion tree to
+the splitting tree.
 
 The `FusionTree` interface to duality and line bending is given by
 
@@ -1003,8 +1017,12 @@ The `FusionTree` interface to duality and line bending is given by
 
 which takes a splitting tree `f1` with `N₁` outgoing sectors, a fusion tree `f2` with `N₂`
 incoming sectors, and applies line bending such that the resulting splitting and fusion
-trees have `N` outgoing sectors and `N₁+N₂-N` incoming sectors. Note that `N` is again
-provided via the `StaticLength` value type. Graphically, for `N₁ = 4`, `N₂ = 3`, `N = 2`:
+trees have `N` outgoing sectors, corresponding to the first `N` sectors out of the list
+``(a_1, a_2, …, a_{N_1}, b_{N_2}^*, …, b_{1}^*)`` and `N₁+N₂-N` incoming sectors,
+corresponding to the dual of the last `N₁+N₂-N` sectors from the previous list, in reverse.
+Note that `N` is again provided via the `StaticLength` value type. Graphically, for
+`N₁ = 4`, `N₂ = 3`, `N = 2` and some particular of `isdual` in both the fusion and
+splitting tree:
 
 ![repartition](img/tree-repartition.svg)
 
@@ -1078,6 +1096,14 @@ iter = fusiontrees((SU₂(1/2),SU₂(1/2),SU₂(1/2),SU₂(1/2)), SU₂(1))
 f = first(iter)
 convert(Array, f)
 
+I ≈ convert(Array, FusionTree((SU₂(1/2),), SU₂(1/2), (false,), ()))
+Z = adjoint(convert(Array, FusionTree((SU₂(1/2),), SU₂(1/2), (true,), ())))
+transpose(Z) ≈ frobeniusschur(SU₂(1/2)) * Z
+
+I ≈ convert(Array, FusionTree((SU₂(1),), SU₂(1), (false,), ()))
+Z = adjoint(convert(Array, FusionTree((SU₂(1),), SU₂(1), (true,), ())))
+transpose(Z) ≈ frobeniusschur(SU₂(1)) * Z
+
 #check orthogonality
 for f1 in iter
   for f2 in iter
@@ -1086,9 +1112,11 @@ for f1 in iter
   end
 end
 ```
-Note that the normalization (squared) of a fusion tree is given by the dimension of the
-coupled sector, as we are also tracing over the ``\mathrm{id}_c`` when checking the
-orthogonality by computing `dot` of the corresponding tensors.
+Note that we take the adjoint when computing `Z`, because `convert(Array, f)` assumes `f`
+to be splitting tree, which is built using ``Z^†``. Further note that the normalization
+(squared) of a fusion tree is given by the dimension of the coupled sector, as we are also
+tracing over the ``\mathrm{id}_c`` when checking the orthogonality by computing `dot` of
+the corresponding tensors.
 
 ## Fermions and anyons
 
@@ -1096,10 +1124,8 @@ Support for fermionic sectors and corresponding super vector spaces is on its wa
 section will be completed when the implementation is finished.
 
 ## Bibliography
-[^tung]:    Tung, W. K. (1985). Group theory in physics: an introduction to symmetry principles, group representations, and special functions in classical and quantum physics.
-            World Scientific Publishing Company.
+[^tung]:        Tung, W. K. (1985). Group theory in physics: an introduction to symmetry principles, group representations, and special functions in classical and quantum physics.
+                World Scientific Publishing Company.
 
-[^kitaev]:  Kitaev, A. (2006). Anyons in an exactly solved model and beyond.
-            Annals of Physics, 321(1), 2-111.
-
-[^1]:       Strictly speaking the number of sectors, i.e. simple objects, in a fusion category needs to be finite, so that ``Rep\{\mathsf{G}\}`` is only a fusion category for a finite group ``\mathsf{G}``. It is clear our formalism also works for compact Lie groups with an infinite number of irreps, since any finite-dimensional vector space will only have a finite number of all possible irreps in its decomposition.
+[^kitaev]:      Kitaev, A. (2006). Anyons in an exactly solved model and beyond.
+                Annals of Physics, 321(1), 2-111.

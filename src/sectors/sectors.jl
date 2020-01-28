@@ -4,8 +4,9 @@
 """
     abstract type Sector end
 
-Abstract type for representing the label sets of graded vector spaces, which should
-correspond to (unitary) fusion categories.
+Abstract type for representing the (isomorphism classes of) simple objects in (unitary
+and pivotal) (pre-)fusion categories, e.g. the irreducible representations of a finite or
+compact group.
 
 Every new `G<:Sector` should implement the following methods:
 *   `one(::Type{G})` -> unit element of `G`

@@ -264,20 +264,24 @@ opposite (i.e. upward) direction. This notation is related to quantum field theo
 anti-particles are (to some extent) interpreted as particles running backwards in time.
 
 These exact pairings are known as the left evaluation and coevaluation, and ``^{∨}V`` is the
-left dual of ``V``. Likewise, then, ``V`` is a right dual of ``^{∨}V``, and we can also
-define a right dual ``V^{∨}`` of ``V`` and associated pairings, the right evaluation
-``\tilde{ϵ}_V: V ⊗ V^{∨} → I`` and coevaluation ``\tilde{η}_V: I → V^{∨} ⊗ V``, satisfying
+left dual of ``V``. Likewise, we can also define a right dual ``V^{∨}`` of ``V`` and
+associated pairings, the right evaluation ``\tilde{ϵ}_V: V ⊗ V^{∨} → I`` and coevaluation
+``\tilde{η}_V: I → V^{∨} ⊗ V``, satisfying
 
 ![right dual](img/diagram-rightdual.svg)
 
-For a general morphism ``f ∈ \mathrm{Hom}(W,V)``, we furthermore define the left and right
-*transpose* ``^{∨}f ∈ \mathrm{Hom}(^{∨}V, {}^{∨}W)`` and ``f^{∨} ∈ \mathrm{Hom}(V^{∨}, W^{∨})`` as
+In particular, one could choose ``\tilde{ϵ}_{{}^{∨}V} = ϵ_V`` and thus define ``V`` as the
+right dual of ``{}^{∨}V``. While there might be other choices, this choice must at least be
+isomorphic, such that ``({}^{∨}V)^{∨} ≂ V``.
+
+If objects ``V`` and ``W`` have left (respectively right) duals, than for a morphism ``f ∈ \mathrm{Hom}(W,V)``, we furthermore define the left (respectively right)
+*transpose* ``^{∨}f ∈ \mathrm{Hom}(^{∨}V, {}^{∨}W)`` (respectively  ``f^{∨} ∈ \mathrm{Hom}(V^{∨}, W^{∨})``) as
 
 ![transpose](img/diagram-transpose.svg)
 
 where on the right we also illustrate the mapping from
 ``t ∈ \mathrm{Hom}(W_1 ⊗ W_2 ⊗ W_3, V_1 ⊗ V_2)`` to a morphism in
-``\mathrm{Hom}(I, V_1 ⊗ V_2 ⊗ ^{∨} W_3 ⊗ ^{∨} W_2 ⊗ ^{∨} W_1)``.
+``\mathrm{Hom}(I, V_1 ⊗ V_2 ⊗ {}^{∨} W_3 ⊗ {}^{∨} W_2 ⊗ {}^{∨} W_1)``.
 
 Note that the graphical notation, at least the lines with opposite arrows, do not allow to
 distinguish between the right dual ``V^{∨}`` and the left dual ``^{∨}V``. We come back to
