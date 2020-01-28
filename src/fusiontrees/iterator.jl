@@ -38,7 +38,7 @@ function Base.iterate(it::FusionTreeIterator{G,0},
                         state = (it.coupled != one(G))) where {G<:Sector}
     state && return nothing
     T = vertex_labeltype(G)
-    tree = FusionTree{G,0,0,0,T}((), one(G), (), ())
+    tree = FusionTree{G,0,0,0,T}((), one(G), (), (), ())
     return tree, true
 end
 
