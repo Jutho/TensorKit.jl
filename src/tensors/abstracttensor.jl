@@ -112,24 +112,6 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
         for (f1,f2) in fusiontrees(t)
             F1 = convert(Array, f1)
             F2 = convert(Array, f2)
-            for i = 1:N₁
-                if isdual(cod[i])
-                    a = f1.uncoupled[i]
-                    Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
-                    indF = ntuple(k->(k == i ? -i : k), StaticLength(N₁)+StaticLength(1))
-                    indout = ntuple(identity, StaticLength(N₁)+StaticLength(1))
-                    F1 = TensorOperations.tensorcontract(Z,(i,-i), F1, indF, indout)
-                end
-            end
-            for i = 1:N₂
-                if isdual(dom[i])
-                    a = f2.uncoupled[i]
-                    Z = sqrt(dim(a))*permutedims(conj(reshape(fusiontensor(a,dual(a),one(a)), (dim(a),dim(a)))),(2,1))
-                    indF = ntuple(k->(k == i ? -i : k), StaticLength(N₂)+StaticLength(1))
-                    indout = ntuple(identity, StaticLength(N₂)+StaticLength(1))
-                    F2 = TensorOperations.tensorcontract(Z,(i,-i), F2, indF, indout)
-                end
-            end
             sz1 = size(F1)
             sz2 = size(F2)
             d1 = TupleTools.front(sz1)

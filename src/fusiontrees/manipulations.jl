@@ -253,10 +253,12 @@ function insertat(f1::FusionTree{G}, i, f2::FusionTree{G,1}) where {G}
     (f1.uncoupled[i] == f2.coupled && !f1.isdual[i]) ||
         throw(SectorMismatch("cannot connect $(f2.uncoupled) to $(f1.uncoupled[i])"))
     coeff = Fsymbol(one(G), one(G), one(G), one(G), one(G), one(G))
+    isdual′ = TupleTools.setindex(f1.isdual, f2.isdual[1], i)
+    f = FusionTree{G}(f1.uncoupled, f1.coupled, isdual′, f1.innerlines, f1.vertices)
     if FusionStyle(G) isa Abelian
-        return SingletonDict(f1 => coeff)
+        return SingletonDict(f => coeff)
     elseif FusionStyle(G) isa SimpleNonAbelian
-        return FusionTreeDict(f1 => coeff)
+        return FusionTreeDict(f => coeff)
     end
 end
 function insertat(f1::FusionTree{G}, i, f2::FusionTree{G,2}) where {G}
