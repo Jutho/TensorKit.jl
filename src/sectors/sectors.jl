@@ -249,9 +249,9 @@ end
 Return the value of B^{ab}_c which appears in transforming a splitting vertex
 into a fusion vertex using the transformation
 ```
-a -<-μ-<- c                                 a -<-ν-<- c
-     ∨          -> Bsymbol(a,b,c)[μ,ν]           ∧
-     b                                         dual(b)
+a -<-μ-<- c                                                    a -<-ν-<- c
+     ∨          -> √(dim(c)/dim(a)) * Bsymbol(a,b,c)[μ,ν]           ∧
+     b                                                            dual(b)
 ```
 If `FusionStyle(G)` is `Abelian()` or `SimpleNonAbelian()`, the B-symbol is a number.
 Otherwise it is a square matrix with row and column size
@@ -259,35 +259,23 @@ Otherwise it is a square matrix with row and column size
 """
 function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
     if FusionStyle(G) isa Abelian || FusionStyle(G) isa SimpleNonAbelian
-        Fsymbol(a, b, dual(b), a, c, one(a))
+        sqrt(dim(a)*dim(b)/dim(c))*Fsymbol(a, b, dual(b), a, c, one(a))
     else
-        reshape(Fsymbol(a,b,dual(b),a,c,one(a)), (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
+        reshape(sqrt(dim(a)*dim(b)/dim(c))*Fsymbol(a,b,dual(b),a,c,one(a)),
+            (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
     end
 end
-# isotopic normalization convention
-# _Bsymbol(a,b,c, ::Type{SimpleNonAbelian}) =
-#     sign(sqrt(dim(a)*dim(b)/dim(c))*Fsymbol(a, b, dual(b), a, c, one(a)))
-#     # sign enforces this to be a pure phase (abs=1)
-# _Bsymbol(a,b,c, ::Type{DegenerateNonAbelian}) =
-#     sqrt(dim(a)*dim(b)/dim(c))*
-#     reshape(Fsymbol(a,b,dual(b),a,c,one(a)), (Nsymbol(a,b,c), Nsymbol(c,dual(b),a)))
 
 # Not necessary
 function Asymbol(a::G, b::G, c::G) where {G<:Sector}
     if FusionStyle(G) isa Abelian || FusionStyle(G) isa SimpleNonAbelian
-        conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c))
+        sqrt(dim(a)*dim(b)/dim(c))*conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c))
     else
-        reshape(conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c)),
+        reshape(sqrt(dim(a)*dim(b)/dim(c))*
+                conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c)),
                 (Nsymbol(a,b,c), Nsymbol(dual(a),c,b)))
     end
 end
-# isotopic normalization convention
-# _Asymbol(a,b,c, ::Type{SimpleNonAbelian}) =
-#     sqrt(dim(a)*dim(b)/dim(c))*conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c))
-# _Asymbol(a,b,c, ::Type{DegenerateNonAbelian}) =
-#     sqrt(dim(a)*dim(b)/dim(c))*
-#     reshape(conj(frobeniusschur(a)*Fsymbol(dual(a),a,b,b,one(a),c)),
-#             (Nsymbol(a,b,c), Nsymbol(dual(a),c,b)))
 
 # Braiding:
 #-------------------------------------------------

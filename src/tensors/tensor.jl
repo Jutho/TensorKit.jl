@@ -7,13 +7,21 @@ struct TensorMap{S<:IndexSpace, N₁, N₂, G<:Sector, A<:Union{<:DenseMatrix,Se
     dom::ProductSpace{S,N₂}
     rowr::SectorDict{G,FusionTreeDict{F₁,UnitRange{Int}}}
     colr::SectorDict{G,FusionTreeDict{F₂,UnitRange{Int}}}
-    function TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂},
-        rowr::SectorDict{G,FusionTreeDict{F₁,UnitRange{Int}}}, colr::SectorDict{G,FusionTreeDict{F₂,UnitRange{Int}}}) where
-        {S<:IndexSpace, N₁, N₂, G<:Sector, A<:SectorDict{G,<:DenseMatrix}, F₁<:FusionTree{G,N₁}, F₂<:FusionTree{G,N₂}}
+    function TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data::A,
+                codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂},
+                rowr::SectorDict{G,FusionTreeDict{F₁,UnitRange{Int}}},
+                colr::SectorDict{G,FusionTreeDict{F₂,UnitRange{Int}}}) where
+                    {S<:IndexSpace, N₁, N₂, G<:Sector, A<:SectorDict{G,<:DenseMatrix},
+                     F₁<:FusionTree{G,N₁}, F₂<:FusionTree{G,N₂}}
+        eltype(valtype(data)) ⊆ field(S) ||
+            @warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))", maxlog=1)
         new{S, N₁, N₂, G, A, F₁, F₂}(data, codom, dom, rowr, colr)
     end
-    function TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where
-        {S<:IndexSpace, N₁, N₂, A<:DenseMatrix}
+    function TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data::A,
+                codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where
+                    {S<:IndexSpace, N₁, N₂, A<:DenseMatrix}
+        eltype(data) ⊆ field(S) ||
+            @warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))", maxlog=1)
         new{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data, codom, dom)
     end
 end
@@ -46,9 +54,6 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
             size(data) == (dims(codom)..., dims(dom)...))
             throw(DimensionMismatch())
         end
-        eltype(data) ⊆ field(S) ||
-            @warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))",maxlog=1)
-
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data2, codom, dom)
@@ -70,7 +75,7 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
         colrc = FusionTreeDict{F₂, UnitRange{Int}}()
         offset1 = 0
         for s1 in sectors(codom)
-            for f1 in fusiontrees(s1, c)
+            for f1 in fusiontrees(s1, c, map(isdual, codom.spaces))
                 r = (offset1 + 1):(offset1 + dim(codom, s1))
                 push!(rowrc, f1 => r)
                 offset1 = last(r)
@@ -78,7 +83,7 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
         end
         offset2 = 0
         for s2 in sectors(dom)
-            for f2 in fusiontrees(s2, c)
+            for f2 in fusiontrees(s2, c, map(isdual, dom.spaces))
                 r = (offset2 + 1):(offset2 + dim(dom, s2))
                 push!(colrc, f2 => r)
                 offset2 = last(r)
@@ -86,8 +91,6 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
         end
         (haskey(data, c) && size(data[c]) == (offset1, offset2)) ||
             throw(DimensionMismatch())
-        eltype(data[c]) ⊆ field(S) ||
-            @warn("eltype(data) = $(eltype(data[c])) ⊈ $(field(S)))",maxlog=1)
         push!(rowr, c=>rowrc)
         push!(colr, c=>colrc)
     end
@@ -126,7 +129,7 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
             colrc = FusionTreeDict{F₂, UnitRange{Int}}()
             offset1 = 0
             for s1 in sectors(codom)
-                for f1 in fusiontrees(s1, c)
+                for f1 in fusiontrees(s1, c, map(isdual, codom.spaces))
                     r = (offset1 + 1):(offset1 + dim(codom, s1))
                     push!(rowrc, f1 => r)
                     offset1 = last(r)
@@ -135,7 +138,7 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
             dim1 = offset1
             offset2 = 0
             for s2 in sectors(dom)
-                for f2 in fusiontrees(s2, c)
+                for f2 in fusiontrees(s2, c, map(isdual, dom.spaces))
                     r = (offset2 + 1):(offset2 + dim(dom, s2))
                     push!(colrc, f2 => r)
                     offset2 = last(r)

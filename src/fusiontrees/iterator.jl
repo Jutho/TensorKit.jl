@@ -1,13 +1,16 @@
 # FusionTreeIterator:
 # iterate over fusion trees for fixed coupled and uncoupled sector labels
 #==============================================================================#
-function fusiontrees(uncoupled::NTuple{N,G}, coupled::G = one(G)) where {N,G<:Sector}
-    FusionTreeIterator{G,N}(uncoupled, coupled)
+function fusiontrees(uncoupled::NTuple{N,G}, coupled::G = one(G),
+                        isdual::NTuple{N,Bool} = ntuple(n->false, Val(N))) where
+                        {N,G<:Sector}
+    FusionTreeIterator{G,N}(uncoupled, coupled, isdual)
 end
 
 struct FusionTreeIterator{G<:Sector,N}
     uncoupled::NTuple{N,G}
     coupled::G
+    isdual::NTuple{N,Bool}
 end
 
 Base.IteratorSize(::FusionTreeIterator) = Base.HasLength()
@@ -43,7 +46,7 @@ function Base.iterate(it::FusionTreeIterator{G,1},
                         state = (it.uncoupled[1] != it.coupled)) where {G<:Sector}
     state && return nothing
     T = vertex_labeltype(G)
-    tree = FusionTree{G,1,0,0,T}(it.uncoupled, it.coupled, (), ())
+    tree = FusionTree{G,1,0,0,T}(it.uncoupled, it.coupled, it.isdual, (), ())
     return tree, true
 end
 
@@ -53,7 +56,7 @@ function Base.iterate(it::FusionTreeIterator{G,N} where {N}) where {G<:Sector}
     next === nothing && return nothing
     lines, vertices, states = next
     vertexlabels = labelvertices(it.uncoupled, it.coupled, lines, vertices)
-    f = FusionTree(it.uncoupled, it.coupled, lines, vertexlabels)
+    f = FusionTree(it.uncoupled, it.coupled, it.isdual, lines, vertexlabels)
     return f, (lines, vertices, states)
 end
 function Base.iterate(it::FusionTreeIterator{G,N} where {N}, state) where {G<:Sector}
@@ -61,7 +64,7 @@ function Base.iterate(it::FusionTreeIterator{G,N} where {N}, state) where {G<:Se
     next === nothing && return nothing
     lines, vertices, states = next
     vertexlabels = labelvertices(it.uncoupled, it.coupled, lines, vertices)
-    f = FusionTree(it.uncoupled, it.coupled, lines, vertexlabels)
+    f = FusionTree(it.uncoupled, it.coupled, it.isdual, lines, vertexlabels)
     return f, (lines, vertices, states)
 end
 

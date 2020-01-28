@@ -136,18 +136,6 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         end
         for (f1,f2) in fusiontrees(tsrc)
             for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
-                @inbounds for i in p2
-                    if i <= n && !isdual(cod[i])
-                        b = f1.uncoupled[i]
-                        coeff *= frobeniusschur(b) #*fermionparity(b)
-                    end
-                end
-                @inbounds for i in p1
-                    if i > n && isdual(dom[i-n])
-                        b = f2.uncoupled[i-n]
-                        coeff /= frobeniusschur(b) #*fermionparity(b)
-                    end
-                end
                 @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
             end
         end
@@ -163,18 +151,6 @@ function _addabelianblock!(α, tsrc::AbstractTensorMap,
     dom = domain(tsrc)
     n = length(cod)
     (f1′,f2′), coeff = first(permute(f1, f2, p1, p2))
-    @inbounds for i in p2
-        if i <= n && !isdual(cod[i])
-            b = f1.uncoupled[i]
-            coeff *= frobeniusschur(b) #*fermionparity(b)
-        end
-    end
-    @inbounds for i in p1
-        if i > n && isdual(dom[i-n])
-            b = f2.uncoupled[i-n]
-            coeff /= frobeniusschur(b) #*fermionparity(b)
-        end
-    end
     pdata = (p1...,p2...)
     @inbounds axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
 end
@@ -221,18 +197,6 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
                 f1′′, g1 = split(f1′, StaticLength(N₁))
                 f2′′, g2 = split(f2′, StaticLength(N₂))
                 if g1 == g2
-                    @inbounds for i in r2
-                        if i <= n && !isdual(cod[i])
-                            b = f1.uncoupled[i]
-                            coeff *= frobeniusschur(b) #*fermionparity(b)
-                        end
-                    end
-                    @inbounds for i in r1
-                        if i > n && isdual(dom[i-n])
-                            b = f2.uncoupled[i-n]
-                            coeff /= frobeniusschur(b) #*fermionparity(b)
-                        end
-                    end
                     coeff *= dim(g1.coupled)/dim(g1.uncoupled[1])
                     TO._trace!(α*coeff, tsrc[f1,f2], true, tdst[f1′′,f2′′], pdata, q1, q2)
                 end
