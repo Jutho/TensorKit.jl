@@ -276,6 +276,13 @@ function catcodomain(t1::AbstractTensorMap{S,1,N₂}, t2::AbstractTensorMap{S,1,
 end
 
 # tensor product of tensors
+"""
+    ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}, ...) -> TensorMap{S}
+
+Compute the tensor product between two `AbstractTensorMap` instances, which results in a
+new `TensorMap` instance whose codomain is `codomain(t1) ⊗ codomain(t2)` and whose domain
+is `domain(t1) ⊗ domain(t2)`.
+"""
 function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where S
     cod1, cod2 = codomain(t1), codomain(t2)
     dom1, dom2 = domain(t1), domain(t2)
