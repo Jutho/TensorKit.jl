@@ -214,38 +214,41 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     @testset "Factorization" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)
-            t = Tensor(rand, T, W)
-            @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                Q, R = @inferred leftorth(t, (3,4,2),(1,5); alg = alg)
-                QdQ = Q'*Q
-                @test QdQ ≈ one(QdQ)
-                @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
-            end
-            @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos())
-                N = @inferred leftnull(t, (3,4,2),(1,5); alg = alg)
-                NdN = N'*N
-                @test NdN ≈ one(NdN)
-                @test norm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(norm(t))
-            end
-            @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.RQpos(), TensorKit.LQ(), TensorKit.LQpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                L, Q = @inferred rightorth(t, (3,4),(2,1,5); alg = alg)
-                QQd = Q*Q'
-                @test QQd ≈ one(QQd)
-                @test L*Q ≈ permuteind(t, (3,4),(2,1,5))
-            end
-            @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.LQpos())
-                M = @inferred rightnull(t, (3,4),(2,1,5); alg = alg)
-                MMd = M*M'
-                @test MMd ≈ one(MMd)
-                @test norm(permuteind(t, (3,4),(2,1,5))*M') < 100*eps(norm(t))
-            end
-            @testset "svd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                U, S, V = @inferred svd(t, (3,4,2),(1,5); alg = alg)
-                UdU = U'*U
-                @test UdU ≈ one(UdU)
-                VVd = V*V'
-                @test VVd ≈ one(VVd)
-                @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
+            # Test both a normal tensor and an adjoint one.
+            ts = (Tensor(rand, T, W), Tensor(rand, T, W)')
+            for t in ts
+                @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
+                    Q, R = @inferred leftorth(t, (3,4,2),(1,5); alg = alg)
+                    QdQ = Q'*Q
+                    @test QdQ ≈ one(QdQ)
+                    @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
+                end
+                @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos())
+                    N = @inferred leftnull(t, (3,4,2),(1,5); alg = alg)
+                    NdN = N'*N
+                    @test NdN ≈ one(NdN)
+                    @test norm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(norm(t))
+                end
+                @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.RQpos(), TensorKit.LQ(), TensorKit.LQpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
+                    L, Q = @inferred rightorth(t, (3,4),(2,1,5); alg = alg)
+                    QQd = Q*Q'
+                    @test QQd ≈ one(QQd)
+                    @test L*Q ≈ permuteind(t, (3,4),(2,1,5))
+                end
+                @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.LQpos())
+                    M = @inferred rightnull(t, (3,4),(2,1,5); alg = alg)
+                    MMd = M*M'
+                    @test MMd ≈ one(MMd)
+                    @test norm(permuteind(t, (3,4),(2,1,5))*M') < 100*eps(norm(t))
+                end
+                @testset "svd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                    U, S, V = @inferred svd(t, (3,4,2),(1,5); alg = alg)
+                    UdU = U'*U
+                    @test UdU ≈ one(UdU)
+                    VVd = V*V'
+                    @test VVd ≈ one(VVd)
+                    @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
+                end
             end
 
             t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
@@ -271,26 +274,30 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     @testset "Tensor truncation" begin
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             for p in (1, 2, 3, Inf)
-                t = TensorMap(randn, T, V1 ⊗ V2 ⊗ V3 , V4 ⊗ V5)
-                U₀, S₀, V₀, = svd(t)
-                t = rmul!(t, 1/norm(S₀, p))
-                U, S, V, ϵ = @inferred svd(t; trunc = truncerr(5e-1), p = p)
-                # @show p, ϵ
-                # @show domain(S)
-                # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                U′, S′, V′, ϵ′ = svd(t; trunc = truncerr(nextfloat(ϵ)), p = p)
-                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                U′, S′, V′, ϵ′ = svd(t; trunc = truncdim(dim(domain(S))), p = p)
-                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
-                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
-                U, S, V, ϵ = svd(t; trunc = truncbelow(1/dim(domain(S₀))), p = p)
-                # @show p, ϵ
-                # @show domain(S)
-                # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
-                @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                # Test both a normal tensor and an adjoint one.
+                ts = (TensorMap(randn, T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
+                      TensorMap(randn, T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
+                for t in ts
+                    U₀, S₀, V₀, = svd(t)
+                    t = rmul!(t, 1/norm(S₀, p))
+                    U, S, V, ϵ = @inferred svd(t; trunc = truncerr(5e-1), p = p)
+                    # @show p, ϵ
+                    # @show domain(S)
+                    # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                    U′, S′, V′, ϵ′ = svd(t; trunc = truncerr(nextfloat(ϵ)), p = p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                    U′, S′, V′, ϵ′ = svd(t; trunc = truncdim(dim(domain(S))), p = p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                    U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                    # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
+                    U, S, V, ϵ = svd(t; trunc = truncbelow(1/dim(domain(S₀))), p = p)
+                    # @show p, ϵ
+                    # @show domain(S)
+                    # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                    U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                end
             end
         end
     end
