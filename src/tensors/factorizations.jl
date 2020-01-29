@@ -221,7 +221,8 @@ function rightnull!(t::AdjointTensorMap{S}; alg::OrthogonalFactorizationAlgorith
     return adjoint(leftnull!(adjoint(t); alg = alg'))
 end
 function LinearAlgebra.svd!(t::AdjointTensorMap{S}; trunc::TruncationScheme = NoTruncation(), p::Real = 2, alg::Union{SVD,SDD} = SDD()) where {S<:EuclideanSpace}
-    return map(adjoint, reverse(svd!(adjoint(t); trunc = trunc, p = p, alg = alg)))
+    u, s, vt, err = svd!(adjoint(t); trunc = trunc, p = p, alg = alg)
+    return map(adjoint, (vt, s, u, err))
 end
 
 function leftorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
