@@ -760,21 +760,31 @@ totally coupled sectors that label the different blocks. We refer to the latter 
 sectors, as we already encountered in the previous section [`blocksectors`](@ref) and
 [`blockdim`](@ref) defined on the type [`ProductSpace`](@ref).
 
-It is useful to know about the existence of fusion trees and how they are represented, as
-discussed in the first subsection. The next two subsections discuss possible manipulations
-that can be performed with fusion trees. These are used under the hood when manipulating the
-indices of tensors, but a typical user would not need to use these manipulations on fusion
-trees directly. Hence, these last two sections can safely be skipped.
+This basis transform consists of a basis of inclusion and projection maps, denoted as
+``X^{a_1a_2…a_N}_{c,α}: R_c → R_{a_1} ⊗ R_{a_2} ⊗ … ⊗ R_{a_N}`` and their adjoints
+``(X^{a_1a_2…a_N}_{c,α})^†``, such that
+
+``(X^{a_1a_2…a_N}_{c,α})^† ∘ X^{a_1a_2…a_N}_{c′,α′} = δ_{c,c′} δ_{α,α′} \mathrm{id}_c``
+
+and
+
+``∑_{c,α} X^{a_1a_2…a_N}_{c,α} ∘ (X^{a_1a_2…a_N}_{c,α})^†  = \mathrm{id}_{a_1 ⊗ a_2 ⊗ … ⊗ a_N} = \mathrm{id}_{a_1} ⊗ \mathrm{id}_{a_2} ⊗ … ⊗ \mathrm{id}_{a_N} ``
+
+Fusion trees provide a particular way to construct such a basis. It is useful to know about
+the existence of fusion trees and how they are represented, as discussed in the first
+subsection. The next two subsections discuss possible manipulations that can be performed
+with fusion trees. These are used under the hood when manipulating the indices of tensors,
+but a typical user would not need to use these manipulations on fusion trees directly.
+Hence, these last two sections can safely be skipped.
 
 ### Canonical representation
 
-To couple or fuse the different sectors together into a single block sector, we sequentially
-fuse together two sectors into a single coupled sector, which is then fused with the next
-uncoupled sector, using the splitting tensors ``X_{a,b}^{c,μ} : R_c → R_a ⊗ R_b`` and their
-adjoints. This amounts to the canonical choice of our tensor product, and for a given
-tensor mapping from
-``(((W_1 ⊗ V_2) ⊗ V_3) ⊗ … )⊗ W_{N_2})`` to ``(((V_1 ⊗ V_2) ⊗ V_3) ⊗ … )⊗ V_{N_1})``, the
-corresponding fusion and splitting trees take the form
+To couple or fuse the different sectors together into a single block sector, we can
+sequentially fuse together two sectors into a single coupled sector, which is then fused
+with the next uncoupled sector, using the splitting tensors ``X_{a,b}^{c,μ} : R_c → R_a ⊗
+R_b`` and their adjoints. This amounts to the canonical choice of our tensor product, and
+for a given tensor mapping from ``(((W_1 ⊗ V_2) ⊗ V_3) ⊗ … )⊗ W_{N_2})`` to ``(((V_1 ⊗ V_2)
+⊗ V_3) ⊗ … )⊗ V_{N_1})``, the corresponding fusion and splitting trees take the form
 
 ![double fusion tree](img/tree-simple.svg)
 
@@ -788,7 +798,12 @@ which goes from one coupled sectors ``c`` to ``N`` uncoupled sectors ``a_1``, ``
 …, ``μ_{N-1}``. We henceforth refer to them as vertex labels, as they are associated with
 the vertices of the splitting tree. In the case of `FusionStyle(G) isa Abelian`, the
 internal sectors ``e_1``, …, ``e_{N-2}`` are completely fixed, for
-`FusionStyle(G) isa NonAbelian` they can also take different values.
+`FusionStyle(G) isa NonAbelian` they can also take different values. In our abstract
+notation of the splitting basis ``X^{a_1a_2…a_N}_{c,α}`` used above, ``α`` can be consided
+a collective label, i.e. ``α = (e_1, …, e_{N-2}; μ₁, … ,μ_{N-1})``. Indeed, we can check
+the orthogonality condition
+``(X^{a_1a_2…a_N}_{c,α})^† ∘ X^{a_1a_2…a_N}_{c′,α′} = δ_{c,c′} δ_{α,α′} \mathrm{id}_c``,
+which now forces all internal lines ``e_k`` and vertex labels ``μ_l`` to be the same.
 
 There is one subtle remark that we have so far ignored. Within the specific subtypes of
 `Sector`, we do not explicitly distinguish between ``R_a^*`` (simply denoted as ``a`^*``
@@ -810,7 +825,8 @@ The presence of these isomorphisms will be important when we start to bend lines
 uncoupled sectors from the incoming to the outgoing part of the fusion-splitting tree. Note
 that we can still represent the fusion tree as the adjoint of a corresponding splitting
 tree, because we also use the adjoint of the ``Z`` isomorphisms in the splitting part, and
-the ``Z`` isomorphism in the fusion part
+the ``Z`` isomorphism in the fusion part. Furthermore, the presence of the ``Z``
+isomorphisms does not affect the orthonormality.
 
 We represent splitting trees and their adjoints using a specific immutable type called
 `FusionTree` (which actually represents a splitting tree, but fusion tree is a more common

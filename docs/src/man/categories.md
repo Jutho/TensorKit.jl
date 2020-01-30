@@ -243,7 +243,7 @@ For (real or complex) vector spaces, we denote the dual as ``V^*``, a notation t
 preserve for pivotal categories (see below). Using a bra-ket notation and a generic basis
 ``{|n⟩}`` for ``V`` and dual basis ``{⟨m|}`` for ``V^*`` (such that ``⟨m|n⟩ = δ_{m,n}``),
 the evaluation is given by ``⁠ϵ_V:{}^{∨}V ⊗ V → ℂ: ⟨m| ⊗ |n⟩ ↦ δ_{m,n}`` and the
-coevaluation or unit is ``η_V:ℂ→ V ⊗ ^{∨}V:α ↦ α ∑_n |n⟩ ⊗ ⟨n|``. Note that this does not
+coevaluation or unit is ``η_V:ℂ→ V ⊗ {}^{∨}V:α ↦ α ∑_n |n⟩ ⊗ ⟨n|``. Note that this does not
 require an inner product, i.e. no relation or mapping from ``|n⟩`` to ``⟨n|`` was defined.
 For a general tensor map ``t:W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2} → V_1 ⊗ V_2 ⊗ … ⊗ V_{N_1}``, by
 successively applying ``η_{W_{N_2}}``, ``η_{W_{N_2-1}}``, …, ``η_{W_{1}}`` (in combination
@@ -251,20 +251,20 @@ with the left or right unitor), we obtain a tensor in
 ``V_1 ⊗ V_2 ⊗ … ⊗ V_{N_1} ⊗ W_{N_2}^* ⊗ … ⊗ W_{1}^*``. Hence, we can define or identify
 ``(W_1 ⊗ W_2 ⊗ … ⊗ W_{N_2})^* = W_{N_2}^* ⊗ … ⊗ W_{1}^*``. Indeed, it can be shown that for
 any category which has duals for objects ``V`` and ``W``, an exact pairing between
-``V ⊗ W`` and ``^{∨}W ⊗ {}^{∨}V`` can be constructed out of the evaluation and coevaluation
-of ``V`` and ``W``, such that ``{}^{∨}W ⊗ {}^{∨}V`` is at least isomorphic to
+``V ⊗ W`` and ``{}^{∨}W ⊗ {}^{∨}V`` can be constructed out of the evaluation and
+coevaluation of ``V`` and ``W``, such that ``{}^{∨}W ⊗ {}^{∨}V`` is at least isomorphic to
 ``{}^{∨}(V ⊗ W)``.
 
 Graphically, we represent the exact pairing and snake rules as
 
 ![left dual](img/diagram-leftdual.svg)
 
-Note that we denote the dual objects ``^{∨}V`` as a line ``V`` with arrows pointing in the
+Note that we denote the dual objects ``{}^{∨}V`` as a line ``V`` with arrows pointing in the
 opposite (i.e. upward) direction. This notation is related to quantum field theory, where
 anti-particles are (to some extent) interpreted as particles running backwards in time.
 
-These exact pairings are known as the left evaluation and coevaluation, and ``^{∨}V`` is the
-left dual of ``V``. Likewise, we can also define a right dual ``V^{∨}`` of ``V`` and
+These exact pairings are known as the left evaluation and coevaluation, and ``{}^{∨}V`` is
+the left dual of ``V``. Likewise, we can also define a right dual ``V^{∨}`` of ``V`` and
 associated pairings, the right evaluation ``\tilde{ϵ}_V: V ⊗ V^{∨} → I`` and coevaluation
 ``\tilde{η}_V: I → V^{∨} ⊗ V``, satisfying
 
@@ -275,7 +275,7 @@ right dual of ``{}^{∨}V``. While there might be other choices, this choice mus
 isomorphic, such that ``({}^{∨}V)^{∨} ≂ V``.
 
 If objects ``V`` and ``W`` have left (respectively right) duals, than for a morphism ``f ∈ \mathrm{Hom}(W,V)``, we furthermore define the left (respectively right)
-*transpose* ``^{∨}f ∈ \mathrm{Hom}(^{∨}V, {}^{∨}W)`` (respectively  ``f^{∨} ∈ \mathrm{Hom}(V^{∨}, W^{∨})``) as
+*transpose* ``{}^{∨}f ∈ \mathrm{Hom}({}^{∨}V, {}^{∨}W)`` (respectively  ``f^{∨} ∈ \mathrm{Hom}(V^{∨}, W^{∨})``) as
 
 ![transpose](img/diagram-transpose.svg)
 
@@ -284,7 +284,7 @@ where on the right we also illustrate the mapping from
 ``\mathrm{Hom}(I, V_1 ⊗ V_2 ⊗ {}^{∨} W_3 ⊗ {}^{∨} W_2 ⊗ {}^{∨} W_1)``.
 
 Note that the graphical notation, at least the lines with opposite arrows, do not allow to
-distinguish between the right dual ``V^{∨}`` and the left dual ``^{∨}V``. We come back to
+distinguish between the right dual ``V^{∨}`` and the left dual ``{}^{∨}V``. We come back to
 this point below.
 
 A left (or right) duality in a (monoidal) category is now defined as an association of a
@@ -297,20 +297,21 @@ in a functorial way. A (left or right) rigid category ``\mathcal{C}`` is a categ
 admits a (left or right) duality functor, i.e. a functor from ``\mathcal{C}`` to
 ``\mathcal{C}^{\mathrm{rev}}`` that maps objects to its (left or right) dual, and morphisms
 to its (left or right) transpose. In particular, the snake rules can now be read as the
-functioral requirement that ``^{∨}(\mathrm{id}_V) = \mathrm{id}_{^{∨}V}``.
+functioral requirement that ``{}^{∨}(\mathrm{id}_V) = \mathrm{id}_{{}^{∨}V}``.
 
 In all of this, left and right duality can be completely distinct. Equivalently, the left
-dual of the left dual of an object ``V``, i.e. ``^{∨∨}V`` is not necessarily ``V`` itself.
-For finite-dimensional vector spaces, however, ``^{∨∨}V`` and ``V``, or thus ``^{∨}V`` and
-``V^{∨}`` are isomorphic. The categorical generalization is that of a **pivotal category**
-(or sovereign category), i.e. a monoidal category with duals ``X^* = {}^{∨}X = X^{∨} = X^*``
-such that the left and right duality functor coincide, and thus also the left and right
-transpose of morphisms, i.e. ``f^* = {}^{∨}f = f^{∨} ∈ \mathrm{Hom}(V^*,W*)`` for any
-``f∈\mathrm{Hom}(W,V)``. Given that ``\tilde{ϵ}_{X}`` and ``\tilde{η}_{X}`` can be
-interpreted as an exact pairing ``ϵ_{X^*}`` and ``η_{X^*}``, this can be used to recognize
-``X`` as a left dual of ``X^*``, which is then not necessarily equal but at least isomorphic
-to ``X^{**}`` with the isomorphism given by the mixed snake composition alluded to in the
-beginning of this section, i.e. ``δ_X: X → X^{**}`` given by
+dual of the left dual of an object ``V``, i.e. ``{}^{∨∨}V`` is not necessarily ``V`` itself.
+For finite-dimensional vector spaces, however, ``{}^{∨∨}V`` and ``V``, or thus ``{}^{∨}V``
+and ``V^{∨}`` are isomorphic. The categorical generalization is that of a
+**pivotal category** (or sovereign category), i.e. a monoidal category with duals
+``X^* = {}^{∨}X = X^{∨} = X^*`` such that the left and right duality functor coincide, and
+thus also the left and right transpose of morphisms, i.e.
+``f^* = {}^{∨}f = f^{∨} ∈ \mathrm{Hom}(V^*,W*)`` for any ``f∈\mathrm{Hom}(W,V)``. Given
+that ``\tilde{ϵ}_{X}`` and ``\tilde{η}_{X}`` can be interpreted as an exact pairing
+``ϵ_{X^*}`` and ``η_{X^*}``, this can be used to recognize ``X`` as a left dual of ``X^*``,
+which is then not necessarily equal but at least isomorphic to ``X^{**}`` with the
+isomorphism given by the mixed snake composition alluded to in the beginning of this
+section, i.e. ``δ_X: X → X^{**}`` given by
 ``δ_X = (\tilde{ϵ}_X ⊗ \mathrm{id}_{X^*}) ∘ (\mathrm{id}_X ⊗ η_{X^*})``. A more formal
 statement is that ``δ`` is a natural isomorphism between the double dual functor and the
 identity functor of a category ``C``. In a similar manner, such a ``δ`` can be used to
