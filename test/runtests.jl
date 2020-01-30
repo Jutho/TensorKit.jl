@@ -10,6 +10,10 @@ using TupleTools
 using TupleTools: StaticLength
 using Base.Iterators: take, product
 
+include("timedtest.jl")
+
+using .TimedTests
+
 Random.seed!(1234)
 
 smallset(::Type{G}) where {G<:Sector} = take(values(G), 6)

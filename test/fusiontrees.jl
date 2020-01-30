@@ -1,4 +1,8 @@
-@testset "Fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
+println("------------------------------------")
+println("Fusion Trees")
+println("------------------------------------")
+ti = time()
+@testset TimedTestSet "Fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
     N = 5
     out = ntuple(n->randsector(G), StaticLength(N))
     isdual = ntuple(n->rand(Bool), StaticLength(N))
@@ -313,3 +317,8 @@
         end
     end
 end
+tf = time()
+printstyled("Finished fusion tree tests in ",
+            string(round(tf-ti; sigdigits=3)),
+            " seconds."; bold = true, color = Base.info_color())
+println()

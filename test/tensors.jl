@@ -33,8 +33,9 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     println("------------------------------------")
     println("Tensors with symmetry: $G")
     println("------------------------------------")
+    ti = time()
     V1, V2, V3, V4, V5 = V
-    @testset "Basic tensor properties" begin
+    @testset TimedTestSet "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
             t = Tensor(zeros, T, W)
@@ -45,7 +46,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test domain(t) == one(W)
         end
     end
-    @testset "Basic linear algebra" begin
+    @testset TimedTestSet "Basic linear algebra" begin
         W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t = TensorMap(rand, T, W)
@@ -71,7 +72,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test dot(t2,t) ≈ dot(t', t2')
         end
     end
-    @testset "Basic linear algebra: test via conversion" begin
+    @testset TimedTestSet "Basic linear algebra: test via conversion" begin
         W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t = TensorMap(rand, T, W)
@@ -83,7 +84,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test convert(Array, t+t) ≈ 2*convert(Array,t)
         end
     end
-    @testset "Permutations: test via inner product invariance" begin
+    @testset TimedTestSet "Permutations: test via inner product invariance" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         t = Tensor(rand, ComplexF64, W);
         t′ = Tensor(rand, ComplexF64, W);
@@ -98,7 +99,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset "Permutations: test via conversion" begin
+    @testset TimedTestSet "Permutations: test via conversion" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         t = Tensor(rand, ComplexF64, W);
         for k = 0:5
@@ -109,7 +110,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset "Full trace: test self-consistency" begin
+    @testset TimedTestSet "Full trace: test self-consistency" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1');
         t2 = permuteind(t, (1,2), (4,3))
         s = @inferred tr(t2)
@@ -120,20 +121,20 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         @test s ≈ s2
         @test s ≈ s3
     end
-    @testset "Partial trace: test self-consistency" begin
+    @testset TimedTestSet "Partial trace: test self-consistency" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
         @tensor t2[a,b] := t[c,d,b,d,c,a]
         @tensor t4[a,b,c,d] := t[d,e,b,e,c,a]
         @tensor t5[a,b] := t4[a,b,c,c]
         @test t2 ≈ t5
     end
-    @testset "Trace: test via conversion" begin
+    @testset TimedTestSet "Trace: test via conversion" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
         @tensor t2[a,b] := t[c,d,b,d,c,a]
         @tensor t3[a,b] := convert(Array, t)[c,d,b,d,c,a]
         @test t3 ≈ convert(Array, t2)
     end
-    @testset "Trace and contraction" begin
+    @testset TimedTestSet "Trace and contraction" begin
         t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3);
         t2 = Tensor(rand, ComplexF64, V2' ⊗ V4 ⊗ V1');
         t3 = t1 ⊗ t2
@@ -141,7 +142,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         @tensor tb[a,b] := t3[x,y,a,y,b,x]
         @test ta ≈ tb
     end
-    @testset "Tensor contraction: test via conversion" begin
+    @testset TimedTestSet "Tensor contraction: test via conversion" begin
         A1 = TensorMap(randn, ComplexF64, V1'*V2', V3')
         A2 = TensorMap(randn, ComplexF64, V3*V4, V5)
         rhoL = TensorMap(randn, ComplexF64, V1, V1)
@@ -158,7 +159,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
 
         @test HrA12array ≈ convert(Array, HrA12)
     end
-    @testset "Multiplication and inverse: test compatibility" begin
+    @testset TimedTestSet "Multiplication and inverse: test compatibility" begin
         W1 = V1 ⊗ V2 ⊗ V3
         W2 = V4 ⊗ V5
         for T in (Float64, ComplexF64)
@@ -176,7 +177,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test tp ≈ tp*tp
         end
     end
-    @testset "Multiplication and inverse: test via conversion" begin
+    @testset TimedTestSet "Multiplication and inverse: test via conversion" begin
         W1 = V1 ⊗ V2 ⊗ V3
         W2 = V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)
@@ -211,7 +212,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test reshape(convert(Array, t1'/t'), d1, d2) ≈ At1'/At'
         end
     end
-    @testset "Factorization" begin
+    @testset TimedTestSet "Factorization" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             # Test both a normal tensor and an adjoint one.
@@ -271,7 +272,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset "Tensor truncation" begin
+    @testset TimedTestSet "Tensor truncation" begin
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             for p in (1, 2, 3, Inf)
                 # Test both a normal tensor and an adjoint one.
@@ -301,7 +302,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset "Exponentiation" begin
+    @testset TimedTestSet "Exponentiation" begin
         W = V1 ⊗ V2 ⊗ V3
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t = TensorMap(rand, T, W, W)
@@ -311,7 +312,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     exp(reshape(convert(Array, t), (s,s)))
         end
     end
-    @testset "Tensor product: test via norm preservation" begin
+    @testset TimedTestSet "Tensor product: test via norm preservation" begin
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
@@ -319,7 +320,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test norm(t) ≈ norm(t1) * norm(t2)
         end
     end
-    @testset "Tensor product: test via conversion" begin
+    @testset TimedTestSet "Tensor product: test via conversion" begin
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
@@ -329,13 +330,12 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             d3 = dim(domain(t1))
             d4 = dim(domain(t2))
             At = convert(Array, t)
-            @show sizeof(At)
             @test reshape(At, (d1, d2, d3, d4)) ≈
                     reshape(convert(Array, t1), (d1, 1, d3, 1)) .*
                     reshape(convert(Array, t2), (1, d2, 1, d4))
         end
     end
-    @testset "Tensor product: test via tensor contraction" begin
+    @testset TimedTestSet "Tensor product: test via tensor contraction" begin
         for T in (Float32, Float64, ComplexF32, ComplexF64)
             t1 = Tensor(rand, T, V2 ⊗ V3 ⊗ V1)
             t2 = Tensor(rand, T, V2 ⊗ V1 ⊗ V3)
@@ -344,4 +344,9 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test t ≈ t′
         end
     end
+    tf = time()
+    printstyled("Finished tensor tests with symmetry $G in ",
+                string(round(tf-ti; sigdigits=3)),
+                " seconds."; bold = true, color = Base.info_color())
+    println()
 end

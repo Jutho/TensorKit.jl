@@ -1,4 +1,8 @@
-@testset "Fields" begin
+println("------------------------------------")
+println("Fields and vector spaces")
+println("------------------------------------")
+ti = time()
+@testset TimedTestSet "Fields" begin
     @test isa(ℝ, Field)
     @test isa(ℂ, Field)
 
@@ -34,7 +38,7 @@
     end
 end
 
-@testset "ElementarySpace: CartesianSpace" begin
+@testset TimedTestSet "ElementarySpace: CartesianSpace" begin
     d = 2
     V = ℝ^d
     @test eval(Meta.parse(sprint(show,V))) == V
@@ -56,7 +60,7 @@ end
     @test @inferred max(V', ℝ^3) == ℝ^3
 end
 
-@testset "ElementarySpace: ComplexSpace" begin
+@testset TimedTestSet "ElementarySpace: ComplexSpace" begin
     d = 2
     V = ℂ^d
     @test eval(Meta.parse(sprint(show,V))) == V
@@ -80,7 +84,7 @@ end
     @test @inferred max(V', ℂ[3]') == ℂ[3]'
 end
 
-@testset "ElementarySpace: GeneralSpace" begin
+@testset TimedTestSet "ElementarySpace: GeneralSpace" begin
     d = 2
     V = GeneralSpace{ℂ}(d)
     @test eval(Meta.parse(sprint(show,V))) == V
@@ -97,7 +101,7 @@ end
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 
-@testset "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
+@testset TimedTestSet "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
     if Base.IteratorSize(values(G)) === Base.IsInfinite()
         set = unique(vcat(one(G), [randsector(G) for k = 1:10]))
         gen = (c=>2 for c in set)
@@ -145,3 +149,8 @@ end
     @test min(V, RepresentationSpace(one(G)=>3)) == RepresentationSpace(one(G)=>2)
     @test_throws SpaceMismatch (⊕(V, V'))
 end
+tf = time()
+printstyled("Finished vector space tests in ",
+            string(round(tf-ti; sigdigits=3)),
+            " seconds."; bold = true, color = Base.info_color())
+println()

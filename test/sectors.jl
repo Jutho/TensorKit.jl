@@ -1,4 +1,8 @@
-@testset "Properties of sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
+println("------------------------------------")
+println("Sectors")
+println("------------------------------------")
+ti = time()
+@testset TimedTestSet "Properties of sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
     @testset "Sector $G: Basic properties" begin
         s = (randsector(G), randsector(G), randsector(G))
         @test eval(Meta.parse(sprint(show,G))) == G
@@ -106,3 +110,8 @@
         end
     end
 end
+tf = time()
+printstyled("Finished sector tests in ",
+            string(round(tf-ti; sigdigits=3)),
+            " seconds."; bold = true, color = Base.info_color())
+println()
