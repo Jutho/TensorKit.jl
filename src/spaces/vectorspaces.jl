@@ -145,6 +145,7 @@ Return a single vector space of type `S` that is isomorphic to the fusion produc
 individual spaces `V1`, `V2`, ..., or the spaces contained in `P`.
 """
 function fuse end
+fuse(V::ElementarySpace) = V
 fuse(V1, V2, V3, V4...) = fuse(fuse(V1, V2), V3, V4...)
 
 """
