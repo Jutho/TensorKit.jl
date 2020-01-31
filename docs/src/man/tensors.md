@@ -276,7 +276,7 @@ codomain(t1) == codomain(t2) == codomain(t3) == codomain(t4)
 disp(x) = show(IOContext(Core.stdout, :compact=>false), "text/plain", trunc.(x; digits = 3));
 t1[] |> disp
 block(t1, Trivial()) |> disp
-reshape(t1[], dim(codomain(t)), dim(domain(t))) |> disp
+reshape(t1[], dim(codomain(t1)), dim(domain(t1))) |> disp
 ```
 
 Finally, all constructors can also be replaced by `Tensor(..., codomain)`, in which case
