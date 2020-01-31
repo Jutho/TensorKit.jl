@@ -52,6 +52,7 @@ export leftorth, rightorth, leftnull, rightnull,
         svd!, svd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
         isposdef, isposdef!, ishermitian
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
+export catdomain, catcodomain
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,
         SVD, SDD, Polar
