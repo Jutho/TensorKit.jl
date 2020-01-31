@@ -31,11 +31,13 @@ Base.exp(t::AbstractTensorMap) = exp!(copy(t))
 #------------------------------
 Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
 function Base.one(t::AbstractTensorMap)
-    domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
+    domain(t) == codomain(t) ||
+        throw(SectorMismatch("no identity if domain and codomain are different"))
     TensorMap(I, eltype(t), domain(t), domain(t))
 end
 function one!(t::AbstractTensorMap)
-    domain(t) == codomain(t) || throw(SectorMismatch("no identity if domain and codomain are different"))
+    domain(t) == codomain(t) ||
+        throw(SectorMismatch("no identity if domain and codomain are different"))
     for (c,b) in blocks(t)
         copyto!(b, I)
     end
@@ -52,7 +54,8 @@ function Base.:(==)(t1::AbstractTensorMap, t2::AbstractTensorMap)
     return true
 end
 
-function Base.isapprox(t1::AbstractTensorMap, t2::AbstractTensorMap; atol::Real=0, rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
+function Base.isapprox(t1::AbstractTensorMap, t2::AbstractTensorMap;
+                atol::Real=0, rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
     d = norm(t1 - t2)
     if isfinite(d)
         return d <= max(atol, rtol*max(norm(t1), norm(t2)))
@@ -66,7 +69,8 @@ end
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
 # Copy, adjoint! and fill:
 function Base.copyto!(tdest::AbstractTensorMap, tsource::AbstractTensorMap)
-    codomain(tdest) == codomain(tsource) && domain(tdest) == domain(tsource) || throw(SpaceMismatch())
+    codomain(tdest) == codomain(tsource) && domain(tdest) == domain(tsource) ||
+        throw(SpaceMismatch())
     for c in blocksectors(tdest)
         copyto!(StridedView(block(tdest, c)), StridedView(block(tsource, c)))
     end
@@ -79,7 +83,8 @@ function Base.fill!(t::AbstractTensorMap, value::Number)
     return t
 end
 function LinearAlgebra.adjoint!(tdest::AbstractTensorMap, tsource::AbstractTensorMap)
-    codomain(tdest) == domain(tsource) && domain(tdest) == codomain(tsource) || throw(SpaceMismatch())
+    codomain(tdest) == domain(tsource) && domain(tdest) == codomain(tsource) ||
+        throw(SpaceMismatch())
     for c in blocksectors(tdest)
         adjoint!(StridedView(block(tdest, c)), StridedView(block(tsource, c)))
     end
@@ -111,7 +116,8 @@ function LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTens
     end
     return t2
 end
-function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap, β::Number, t2::AbstractTensorMap)
+function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap,
+                                β::Number, t2::AbstractTensorMap)
     (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         axpby!(α, StridedView(block(t1, c)), β, StridedView(block(t2, c)))
@@ -153,7 +159,9 @@ function LinearAlgebra.tr(t::AbstractTensorMap)
 end
 
 # TensorMap multiplication:
-function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,  tB::AbstractTensorMap, α = true, β = false)
+function LinearAlgebra.mul!(tC::AbstractTensorMap,
+                            tA::AbstractTensorMap,
+                            tB::AbstractTensorMap, α = true, β = false)
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB))
         throw(SpaceMismatch())
     end
@@ -249,7 +257,8 @@ function catdomain(t1::AbstractTensorMap{S,N₁,1}, t2::AbstractTensorMap{S,N₁
 
     V1, = domain(t1)
     V2, = domain(t2)
-    isdual(V1) == isdual(V2) || throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
+    isdual(V1) == isdual(V2) ||
+        throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
 
     V = V1 ⊕ V2
     t = TensorMap(undef, promote_type(eltype(t1), eltype(t2)), codomain(t1), V)
@@ -264,7 +273,8 @@ function catcodomain(t1::AbstractTensorMap{S,1,N₂}, t2::AbstractTensorMap{S,1,
 
     V1, = codomain(t1)
     V2, = codomain(t2)
-    isdual(V1) == isdual(V2) || throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
+    isdual(V1) == isdual(V2) ||
+        throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
 
     V = V1 ⊕ V2
     t = TensorMap(undef, promote_type(eltype(t1),eltype(t2)), V, domain(t1))

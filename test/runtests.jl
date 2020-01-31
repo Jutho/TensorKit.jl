@@ -14,9 +14,11 @@ include("timedtest.jl")
 
 using .TimedTests
 
+const TK = TensorKit
+
 Random.seed!(1234)
 
-smallset(::Type{G}) where {G<:Sector} = take(values(G), 6)
+smallset(::Type{G}) where {G<:Sector} = take(values(G), 5)
 function smallset(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2}
     iter = product(smallset(G1),smallset(G2))
     s = collect(i × j for (i,j) in iter if dim(i)*dim(j) <= 6)

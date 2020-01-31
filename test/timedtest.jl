@@ -2,8 +2,8 @@ module TimedTests
 export TimedTestSet
 
 import Test
-import Test: AbstractTestSet, DefaultTestSet, Broken, Fail, Error, Pass
-import Test: record, finish, print_test_errors, print_test_results, print_counts,
+import Test: AbstractTestSet, DefaultTestSet, Broken, Fail, Error, Pass, TestSetException
+import Test: record, finish, print_test_errors, print_test_results, print_counts, myid,
             get_testset, get_testset_depth,get_test_counts, get_alignment, filter_errors
 
 @nospecialize

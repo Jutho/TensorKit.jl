@@ -9,8 +9,10 @@ module TensorKit
 #---------
 # Types:
 export Sector, Irrep, FusionStyle, BraidingStyle
-export Abelian, SimpleNonAbelian, DegenerateNonAbelian, SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
-export Parity, ZNIrrep, U1Irrep, SU2Irrep, FermionParity, FermionNumber, FermionSpin # specific sectors
+export Abelian, NonAbelian, SimpleNonAbelian, DegenerateNonAbelian,
+        SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
+export Parity, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
+        #FermionParity, FermionNumber, FermionSpin # specific sectors
 export FibonacciAnyon
 
 export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
@@ -27,7 +29,7 @@ export space, field, dual, dim, dims, fuse, flip, isdual
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
-export fusiontrees, artin_braid, braid, repartition, insertat
+export fusiontrees#, artin_braid, braid, permute, repartition, insertat, merge
 
 # some unicode
 export ⊕, ⊗, ×, ℂ, ℝ, ←, →
@@ -39,7 +41,7 @@ export domain, codomain
 export blocksectors, blockdim, block, blocks
 
 # random methods for constructor
-export randuniform, randnormal, randisometry
+export randuniform, randnormal, randisometry, randhaar
 export one!
 
 # tensor algebra and factorizations
@@ -51,10 +53,11 @@ export leftorth, rightorth, leftnull, rightnull,
         isposdef, isposdef!, ishermitian
 export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
 
-export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos, SVD, Polar
+export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,
+        SVD, SDD, Polar
 
 # tensor operations
-export @tensor, @tensoropt, @btensor
+export @tensor, @tensoropt, @ncon, ncon
 export scalar, add!, contract!
 
 # truncation schemes
@@ -64,7 +67,6 @@ export notrunc, truncerr, truncdim, truncspace, truncbelow
 #---------
 using TupleTools
 using TupleTools: StaticLength
-import TupleTools: permute
 
 using Strided
 
@@ -150,8 +152,5 @@ include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
-
-# include("braidedtensors/braidedtensormacro.jl")
-# include("braidedtensors/braidedtensor.jl")
 
 end

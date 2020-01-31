@@ -161,11 +161,11 @@ remaining outgoing indices are the N-M outgoing indices of the original tree `f`
 the incoming index is the same. This is in the inverse of `insertat` in the sense that if
 `f1, f2 = split(t, StaticLength(M)) ⇒ f == insertat(f2, 1, f1)`.
 """
-Base.split(f::FusionTree{G,N}, ::StaticLength{N}) where {G,N} =
+split(f::FusionTree{G,N}, ::StaticLength{N}) where {G,N} =
     (f, FusionTree{G}((f.coupled,), f.coupled, (false,), (), ()))
-Base.split(f::FusionTree{G,N}, ::StaticLength{1}) where {G,N} =
+split(f::FusionTree{G,N}, ::StaticLength{1}) where {G,N} =
     (FusionTree{G}((f.uncoupled[1],), f.uncoupled[1], (false,), (), ()), f)
-function Base.split(f::FusionTree{G,N}, ::StaticLength{0}) where {G,N}
+function split(f::FusionTree{G,N}, ::StaticLength{0}) where {G,N}
     f1 = FusionTree{G}((), one(G), (), ())
     uncoupled2 = (one(G), f.uncoupled...)
     coupled2 = f.coupled
@@ -178,7 +178,7 @@ function Base.split(f::FusionTree{G,N}, ::StaticLength{0}) where {G,N}
         return f1, FusionTree(uncoupled2, coupled2, isdual2, innerlines2)
     end
 end
-function Base.split(f::FusionTree{G,N}, ::StaticLength{M}) where {G,N,M}
+function split(f::FusionTree{G,N}, ::StaticLength{M}) where {G,N,M}
     @assert 1 < M < N
     uncoupled1 = ntuple(n->f.uncoupled[n], Val(M))
     isdual1 = ntuple(n->f.isdual[n], Val(M))
@@ -206,7 +206,7 @@ sectors are those of `f1` followed by those of `f2`, and where the two coupled s
 `FusionStyle(G) == DegenerateNonAbelian()`, also a degeneracy label `μ` for the fusion of
 the coupled sectors of `f1` and `f2` to `c` needs to be specified.
 """
-function Base.merge(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂},
+function merge(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂},
                     c::G, μ = nothing) where {G,N₁,N₂}
     if !(c in f1.coupled ⊗ f2.coupled)
         throw(SectorMismatch("cannot fuse sectors $(f1.coupled) and $(f2.coupled) to $c"))
@@ -216,7 +216,7 @@ function Base.merge(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂},
     @assert coeff == one(coeff)
     return insertat(f, N₁+1, f2)
 end
-function Base.merge(f1::FusionTree{G,0}, f2::FusionTree{G,0}, c::G, μ =nothing) where {G}
+function merge(f1::FusionTree{G,0}, f2::FusionTree{G,0}, c::G, μ =nothing) where {G}
     c == one(G) ||
         throw(SectorMismatch("cannot fuse sectors $(f1.coupled) and $(f2.coupled) to $c"))
     return SingletonDict(f1=>Fsymbol(one(G),one(G),one(G),one(G),one(G),one(G)))

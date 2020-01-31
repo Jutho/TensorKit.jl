@@ -890,7 +890,10 @@ general manipulations on a pair of a fusion and splitting tree discussed in the 
 subsection, and then for casting a general index manipulation of a tensor map as a linear
 operation in the basis of canonically ordered splitting and fusion trees. In this section,
 we will ignore the ``Z`` isomorphisms, as they are just trivially reshuffled under the
-different operations that we describe.
+different operations that we describe. These manipulations are used as low-level methods by
+the `TensorMap` methods discussed on the next page. As such, they are not exported by
+TensorKit.jl, nor do they overload similarly named methods from Julia Base (see `split` and
+`merge` below).
 
 The first operation we discuss is an elementary braid of two neighbouring sectors
 (indices), i.e. a so-called Artin braid or Artin generator of the braid group. Because

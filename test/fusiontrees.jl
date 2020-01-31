@@ -21,10 +21,10 @@ ti = time()
     @testset "Fusion tree $G: braiding" begin
         for in = ⊗(out...)
             for f in fusiontrees(out, in, isdual)
-                d1 = @inferred artin_braid(f, 2)
+                d1 = @inferred TK.artin_braid(f, 2)
                 d2 = empty(d1)
                 for (f1, coeff1) in d1
-                    for (f2,coeff2) in artin_braid(f1, 2; inv = true)
+                    for (f2,coeff2) in TK.artin_braid(f1, 2; inv = true)
                         d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
                     end
                 end
@@ -39,24 +39,24 @@ ti = time()
         end
 
         f = rand(collect(it))
-        d1 = artin_braid(f, 2)
+        d1 = TK.artin_braid(f, 2)
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2,coeff2) in artin_braid(f1, 3)
+            for (f2,coeff2) in TK.artin_braid(f1, 3)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
             end
         end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2,coeff2) in artin_braid(f1, 3; inv = true)
+            for (f2,coeff2) in TK.artin_braid(f1, 3; inv = true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
             end
         end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2,coeff2) in artin_braid(f1, 2; inv = true)
+            for (f2,coeff2) in TK.artin_braid(f1, 2; inv = true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
             end
         end
@@ -74,11 +74,11 @@ ti = time()
         ip = invperm(p)
 
         levels = ntuple(identity, N)
-        d = @inferred braid(f, levels, p)
+        d = @inferred TK.braid(f, levels, p)
         d2 = Dict{typeof(f), valtype(d)}()
         levels2 = p
         for (f2, coeff) in d
-            for (f1,coeff2) in braid(f2, levels2, ip)
+            for (f1,coeff2) in TK.braid(f2, levels2, ip)
                 d2[f1] = get(d2, f1, zero(coeff)) + coeff2*coeff
             end
         end
@@ -114,16 +114,16 @@ ti = time()
             isdual1 = Base.setindex(isdual1, false, i)
             f1 = rand(collect(fusiontrees(out1, in1, isdual1)))
 
-            trees = @inferred insertat(f1, i, f2)
+            trees = @inferred TK.insertat(f1, i, f2)
             @test norm(values(trees)) ≈ 1
 
-            f1a, f1b = split(f1, StaticLength(i))
-            @test length(insertat(f1b, 1, f1a)) == 1
-            @test first(insertat(f1b, 1, f1a)) == (f1 => 1)
+            f1a, f1b = TK.split(f1, StaticLength(i))
+            @test length(TK.insertat(f1b, 1, f1a)) == 1
+            @test first(TK.insertat(f1b, 1, f1a)) == (f1 => 1)
 
             levels = ntuple(identity, N)
-            gen = Base.Generator(braid(f1, levels, (i, (1:i-1)..., (i+1:N)...))) do (t, c)
-                (t′, c′) = first(insertat(t, 1, f2))
+            gen = Base.Generator(TK.braid(f1, levels, (i, (1:i-1)..., (i+1:N)...))) do (t, c)
+                (t′, c′) = first(TK.insertat(t, 1, f2))
                 @test c′ == one(c′)
                 return t′ => c
             end
@@ -132,7 +132,7 @@ ti = time()
             p = ((N+1:N+i-1)..., (1:N)..., (N+i:2N-1)...)
             levels = ((i:N+i-1)..., (1:i-1)..., (i+N:2N-1)...)
             for (t,coeff) in trees2
-                for (t′,coeff′) in braid(t, levels, p)
+                for (t′,coeff′) in TK.braid(t, levels, p)
                     trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
                 end
             end
@@ -161,17 +161,17 @@ ti = time()
         out2 = ntuple(n->randsector(G), StaticLength(N))
         in2 = rand(collect(⊗(out2...)))
         f2 = rand(collect(fusiontrees(out2, in2)))
-        trees1 = @inferred merge(f1, f2, first(f1.coupled ⊗ f2.coupled))
+        trees1 = @inferred TK.merge(f1, f2, first(f1.coupled ⊗ f2.coupled))
         @test sum(abs2(coeff)*dim(c) for c in f1.coupled ⊗ f2.coupled
-                    for (f,coeff) in merge(f1, f2, c)) ≈ dim(f1.coupled)*dim(f2.coupled)
+                    for (f,coeff) in TK.merge(f1, f2, c)) ≈ dim(f1.coupled)*dim(f2.coupled)
 
         # test merge and braid interplay
-        trees2 = merge(f2, f1, first(f1.coupled ⊗ f2.coupled))
+        trees2 = TK.merge(f2, f1, first(f1.coupled ⊗ f2.coupled))
         perm = ( (N.+(1:N))... , (1:N)...)
         levels = ntuple(identity, 2*N)
         trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()
         for (t, coeff) in trees1
-            for (t′, coeff′) in braid(t, levels, perm)
+            for (t′, coeff′) in TK.braid(t, levels, perm)
                 trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
             end
         end
@@ -216,11 +216,11 @@ ti = time()
 
     @testset "Double fusion tree $G: repartioning" begin
         for n = 0:2*N
-            d = @inferred repartition(f1, f2, StaticLength(n))
+            d = @inferred TK.repartition(f1, f2, StaticLength(n))
             @test dim(incoming) ≈ sum(abs2(coef)*dim(f1.coupled) for ((f1,f2), coef) in d)
             d2 = Dict{typeof((f1,f2)), valtype(d)}()
             for ((f1′,f2′),coeff) in d
-                for ((f1′′,f2′′),coeff2) in repartition(f1′,f2′, StaticLength(N))
+                for ((f1′′,f2′′),coeff2) in TK.repartition(f1′,f2′, StaticLength(N))
                     d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
                 end
             end
