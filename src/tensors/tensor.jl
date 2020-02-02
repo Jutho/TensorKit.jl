@@ -63,7 +63,7 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
     end
 end
 
-function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {A<:SectorDict, S<:IndexSpace, N₁, N₂}
+function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
     G = sectortype(S)
     G == keytype(data) || throw(SectorMismatch())
     F₁ = fusiontreetype(G, StaticLength(N₁))
@@ -94,11 +94,14 @@ function TensorMap(data::A, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N�
         push!(rowr, c=>rowrc)
         push!(colr, c=>colrc)
     end
-    if !isreal(G) && eltype(valtype(A)) <: Real
+    if !isreal(G) && eltype(valtype(data)) <: Real
         data2 = SectorDict((c=>complex(d)) for (c,d) in data)
+        A = typeof(data2)
         return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     else
-        return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data, codom, dom, rowr, colr)
+        data2 = SectorDict((c=>d) for (c,d) in data)
+        A = typeof(data2)
+        return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     end
 end
 

@@ -266,8 +266,8 @@ advantage of the unicode arrows is that they will also convert a single instance
 order
 
 ```@repl tensors
-t1 = TensorMap(randn, ℂ^2 ⊗ ℂ^3, ℂ^2)
-t2 = TensorMap(randn, Float32, ℂ^2 ⊗ ℂ^3 ← ℂ^2)
+t1 = TensorMap(randnormal, ℂ^2 ⊗ ℂ^3, ℂ^2)
+t2 = TensorMap(randisometry, Float32, ℂ^2 ⊗ ℂ^3 ← ℂ^2)
 t3 = TensorMap(undef, ℂ^2 → ℂ^2 ⊗ ℂ^3)
 t4failed = TensorMap(undef, ComplexF64, ℂ^2 => ℂ^2 ⊗ ℂ^3)
 t4 = TensorMap(undef, ComplexF64, ProductSpace(ℂ^2) => ℂ^2 ⊗ ℂ^3)
@@ -349,13 +349,75 @@ still unitary. Furthermore, note that they render the tensor block diagonal, but
 every element of the diagonal blocks labeled by `c` comes itself in a tensor product with
 an identity matrix of size `dim(c)`, i.e. `dim(SU₂(1)) = 3` and `dim(SU₂(2)) = 5`.
 
+To create a `TensorMap` with existing data, one can use the aforementioned form but with
+the function `f` replaced with the actual data, i.e. `TensorMap(data, codomain, domain)` or
+any of its equivalents. For the specific form of `data`, we distinguish between the case
+without and with symmetry. In the former case, one can just pass a `DenseArray`, either of
+rank `N₁+N₂` and with matching size `(dims(codomain)..., dims(domain)...)`, or just as a
+`DenseMatrix` with size `(dim(codomain), dim(domain))`. In the case of symmetry, `data`
+needs to be specified as a dictionary (some subtype of `AbstractDict`) with the
+blocksectors `c::G <: Sector` as keys and the corresponding matrix blocks as value, i.e.
+`data[c]` is some `DenseMatrix` of size `(blockdim(codomain, c), blockdim(domain, c))`.
+
+```@repl tensors
+data = randn(3,3,3)
+t = TensorMap(data, ℂ^3 ⊗ ℂ^3, ℂ^3)
+t ≈ TensorMap(reshape(data, (9, 3)), ℂ^3 ⊗ ℂ^3, ℂ^3)
+V = ℤ₂Space(0=>2, 1=>2)
+data = Dict(ℤ₂(0)=>randn(8,2), ℤ₂(1)=>randn(8,2))
+t2 = TensorMap(data, V*V, V)
+
+```
+
+## Vector space and linear algebra operations
+
+`AbstractTensorMap` instances `t` represent linear maps, i.e. homomorphisms in a `𝕜`-linear
+category, just like matrices. To a large extent, they follow the interface of `Matrix` in
+Julia's `LinearAlgebra` standard library. Many methods from `LinearAlgebra` are (re)exported
+by TensorKit.jl, and can then us be used without `using LinearAlgebra` explicitly. In all
+of the following methods, the implementation acts directly on the underlying matrix blocks
+(typically using the same method) and never needs to perform any basis transforms.
+
+In particular, `AbstractTensorMap` instances can be composed, provided the domain of the
+first object coincides with the codomain of the second. Composing tensor maps uses the
+regular multiplication symbol as in `t = t1*t2`, which is also used for matrix
+multiplication. TensorKit.jl also supports (and exports) the mutating method
+`mul!(t, t1, t2)`.
+
+Furthermore, when tensor map instances endomorphisms, i.e. they have the same domain and
+codomain, there is a multiplicative identity which can be obtained as `one(t)` or `one!(t)`,
+where the latter overwrites the contents of `t`. We can then also try to invert them using
+`inv(t)`, or, in case their inverse is composed with another tensor `t2`, `t1\t2` or
+`t2/t1`. The latter syntax also accepts instances `t1` whose domain and codomain are not
+the same, and then amounts to `pinv(t1)`, the Moore-Penrose pseudoinverse. This, however,
+is only really justified for `TensorMap{S}` instances with `S isa EuclideanSpace`.
+Returning to endomorphisms, we can compute their trace via `tr(t)` and exponentiate them
+using `exp(t)`, or if the contents of `t` can be destroyed in the process, `exp!(t)`.
+Furthermore, there are a number of tensor factorizations for both endomorphisms and general
+homomorphism that we discuss below.
+
+`AbstractTensorMap` instances behave themselves as vectors (i.e. they are `𝕜`-linear) and
+so they can be multiplied by scalars and, if they live in the same space, i.e. have the same
+domain and codomain, they can be added to each other. There is also a `zero(t)`, the
+additive identity, which produces a zero tensor with the same domain and codomain as `t`. In
+addition, `TensorMap` supports basic Julia methods such as `fill!` and `copyto!`. Aside from
+basic `+` and `*` operations, TensorKit.jl reexports a number of efficient in-place methods
+from `LinearAlgebra`, such as `axpy!` (for `y ← α * x + y`), `axpby!` (for
+`y ← α * x + β * y`), `lmul!` and `rmul!` (for `y ← α*y` and `y ← y*α`, which is typically
+the same) and `mul!`, which can be used for out-of-place scalar multiplication `y ← α*x`.
+
+Furthermore, for `S isa EuclideanSpace`, we can compute the norm of a `AbstractTensorMap{S}`
+instance and the the inner product between two instances, again provided they have the same
+domain and codomain. Furthermore, there is `normalize(t)` and `normalize!(t)` to return a
+scaled version of `t` with unit norm. `AbstractTensorMap` instances can be compared for
+exact (`t1 == t2`) or approximate (`t1 ≈ t2`) equality, though the latter requires `norm`
+can be computed.
+
+## Tensor factorizations
+
+
 ## Index manipulations
 
-TODO
-
-## Linear algebra operations
-
-TODO
 
 ## Tensor contractions and tensor networks
 
