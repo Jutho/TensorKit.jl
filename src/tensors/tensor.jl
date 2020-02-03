@@ -42,7 +42,7 @@ Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) wh
 Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,G,<:SectorDict{G,A}}}) where
     {N₁,N₂,G<:Sector,A<:DenseMatrix} = A
 
-dim(t::TensorMap) = sum(length(b) for (c,b) in blocks(t))
+dim(t::TensorMap) = mapreduce(x->length(x[2]), +, blocks(t); init = 0)
 
 # General TensorMap constructors
 #--------------------------------
