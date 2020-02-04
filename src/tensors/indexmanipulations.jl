@@ -1,16 +1,21 @@
 # Index manipulations
 #---------------------
+Base.@deprecate(
+    permuteind(t::TensorMap,p1::IndexTuple, p2::IndexTuple=(); copy::Bool = false),
+    permute(t, p1, p2; copy = copy))
+
 """
-    permuteind(tsrc::AbstractTensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ()) -> tdst::TensorMap{S,N₁,N₂}
+    permute(tsrc::AbstractTensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ())
+        -> tdst::TensorMap{S,N₁,N₂}
 
 Permute the indices of `tsrc::AbstractTensorMap{S}` such that a new tensor
-`tdst::TensorMap{S,N₁,N₂}` is obtained, with indices in `p1` playing the role of
-the codomain or range of the map, and indices in `p2` indicating the domain.
+`tdst::TensorMap{S,N₁,N₂}` is obtained, with indices in `p1` playing the role of the
+codomain or range of the map, and indices in `p2` indicating the domain.
 
-To permute into an existing `tdst`, use `permuteind!(tdst, tsrc, p1, p2)`.
+To permute into an existing `tdst`, see [`add!`](@ref)
 """
-function permuteind(t::TensorMap{S},
-                    p1::IndexTuple,  p2::IndexTuple=();
+function permute(t::TensorMap{S},
+                    p1::IndexTuple, p2::IndexTuple=();
                     copy::Bool = false) where {S}
     cod = ProductSpace{S}(map(n->space(t, n), p1))
     dom = ProductSpace{S}(map(n->dual(space(t, n)), p2))
@@ -19,24 +24,24 @@ function permuteind(t::TensorMap{S},
         # share data if possible
         if p1 === codomainind(t) && p2 === domainind(t)
             return t
-        elseif has_shared_permuteind(t, p1, p2)
+        elseif has_shared_permute(t, p1, p2)
             return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
         end
     end
     # general case
     @inbounds begin
-        return permuteind!(similar(t, cod←dom), t, p1, p2)
+        return add!(true, t, false, similar(t, cod←dom), p1, p2)
     end
 end
 
-function permuteind(t::AdjointTensorMap{S}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}=();
+function permute(t::AdjointTensorMap{S}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}=();
                     copy::Bool = false) where {S,N₁,N₂}
     p1′ = map(n->adjointtensorindex(t, n), p2)
     p2′ = map(n->adjointtensorindex(t, n), p1)
-    adjoint(permuteind(adjoint(t), p1′, p2′; copy = copy))
+    adjoint(permute(adjoint(t), p1′, p2′; copy = copy))
 end
 
-function has_shared_permuteind(t::TensorMap, p1, p2)
+function has_shared_permute(t::TensorMap, p1, p2)
     if p1 === codomainind(t) && p2 === domainind(t)
         return true
     elseif sectortype(t) === Trivial
@@ -50,43 +55,63 @@ function has_shared_permuteind(t::TensorMap, p1, p2)
     end
 end
 
-function has_shared_permuteind(t::AdjointTensorMap, p1, p2)
+function has_shared_permute(t::AdjointTensorMap, p1, p2)
     p1′ = adjointtensorindices(t, p2)
     p2′ = adjointtensorindices(t, p1)
-    return has_shared_permuteind(t', p1′, p2′)
+    return has_shared_permute(t', p1′, p2′)
 end
 
-@propagate_inbounds permuteind!(tdst::AbstractTensorMap{S,N₁,N₂},
+
+Base.@deprecate(permuteind!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, p1, p2),
+                permute!(tdst, tsrc, p1, p2))
+
+"""
+    permute(tsrc::AbstractTensorMap{S}, p1::NTuple{N₁,Int}, p2::NTuple{N₂,Int} = ())
+        -> tdst::TensorMap{S,N₁,N₂}
+
+Permute the indices of `tsrc::AbstractTensorMap{S}` such that a new tensor
+`tdst::TensorMap{S,N₁,N₂}` is obtained, with indices in `p1` playing the role of the
+codomain or range of the map, and indices in `p2` indicating the domain.
+
+To permute into an existing `tdst`, see [`add!`](@ref)
+"""
+@propagate_inbounds Base.permute!(tdst::AbstractTensorMap{S,N₁,N₂},
+                                    tsrc::AbstractTensorMap{S},
+                                    p1::IndexTuple{N₁},
+                                    p2::IndexTuple{N₂}=()) where {S,N₁,N₂} =
+    add!(true, tsrc, false, tdst, p1, p2)
+
+# Braid
+function braid(t::TensorMap{S}, levels::IndexTuple,
+                    p1::IndexTuple, p2::IndexTuple=();
+                    copy::Bool = false) where {S}
+    @assert length(levels) == numind(t)
+    cod = ProductSpace{S}(map(n->space(t, n), p1))
+    dom = ProductSpace{S}(map(n->dual(space(t, n)), p2))
+    # general case
+    @inbounds begin
+        return add!(true, t, false, similar(t, cod←dom), p1, p2, levels)
+    end
+end
+@propagate_inbounds braid!(tdst::AbstractTensorMap{S,N₁,N₂},
                                 tsrc::AbstractTensorMap{S},
+                                levels::IndexTuple,
                                 p1::IndexTuple{N₁},
                                 p2::IndexTuple{N₂}=()) where {S,N₁,N₂} =
-                                add!(true, tsrc, false, tdst, p1, p2)
+    add!(true, tsrc, false, tdst, p1, p2, levels)
 
-# Index manipulations that increase or decrease the number of indices
+# Transpose
+function LinearAlgebra.transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
+    codomain(tdst) == domain(tsrc)' && domain(tdst) == codomain(tsrc)' ||
+        throw(SpaceMismatch())
+    permuteind!(tdst, tsrc, reverse(domainind(tsrc)), reverse(codomainind(tsrc)))
+    if BraidingStyle(sectortype(tdst)) != Bosonic()
+        for (c,b) in blocks(tdst)
+            rmul!(b, twist(c))
+        end
+    end
+    return tdst
+end
 
-function splitind end#
-
-function fuseind end
-
-# # TODO: reconsider whether we need repartitionind!, or if we just want permuteind!
-# function repartitionind!(tdst::TensorMap{S,N₁,N₂}, tsrc::TensorMap{S,N₁′,N₂′}) where {S,N₁,N₂,N₁′,N₂′}
-#     space1 = codomain(tdst) ⊗ dual(domain(tdst))
-#     space2 = codomain(tsrc) ⊗ dual(domain(tsrc))
-#     space1 == space2 || throw(SpaceMismatch())
-#     p = (ntuple(n->n, StaticLength(N₁′))..., ntuple(n->N₁′+N₂′+1-n, StaticLength(N₂′)))
-#     p1 = TupleTools.getindices(p, ntuple(n->n, StaticLength(N₁)))
-#     p2 = reverse(TupleTools.getindices(p, ntuple(n->N₁+n, StaticLength(N₂))))
-#     pdata = (p1..., p2...)
-#
-#     if sectortype(S) == Trivial
-#         TensorOperations.add!(1, tsrc[], Val{:N}, 0, tdst[], pdata)
-#     else
-#         fill!(tdst, 0)
-#         for (f1,f2) in fusiontrees(t)
-#             for ((f1′,f2′), coeff) in repartition(f1, f2, StaticLength(N₁))
-#                 TensorOperations.add!(coeff, tsrc[f1,f2], Val{:N}, 1, tdst[f1′,f2′], pdata)
-#             end
-#         end
-#     end
-#     return tdst
-# end
+LinearAlgebra.transpose(t::AbstractTensorMap) =
+    transpose!(similar(t, domain(t)', codomain(t)'), t)

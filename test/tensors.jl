@@ -92,9 +92,9 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))
                 p2 = ntuple(n->p[k+n], StaticLength(5-k))
-                t2 = @inferred permuteind(t, p1, p2)
+                t2 = @inferred permute(t, p1, p2)
                 @test norm(t2) ≈ norm(t)
-                t2′= permuteind(t′, p1, p2)
+                t2′= permute(t′, p1, p2)
                 @test dot(t2′,t2) ≈ dot(t′,t)
             end
         end
@@ -106,13 +106,13 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))
                 p2 = ntuple(n->p[k+n], StaticLength(5-k))
-                @test convert(Array, permuteind(t, p1, p2)) ≈ permutedims(convert(Array, t), (p1...,p2...))
+                @test convert(Array, permute(t, p1, p2)) ≈ permutedims(convert(Array, t), (p1...,p2...))
             end
         end
     end
     @testset TimedTestSet "Full trace: test self-consistency" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1');
-        t2 = permuteind(t, (1,2), (4,3))
+        t2 = permute(t, (1,2), (4,3))
         s = @inferred tr(t2)
         @test conj(s) ≈ tr(t2')
         @tensor s2 = t[a,b,b,a]
@@ -222,33 +222,33 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     Q, R = @inferred leftorth(t, (3,4,2),(1,5); alg = alg)
                     QdQ = Q'*Q
                     @test QdQ ≈ one(QdQ)
-                    @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
+                    @test Q*R ≈ permute(t, (3,4,2),(1,5))
                 end
                 @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.SVD(), TensorKit.SDD())
                     N = @inferred leftnull(t, (3,4,2),(1,5); alg = alg)
                     NdN = N'*N
                     @test NdN ≈ one(NdN)
-                    @test norm(N'*permuteind(t, (3,4,2),(1,5))) < 100*eps(norm(t))
+                    @test norm(N'*permute(t, (3,4,2),(1,5))) < 100*eps(norm(t))
                 end
                 @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.RQpos(), TensorKit.LQ(), TensorKit.LQpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
                     L, Q = @inferred rightorth(t, (3,4),(2,1,5); alg = alg)
                     QQd = Q*Q'
                     @test QQd ≈ one(QQd)
-                    @test L*Q ≈ permuteind(t, (3,4),(2,1,5))
+                    @test L*Q ≈ permute(t, (3,4),(2,1,5))
                 end
                 @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.SVD(), TensorKit.SDD())
                     M = @inferred rightnull(t, (3,4),(2,1,5); alg = alg)
                     MMd = M*M'
                     @test MMd ≈ one(MMd)
-                    @test norm(permuteind(t, (3,4),(2,1,5))*M') < 100*eps(norm(t))
+                    @test norm(permute(t, (3,4),(2,1,5))*M') < 100*eps(norm(t))
                 end
-                @testset "svd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                    U, S, V = @inferred svd(t, (3,4,2),(1,5); alg = alg)
+                @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                    U, S, V = @inferred tsvd(t, (3,4,2),(1,5); alg = alg)
                     UdU = U'*U
                     @test UdU ≈ one(UdU)
                     VVd = V*V'
                     @test VVd ≈ one(VVd)
-                    @test U*S*V ≈ permuteind(t, (3,4,2),(1,5))
+                    @test U*S*V ≈ permute(t, (3,4,2),(1,5))
                 end
             end
 
@@ -258,7 +258,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 VdV = V'*V
                 VdV = (VdV + VdV')/2
                 @test isposdef(VdV)
-                t2 = permuteind(t, (1,3), (2,4))
+                t2 = permute(t, (1,3), (2,4))
                 @test t2*V ≈ V*D
                 @test !isposdef(t2) # unlikely for non-hermitian map
                 t2 = (t2 + t2');
@@ -279,24 +279,24 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 ts = (TensorMap(randn, T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
                       TensorMap(randn, T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
                 for t in ts
-                    U₀, S₀, V₀, = svd(t)
+                    U₀, S₀, V₀, = tsvd(t)
                     t = rmul!(t, 1/norm(S₀, p))
-                    U, S, V, ϵ = @inferred svd(t; trunc = truncerr(5e-1), p = p)
+                    U, S, V, ϵ = @inferred tsvd(t; trunc = truncerr(5e-1), p = p)
                     # @show p, ϵ
                     # @show domain(S)
                     # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                    U′, S′, V′, ϵ′ = svd(t; trunc = truncerr(nextfloat(ϵ)), p = p)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc = truncerr(nextfloat(ϵ)), p = p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                    U′, S′, V′, ϵ′ = svd(t; trunc = truncdim(dim(domain(S))), p = p)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc = truncdim(dim(domain(S))), p = p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                    U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc = truncspace(space(S,1)), p = p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                     # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
-                    U, S, V, ϵ = svd(t; trunc = truncbelow(1/dim(domain(S₀))), p = p)
+                    U, S, V, ϵ = tsvd(t; trunc = truncbelow(1/dim(domain(S₀))), p = p)
                     # @show p, ϵ
                     # @show domain(S)
                     # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                    U′, S′, V′, ϵ′ = svd(t; trunc = truncspace(space(S,1)), p = p)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc = truncspace(space(S,1)), p = p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                 end
             end

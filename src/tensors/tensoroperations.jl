@@ -50,7 +50,7 @@ function checked_similar_from_indices(tC, ::Type{T}, oindA::IndexTuple, oindB::I
     end
 end
 
-function cached_permuteind(sym::Symbol, t::TensorMap{S},
+function cached_permute(sym::Symbol, t::TensorMap{S},
                             p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂}
     cod = ProductSpace{S,N₁}(map(n->space(t, n), p1))
     dom = ProductSpace{S,N₂}(map(n->dual(space(t, n)), p2))
@@ -70,25 +70,35 @@ function cached_permuteind(sym::Symbol, t::TensorMap{S},
     # general case
     @inbounds begin
         tp = TO.cached_similar_from_indices(sym, eltype(t), p1, p2, t, :N)
-        return permuteind!(tp, t, p1, p2)
+        return add!(true, t, false, tp, p1, p2)
     end
 end
 
-function cached_permuteind(sym::Symbol, t::AdjointTensorMap{S},
+function cached_permute(sym::Symbol, t::AdjointTensorMap{S},
                             p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂}
 
     p1′ = adjointtensorindices(t, p2)
     p2′ = adjointtensorindices(t, p1)
-    adjoint(cached_permuteind(sym, adjoint(t), p1′, p2′))
+    adjoint(cached_permute(sym, adjoint(t), p1′, p2′))
 end
 
 scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} =
     dim(codomain(t)) == dim(domain(t)) == 1 ?
         first(blocks(t))[2][1,1] : throw(SpaceMismatch())
 
+@propagate_inbounds function add!(α, tsrc::AbstractTensorMap{S},
+                                    β, tdst::AbstractTensorMap{S},
+                                    p1::IndexTuple, p2::IndexTuple) where {S}
+    G = sectortype(S)
+    if BraidingStyle(G) isa Symmetric
+        add!(α, tsrc, β, tdst, p1, p2, (codomainind(tsrc)..., domainind(tsrc)...))
+    else
+        throw(ArgumentError("add! without levels only for if `BraidingStyle(sectortype(...)) isa Symmetric`"))
+    end
+end
+
 function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂},
-     p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {S,N₁,N₂}
-    # TODO: check Frobenius-Schur indicators!, and add fermions!
+                p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, levels::IndexTuple) where {S,N₁,N₂}
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)),
@@ -96,6 +106,8 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         all(i->space(tsrc, p2[i]) == space(tdst, N₁+i), 1:N₂) ||
             throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)),
             tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
+        length(levels) == numind(tsrc) ||
+            throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(t)) ← $(domain(t))"))
     end
 
     G = sectortype(S)
@@ -105,7 +117,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         n = length(cod)
         pdata = (p1..., p2...)
         axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
-    elseif FusionStyle(G) isa Abelian
+    elseif FusionStyle(G) isa Abelian && BraidingStyle(G) isa Symmetric
         K = Threads.nthreads()
         if K > 1
             let iterator = fusiontrees(tsrc)
@@ -134,8 +146,10 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         elseif β != 1
             mul!(tdst, β, tdst)
         end
+        levels1 = TupleTools.getindices(levels, codomainind(tsrc))
+        levels2 = TupleTools.getindices(levels, domianind(tsrc))
         for (f1,f2) in fusiontrees(tsrc)
-            for ((f1′,f2′), coeff) in permute(f1, f2, p1, p2)
+            for ((f1′,f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
                 @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
             end
         end
@@ -149,7 +163,6 @@ function _addabelianblock!(α, tsrc::AbstractTensorMap,
                             f1::FusionTree, f2::FusionTree)
     cod = codomain(tsrc)
     dom = domain(tsrc)
-    n = length(cod)
     (f1′,f2′), coeff = first(permute(f1, f2, p1, p2))
     pdata = (p1...,p2...)
     @inbounds axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
@@ -216,7 +229,7 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     p1::IndexTuple, p2::IndexTuple,
                     syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
     # find optimal contraction scheme
-    hsp = has_shared_permuteind
+    hsp = has_shared_permute
     ipC = TupleTools.invperm((p1..., p2...))
     oindAinC = TupleTools.getindices(ipC, ntuple(n->n, StaticLength(N₁)))
     oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, StaticLength(N₂)))
@@ -270,17 +283,17 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
 
     if syms === nothing
-        A′ = permuteind(A, oindA, cindA)
-        B′ = permuteind(B, cindB, oindB)
+        A′ = permute(A, oindA, cindA)
+        B′ = permute(B, cindB, oindB)
     else
-        A′ = cached_permuteind(syms[1], A, oindA, cindA)
-        B′ = cached_permuteind(syms[2], B, cindB, oindB)
+        A′ = cached_permute(syms[1], A, oindA, cindA)
+        B′ = cached_permute(syms[2], B, cindB, oindB)
     end
     ipC = TupleTools.invperm((p1..., p2...))
     oindAinC = TupleTools.getindices(ipC, ntuple(n->n, StaticLength(N₁)))
     oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, StaticLength(N₂)))
-    if has_shared_permuteind(C, oindAinC, oindBinC)
-        C′ = permuteind(C, oindAinC, oindBinC)
+    if has_shared_permute(C, oindAinC, oindBinC)
+        C′ = permute(C, oindAinC, oindBinC)
         mul!(C′, A′, B′, α, β)
     else
         if syms === nothing

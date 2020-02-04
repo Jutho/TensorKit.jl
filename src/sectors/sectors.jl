@@ -42,8 +42,8 @@ Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
 Base.show(io::IO, ::Type{Trivial}) = print(io, "Trivial")
 
 """
-    function one(::Sector) -> Sector
-    function one(::Type{<:Sector}) -> Sector
+    one(::Sector) -> Sector
+    one(::Type{<:Sector}) -> Sector
 
 Return the unit element within this type of sector.
 """
@@ -51,7 +51,7 @@ Base.one(a::Sector) = one(typeof(a))
 Base.one(::Type{Trivial}) = Trivial()
 
 """
-    function dual(a::Sector) -> Sector
+    dual(a::Sector) -> Sector
 
 Return the conjugate label `conj(a)`.
 """
@@ -59,7 +59,7 @@ dual(a::Sector) = conj(a)
 Base.conj(::Trivial) = Trivial()
 
 """
-    function isreal(::Type{<:Sector}) -> Bool
+    isreal(::Type{<:Sector}) -> Bool
 
 Return whether the topological data (Fsymbol, Rsymbol) of the sector is real or not (in
 which case it is complex).
@@ -73,7 +73,7 @@ end
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
 """
-    function ⊗(a::G, b::G) where {G<:Sector}
+    ⊗(a::G, b::G) where {G<:Sector}
 
 Return an iterable of elements of `c::G` that appear in the fusion product `a ⊗ b`.
 
@@ -83,7 +83,7 @@ Note that every element `c` should appear at most once, fusion degeneracies (if
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
 
 """
-    function Nsymbol(a::G, b::G, c::G) where {G<:Sector} -> Integer
+    Nsymbol(a::G, b::G, c::G) where {G<:Sector} -> Integer
 
 Return an `Integer` representing the number of times `c` appears in the fusion product
 `a ⊗ b`. Could be a `Bool` if `FusionStyle(G) == Abelian()` or `SimpleNonAbelian()`.
@@ -101,7 +101,7 @@ struct DegenerateNonAbelian <: NonAbelian # non-abelian fusion with multipliciti
 end
 
 """
-    function FusionStyle(G::Type{<:Sector}) -> ::FusionStyle
+    FusionStyle(G::Type{<:Sector}) -> ::FusionStyle
 
 Return the type of fusion behavior of sectors of type G, which can be either
 *   `Abelian()`: single fusion output when fusing two sectors;
@@ -130,7 +130,7 @@ FusionStyle(a::Sector) = FusionStyle(typeof(a))
 end
 
 """
-    function Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:Sector}
+    Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:Sector}
 
 Return the F-symbol F^{abc}_d that associates the two different fusion orders of sectors
 `a`, `b` and `c` into an ouput sector `d`, using either an intermediate sector `a ⊗ b → e`
@@ -150,7 +150,7 @@ function Fsymbol end
 Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 
 """
-    function Rsymbol(a::G, b::G, c::G) where {G<:Sector}
+    Rsymbol(a::G, b::G, c::G) where {G<:Sector}
 
 Returns the R-symbol R^{ab}_c that maps between `a ⊗ b → c` and `b ⊗ a → c` as in
 ```
@@ -167,7 +167,7 @@ Rsymbol(::Trivial, ::Trivial, ::Trivial) = 1
 # If a G::Sector with `fusion(G) == DegenerateNonAbelian` fusion wants to have custom vertex
 # labels, a specialized method for `vertindex2label` should be added
 """
-    function vertex_ind2label(i::Int, a::G, b::G, c::G) where {G<:Sector}
+    vertex_ind2label(i::Int, a::G, b::G, c::G) where {G<:Sector}
 
 Convert the index i of the fusion vertex (a,b)->c into a label. For
 `FusionStyle(G) == Abelian()` or `FusionStyle(G) == NonAbelian()`, where every fusion
@@ -182,7 +182,7 @@ _ind2label(::SimpleNonAbelian, i, s1, s2, sout) = nothing
 _ind2label(::DegenerateNonAbelian, i, s1, s2, sout) = i
 
 """
-    function vertex_labeltype(G::Type{<:Sector}) -> Type
+    vertex_labeltype(G::Type{<:Sector}) -> Type
 
 Return the type of labels for the fusion vertices of sectors of type `G`.
 """
@@ -200,7 +200,7 @@ Base.:&(::DegenerateNonAbelian, ::SimpleNonAbelian) = DegenerateNonAbelian()
 # properties that can be determined in terms of the F symbol
 # TODO: find mechanism for returning these numbers with custom type T<:AbstractFloat
 """
-    function dim(a::Sector)
+    dim(a::Sector)
 
 Return the (quantum) dimension of the sector `a`.
 """
@@ -215,7 +215,7 @@ function dim(a::Sector)
 end
 
 """
-    function frobeniusschur(a::Sector)
+    frobeniusschur(a::Sector)
 
 Return the Frobenius-Schur indicator of a sector `a`.
 """
@@ -228,7 +228,7 @@ function frobeniusschur(a::Sector)
 end
 
 """
-    function twist(a::Sector)
+    twist(a::Sector)
 
 Return the twist of a sector `a`
 """
@@ -245,7 +245,7 @@ end
 
 
 """
-    function Bsymbol(a::G, b::G, c::G) where {G<:Sector}
+    Bsymbol(a::G, b::G, c::G) where {G<:Sector}
 
 Return the value of B^{ab}_c which appears in transforming a splitting vertex
 into a fusion vertex using the transformation
@@ -296,7 +296,7 @@ Base.:&(::Bosonic,::Anyonic) = Anyonic()
 Base.:&(::Fermionic,::Anyonic) = Anyonic()
 
 """
-    function BraidingStyle(G::Type{<:Sector}) -> ::BraidingStyle
+    BraidingStyle(G::Type{<:Sector}) -> ::BraidingStyle
 
 Return the type of braiding behavior of sectors of type G, which can be either
 *   `Bosonic()`: trivial exchange

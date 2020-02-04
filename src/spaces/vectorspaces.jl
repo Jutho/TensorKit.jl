@@ -39,7 +39,7 @@ Abstract type at the top of the type hierarchy for denoting vector spaces.
 abstract type VectorSpace end
 
 """
-    function field(V::VectorSpace) -> Field
+    field(V::VectorSpace) -> Field
 
 Return the field type over which a vector space is defined.
 """
@@ -200,7 +200,7 @@ abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 const Rep{G<:Sector} = RepresentationSpace{G}
 
 """
-    function sectortype(a) -> Sector
+    sectortype(a) -> Sector
 
 Return the type of sector over which object `a` (e.g. a representation space or a tensor) is
 defined. Also works in type domain.
@@ -210,7 +210,7 @@ sectortype(::Type{<:ElementarySpace}) = Trivial
 sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 
 """
-    function hassector(V::VectorSpace, a::Sector) -> Bool
+    hassector(V::VectorSpace, a::Sector) -> Bool
 
 Return whether a vector space `V` has a subspace corresponding to sector `a` with non-zero dimension, i.e. `dim(V, a) > 0`.
 """

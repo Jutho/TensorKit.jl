@@ -6,6 +6,6 @@ randnormal(::Type{T}, dims::Base.Dims) where {T<:Number} = randn(T, dims)
 
 randisometry(dims::Base.Dims{2}) = randisometry(Float64, dims)
 randisometry(::Type{T}, dims::Base.Dims{2}) where {T<:Number} =
-    _leftorth!(randnormal(T, dims), QRpos())[1]
+    _leftorth!(randnormal(T, dims), QRpos(), 0)[1]
 
 const randhaar = randisometry

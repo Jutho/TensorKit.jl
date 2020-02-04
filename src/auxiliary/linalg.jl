@@ -152,6 +152,7 @@ function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::R
 end
 
 function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
+    size(A, 2) == 0 && return copyto!(similar(A, (size(A,1), size(A,1))), I)
     U, S, V = alg isa SVD ? LAPACK.gesvd!('A', 'N', A) : LAPACK.gesdd!('A', A)
     indstart = count(s -> s .> atol, S) + 1
     return U[:, indstart:end]
@@ -239,6 +240,7 @@ function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos}, atol::
 end
 
 function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
+    size(A, 1) == 0 && return copyto!(similar(A, (size(A,2), size(A,2))), I)
     U, S, V = alg isa SVD ? LAPACK.gesvd!('N', 'A', A) : LAPACK.gesdd!('A', A)
     indstart = count(s -> s .> atol, S) + 1
     return V[indstart:end, :]

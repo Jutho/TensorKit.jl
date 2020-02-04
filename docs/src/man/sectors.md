@@ -1081,18 +1081,24 @@ As before, there is a simplified interface for the case where
 
 [`permute(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}, p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int})`](@ref)
 
-This routine will be the main access point for corresponding manipulations on bosonic and
-fermionic tensors. As a consequence, results from this routine are memoized, i.e. they are
-stored in some package wide 'least-recently used' cache (from
+The `braid` and `permute` routines for double fusion trees will be the main access point for
+corresponding manipulations on tensors. As a consequence, results from this routine are
+memoized, i.e. they are stored in some package wide 'least-recently used' cache (from
 [LRUCache.jl](https://github.com/JuliaCollections/LRUCache.jl)) that can be accessed as
-`TensorKit.permutecache`. By default, this cache stores up to `10^5` different `permute`
-resuls, where one result corresponds to one particular combination of `(f1, f2, p1, p2)`.
-This should be sufficient for most algorithms. While there are currently no (official)
-access methods to change the default settings of this cache (one can always resort to
-`resize!(TensorKit.permutecache)` and other methods from LRUCache.jl), this might change in
-the future.
+`TensorKit.braidcache`. By default, this cache stores up to `10^5` different `braid` or
+`permute` resuls, where one result corresponds to one particular combination of `(f1, f2,
+p1, p2, levels1, levels2)`. This should be sufficient for most algorithms. While there are
+currently no (official) access methods to change the default settings of this cache (one can
+always resort to `resize!(TensorKit.permutecache)` and other methods from LRUCache.jl), this
+might change in the future. The use of this cache is however controlled by two constants of
+type `RefValue{Bool}`, namely `usebraidcache_abelian` and `usebraidcache_nonabelian`. The
+default values are given by `TensorKit.usebraidcache_abelian[] = false` and
+`TensorKit.usebraidcache_nonabelian[] = true`, and respectively reflect that the cache is
+likely not going to help (or even slow down) fusion trees with `FusionStyle(f) isa Abelian`,
+but is probably useful for fusion trees with `FusionStyle(f) isa NonAbelian`. One can change
+these values and test the effect on their application.
 
-The existence of `permutecache` also implies that potential inefficiencies in the fusion
+The existence of `braidcache` also implies that potential inefficiencies in the fusion
 tree manipulations (which we nonetheless try to avoid) will not seriously affect
 performance of tensor manipulations.
 
@@ -1141,10 +1147,3 @@ the corresponding tensors.
 
 Support for fermionic sectors and corresponding super vector spaces is on its way. This
 section will be completed when the implementation is finished.
-
-## Bibliography
-[^tung]:        Tung, W. K. (1985). Group theory in physics: an introduction to symmetry principles, group representations, and special functions in classical and quantum physics.
-                World Scientific Publishing Company.
-
-[^kitaev]:      Kitaev, A. (2006). Anyons in an exactly solved model and beyond.
-                Annals of Physics, 321(1), 2-111.

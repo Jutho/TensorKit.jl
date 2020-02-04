@@ -69,11 +69,11 @@ adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,
 adjointtensorindices(t::AbstractTensorMap, I::IndexTuple) =
     map(i->adjointtensorindex(t, i), I)
 
-# NOTE: do we still need this
-tensor2spaceindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
-    ifelse(i<=N₁, i, 2N₁+N₂+1-i)
-space2tensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
-    ifelse(i<=N₁, i, 2N₁+N₂+1-i)
+# # NOTE: do we still need this
+# tensor2spaceindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
+#     ifelse(i<=N₁, i, 2N₁+N₂+1-i)
+# space2tensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
+#     ifelse(i<=N₁, i, 2N₁+N₂+1-i)
 
 # Defining vector spaces:
 #------------------------

@@ -37,7 +37,7 @@ a `DenseMatrix` as will be explained below). `AdjointTensorMap` is a simple wrap
 denote the adjoint of an existing `TensorMap` object. In the future, additional types could
 be defined, to deal with sparse data, static data, diagonal data, etc...
 
-## Storage of tensor data
+## [Storage of tensor data](@id ss_tensor_storage)
 
 Before discussion how to construct and initalize a `TensorMap{S}`, let us discuss what is
 meant by 'tensor data' and how it can efficiently and compactly be stored. Let us first
@@ -229,7 +229,7 @@ characterized by the uncoupled sectors, and so the subblocks can also be accesse
 `(dim(V1), …, dim(VN₁), dim(W1), …, dim(WN₂))`, whereas `block(t, Trivial())` returns the
 same data as a `DenseMatrix` of size `(dim(V1) * … * dim(VN₁), dim(W1) * … * dim(WN₂))`.
 
-## Constructing tensor maps and accessing tensor data
+## [Constructing tensor maps and accessing tensor data](@id ss_tensor_construction)
 
 Having learned how a tensor is represented and stored, we can now discuss how to create
 tensors and tensor maps. From hereon, we focus purely on the interface rather than the
@@ -373,7 +373,55 @@ for (c,b) in blocks(t2)
 end
 ```
 
-## Vector space and linear algebra operations
+A third way to construct a `TensorMap` instance is to use `Base.similar`, i.e.
+
+`similar(t [, T::Type{<:Number}, codomain, domain])`
+
+where `T` is a possibly different `eltype` for the tensor data, and `codomain` and `domain`
+optionally define a new codomain and domain for the resulting tensor. By default, these
+values just take the value from the input tensor `t`. The result will be a new `TensorMap`
+instance, with `undef` data, but whose data is stored in the same subtype of `DenseMatrix`
+(e.g. `Matrix` or `CuMatrix` or ...) as `t`. In particular, this uses the internal methods
+`TensorKit.storagetype(t)` and `TensorKit.similarstoragetype(t, T)`.
+
+Finally, there are methods `zero(t)` and `one(t)` to create specific new tensors, and which
+are introduced in the section on [linear algebra operations](@ref ss_tensor_linalg).
+
+## [Tensor properties](@id ss_tensor_properties)
+
+Given a `t::AbstractTensorMap{S,N₁,N₂}`, there are various methods to query its properties.
+The most important are clearly `codomain(t)` and `domain(t)`. For `t::AbstractTensor{S,N}`,
+i.e. `t::AbstractTensorMap{S,N,0}`, we can use `space(t)` as synonym for `codomain(t)`.
+However, for a general `AbstractTensorMap` this has no meaning. However, we can query
+`space(t, i)`, the space associated with the `i`th index. For `i ∈ 1:N₁`, this corresponds
+to `codomain(t, i) = codomain(t)[i]`. For `j = i-N₁ ∈ (1:N₂)`, this corresponds to
+`dual(domain(t, j)) = dual(domain(t)[j])`.
+
+The total number of indices, i.e. `N₁+N₂`, is given by `numind(t)`, with `N₁ == numout(t)`
+and `N₂ == numin(t)`, the number of outgoing and incoming indices. The type parameter
+`S<:ElementarySpace` can be obtained as `spacetype(t)`; the corresponding sector can
+directly obtained as `sectortype(t)` and is `Trivial` when `S != RepresentationSpace`. The
+underlying field scalars of `S` can also directly be obtained as `field(t)`. This is
+different from `eltype(t)`, which returns the type of `Number` in the tensor data, i.e. the
+type parameter `T` in the (subtype of) `DenseMatrix{T}` in which the matrix blocks are
+stored. Note that during construction, a (one-time) warning is printed if
+`!(T ⊂ field(S))`. The specific `DenseMatrix{T}` subtype in which the tensor data is stored
+is obtained as `storagetype(t)`. Each of the methods `numind`, `numout`, `numin`,
+`spacetype`, `sectortype`, `field`, `eltype` and `storagetype` work in the type domain as
+well, i.e. they are encoded in `typeof(t)`.
+
+Finally, there are methods to probe the data, which we already encountered.
+`blocksectors(t)` returns an iterator over the different coupled sectors that can be
+obtained from fusing the uncoupled sectors available in the domain, but they must also be
+obtained from fusing the uncoupled sectors available in the codomain (i.e. it is the
+intersection of both `blocksectors(codomain(t))` and `blocksectors(domain(t))`). For a
+specific sector `c ∈ blocksectors(t)`, `block(t, c)` returns the corresponding data. Both
+are obtained together with `blocks(t)`, which returns an iterator over the pairs
+`c=>block(t, c)`. Furthermore, there is `fusiontrees(t)` which returns an iterator over
+splitting-fusion tree pairs `(f₁,f₂)`, for which the corresponding data is given by
+`t[f₁,f₂]` (i.e. using Base.getindex).
+
+## [Vector space and linear algebra operations](@id ss_tensor_linalg)
 
 `AbstractTensorMap` instances `t` represent linear maps, i.e. homomorphisms in a `𝕜`-linear
 category, just like matrices. To a large extent, they follow the interface of `Matrix` in
@@ -396,13 +444,18 @@ addition, `TensorMap` supports basic Julia methods such as `fill!` and `copyto!`
 basic `+` and `*` operations, TensorKit.jl reexports a number of efficient in-place methods
 from `LinearAlgebra`, such as `axpy!` (for `y ← α * x + y`), `axpby!` (for
 `y ← α * x + β * y`), `lmul!` and `rmul!` (for `y ← α*y` and `y ← y*α`, which is typically
-the same) and `mul!`, which can be used for out-of-place scalar multiplication `y ← α*x`.
+the same) and `mul!`, which can also be used for out-of-place scalar multiplication
+`y ← α*x`.
 
 For `t::AbstractTensorMap{S}` where `S<:EuclideanSpace`, henceforth referred to as
 a `(Abstract)EuclideanTensorMap`, we can compute `norm(t)`, and for two such instances, the
 inner product `dot(t1, t2)`, provided `t1` and `t2` have the same domain and codomain.
 Furthermore, there is `normalize(t)` and `normalize!(t)` to return a scaled version of `t`
-with unit norm.
+with unit norm. These operations should also exist for `S<:InnerProductSpace`, but requires
+an interface for defining a custom inner product in these spaces. Currently, there is no
+concrete subtype of `InnerProductSpace` that is not a subtype of `EuclideanSpace`. In
+particular, `CartesianSpace`, `ComplexSpace` and `RepresentationSpace` are all subtypes
+of `EuclideanSpace`.
 
 With instances `t::AbstractEuclideanTensorMap` there is associated an adjoint operation,
 given by `adjoint(t)` or simply `t'`, such that `domain(t') == codomain(t)` and
@@ -419,17 +472,45 @@ because the adjoint interchanges domain and codomain, we have
 `AbstractTensorMap` instances can furthermore be tested for exact (`t1 == t2`) or
 approximate (`t1 ≈ t2`) equality, though the latter requires `norm` can be computed.
 
-Finally, when tensor map instances endomorphisms, i.e. they have the same domain and
-codomain, there is a multiplicative identity which can be obtained as `one(t)` or `one!(t)`,
-where the latter overwrites the contents of `t`. We can then also try to invert them using
-`inv(t)`, or, in case their inverse is composed with another tensor `t2`, `t1\t2` or
-`t2/t1`. The latter syntax also accepts instances `t1` whose domain and codomain are not
-the same, and then amounts to `pinv(t1)`, the Moore-Penrose pseudoinverse. This, however,
-is only really justified for `AbstractEuclideanTensorMap` instances. Returning to
-endomorphisms, we can compute their trace via `tr(t)` and exponentiate them using `exp(t)`,
-or if the contents of `t` can be destroyed in the process, `exp!(t)`. Furthermore, there are
-a number of tensor factorizations for both endomorphisms and general homomorphism that we
-discuss below.
+When tensor map instances are endomorphisms, i.e. they have the same domain and codomain,
+there is a multiplicative identity which can be obtained as `one(t)` or `one!(t)`, where the
+latter overwrites the contents of `t`. We can then also try to invert them using `inv(t)`,
+or, in case their inverse is composed with another tensor `t2`, `t1\t2` or `t2/t1`. The
+latter syntax also accepts instances `t1` whose domain and codomain are not the same, and
+then amounts to `pinv(t1)`, the Moore-Penrose pseudoinverse. This, however, is only really
+justified for `AbstractEuclideanTensorMap` instances. Returning to endomorphisms, we can
+compute their trace via `tr(t)` and exponentiate them using `exp(t)`, or if the contents of
+`t` can be destroyed in the process, `exp!(t)`. Furthermore, there are a number of tensor
+factorizations for both endomorphisms and general homomorphism that we discuss below.
+
+Finally, there are a number of operations that also belong in this paragraph because of
+their analogy to common matrix operations. The tensor product of two `TensorMap` instances
+`t1` and `t2` is obtained as `t1 ⊗ t2` and results in a new `TensorMap` with
+`codomain(t1⊗t2) = codomain(t1) ⊗ codomain(t2)` and
+`domain(t1⊗t2) = domain(t1) ⊗ domain(t2)`. If we have two `TensorMap{S,N,1}` instances `t1`
+and `t2` with the same codomain, we can combine them in a way that is analoguous to `hcat`,
+i.e. we stack them such that the new tensor `catdomain(t1, t2)` has also the same codomain,
+but has a domain which is `domain(t1) ⊕ domain(t2)`. Similarly, if `t1` and `t2` are of
+type `TensorMap{S,1,N}` and have the same domain, the operation `catcodomain(t1, t2)`
+results in a new tensor with the same domain and a codomain given by
+`codomain(t1) ⊕ codomain(t2)`, which is the analogy of `vcat`. Note that direct sum only
+makes sense between `ElementarySpace` objects, i.e. there is no way to give a tensor
+product meaning to a direct sum of tensor product spaces.
+
+## Index manipulations
+
+In many cases, the bipartition of tensor indices (i.e. `ElementarySpace` instances) between
+the codomain and domain is not fixed throughout the different operations that need to be
+performed on that tensor map, i.e. we want to use the duality to move spaces from domain to
+codomain and vice versa. Furthermore, we want to use the braiding to reshuffle the order of
+the indices.
+
+For this, we use an interface that is closely related to that for manipulating splitting-
+fusion tree pairs, namely `braid` and `permute`.
+
+
+
+
 
 ## Tensor factorizations
 
@@ -607,20 +688,31 @@ according to a different bipartition of the indices. When `BraidingStyle(sectort
 Symmetric`, we can immediately specify an alternative bipartition of the indices of `t` in
 all of these methods, in the form
 
-```factorize(t, pleft, pright; kwargs...)```
+```
+factorize(t, pleft, pright; kwargs...)
+```
 
 where `pleft` will be the indices in the codomain of the new tensor map, and `pright` the
 indices of the domain. Here, `factorize` is any of the methods `LinearAlgebra.eigen`, `eig`,
 `eigh`, `tsvd`, `LinearAlgebra.svd`, `leftorth`, `rightorth`, `leftnull` and `rightnull`.
 This signature does not allow for the exclamation mark, because it amounts to
 
-```factorize!(permuteind(t, pleft, pright); kwargs...)
+```
+factorize!(permute(t, pleft, pright); kwargs...)
+```
 
-where `permuteind` is introduced and discussed in the next section.
+where `permute` was introduced and discussed in the previous section. When the braiding
+is not symmetric, the user should manually apply `braid` to bring the tensor map in
+proper form before performing the factorization.
 
-## Index manipulations
+## Bosonic tensor contractions and tensor networks
 
+TODO
 
-## Tensor contractions and tensor networks
+## Fermionic tensor contractions
+
+TODO
+
+## Anyonic tensor contractions
 
 TODO

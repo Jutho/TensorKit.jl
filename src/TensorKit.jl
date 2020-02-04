@@ -29,7 +29,7 @@ export space, field, dual, dim, dims, fuse, flip, isdual
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
-export fusiontrees#, artin_braid, braid, permute, repartition, insertat, merge
+export fusiontrees, braid, permute#, artin_braid, repartition, insertat, merge
 
 # some unicode
 export ⊕, ⊗, ×, ℂ, ℝ, ←, →
@@ -37,21 +37,21 @@ export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂, CU₁
 export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps
-export domain, codomain
+export domain, codomain, numind, numout, numin, spacetype, storagetype, eltype
 export blocksectors, blockdim, block, blocks
 
 # random methods for constructor
 export randuniform, randnormal, randisometry, randhaar
-export one!
+export zero, one, one!
 
 # tensor algebra and factorizations
 export dot, norm, normalize, normalize!
 export mul!, lmul!, rmul!, adjoint!, pinv, axpy!, axpby!
 export leftorth, rightorth, leftnull, rightnull,
         leftorth!, rightorth!, leftnull!, rightnull!,
-        svd!, svd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
+        tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
         isposdef, isposdef!, ishermitian
-export permuteind, fuseind, splitind, permuteind!, fuseind!, splitind!
+export braid!, permute!
 export catdomain, catcodomain
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,

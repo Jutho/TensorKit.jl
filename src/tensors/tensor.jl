@@ -193,7 +193,13 @@ end
 
 # Similar
 #---------
-Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} =
+Base.similar(t::AbstractTensorMap, T::Type, codomain::VectorSpace, domain::VectorSpace) =
+    similar(t, T, codomain←domain)
+Base.similar(t::AbstractTensorMap, codomain::VectorSpace, domain::VectorSpace) =
+    similar(t, codomain←domain)
+
+Base.similar(t::AbstractTensorMap{S}, ::Type{T},
+                P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} =
     TensorMap(d->similarstoragetype(t, T)(undef, d), P)
 Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} =
     Tensor(d->similarstoragetype(t, T)(undef, d), P)
@@ -239,7 +245,8 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,G},
                                 sectors::Tuple{Vararg{G}}) where {N₁,N₂,G<:Sector}
 
-    FusionStyle(G) isa Abelian || throw(SectorMismatch("Indexing with sectors only possible if abelian"))
+    FusionStyle(G) isa Abelian ||
+        throw(SectorMismatch("Indexing with sectors only possible if abelian"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
     s2 = TupleTools.getindices(sectors, domainind(t))
     c1 = length(s1) == 0 ? one(G) : (length(s1) == 1 ? s1[1] : first(⊗(s1...)))
@@ -267,7 +274,8 @@ end
         haskey(t.colr[c], f2) || throw(SectorMismatch())
     end
     @inbounds begin
-        return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...))
+        d = (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...)
+        return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], d)
     end
 end
 @propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copyto!(getindex(t, f1, f2), v)

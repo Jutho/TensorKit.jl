@@ -48,11 +48,13 @@ end
 # Properties
 sectortype(::Type{<:FusionTree{G}}) where {G<:Sector} = G
 FusionStyle(::Type{<:FusionTree{G}}) where {G<:Sector} = FusionStyle(G)
+BraidingStyle(::Type{<:FusionTree{G}}) where {G<:Sector} = BraidingStyle(G)
 Base.length(::Type{<:FusionTree{<:Sector,N}}) where {N} = N
 
-sectortype(t::FusionTree) = sectortype(typeof(t))
-FusionStyle(t::FusionTree) = FusionStyle(typeof(t))
-Base.length(t::FusionTree) = length(typeof(t))
+sectortype(f::FusionTree) = sectortype(typeof(f))
+FusionStyle(f::FusionTree) = FusionStyle(typeof(f))
+BraidingStyle(f::FusionTree) = BraidingStyle(typeof(f))
+Base.length(f::FusionTree) = length(typeof(f))
 
 # Hashing, important for using fusion trees as key in a dictionary
 function Base.hash(f::FusionTree{G}, h::UInt) where {G}
