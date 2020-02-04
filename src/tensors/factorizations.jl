@@ -1,5 +1,7 @@
 # Tensor factorization
 #----------------------
+const OFA = OrthogonalFactorizationAlgorithm
+
 """
     svd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
         truncation::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD,SDD} = SDD())
@@ -32,11 +34,8 @@ algorithm that computes the decomposition (`_gesvd` or `_gesdd`).
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `svd(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-LinearAlgebra.svd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple;
-                    trunc::TruncationScheme = NoTruncation(),
-                    p::Real = 2,
-                    alg::Union{SVD,SDD} = SDD()) =
-    svd!(permuteind(t, p1, p2; copy = true); trunc = trunc, p = p, alg = alg)
+LinearAlgebra.svd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    svd!(permuteind(t, p1, p2; copy = true); kwargs...)
 
 """
     leftorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
@@ -59,9 +58,8 @@ result for the same input tensor `t`.
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `leftorth(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple;
-            alg::OrthogonalFactorizationAlgorithm = QRpos()) =
-    leftorth!(permuteind(t, p1, p2; copy = true); alg = alg)
+leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    leftorth!(permuteind(t, p1, p2; copy = true); kwargs...)
 
 """
     rightorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
@@ -86,9 +84,8 @@ that they always return the same result for the same input tensor `t`.
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `rightorth(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple;
-            alg::OrthogonalFactorizationAlgorithm = LQpos()) =
-    rightorth!(permuteind(t, p1, p2; copy = true); alg = alg)
+rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    rightorth!(permuteind(t, p1, p2; copy = true); kwargs...)
 
 """
     leftnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple;
@@ -101,20 +98,25 @@ If `leftind` and `rightind` are not specified, the current partition of left and
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
 to be destroyed/overwritten, by using `leftnull!(t, alg = QRpos())`.
 
-Different algorithms are available, namely `QR()` and `SVD()`. The former assumes that the
-matrix is full rank, the latter does not. For `leftnull`, there is no distinction between
-`QR()` and `QRpos()`.
+Different algorithms are available, namely `QR()` (or equivalently, `QRpos()`), `SVD()` and
+`SDD()`. The first assumes that the matrix is full rank and requires `iszero(atol)` and
+`iszero(rtol)`. With `SVD()` and `SDD()`, `rightnull` will use the corresponding singular
+value decomposition, and one can specify an absolute or relative tolerance for which
+singular values are to be considered zero, where `max(atol, norm(t)*rtol)` is used as upper
+bound.
+
 
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `leftnull(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple;
-            alg::OrthogonalFactorizationAlgorithm = QR()) =
-    leftnull!(permuteind(t, p1, p2; copy = true); alg = alg)
+leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    leftnull!(permuteind(t, p1, p2; copy = true); kwargs...)
 
 """
     rightnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple;
-                alg::OrthogonalFactorizationAlgorithm = LQ()) -> N
+                alg::OrthogonalFactorizationAlgorithm = LQ(),
+                atol::Real = 0.0,
+                rtol::Real = eps(real(float(one(eltype(t)))))*iszero(atol)) -> N
 
 Create orthonormal basis for the orthogonal complement of the support of the indices in
 `rightind`, such that `permuteind(t, leftind, rightind)*N' = 0`.
@@ -123,16 +125,18 @@ If `leftind` and `rightind` are not specified, the current partition of left and
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
 to be destroyed/overwritten, by using `rightnull!(t, alg = LQpos())`.
 
-Different algorithms are available, namely `LQ()` and `SVD()`. The former assumes that the
-matrix is full rank, the latter does not. For `rightnull`, there is no distinction between
-`LQ()` and `LQpos()`.
+Different algorithms are available, namely `LQ()` (or equivalently, `LQpos`), `SVD()` and
+`SDD()`. The first assumes that the matrix is full rank and requires `iszero(atol)` and
+`iszero(rtol)`. With `SVD()` and `SDD()`, `rightnull` will use the corresponding singular
+value decomposition, and one can specify an absolute or relative tolerance for which
+singular values are to be considered zero, where `max(atol, norm(t)*rtol)` is used as upper
+bound.
 
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `rightnull(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
-rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple;
-            alg::OrthogonalFactorizationAlgorithm = LQ()) =
-    rightnull!(permuteind(t, p1, p2; copy = true); alg = alg)
+rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    rightnull!(permuteind(t, p1, p2; copy = true); kwargs...)
 
 """
     eigen(t::AbstractTensor, leftind::Tuple, rightind::Tuple; kwargs...) -> D, V
@@ -181,7 +185,7 @@ eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
     eig!(permuteind(t, p1, p2; copy = true); kwargs...)
 
 """
-    eigh(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> D, V
+    eigh(t::AbstractTensorMap{<:EuclideanSpace}, leftind::Tuple, rightind::Tuple) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 The function `eigh` assumes that the linear map is hermitian and `D` and `V` tensors with
@@ -204,7 +208,7 @@ eigh(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) =
     eigh!(permuteind(t, p1, p2; copy = true))
 
 """
-    isposdef(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> ::Bool
+    isposdef(t::AbstractTensor{<:EuclideanSpace}, leftind::Tuple, rightind::Tuple) -> ::Bool
 
 Test whether a tensor `t` is positive definite as linear map from `rightind` to `leftind`.
 
@@ -223,14 +227,14 @@ LinearAlgebra.isposdef(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) =
 LinearAlgebra.svd(t::AbstractTensorMap; trunc::TruncationScheme = NoTruncation(),
                     p::Real = 2, alg::Union{SVD,SDD} = SDD()) =
     svd!(copy(t); trunc = trunc, p = p, alg = alg)
-leftorth(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = QRpos()) =
-    leftorth!(copy(t); alg = alg)
-rightorth(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = LQpos()) =
-    rightorth!(copy(t); alg = alg)
-leftnull(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = QRpos()) =
-    leftnull!(copy(t); alg = alg)
-rightnull(t::AbstractTensorMap; alg::OrthogonalFactorizationAlgorithm = LQpos()) =
-    rightnull!(copy(t); alg = alg)
+leftorth(t::AbstractTensorMap; alg::OFA = QRpos(), kwargs...) =
+    leftorth!(copy(t); alg = alg, kwargs...)
+rightorth(t::AbstractTensorMap; alg::OFA = LQpos(), kwargs...) =
+    rightorth!(copy(t); alg = alg, kwargs...)
+leftnull(t::AbstractTensorMap; alg::OFA = QR(), kwargs...) =
+    leftnull!(copy(t); alg = alg, kwargs...)
+rightnull(t::AbstractTensorMap; alg::OFA = LQ(), kwargs...) =
+    rightnull!(copy(t); alg = alg, kwargs...)
 LinearAlgebra.eigen(t::AbstractTensorMap; kwargs...) = eigen!(copy(t); kwargs...)
 eig(t::AbstractTensorMap; kwargs...) = eig!(copy(t); kwargs...)
 eigh(t::AbstractTensorMap; kwargs...) = eigh!(copy(t); kwargs...)
@@ -239,21 +243,17 @@ LinearAlgebra.isposdef(t::AbstractTensorMap) = isposdef!(copy(t))
 # Orthogonal factorizations (mutation for recycling memory):
 # only correct if Euclidean inner product
 #------------------------------------------------------------------------------------------
-leftorth!(t::AdjointTensorMap{S};
-            alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace} =
+leftorth!(t::AdjointTensorMap{S}; alg::OFA = QRpos()) where {S<:EuclideanSpace} =
     map(adjoint, reverse(rightorth!(adjoint(t); alg = alg')))
 
-rightorth!(t::AdjointTensorMap{S};
-            alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace} =
+rightorth!(t::AdjointTensorMap{S}; alg::OFA = LQpos()) where {S<:EuclideanSpace} =
     map(adjoint, reverse(leftorth!(adjoint(t); alg = alg')))
 
-leftnull!(t::AdjointTensorMap{S};
-            alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace} =
-    adjoint(rightnull!(adjoint(t); alg = alg'))
+leftnull!(t::AdjointTensorMap{S}; alg::OFA = QR(), kwargs...) where {S<:EuclideanSpace} =
+    adjoint(rightnull!(adjoint(t); alg = alg', kwargs...))
 
-rightnull!(t::AdjointTensorMap{S};
-            alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace} =
-    adjoint(leftnull!(adjoint(t); alg = alg'))
+rightnull!(t::AdjointTensorMap{S}; alg::OFA = LQ(), kwargs...) where {S<:EuclideanSpace} =
+    adjoint(leftnull!(adjoint(t); alg = alg', kwargs...))
 
 function LinearAlgebra.svd!(t::AdjointTensorMap{S};
                             trunc::TruncationScheme = NoTruncation(),
@@ -263,9 +263,16 @@ function LinearAlgebra.svd!(t::AdjointTensorMap{S};
     return adjoint(vt), adjoint(s), adjoint(u), err
 end
 
-function leftorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
+function leftorth!(t::TensorMap{S};
+                    alg::Union{QR,QRpos,QL,QLpos,SVD,SDD,Polar} = QRpos(),
+                    atol::Real = zero(float(real(eltype(t)))),
+                    rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
+                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+    if !iszero(rtol)
+        atol = max(atol, rtol*norm(t))
+    end
     if sectortype(t) === Trivial
-        Q, R = _leftorth!(block(t, Trivial()), alg)
+        Q, R = _leftorth!(block(t, Trivial()), alg, atol)
         d = size(Q,2)
         if length(codomain(t)) == 1 && dim(codomain(t)[1]) == d
             V = codomain(t)[1]
@@ -280,7 +287,7 @@ function leftorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpo
         Rdata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
         for (c,b) in blocks(t)
-            Q, R = _leftorth!(b, alg)
+            Q, R = _leftorth!(b, alg, atol)
             Qdata[c] = Q
             Rdata[c] = R
             dims[c] = size(Q,2)
@@ -296,9 +303,16 @@ function leftorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpo
     end
 end
 
-function leftnull!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpos()) where {S<:EuclideanSpace}
+function leftnull!(t::TensorMap{S};
+                    alg::Union{QR,QRpos,SVD,SDD} = QRpos(),
+                    atol::Real = zero(float(real(eltype(t)))),
+                    rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
+                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+    if !iszero(rtol)
+        atol = max(atol, rtol*norm(t))
+    end
     if sectortype(t) === Trivial
-        N = _leftnull!(block(t, Trivial()), alg)
+        N = _leftnull!(block(t, Trivial()), alg, atol)
         W = S(size(N, 2))
         return TensorMap(N, codomain(t)←W)
     else
@@ -306,7 +320,7 @@ function leftnull!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpo
         Ndata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
         for c in blocksectors(V)
-            N = _leftnull!(block(t,c), alg)
+            N = _leftnull!(block(t,c), alg, atol)
             Ndata[c] = N
             dims[c] = size(N,2)
         end
@@ -315,9 +329,16 @@ function leftnull!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = QRpo
     end
 end
 
-function rightorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
+function rightorth!(t::TensorMap{S};
+                    alg::Union{LQ,LQpos,RQ,RQpos,SVD,SDD,Polar} = LQpos(),
+                    atol::Real = zero(float(real(eltype(t)))),
+                    rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
+                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+    if !iszero(rtol)
+        atol = max(atol, rtol*norm(t))
+    end
     if sectortype(t) === Trivial
-        L, Q = _rightorth!(block(t, Trivial()), alg)
+        L, Q = _rightorth!(block(t, Trivial()), alg, atol)
         d = size(Q,1)
         if length(domain(t)) == 1 && dim(domain(t)[1]) == d
             V = domain(t)[1]
@@ -332,7 +353,7 @@ function rightorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = LQp
         Qdata = empty(t.data)
         dims = SectorDict{sectortype(t), Int}()
         for (c,b) in blocks(t)
-            L, Q = _rightorth!(b, alg)
+            L, Q = _rightorth!(b, alg, atol)
             Ldata[c] = L
             Qdata[c] = Q
             dims[c] = size(Q,1)
@@ -348,9 +369,16 @@ function rightorth!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = LQp
     end
 end
 
-function rightnull!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = LQpos()) where {S<:EuclideanSpace}
+function rightnull!(t::TensorMap{S};
+                    alg::Union{LQ,LQpos,SVD,SDD} = LQpos(),
+                    atol::Real = zero(float(real(eltype(t)))),
+                    rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
+                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+    if !iszero(rtol)
+        atol = max(atol, rtol*norm(t))
+    end
     if sectortype(t) === Trivial
-        N = _rightnull!(block(t, Trivial()), alg)
+        N = _rightnull!(block(t, Trivial()), alg, atol)
         W = S(size(N, 1))
         return TensorMap(N, W←domain(t))
     else
@@ -359,7 +387,7 @@ function rightnull!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = LQp
         A = valtype(Ndata)
         dims = SectorDict{sectortype(t), Int}()
         for c in blocksectors(V)
-            N = _rightnull!(block(t,c), alg)
+            N = _rightnull!(block(t,c), alg, atol)
             Ndata[c] = N
             dims[c] = size(N,1)
         end
@@ -368,7 +396,10 @@ function rightnull!(t::TensorMap{S}; alg::OrthogonalFactorizationAlgorithm = LQp
     end
 end
 
-function LinearAlgebra.svd!(t::TensorMap{S}; trunc::TruncationScheme = NoTruncation(), p::Real = 2, alg::Union{SVD,SDD} = SDD()) where {S<:EuclideanSpace}
+function LinearAlgebra.svd!(t::TensorMap{S};
+                            trunc::TruncationScheme = NoTruncation(),
+                            p::Real = 2,
+                            alg::Union{SVD,SDD} = SDD()) where {S<:EuclideanSpace}
     if sectortype(t) === Trivial
         U,Σ,V = _svd!(block(t, Trivial()), alg)
         dmax = length(Σ)
@@ -570,6 +601,7 @@ end
 function LinearAlgebra.isposdef!(t::TensorMap)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`isposdef` requires domain and codomain to be the same"))
+    spacetype(t) <: EuclideanSpace || return false
     if sectortype(t) === Trivial
         return isposdef!(block(t, Trivial()))
     else

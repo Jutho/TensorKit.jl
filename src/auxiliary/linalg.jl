@@ -48,7 +48,8 @@ Base.adjoint(alg::Union{SVD,SDD,Polar}) = alg
 _safesign(s::Real) = ifelse(s<zero(s), -one(s), +one(s))
 _safesign(s::Complex) = ifelse(iszero(s), one(s), s/abs(s))
 
-function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos})
+function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::Real)
+    iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
     k = min(m, n)
     A, T = LAPACK.geqrt!(A, min(minimum(size(A)), 36))
@@ -87,7 +88,8 @@ end
 #     return Q, R
 # end
 
-function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL,QLpos})
+function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL,QLpos}, atol::Real)
+    iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
     @assert m >= n
 
@@ -96,7 +98,7 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL,QLpos})
     @inbounds for j = 1:nhalf, i = 1:m
         A[i,j], A[i,n+1-j] = A[i,n+1-j], A[i,j]
     end
-    Q, R = _leftorth!(A, isa(alg, QL) ? QR() : QRpos() )
+    Q, R = _leftorth!(A, isa(alg, QL) ? QR() : QRpos() , atol)
 
     #swap columns in Q
     @inbounds for j = 1:nhalf, i = 1:m
@@ -115,12 +117,17 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL,QLpos})
     return Q, R
 end
 
-function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar})
+function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar}, atol::Real)
     U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)
     if isa(alg, Union{SVD, SDD})
-        # TODO: implement truncation based on tol in SVD
-        return U, lmul!(Diagonal(S), V)
+        n = count(s-> s .> atol, S)
+        if n != length(S)
+            return U[:,1:n], lmul!(Diagonal(S[1:n]), V[1:n, :])
+        else
+            return U, lmul!(Diagonal(S), V)
+        end
     else
+        iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
         # TODO: check Lapack to see if we can recycle memory of A
         Q = U*V
         Sq = map!(sqrt,S,S)
@@ -130,7 +137,8 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar})
     end
 end
 
-function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos})
+function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::Real)
+    iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
     m >= n || throw(ArgumentError("no null space if less rows than columns"))
 
@@ -143,12 +151,15 @@ function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos})
     N = LAPACK.gemqrt!('L', 'N', A, T, N)
 end
 
-# TODO: _leftnull based on svd, maybe with tolerance
-# function leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar})
-#     U, S, V = alg isa SVD ? LAPACK.gesvd!('A', 'N', A) : LAPACK.gesdd!('A', A)
-# end
+function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
+    U, S, V = alg isa SVD ? LAPACK.gesvd!('A', 'N', A) : LAPACK.gesdd!('A', A)
+    indstart = count(s -> s .> atol, S) + 1
+    return U[:, indstart:end]
+end
 
-function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQpos})
+function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQpos},
+                        atol::Real)
+    iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
     # matrix size 100, which is the interesting region. => Investigate and fix
     m, n = size(A)
@@ -163,7 +174,7 @@ function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQp
         @inbounds for j = 1:mhalf, i = 1:n
             At[i,j], At[i,m+1-j] = At[i,m+1-j], At[i,j]
         end
-        Qt, Rt = _leftorth!(At, isa(alg, RQ) ? QR() : QRpos())
+        Qt, Rt = _leftorth!(At, isa(alg, RQ) ? QR() : QRpos(), atol)
 
         @inbounds for j = 1:mhalf, i = 1:n
             Qt[i,j], Qt[i,m+1-j] = Qt[i,m+1-j], Qt[i,j]
@@ -181,7 +192,7 @@ function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQp
         R = transpose!(similar(A, (m,m)), Rt) # TODO: efficient in place
         return R, Q
     else
-        Qt, Lt = _leftorth!(At, alg')
+        Qt, Lt = _leftorth!(At, alg', atol)
         if m > n
             L = transpose!(A, Lt)
             Q = transpose!(similar(A, (n,n)), Qt) # TODO: efficient in place
@@ -193,12 +204,17 @@ function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQp
     end
 end
 
-function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar})
+function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar}, atol::Real)
     U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)
-    if isa(alg, SVD)
-        # TODO: implement truncation based on tol in SVD
-        return rmul!(U, Diagonal(S)), V
+    if isa(alg, Union{SVD, SDD})
+        n = count(s-> s .> atol, S)
+        if n != length(S)
+            return rmul!(U[:,1:n], Diagonal(S[1:n])), V[1:n,:]
+        else
+            return rmul!(U, Diagonal(S)), V
+        end
     else
+        iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
         # TODO: check Lapack to see if we can recycle memory of A
         Q = U*V
         Sq = map!(sqrt, S, S)
@@ -208,7 +224,8 @@ function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar})
     end
 end
 
-function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos})
+function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos}, atol::Real)
+    iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
     k = min(m,n)
     At = adjoint!(similar(A,n,m), A)
@@ -221,10 +238,11 @@ function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos})
     N = LAPACK.gemqrt!('R', eltype(At) <: Real ? 'T' : 'C', At, T, N)
 end
 
-# TODO: _rigtnull! based on svd
-# function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar})
-#     U, S, V = alg isa SVD ? LAPACK.gesvd!('N', 'A', A) : LAPACK.gesdd!('A', A)
-# end
+function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
+    U, S, V = alg isa SVD ? LAPACK.gesvd!('N', 'A', A) : LAPACK.gesdd!('A', A)
+    indstart = count(s -> s .> atol, S) + 1
+    return V[indstart:end, :]
+end
 
 function _svd!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD})
     U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)

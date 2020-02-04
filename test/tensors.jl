@@ -224,7 +224,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     @test QdQ ≈ one(QdQ)
                     @test Q*R ≈ permuteind(t, (3,4,2),(1,5))
                 end
-                @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos())
+                @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.SVD(), TensorKit.SDD())
                     N = @inferred leftnull(t, (3,4,2),(1,5); alg = alg)
                     NdN = N'*N
                     @test NdN ≈ one(NdN)
@@ -236,7 +236,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     @test QQd ≈ one(QQd)
                     @test L*Q ≈ permuteind(t, (3,4),(2,1,5))
                 end
-                @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.LQpos())
+                @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.SVD(), TensorKit.SDD())
                     M = @inferred rightnull(t, (3,4),(2,1,5); alg = alg)
                     MMd = M*M'
                     @test MMd ≈ one(MMd)
