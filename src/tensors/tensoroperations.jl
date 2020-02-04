@@ -90,7 +90,7 @@ scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} =
                                     β, tdst::AbstractTensorMap{S},
                                     p1::IndexTuple, p2::IndexTuple) where {S}
     G = sectortype(S)
-    if BraidingStyle(G) isa Symmetric
+    if BraidingStyle(G) isa SymmetricBraiding
         add!(α, tsrc, β, tdst, p1, p2, (codomainind(tsrc)..., domainind(tsrc)...))
     else
         throw(ArgumentError("add! without levels only for if `BraidingStyle(sectortype(...)) isa Symmetric`"))
@@ -117,7 +117,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         n = length(cod)
         pdata = (p1..., p2...)
         axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
-    elseif FusionStyle(G) isa Abelian && BraidingStyle(G) isa Symmetric
+    elseif FusionStyle(G) isa Abelian && BraidingStyle(G) isa SymmetricBraiding
         K = Threads.nthreads()
         if K > 1
             let iterator = fusiontrees(tsrc)
@@ -147,7 +147,7 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
             mul!(tdst, β, tdst)
         end
         levels1 = TupleTools.getindices(levels, codomainind(tsrc))
-        levels2 = TupleTools.getindices(levels, domianind(tsrc))
+        levels2 = TupleTools.getindices(levels, domainind(tsrc))
         for (f1,f2) in fusiontrees(tsrc)
             for ((f1′,f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
                 @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
