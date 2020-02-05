@@ -101,7 +101,6 @@ const IndexSpace = ElementarySpace
 
 field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
 
-
 """
     oneunit(V::S) where {S<:ElementarySpace} -> S
 
@@ -237,8 +236,13 @@ vector spaces of a homogeneous type `S<:ElementarySpace{𝕜}`.
 """
 abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
-field(::Type{<:CompositeSpace{S}}) where {S<:ElementarySpace} = field(S)
-sectortype(::Type{<:CompositeSpace{S}}) where {S<:ElementarySpace} = sectortype(S)
+spacetype(S::Type{<:ElementarySpace}) = S
+spacetype(V::ElementarySpace) = typeof(V) # = spacetype(typeof(V))
+spacetype(::Type{<:CompositeSpace{S}}) where S = S
+spacetype(V::CompositeSpace) = spacetype(typeof(V)) # = spacetype(typeof(V))
+
+field(P::Type{<:CompositeSpace}) = field(spacetype(P))
+sectortype(P::Type{<:CompositeSpace}) = sectortype(spacetype(P))
 
 # Specific realizations of ElementarySpace types
 #------------------------------------------------

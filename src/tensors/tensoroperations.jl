@@ -93,7 +93,7 @@ scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} =
     if BraidingStyle(G) isa SymmetricBraiding
         add!(α, tsrc, β, tdst, p1, p2, (codomainind(tsrc)..., domainind(tsrc)...))
     else
-        throw(ArgumentError("add! without levels only for if `BraidingStyle(sectortype(...)) isa Symmetric`"))
+        throw(ArgumentError("add! without levels only for if `BraidingStyle(sectortype(...)) isa SymmetricBraiding`"))
     end
 end
 

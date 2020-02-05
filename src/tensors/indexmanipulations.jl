@@ -104,7 +104,8 @@ end
 function LinearAlgebra.transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
     codomain(tdst) == domain(tsrc)' && domain(tdst) == codomain(tsrc)' ||
         throw(SpaceMismatch())
-    permuteind!(tdst, tsrc, reverse(domainind(tsrc)), reverse(codomainind(tsrc)))
+    levels = (codomainind(tsrc)..., domainind(tsrc)...)
+    braid!(tdst, tsrc, levels, reverse(domainind(tsrc)), reverse(codomainind(tsrc)))
     if BraidingStyle(sectortype(tdst)) != Bosonic()
         for (c,b) in blocks(tdst)
             rmul!(b, twist(c))
@@ -115,3 +116,17 @@ end
 
 LinearAlgebra.transpose(t::AbstractTensorMap) =
     transpose!(similar(t, domain(t)', codomain(t)'), t)
+
+# Twist
+twist(t::AbstractTensorMap, i::Int; inv::Bool = false) = twist!(copy(t), i; inv = inv)
+
+function twist!(t::AbstractTensorMap, i::Int; inv::Bool = false)
+    N₁ = numout(t)
+    for (f1,f2) in fusiontrees(t)
+        θ = i <= N₁ ? twist(f1.uncoupled[i]) : twist(f2.uncoupled[i-N₁])
+        rmul!(t[f1,f2], θ)
+    end
+    return t
+end
+
+# Fusing and splitting

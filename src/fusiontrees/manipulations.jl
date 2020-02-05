@@ -436,7 +436,7 @@ function braid(f1::FusionTree{G}, f2::FusionTree{G},
         BraidingStyle(f1) isa SymmetricBraiding
         if usebraidcache_abelian[]
             u = one(G)
-            T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
+            T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u)*Rsymbol(u,u,u))
             F₁ = fusiontreetype(G, StaticLength(N₁))
             F₂ = fusiontreetype(G, StaticLength(N₂))
             D = SingletonDict{Tuple{F₁,F₂}, T}
@@ -447,7 +447,7 @@ function braid(f1::FusionTree{G}, f2::FusionTree{G},
     else
         if usebraidcache_nonabelian[]
             u = one(G)
-            T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u))
+            T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u)*Rsymbol(u,u,u))
             F₁ = fusiontreetype(G, StaticLength(N₁))
             F₂ = fusiontreetype(G, StaticLength(N₂))
             D = FusionTreeDict{Tuple{F₁,F₂}, T}

@@ -4,6 +4,11 @@ using LinearAlgebra: BlasFloat, Char, BlasInt, LAPACKException,
 using LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
 using LinearAlgebra.LAPACK: liblapack, chklapackerror
 
+function _one!(A::DenseMatrix)
+    fill!(A, zero(eltype(A)))
+    A[diagind(A)] .= one(eltype(A))
+    return A
+end
 
 # MATRIX factorizations
 #-----------------------

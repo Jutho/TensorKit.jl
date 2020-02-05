@@ -384,8 +384,9 @@ instance, with `undef` data, but whose data is stored in the same subtype of `De
 (e.g. `Matrix` or `CuMatrix` or ...) as `t`. In particular, this uses the internal methods
 `TensorKit.storagetype(t)` and `TensorKit.similarstoragetype(t, T)`.
 
-Finally, there are methods `zero(t)` and `one(t)` to create specific new tensors, and which
-are introduced in the section on [linear algebra operations](@ref ss_tensor_linalg).
+Finally, there are methods `zero`, `one`, `id`, `isomorphism` and `unitary` to create
+specific new tensors, and which are introduced in the section on
+[linear algebra operations](@ref ss_tensor_linalg).
 
 ## [Tensor properties](@id ss_tensor_properties)
 
@@ -398,17 +399,19 @@ to `codomain(t, i) = codomain(t)[i]`. For `j = i-N₁ ∈ (1:N₂)`, this corres
 `dual(domain(t, j)) = dual(domain(t)[j])`.
 
 The total number of indices, i.e. `N₁+N₂`, is given by `numind(t)`, with `N₁ == numout(t)`
-and `N₂ == numin(t)`, the number of outgoing and incoming indices. The type parameter
-`S<:ElementarySpace` can be obtained as `spacetype(t)`; the corresponding sector can
-directly obtained as `sectortype(t)` and is `Trivial` when `S != RepresentationSpace`. The
-underlying field scalars of `S` can also directly be obtained as `field(t)`. This is
-different from `eltype(t)`, which returns the type of `Number` in the tensor data, i.e. the
-type parameter `T` in the (subtype of) `DenseMatrix{T}` in which the matrix blocks are
-stored. Note that during construction, a (one-time) warning is printed if
+and `N₂ == numin(t)`, the number of outgoing and incoming indices. There are also the
+unexported methods `TensorKit.codomainind(t)` and `TensorKit.domainind(t)` which return the
+tuples `(1, 2, …, N₁)` and `(N₁+1, …, N₁+N₂)`, and are useful for internal purposes. The
+type parameter `S<:ElementarySpace` can be obtained as `spacetype(t)`; the corresponding
+sector can directly obtained as `sectortype(t)` and is `Trivial` when `S !=
+RepresentationSpace`. The underlying field scalars of `S` can also directly be obtained as
+`field(t)`. This is different from `eltype(t)`, which returns the type of `Number` in the
+tensor data, i.e. the type parameter `T` in the (subtype of) `DenseMatrix{T}` in which the
+matrix blocks are stored. Note that during construction, a (one-time) warning is printed if
 `!(T ⊂ field(S))`. The specific `DenseMatrix{T}` subtype in which the tensor data is stored
 is obtained as `storagetype(t)`. Each of the methods `numind`, `numout`, `numin`,
-`spacetype`, `sectortype`, `field`, `eltype` and `storagetype` work in the type domain as
-well, i.e. they are encoded in `typeof(t)`.
+`TensorKit.codomainind`, `TensorKit.domainind`, `spacetype`, `sectortype`, `field`, `eltype`
+and `storagetype` work in the type domain as well, i.e. they are encoded in `typeof(t)`.
 
 Finally, there are methods to probe the data, which we already encountered.
 `blocksectors(t)` returns an iterator over the different coupled sectors that can be
@@ -434,18 +437,24 @@ In particular, `AbstractTensorMap` instances can be composed, provided the domai
 first object coincides with the codomain of the second. Composing tensor maps uses the
 regular multiplication symbol as in `t = t1*t2`, which is also used for matrix
 multiplication. TensorKit.jl also supports (and exports) the mutating method
-`mul!(t, t1, t2)`.
+`mul!(t, t1, t2)`. We can then also try to invert a tensor map using `inv(t)`, though this
+can only exist if the domain and codomain are isomorphic, which can e.g. be checked as
+`fuse(codomain(t)) == fuse(domain(t))`. If the inverse is composed with another tensor
+`t2`, we can use the syntax `t1\t2` or `t2/t1`. However, this syntax also accepts instances
+`t1` whose domain and codomain are not isomorphic, and then amounts to `pinv(t1)`, the
+Moore-Penrose pseudoinverse. This, however, is only really justified as minimizing the
+least squares problem if `spacetype(t) <: EuclideanSpace`.
 
 `AbstractTensorMap` instances behave themselves as vectors (i.e. they are `𝕜`-linear) and
 so they can be multiplied by scalars and, if they live in the same space, i.e. have the same
 domain and codomain, they can be added to each other. There is also a `zero(t)`, the
 additive identity, which produces a zero tensor with the same domain and codomain as `t`. In
-addition, `TensorMap` supports basic Julia methods such as `fill!` and `copyto!`. Aside from
-basic `+` and `*` operations, TensorKit.jl reexports a number of efficient in-place methods
-from `LinearAlgebra`, such as `axpy!` (for `y ← α * x + y`), `axpby!` (for
-`y ← α * x + β * y`), `lmul!` and `rmul!` (for `y ← α*y` and `y ← y*α`, which is typically
-the same) and `mul!`, which can also be used for out-of-place scalar multiplication
-`y ← α*x`.
+addition, `TensorMap` supports basic Julia methods such as `fill!` and `copyto!`, as well
+as `copy(t)` to create a copy with independent data. Aside from basic `+` and `*`
+operations, TensorKit.jl reexports a number of efficient in-place methods from
+`LinearAlgebra`, such as `axpy!` (for `y ← α * x + y`), `axpby!` (for `y ← α * x + β * y`),
+`lmul!` and `rmul!` (for `y ← α*y` and `y ← y*α`, which is typically the same) and `mul!`,
+which can also be used for out-of-place scalar multiplication `y ← α*x`.
 
 For `t::AbstractTensorMap{S}` where `S<:EuclideanSpace`, henceforth referred to as
 a `(Abstract)EuclideanTensorMap`, we can compute `norm(t)`, and for two such instances, the
@@ -474,13 +483,9 @@ approximate (`t1 ≈ t2`) equality, though the latter requires `norm` can be com
 
 When tensor map instances are endomorphisms, i.e. they have the same domain and codomain,
 there is a multiplicative identity which can be obtained as `one(t)` or `one!(t)`, where the
-latter overwrites the contents of `t`. We can then also try to invert them using `inv(t)`,
-or, in case their inverse is composed with another tensor `t2`, `t1\t2` or `t2/t1`. The
-latter syntax also accepts instances `t1` whose domain and codomain are not the same, and
-then amounts to `pinv(t1)`, the Moore-Penrose pseudoinverse. This, however, is only really
-justified for `AbstractEuclideanTensorMap` instances. Returning to endomorphisms, we can
-compute their trace via `tr(t)` and exponentiate them using `exp(t)`, or if the contents of
-`t` can be destroyed in the process, `exp!(t)`. Furthermore, there are a number of tensor
+latter overwrites the contents of `t`. Furthermore, we can compute the trace of an
+endomorphism `t` via `tr(t)` and exponentiate it using `exp(t)`, or if the contents of `t`
+can be destroyed in the process, `exp!(t)`. Furthermore, there are a number of tensor
 factorizations for both endomorphisms and general homomorphism that we discuss below.
 
 Finally, there are a number of operations that also belong in this paragraph because of
@@ -506,9 +511,73 @@ codomain and vice versa. Furthermore, we want to use the braiding to reshuffle t
 the indices.
 
 For this, we use an interface that is closely related to that for manipulating splitting-
-fusion tree pairs, namely `braid` and `permute`.
+fusion tree pairs, namely `braid` and `permute`, with the interface
 
+`braid(t::AbstractTensorMap{S,N₁,N₂}, levels::NTuple{N₁+N₂,Int}, p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int}) -> AbstractTensorMap{S,N₁′,N₂′}`
 
+and
+
+`permute(t::AbstractTensorMap{S,N₁,N₂}, p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int}; copy = true) -> AbstractTensorMap{S,N₁′,N₂′}`
+
+In these methods, `p1` and `p2` specify which of the original tensor indices ranging from
+`1` to `N₁+N₂` make up the new codomain (with `N₁′` spaces) and new domain (with `N₂′`
+spaces). Hence, `(p1..., p2...)` should be a valid permutation of `1:(N₁+N₂)`. Note that,
+throughout TensorKit.jl, permutations are always specified using tuples of `Int`s, for
+reasons of type stability. For `braid`, we also need to specify `levels` or depths for each
+of the indices of the original tensor, which determine whether indices will braid over or
+underneath each other (use the braiding or its inverse). We refer to the section on
+[manipulating fusion trees](@ref ss_fusiontrees) for more details.
+
+When `BraidingStyle(sectortype(t)) isa SymmetricBraiding`, we can use the simpler interface
+of `permute`, which does not require the argument `levels`. `permute` accepts a keyword
+argument `copy`. When it takes the default value `true`, the result will be a tensor with
+newly allocated data that can independently be modified from that of the input tensor `t`.
+When `copy=false`, `permute` can try to return the result in a way that it shares its data
+with the input tensor `t`, though this is only possible in specific cases (e.g. when
+`sectortype(S) == Trivial` and `(p1..., p2...) = (1:(N₁+N₂)...)`).
+
+Both `braid` and `permute` come in a version where the result is stored in an already
+existing tensor, i.e. `braid!(tdst, tsrc, levels, p1, p2)` and
+`permute!(tdst, tsrc, p1, p2)`.
+
+Another operation that belongs und index manipulations is taking the `transpose` of a
+tensor, i.e. `LinearAlgebra.transpose(t)` and `LinearAlgebra.transpose!(tdst, tsrc)`, both
+of which are reexported by TensorKit.jl. Note that `transpose(t)` is not simply equal to
+reshuffling domain and codomain with
+`braid(t, (1:(N₁+N₂)...), reverse(domainind(tsrc)), reverse(codomainind(tsrc))))`. Indeed,
+the graphical representation (where we draw the codomain and domain as a single object),
+makes clear that this introduces an additional (inverse) twist, which is then compensated
+in the `transpose` implementation.
+
+![transpose](img/tensor-transpose.svg)
+
+In categorical language, the reason for this extra twist is that we use the left
+coevaluation `η`, but the right evaluation `\tilde{ϵ}`, when repartitioning the indices
+between domain and codomain.
+
+There are a number of other index related manipulations. We can apply a twist (or inverse
+twist) to one of the tensor map indices via `twist(t, i; inv = false)` or
+`twist!(t, i; inv = false)`. Note that the latter method does not store the result in a new
+destination tensor, but just modifies the tensor `t` in place. Twisting several indices
+simultaneously can be obtained by using the defining property
+
+``θ_{V⊗W} = τ_{W,V} ∘ (θ_W ⊗ θ_V) ∘ τ_{V,W} = (θ_V ⊗ θ_W) ∘ τ_{W,V} ∘ τ_{V,W}.``
+
+but is currently not implemented explicitly.
+
+Another operation that one might be expecting is to fuse or join indices, and its inverse,
+to split a given index into two or more indices. For a plain tensor (i.e. with
+`sectortype(t) == Trivial`) amount to the equivalent of `reshape` on the multidimensional
+data. However, this represents only one possibility, as there is no canonically unique way
+to embed the tensor product of two spaces `V₁ ⊗ V₂` in a new space `V = fuse(V₁⊗V₂)`. Such
+a mapping can always be accompagnied by a basis transform. So far, we do not provide a
+dedicated interface to e.g. fuse two neighboring indices `i` and `i+1` into a single index,
+but this can easily be accomplished by contracting the tensor (see below) with a dedicated
+tensor `x = TensorMap(randisometry, fuse(V₁⊗V₂), V₁ ⊗ V₂)` and its inverse `x'`. Instead of
+`randisometry`, one can also use `x = isomorphism(fuse(V₁⊗V₂), V₁ ⊗ V₂)` or
+`x = unitary(fuse(V₁⊗V₂), V₁ ⊗ V₂)`.
+
+Note that a typical algorithms is not expected to often need to fuse and split indices (to continue...)
 
 
 
@@ -530,21 +599,22 @@ instance(s), as there is currently no dedicated `DiagonalTensorMap` or diagonal 
 support.
 
 We also define `LinearAlgebra.ishermitian(t)`, which can only return true for instances of
-`TensorMap{<:EuclideanSpace}`, henceforth referred to as `EuclideanTensorMap`. In all other
-cases, as the inner product is not defined, there is no notion of hermiticity (i.e. we are
-not working in a `†`-category). For instances of `EuclideanTensorMap`, we also define and
-export the routines `eigh` and `eigh!`, which compute the eigenvalue decomposition under
-the guarantee (not checked) that the map is hermitian. Hence, eigenvalues will be real and
-`V` will be unitary. We also define and export `eig` and `eig!`, which similarly assume
+`AbstractEuclideanTensorMap`. In all other cases, as the inner product is not defined, there
+is no notion of hermiticity (i.e. we are not working in a `†`-category). For instances of
+`EuclideanTensorMap`, we also define and export the routines `eigh` and `eigh!`, which
+compute the eigenvalue decomposition under the guarantee (not checked) that the map is
+hermitian. Hence, eigenvalues will be real and `V` will be unitary with
+`eltype(V) == eltype(t)`. We also define and export `eig` and `eig!`, which similarly assume
 that the `TensorMap` is not hermitian (hence this does not require `EuclideanTensorMap`),
-and always returns complexed values eigenvalues and eigenvectors. Like for matrices,
-`LinearAlgebra.eigen` is type unstable and checks hermiticity at run-time, then falling
-back to either `eig` or `eigh`.
+and always returns complex values eigenvalues and eigenvectors. Like for matrices,
+`LinearAlgebra.eigen` is type unstable and checks hermiticity at run-time, then falling back
+to either `eig` or `eigh`.
 
 Other factorizations that are provided by TensorKit.jl are orthogonal or unitary in nature,
-and thus always require a `EuclideanTensorMap`. However, they don't require equal domain
-and codomain. Let us first discuss the *singular value decomposition*, for which we define
-and export the methods `tsvd` and `tsvd!` (where as always, the latter destroys the input)
+and thus always require a `AbstractEuclideanTensorMap`. However, they don't require equal
+domain and codomain. Let us first discuss the *singular value decomposition*, for which we
+define and export the methods `tsvd` and `tsvd!` (where as always, the latter destroys the
+input).
 
 `U, Σ, Vʰ, ϵ = tsvd(t; truncation = notrunc(), p::Real = 2, alg::OrthogonalFactorizationAlgorithm = SDD())`
 
@@ -554,33 +624,33 @@ This computes a (possibly truncated) singular value decomposition of
 `Vʰ::TensorMap{S,1,N₂}` and `ϵ::Real`. `U` is an isometry, i.e. `U'*U` approximates the
 identity, whereas `U*U'` is an idempotent (squares to itself). The same holds for
 `adjoint(Vʰ)`. The domain of `U` equals the domain and codomain of `Σ` and the codomain of
-`Vʰ`. In the case of `truncation = notrunc()` (default value, see below) is given by
-`min(fuse(codomain(t)), fuse(domain(t)))`. The singular values are contained in `Σ` and are
-stored on the diagonal of a (collection of) `DenseMatrix` instance(s), similar to the
-eigenvalues before.
+`Vʰ`. In the case of `truncation = notrunc()` (default value, see below), this space is
+given by `min(fuse(codomain(t)), fuse(domain(t)))`. The singular values are contained in `Σ`
+and are stored on the diagonal of a (collection of) `DenseMatrix` instance(s), similar to
+the eigenvalues before.
 
 The keyword argument `truncation` provides a way to control the truncation, and is
 connected to the keyword argument `p`. The default value `notrunc()` implies no truncation,
 and thus `ϵ = 0`. Other valid options are
 
-* `truncerr(η::Real)`: truncates such that the `p`-norm of the truncated singular values is
-  smaller than `η` times the `p`-norm of all singular values;
+*   `truncerr(η::Real)`: truncates such that the `p`-norm of the truncated singular values
+    is smaller than `η` times the `p`-norm of all singular values;
 
-* `truncdim(χ::Integer)`: truncates such that the equivalent total dimension of the
-  internal vector space is no larger than `χ`;
+*   `truncdim(χ::Integer)`: finds the optimal truncation such that the equivalent total
+    dimension of the internal vector space is no larger than `χ`;
 
-* `truncspace(W)`: truncates such that the dimension of the internal vector space is
-  smaller than that of `W` in any sector, i.e. with
-  `W₀ = min(fuse(codomain(t)), fuse(domain(t)))` this option will result in
-  `domain(U) == domain(Σ) == codomain(Σ) == codomain(Vᵈ) == min(W, W₀)`;
+*   `truncspace(W)`: truncates such that the dimension of the internal vector space is
+    smaller than that of `W` in any sector, i.e. with
+    `W₀ = min(fuse(codomain(t)), fuse(domain(t)))` this option will result in
+    `domain(U) == domain(Σ) == codomain(Σ) == codomain(Vᵈ) == min(W, W₀)`;
 
-* `trunbelow(η::Real)`: truncates such that every singular value is larger then `η`; this
-  is different from `truncerr(η)` with `p = Inf` because it works in absolute rather than
-  relative values.
+*   `trunbelow(η::Real)`: truncates such that every singular value is larger then `η`; this
+    is different from `truncerr(η)` with `p = Inf` because it works in absolute rather than
+    relative values.
 
 Furthermore, the `alg` keyword can be either `SVD()` or `SDD()` (default), which
 corresponds to two different algorithms in LAPACK to compute singular value decompositions.
-The default value `SDD()` uses a divide-and-conquer algorithms and is typically the
+The default value `SDD()` uses a divide-and-conquer algorithm and is typically the
 fastest, but can loose some accuracy. The `SVD()` method uses a QR-iteration scheme and can
 be more accurate, but is typically slower. Since Julia 1.3, these two algorithms are also
 available in the `LinearAlgebra` standard library, where they are specified as
@@ -603,18 +673,18 @@ in its image or coimage.
     `min(fuse(codomain(t)), fuse(domain(t)))`.
 
     The underlying algorithm used to compute this decomposition can be chosen among `QR()`,
-    `QRpos()`, QL(), QLpos(), `SVD()`, `SDD()`, `Polar()`. `QR()` uses the underlying `qr`
-    decomposition from `LinearAlgebra`, while `QRpos()` (the default) adds a correction to
-    that to make sure that the diagonal elements of `R` are positive. Both result in block
-    matrices in `R` which are upper triangular. `QL()` and `QLpos()` similarly result in a
-    lower triangular block matrices in `R`, but only work if all block matrices are tall,
-    i.e. `blockdim(codomain(t), c) >= blockdim(domain(t), c)` for all `c ∈ blocksectors(t)`.
-    All of these methods assume `t` has full rank.
+    `QRpos()`, `QL()`, `QLpos()`, `SVD()`, `SDD()`, `Polar()`. `QR()` uses the underlying
+    `qr` decomposition from `LinearAlgebra`, while `QRpos()` (the default) adds a correction
+    to that to make sure that the diagonal elements of `R` are positive. Both result in
+    block matrices in `R` which are upper triangular. `QL()` and `QLpos()` similarly result
+    in a lower triangular block matrices in `R`, but only work if all block matrices are
+    tall, i.e. `blockdim(codomain(t), c) >= blockdim(domain(t), c)` for all `c ∈
+    blocksectors(t)`. All of these methods assume `t` has full rank.
 
     If this is not the case, one can also use `alg = SVD()` or `alg = SDD()`, with extra
     keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then set
     `Q=U` and `R=Σ*Vʰ` from the corresponding singular value decomposition, where only
-    these singular values `σ > max(atol, norm(t)*rtol)` (and corresponding singular vectors
+    these singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors
     in `U`) are kept. More finegrained control on the chosen singular values can be
     obtained with `tsvd` and its `truncation` keyword.
 
@@ -640,7 +710,7 @@ in its image or coimage.
     If this is not the case, one can also use `alg = SVD()` or `alg = SDD()`, with extra
     keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then set
     `L=U*Σ` and `Q=Vʰ` from the corresponding singular value decomposition, where only these
-    singular values `σ > max(atol, norm(t)*rtol)` (and corresponding singular vectors in
+    singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors in
     `Vʰ`) are kept. More finegrained control on the chosen singular values can be obtained
     with `tsvd` and its `truncation` keyword.
 
@@ -655,9 +725,9 @@ and of the co-image (i.e. the kernel) with the following methods:
     returns an isometric `TensorMap{S,N₁,1}` (i.e. `N'*N` approximates the identity) such
     that `N'*t` is approximately zero.
 
-    Here, `alg` can be `QR()` (or `QRpos()`, there is actually no distinction), which
-    assumes that `t` is full rank in all of its blocks and only returns an orthonormal basis
-    for the missing columns.
+    Here, `alg` can be `QR()` (`QRpos()` acts identically in this case), which assumes that
+    `t` is full rank in all of its blocks and only returns an orthonormal basis for the
+    missing columns.
 
     If this is not the case, one can also use `alg = SVD()` or `alg = SDD()`, with extra
     keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then
@@ -668,9 +738,9 @@ and of the co-image (i.e. the kernel) with the following methods:
     returns a `TensorMap{S,1,N₂}` with isometric adjoint (i.e. `N*N'` approximates the
     identity) such that `t*N'` is approximately zero.
 
-    Here, `alg` can be `LQ()` (or `LQpos()`, there is actually no distinction), which
-    assumes that `t` is full rank in all of its blocks and only returns an orthonormal
-    basis for the missing rows.
+    Here, `alg` can be `LQ()` (`LQpos()` acts identically in this case), which assumes that
+    `t` is full rank in all of its blocks and only returns an orthonormal basis for the
+    missing rows.
 
     If this is not the case, one can also use `alg = SVD()` or `alg = SDD()`, with extra
     keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then
@@ -685,11 +755,11 @@ Finally, note that each of the factorizations take a single argument, the tensor
 and a number of keyword arguments. They perform the factorization according to the given
 codomain and domain of the tensor map. In many cases, we want to perform the factorization
 according to a different bipartition of the indices. When `BraidingStyle(sectortype(t)) isa
-Symmetric`, we can immediately specify an alternative bipartition of the indices of `t` in
-all of these methods, in the form
+SymmetricBraiding`, we can immediately specify an alternative bipartition of the indices of
+`t` in all of these methods, in the form
 
 ```
-factorize(t, pleft, pright; kwargs...)
+factorize(t::AbstracTensorMap, pleft::NTuple{N₁′,Int}, pright::NTuple{N₂′,Int}; kwargs...)
 ```
 
 where `pleft` will be the indices in the codomain of the new tensor map, and `pright` the
@@ -698,7 +768,7 @@ indices of the domain. Here, `factorize` is any of the methods `LinearAlgebra.ei
 This signature does not allow for the exclamation mark, because it amounts to
 
 ```
-factorize!(permute(t, pleft, pright); kwargs...)
+factorize!(permute(t, pleft, pright; copy = true); kwargs...)
 ```
 
 where `permute` was introduced and discussed in the previous section. When the braiding

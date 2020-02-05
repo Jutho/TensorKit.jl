@@ -95,7 +95,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 t2 = @inferred permute(t, p1, p2)
                 @test norm(t2) ≈ norm(t)
                 t2′= permute(t′, p1, p2)
-                @test dot(t2′,t2) ≈ dot(t′,t)
+                @test dot(t2′,t2) ≈ dot(t′,t) ≈ dot(transpose(t2′), transpose(t2))
             end
         end
     end
@@ -106,7 +106,10 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))
                 p2 = ntuple(n->p[k+n], StaticLength(5-k))
-                @test convert(Array, permute(t, p1, p2)) ≈ permutedims(convert(Array, t), (p1...,p2...))
+                t2 = permute(t, p1, p2)
+                a2 = convert(Array, t2)
+                @test a2 ≈ permutedims(convert(Array, t), (p1...,p2...))
+                @test convert(Array, transpose(t2)) ≈ permutedims(a2, (5,4,3,2,1))
             end
         end
     end

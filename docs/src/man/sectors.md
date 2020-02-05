@@ -1077,7 +1077,8 @@ again returned as a dictionary where the keys are `(f1′,f2′)` and the values
 corresponding coefficients.
 
 As before, there is a simplified interface for the case where
-`BraidingStyle(G) isa Symmetric` and the levels are not needed. This is simply given by
+`BraidingStyle(G) isa SymmetricBraiding` and the levels are not needed. This is simply
+given by
 
 [`permute(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}, p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int})`](@ref)
 

@@ -33,16 +33,70 @@ Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
 function Base.one(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
         throw(SectorMismatch("no identity if domain and codomain are different"))
-    TensorMap(I, eltype(t), domain(t), domain(t))
+    return one!(similar(t))
 end
 function one!(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
         throw(SectorMismatch("no identity if domain and codomain are different"))
     for (c,b) in blocks(t)
-        copyto!(b, I)
+        _one!(b)
     end
     return t
 end
+id(V::VectorSpace) = id(Matrix{Float64}, V)
+id(A, V::ElementarySpace) = id(A, ProductSpace(V))
+id(A::Type{<:DenseMatrix}, P::ProductSpace) = one!(TensorMap(s->A(undef, s), P, P))
+
+isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
+isomorphism(P::TensorMapSpace) = isomorphism(P[1], P[2])
+isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isomorphism(A, P[1], P[2])
+isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
+    isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
+function isomorphism(A::Type{<:DenseMatrix}, cod::ProductSpace, dom::ProductSpace)
+    spacetype(cod) == spacetype(dom) ||
+        throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
+    for c in union(blocksectors(cod), blocksectors(dom))
+        blockdim(cod, c) == blockdim(dom, c) ||
+            throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
+    end
+    t = TensorMap(s->A(undef, s), cod, dom)
+    for (c,b) in blocks(t)
+        _one!(b)
+    end
+    return t
+end
+
+const EuclideanTensorSpace = TensorSpace{<:EuclideanSpace}
+const EuclideanTensorMapSpace = TensorMapSpace{<:EuclideanSpace}
+const AbstractEuclideanTensorMap = AbstractTensorMap{<:EuclideanTensorSpace}
+const EuclideanTensorMap = TensorMap{<:EuclideanTensorSpace}
+
+unitary(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) = isomorphism(cod, dom)
+unitary(P::EuclideanTensorMapSpace) = isomorphism(P)
+unitary(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isomorphism(A, P)
+unitary(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
+    isomorphism(A, cod, dom)
+
+# isometry(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
+#     isometry(Matrix{Float64}, cod, dom)
+# isometry(P::EuclideanTensorMapSpace) = isometry(P[1], P[2])
+# isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isometry(A, P[1], P[2])
+# isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
+#     isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
+# function isometry(A::Type{<:DenseMatrix},
+#                     cod::EuclideanTensorSpace,
+#                     dom::EuclideanTensorSpace)
+#     spacetype(cod) == spacetype(dom) || throw(SpaceMismatch())
+#     for c in union(blocksectors(cod), blocksectors(dom))
+#         blockdim(cod, c) >= blockdim(dom, c) ||
+#             throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
+#     end
+#     t = TensorMap(s->A(undef, s), cod, dom)
+#     for (c,b) in blocks(t)
+#         _one!(b)
+#     end
+#     return t
+# end
 
 # Equality and approximality
 #----------------------------
@@ -82,13 +136,14 @@ function Base.fill!(t::AbstractTensorMap, value::Number)
     end
     return t
 end
-function LinearAlgebra.adjoint!(tdest::AbstractTensorMap, tsource::AbstractTensorMap)
-    codomain(tdest) == domain(tsource) && domain(tdest) == codomain(tsource) ||
+function LinearAlgebra.adjoint!(tdst::AbstractEuclideanTensorMap,
+                                tsrc::AbstractEuclideanTensorMap)
+    (codomain(tdst) == domain(tsrc) && domain(tdst) == codomain(tsrc)) ||
         throw(SpaceMismatch())
-    for c in blocksectors(tdest)
-        adjoint!(StridedView(block(tdest, c)), StridedView(block(tsource, c)))
+    for c in blocksectors(tdst)
+        adjoint!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
     end
-    return tdest
+    return tdst
 end
 
 # Basic vector space methods: addition and scalar multiplication
@@ -126,7 +181,7 @@ function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap,
 end
 
 # inner product and norm only valid for spaces with Euclidean inner product
-function LinearAlgebra.dot(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where {S<:EuclideanSpace}
+function LinearAlgebra.dot(t1::AbstractEuclideanTensorMap, t2::AbstractEuclideanTensorMap)
     (codomain(t1) == codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
     iter = blocksectors(t1)
     if isempty(iter)
@@ -136,7 +191,7 @@ function LinearAlgebra.dot(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) w
     end
 end
 
-LinearAlgebra.norm(t::AbstractTensorMap{<:EuclideanSpace}, p::Real) =
+LinearAlgebra.norm(t::AbstractEuclideanTensorMap, p::Real) =
     isempty(blocks(t)) ? zero(real(eltype(t))) : _norm(blocks(t), p)
 function _norm(blockiterator, p::Real)
     if p == Inf
@@ -184,8 +239,12 @@ end
 
 # TensorMap inverse
 function Base.inv(t::AbstractTensorMap)
-    domain(t) == codomain(t) ||
-        throw(SpaceMismatch("Inverse of a tensor only exist when domain == codomain; check pinv"))
+    cod = codomain(t)
+    dom = domain(t)
+    for c in union(blocksectors(cod), blocksectors(dom))
+        blockdim(cod, c) == blockdim(dom, c) ||
+            throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+    end
     if sectortype(t) === Trivial
         return TensorMap(inv(block(t, Trivial())), domain(t)←codomain(t))
     else
