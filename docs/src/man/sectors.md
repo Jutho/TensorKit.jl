@@ -1,6 +1,6 @@
 # [Sectors, representation spaces and fusion trees](@id s_sectorsrepfusion)
 
-```@setup tensorkit
+```@setup sectors
 using TensorKit
 using LinearAlgebra
 ```
@@ -131,7 +131,10 @@ Any concrete subtype of `Sector` should be such that its instances represent a c
 set of sectors, corresponding to the irreps of some group, or, more generally, the simple
 objects of a (unitary) fusion category, as reviewed in the subsections on
 [fusion categories](@ref ss_fusion) and their [topological data](@ref ss_topologicalfusion)
-within the introduction to [category theory](@ref s_categories).
+within the introduction to [category theory](@ref s_categories). Throughout TensorKit.jl,
+the method `sectortype` can be used to query the subtype of `Sector` associated with a
+particular object, i.e. a vector space, fusion tree, tensor map, or a sector. It works on
+both instances and in the type domain, and its use will be illustrated further on.
 
 The minimal data to completely specify a type of sector are
 *   the fusion rules, i.e. `` a ⊗ b = ⨁ N^{ab}_{c} c ``; this is implemented by a function
@@ -337,7 +340,7 @@ integers in order to describe spin 1/2 systems with an axis rotation symmetry. A
 you should not worry about the details of `HalfInt`, and additional methods for
 automatic conversion and pretty printing are provided, as illustrated by the following
 example
-```@repl tensorkit
+```@repl sectors
 U₁(0.5)
 U₁(0.4)
 U₁(1) ⊗ U₁(1//2)
@@ -406,7 +409,7 @@ and some methods for pretty printing and converting from real numbers to irrep l
 one can notice, the topological data (i.e. `Nsymbol` and `Fsymbol`) are provided by the
 package [WignerSymbols.jl](https://github.com/Jutho/WignerSymbols.jl). The iterable `a ⊗ b`
 is a custom type, that the user does not need to care about. Some examples
-```@repl tensorkit
+```@repl sectors
 s = SU₂(3//2)
 conj(s)
 dim(s)
@@ -465,7 +468,7 @@ needs to be computed.
 It is also possible to define two or more different types of symmetries, e.g. when the total
 symmetry group is a direct product of individual simple groups. Such sectors are obtained
 using the binary operator `×`, which can be entered as `\times`+TAB. Some examples
-```@repl tensorkit
+```@repl sectors
 a = ℤ₃(1) × U₁(1)
 typeof(a)
 conj(a)
@@ -618,17 +621,20 @@ of pairs `a=>n_a`, i.e. `V = RepresentationSpace(a=>n_a, b=>n_b, c=>n_c)`. In th
 sector type `G` is inferred from the sectors. However, it is often more convenient to
 specify the sector type explicitly, since then the sectors are automatically converted to
 the correct type, i.e. compare
-```@repl tensorkit
+```@repl sectors
 RepresentationSpace{U1Irrep}(0=>3, 1=>2, -1=>1) ==
     RepresentationSpace(U1Irrep(0)=>3, U1Irrep(1)=>2, U1Irrep(-1)=>1)
 ```
 or using Unicode
-```@repl tensorkit
+```@repl sectors
 RepresentationSpace{U₁}(0=>3, 1=>2, -1=>1) ==
     RepresentationSpace(U₁(0)=>3, U₁(-1)=>1, U₁(1)=>2)
 ```
-However, both are still to long for the most common cases. Therefore, we provide a number of
-type aliases, both in plain ASCII and in Unicode
+However, both are still to long for the most common cases. Therefore, we also have
+`ℂ[G<:Sector]` as synonym for `RepresentationSpace{G}`, or simply
+`ℂ[a=>n_a, b=>n_b, c=>n_c]` as alternative to
+`RepresentationSpace(a=>n_a, b=>n_b, c=>n_c)`. Furthermore, for the common groups, we
+provide a number of type aliases, both in plain ASCII and in Unicode
 ```julia
 const ℤ₂Space = ZNSpace{2}
 const ℤ₃Space = ZNSpace{3}
@@ -646,10 +652,12 @@ const CU1Space = CU₁Space
 const SU2Space = SU₂Space
 ```
 such that we can simply write
-```@repl tensorkit
+```@repl sectors
 RepresentationSpace{U₁}(0=>3, 1=>2, -1=>1) ==
     RepresentationSpace(U₁(0)=>3, U₁(-1)=>1, U₁(1)=>2) ==
-    U₁Space(0=>3, -1=>1, 1=>2)
+    U₁Space(0=>3, -1=>1, 1=>2) ==
+    ℂ[U₁(0)=>3, U₁(-1)=>1, U₁(1)=>2] ==
+    ℂ[U₁](0=>3, 1=>2, -1=>1)
 ```
 
 ### Methods
@@ -699,7 +707,7 @@ coupled sector `a` in `W`. The machinery for computing this is the topic of the 
 
 ### Examples
 Let's start with an example involving ``\mathsf{U}_1``:
-```@repl tensorkit
+```@repl sectors
 V1 = RepresentationSpace{U₁}(0=>3, 1=>2, -1=>1)
 V1 == U1Space(0=>3, 1=>2, -1=>1) == U₁Space(-1=>1, 1=>2,0=>3) # order doesn't matter
 (sectors(V1)...,)
@@ -724,7 +732,7 @@ fuse(W)
 blockdim(W, U₁(0))
 ```
 and then with ``\mathsf{SU}_2``:
-```@repl tensorkit
+```@repl sectors
 V1 = RepresentationSpace{SU₂}(0=>3, 1//2=>2, 1=>1)
 V1 == SU2Space(0=>3, 1/2=>2, 1=>1) == SU₂Space(0=>3, 0.5=>2, 1=>1)
 (sectors(V1)...,)
@@ -862,7 +870,7 @@ complete interface of an iterator, and has a custom `length` function that compu
 number of possible fusion trees without iterating over all of them explicitly. This is best
 illustrated with some examples
 
-```@repl tensorkit
+```@repl sectors
 s = SU₂(1/2)
 collect(fusiontrees((s,s,s,s)))
 collect(fusiontrees((s,s,s,s,s), s, (true, false, false, true, false)))
@@ -1117,7 +1125,7 @@ sector. Note that this is mostly useful for the case of `FusionStyle(G) isa NonA
 groups, as in the case of abelian groups, all irreps are one-dimensional.
 
 Some examples:
-```@repl tensorkit
+```@repl sectors
 iter = fusiontrees((SU₂(1/2),SU₂(1/2),SU₂(1/2),SU₂(1/2)), SU₂(1))
 f = first(iter)
 convert(Array, f)
@@ -1144,7 +1152,32 @@ to be splitting tree, which is built using ``Z^†``. Further note that the norm
 tracing over the ``\mathrm{id}_c`` when checking the orthogonality by computing `dot` of
 the corresponding tensors.
 
-## Fermions and anyons
+## Fermions
 
-Support for fermionic sectors and corresponding super vector spaces is on its way. This
-section will be completed when the implementation is finished.
+TODO
+
+(Support for fermionic sectors and corresponding super vector spaces is on its way. This
+section will be completed when the implementation is finished.)
+
+## Anyons
+
+There is currently one example of a `Sector` subtype that has anyonic braiding style,
+namely that of the Fibonacci fusion category. It has to (isomorphism classes of) simple
+objects, namely the identity `𝟙` and a non-trivial object known as `τ`, with fusion rules
+`τ ⊗ τ = 𝟙 ⊕ τ`. Let's summarize the topological data
+```@repl sectors
+𝟙 = FibonacciAnyon(:I)
+τ = FibonacciAnyon(:τ)
+collect(τ ⊗ τ)
+FusionStyle(τ)
+BraidingStyle(τ)
+dim(𝟙)
+dim(τ)
+F𝟙 = Fsymbol(τ,τ,τ,𝟙,τ,τ)
+Fτ = [Fsymbol(τ,τ,τ,τ,𝟙,𝟙) Fsymbol(τ,τ,τ,τ,𝟙,τ); Fsymbol(τ,τ,τ,τ,τ,𝟙) Fsymbol(τ,τ,τ,τ,τ,τ)]
+Fτ'*Fτ
+polar(x) = round.((abs(x), angle(x)/(2π)); sigdigits = 6)
+Rsymbol(τ,τ,𝟙) |> polar
+Rsymbol(τ,τ,τ) |> polar
+twist(τ) |> polar
+```

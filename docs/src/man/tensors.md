@@ -235,16 +235,16 @@ Having learned how a tensor is represented and stored, we can now discuss how to
 tensors and tensor maps. From hereon, we focus purely on the interface rather than the
 implementation.
 
+### Random and uninitialized tensor maps
 The most convenient set of constructors are those that construct  tensors or tensor maps
 with random or uninitialized data. They take the form
 
-`TensorMap(f, codomain, domain)`
-
-`TensorMap(f, eltype::Type{<:Number}, codomain, domain)`
-
-`TensorMap(undef, codomain, domain)`
-
-`TensorMap(undef, eltype::Type{<:Number}, codomain, domain)`
+```julia
+TensorMap(f, codomain, domain)
+TensorMap(f, eltype::Type{<:Number}, codomain, domain)
+TensorMap(undef, codomain, domain)
+TensorMap(undef, eltype::Type{<:Number}, codomain, domain)
+```
 
 Here, in the first form, `f` can be any function or object that is called with an argument
 of type `Dims{2} = Tuple{Int,Int}` and is such that `f((m,n))` creates a `DenseMatrix`
@@ -292,67 +292,18 @@ will add support for `CuMatrix` from [CuArrays.jl](https://github.com/JuliaGPU/C
 to harness GPU computing power, and maybe `SharedArray` from the Julia's `SharedArrays`
 standard library.
 
-Support for static or sparse data is currently not available, and if it would be
-implemented, it would lead to new subtypes of `AbstractTensorMap` which are distinct from
-`TensorMap`.
+Support for static or sparse data is currently unavailable, and if it would be implemented,
+it would lead to new subtypes of `AbstractTensorMap` which are distinct from `TensorMap`.
+Future implementations of e.g. `SparseTensorMap` or `StaticTensorMap` could be useful.
+Furthermore, there could be specific implementations for tensors whose blocks are
+`Diagonal`.
 
-Let's conclude this section with some examples with `RepresentationSpace`.
-```@repl tensors
-V1 = ℤ₂Space(0=>3,1=>2)
-V2 = ℤ₂Space(0=>2,1=>1)
-t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
-(array = convert(Array, t)) |> disp
-d1 = dim(codomain(t))
-d2 = dim(domain(t))
-(matrix = reshape(array, d1, d2)) |> disp
-(u = reshape(convert(Array, TensorMap(I, codomain(t), fuse(codomain(t)))), d1, d1)) |> disp
-(v = reshape(convert(Array, TensorMap(I, domain(t), fuse(domain(t)))), d2, d2)) |> disp
-u'*u ≈ I ≈ v'*v
-(u'*matrix*v) |> disp
-# compare with:
-block(t, ℤ₂(0)) |> disp
-block(t, ℤ₂(1)) |> disp
-```
-Here, we illustrated some additional concepts. We constructed a `TensorMap` where the
-blocks are initialized with the identity matrix using `I::UniformScaling` from Julia's
-`LinearAlgebra` standard library. This works even if the blocks are not square, in this
-case zero rows or columns (depending on the shape of the block) will be added. Creating a
-`TensorMap` with `I` is a useful way to construct a fixed unitary or isometry between two
-spaces. The operation `fuse(V)` creates an `ElementarySpace` which is isomorphic to a given
-space `V` (of type `ProductSpace` or `ElementarySpace`). Constructing a `TensorMap` between
-`V` and `fuse(V)` using the `I` constructor definitely results in a unitary, in particular
-it is the unitary which implements the basis change from the product basis to the coupled
-basis. In this case, for a group `G` with `FusionStyle(G) isa Abelian`, it is a permutation
-matrix. Specifically choosing `V` equal to the codomain and domain of `t`, we can construct
-the explicit basis transforms that bring `t` into block diagonal form.
-
-Let's repeat the same exercise for `G = SU₂`, which has `FusionStyle(G) isa NonAbelian`.
-```@repl tensors
-V1 = SU₂Space(0=>2,1=>1)
-V2 = SU₂Space(0=>1,1=>1)
-t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
-(array = convert(Array, t)) |> disp
-d1 = dim(codomain(t))
-d2 = dim(domain(t))
-(matrix = reshape(array, d1, d2)) |> disp
-(u = reshape(convert(Array, TensorMap(I, codomain(t), fuse(codomain(t)))), d1, d1)) |> disp
-(v = reshape(convert(Array, TensorMap(I, domain(t), fuse(domain(t)))), d2, d2)) |> disp
-u'*u ≈ I ≈ v'*v
-(u'*matrix*v) |> disp
-# compare with:
-block(t, SU₂(0)) |> disp
-block(t, SU₂(1)) |> disp
-block(t, SU₂(2)) |> disp
-```
-Note that the basis transforms `u` and `v` are no longer permutation matrices, but are
-still unitary. Furthermore, note that they render the tensor block diagonal, but that now
-every element of the diagonal blocks labeled by `c` comes itself in a tensor product with
-an identity matrix of size `dim(c)`, i.e. `dim(SU₂(1)) = 3` and `dim(SU₂(2)) = 5`.
+### Tensor maps from existing data
 
 To create a `TensorMap` with existing data, one can use the aforementioned form but with
 the function `f` replaced with the actual data, i.e. `TensorMap(data, codomain, domain)` or
 any of its equivalents. For the specific form of `data`, we distinguish between the case
-without and with symmetry. In the former case, one can just pass a `DenseArray`, either of
+without and with symmetry. In the former case, one can pass a `DenseArray`, either of
 rank `N₁+N₂` and with matching size `(dims(codomain)..., dims(domain)...)`, or just as a
 `DenseMatrix` with size `(dim(codomain), dim(domain))`. In the case of symmetry, `data`
 needs to be specified as a dictionary (some subtype of `AbstractDict`) with the
@@ -373,20 +324,114 @@ for (c,b) in blocks(t2)
 end
 ```
 
+### Special purpose constructors
+
 A third way to construct a `TensorMap` instance is to use `Base.similar`, i.e.
 
-`similar(t [, T::Type{<:Number}, codomain, domain])`
+```julia
+similar(t [, T::Type{<:Number}, codomain, domain])
+```
 
 where `T` is a possibly different `eltype` for the tensor data, and `codomain` and `domain`
 optionally define a new codomain and domain for the resulting tensor. By default, these
 values just take the value from the input tensor `t`. The result will be a new `TensorMap`
 instance, with `undef` data, but whose data is stored in the same subtype of `DenseMatrix`
-(e.g. `Matrix` or `CuMatrix` or ...) as `t`. In particular, this uses the internal methods
-`TensorKit.storagetype(t)` and `TensorKit.similarstoragetype(t, T)`.
+(e.g. `Matrix` or `CuMatrix` or ...) as `t`. In particular, this uses the methods
+`storagetype(t)` and `TensorKit.similarstoragetype(t, T)`.
 
 Finally, there are methods `zero`, `one`, `id`, `isomorphism` and `unitary` to create
-specific new tensors, and which are introduced in the section on
-[linear algebra operations](@ref ss_tensor_linalg).
+specific new tensors. Tensor maps behave as vectors and can be added (if they have the same
+domain and codomain); `zero(t)` is the additive identity, i.e. a `TensorMap` instance where
+all entries are zero. For a `t::TensorMap` with `domain(t) == codomain(t)`, i.e. an
+endomorphism, `one(t)` creates the identity tensor, i.e. the identity under composition.
+As discussed in the section on [linear algebra operations](@ref ss_tensor_linalg), we
+denote composition of tensor maps with the mutliplication operator `*`, such that `one(t)`
+is the multiplicative identity. Similarly, it can be created as `id(V)` with `V` the
+relevant vector space, e.g. `one(t) == id(domain(t))`. The identity tensor is currently
+represented with dense data, and one can use `id(A::Type{<:DenseMatrix}, V)` to specify the
+type of `DenseMatrix` (and its `eltype`), e.g. `A = Matrix{Float64}`. Finally, it often
+occurs that we want to construct a specific isomorphism between two spaces that are
+isomorphic but not equal, and for which there is no canonical choice. Hereto, one can use
+the method `u = isomorphism([A::Type{<:DenseMatrix}, ] codomain, domain)`, which will
+explicitly check that the domain and codomain are isomorphic, and return an error
+otherwise. Again, an optional first argument can be given to specify the specific type of
+`DenseMatrix` that is currently used to store the rather trivial data of this tensor. If
+`spacetype(u) <: EuclideanSpace`, the same result can be obtained with the method
+`u = unitary([A::Type{<:DenseMatrix}, ] codomain, domain)`. Note that reversing the domain
+and codomain yields the inverse morphism, which in the case of `EuclideanSpace` coincides
+with the adjoint morphism, i.e. `isomorphism(A, domain, codomain) == adjoint(u) == inv(u)`,
+where `inv` and `adjoint` will be further discussed [below](@ref ss_tensor_linalg).
+
+Let's conclude this section with some examples with `RepresentationSpace`.
+```@repl tensors
+V1 = ℤ₂Space(0=>3,1=>2)
+V2 = ℤ₂Space(0=>2,1=>1)
+# First a `TensorMap{ℤ₂Space, 1, 1}`
+m = TensorMap(randn, V1, V2)
+convert(Array, m) |> disp
+# compare with:
+block(m, ℤ₂(0)) |> disp
+block(m, ℤ₂(1)) |> disp
+# Now a `TensorMap{ℤ₂Space, 2, 2}`
+t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
+(array = convert(Array, t)) |> disp
+d1 = dim(codomain(t))
+d2 = dim(domain(t))
+(matrix = reshape(array, d1, d2)) |> disp
+(u = reshape(convert(Array, unitary(codomain(t), fuse(codomain(t)))), d1, d1)) |> disp
+(v = reshape(convert(Array, unitary(domain(t), fuse(domain(t)))), d2, d2)) |> disp
+u'*u ≈ I ≈ v'*v
+(u'*matrix*v) |> disp
+# compare with:
+block(t, ℤ₂(0)) |> disp
+block(t, ℤ₂(1)) |> disp
+```
+Here, we illustrated some additional concepts. Firstly, note that we convert a `TensorMap`
+to an `Array`. This only works when `sectortype(t)` supports `fusiontensor`, and in
+particular when `BraidingStyle(sectortype(t)) == Bosonic()`, e.g. the case of trivial
+tensors (the category ``\mathbf{Vect}``) and group representations (the category
+``\mathbf{Rep}_{\mathsf{G}}``, which can be interpreted as a subcategory of
+``\mathbf{Vect}``). Here, we are in this case with `\mathsf{G} = ℤ₂`. For a
+`TensorMap{S,1,1}`, the blocks directly correspond to the diagonal blocks in the block
+diagonal structure of its representation as an `Array`, there is no basis transform in
+between. This is no longer the case for `TensorMap{S,N₁,N₂}` with different values of `N₁`
+and `N₂`. Here, we use the operation `fuse(V)`, which creates an `ElementarySpace` which is
+isomorphic to a given space `V` (of type `ProductSpace` or `ElementarySpace`). The specific
+map between those two spaces constructed using the specific method `unitary` implements
+precisely the basis change from the product basis to the coupled basis. In this case, for a
+group `G` with `FusionStyle(G) isa Abelian`, it is a permutation matrix. Specifically
+choosing `V` equal to the codomain and domain of `t`, we can construct the explicit basis
+transforms that bring `t` into block diagonal form.
+
+Let's repeat the same exercise for `G = SU₂`, which has `FusionStyle(G) isa NonAbelian`.
+```@repl tensors
+V1 = SU₂Space(0=>2,1=>1)
+V2 = SU₂Space(0=>1,1=>1)
+# First a `TensorMap{SU₂Space, 1, 1}`
+m = TensorMap(randn, V1, V2)
+convert(Array, m) |> disp
+# compare with:
+block(m, SU₂(0)) |> disp
+block(m, SU₂(1)) |> disp
+# Now a `TensorMap{SU₂Space, 2, 2}`
+t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
+(array = convert(Array, t)) |> disp
+d1 = dim(codomain(t))
+d2 = dim(domain(t))
+(matrix = reshape(array, d1, d2)) |> disp
+(u = reshape(convert(Array, unitary(codomain(t), fuse(codomain(t)))), d1, d1)) |> disp
+(v = reshape(convert(Array, unitary(domain(t), fuse(domain(t)))), d2, d2)) |> disp
+u'*u ≈ I ≈ v'*v
+(u'*matrix*v) |> disp
+# compare with:
+block(t, SU₂(0)) |> disp
+block(t, SU₂(1)) |> disp
+block(t, SU₂(2)) |> disp
+```
+Note that the basis transforms `u` and `v` are no longer permutation matrices, but are
+still unitary. Furthermore, note that they render the tensor block diagonal, but that now
+every element of the diagonal blocks labeled by `c` comes itself in a tensor product with
+an identity matrix of size `dim(c)`, i.e. `dim(SU₂(1)) = 3` and `dim(SU₂(2)) = 5`.
 
 ## [Tensor properties](@id ss_tensor_properties)
 
@@ -423,6 +468,32 @@ are obtained together with `blocks(t)`, which returns an iterator over the pairs
 `c=>block(t, c)`. Furthermore, there is `fusiontrees(t)` which returns an iterator over
 splitting-fusion tree pairs `(f₁,f₂)`, for which the corresponding data is given by
 `t[f₁,f₂]` (i.e. using Base.getindex).
+
+Let's again illustrate these methods with an example, continuing with the tensor `t` from
+the previous example
+```@repl tensors
+typeof(t)
+codomain(t)
+domain(t)
+space(t,1)
+space(t,2)
+space(t,3)
+space(t,4)
+numind(t)
+numout(t)
+numin(t)
+spacetype(t)
+sectortype(t)
+field(t)
+eltype(t)
+storagetype(t)
+blocksectors(t)
+blocks(t)
+block(t, first(blocksectors(t)))
+fusiontrees(t)
+f1, f2 = first(fusiontrees(t))
+t[f1,f2]
+```
 
 ## [Vector space and linear algebra operations](@id ss_tensor_linalg)
 
@@ -483,10 +554,13 @@ approximate (`t1 ≈ t2`) equality, though the latter requires `norm` can be com
 
 When tensor map instances are endomorphisms, i.e. they have the same domain and codomain,
 there is a multiplicative identity which can be obtained as `one(t)` or `one!(t)`, where the
-latter overwrites the contents of `t`. Furthermore, we can compute the trace of an
-endomorphism `t` via `tr(t)` and exponentiate it using `exp(t)`, or if the contents of `t`
-can be destroyed in the process, `exp!(t)`. Furthermore, there are a number of tensor
-factorizations for both endomorphisms and general homomorphism that we discuss below.
+latter overwrites the contents of `t`. The multiplicative identity on a space `V` can also
+be obtained using `id(A, V)` as discussed [above](@ref ss_tensor_construction), such that
+for a general homomorphism `t′`, we have `t′ == id(codomain(t′))*t′ == t′*id(domain(t′))`.
+Returning to the case of endomorphisms `t`, we can compute the trace via `tr(t)` and
+exponentiate them using `exp(t)`, or if the contents of `t` can be destroyed in the
+process, `exp!(t)`. Furthermore, there are a number of tensor factorizations for both
+endomorphisms and general homomorphism that we discuss below.
 
 Finally, there are a number of operations that also belong in this paragraph because of
 their analogy to common matrix operations. The tensor product of two `TensorMap` instances
@@ -502,6 +576,38 @@ results in a new tensor with the same domain and a codomain given by
 makes sense between `ElementarySpace` objects, i.e. there is no way to give a tensor
 product meaning to a direct sum of tensor product spaces.
 
+Time for some more examples:
+```@repl tensors
+t == t + zero(t) == t*id(domain(t)) == id(codomain(t))*t
+t2 = TensorMap(randn, ComplexF64, codomain(t), domain(t));
+dot(t2, t)
+tr(t2'*t)
+dot(t2, t) ≈ dot(t', t2')
+dot(t2, t2)
+norm(t2)^2
+t3 = copyto!(similar(t, ComplexF64), t);
+t3 == t
+rmul!(t3, 0.8);
+t3 ≈ 0.8*t
+axpby!(0.5, t2, 1.3im, t3);
+t3 ≈ 0.5 * t2  +  0.8 * 1.3im * t
+t4 = TensorMap(randn, fuse(codomain(t)), codomain(t));
+t5 = TensorMap(undef, fuse(codomain(t)), domain(t));
+mul!(t5, t4, t) == t4*t
+inv(t4) * t4 ≈ id(codomain(t))
+t4 * inv(t4) ≈ id(fuse(codomain(t)))
+t4 \ (t4 * t) ≈ t
+t6 = TensorMap(randn, ComplexF64, V1, codomain(t));
+numout(t4) == numout(t6) == 1
+t7 = catcodomain(t4, t6);
+foreach(println, (codomain(t4), codomain(t6), codomain(t7)))
+norm(t7) ≈ sqrt(norm(t4)^2 + norm(t6)^2)
+t8 = t4 ⊗ t6;
+foreach(println, (codomain(t4), codomain(t6), codomain(t8)))
+foreach(println, (domain(t4), domain(t6), domain(t8)))
+norm(t8) ≈ norm(t4)*norm(t6)
+```
+
 ## Index manipulations
 
 In many cases, the bipartition of tensor indices (i.e. `ElementarySpace` instances) between
@@ -511,13 +617,21 @@ codomain and vice versa. Furthermore, we want to use the braiding to reshuffle t
 the indices.
 
 For this, we use an interface that is closely related to that for manipulating splitting-
-fusion tree pairs, namely `braid` and `permute`, with the interface
+fusion tree pairs, namely [`braid`](@ref) and [`permute`](@ref), with the interface
 
-`braid(t::AbstractTensorMap{S,N₁,N₂}, levels::NTuple{N₁+N₂,Int}, p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int}) -> AbstractTensorMap{S,N₁′,N₂′}`
+```julia
+braid(t::AbstractTensorMap{S,N₁,N₂}, levels::NTuple{N₁+N₂,Int},
+        p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int})
+```
 
 and
 
-`permute(t::AbstractTensorMap{S,N₁,N₂}, p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int}; copy = true) -> AbstractTensorMap{S,N₁′,N₂′}`
+```julia
+permute(t::AbstractTensorMap{S,N₁,N₂},
+        p1::NTuple{N₁′,Int}, p2::NTuple{N₂′,Int}; copy = false)
+```
+
+both of which return an instance of `AbstractTensorMap{S,N₁′,N₂′}`.
 
 In these methods, `p1` and `p2` specify which of the original tensor indices ranging from
 `1` to `N₁+N₂` make up the new codomain (with `N₁′` spaces) and new domain (with `N₂′`
@@ -530,10 +644,10 @@ underneath each other (use the braiding or its inverse). We refer to the section
 
 When `BraidingStyle(sectortype(t)) isa SymmetricBraiding`, we can use the simpler interface
 of `permute`, which does not require the argument `levels`. `permute` accepts a keyword
-argument `copy`. When it takes the default value `true`, the result will be a tensor with
-newly allocated data that can independently be modified from that of the input tensor `t`.
-When `copy=false`, `permute` can try to return the result in a way that it shares its data
-with the input tensor `t`, though this is only possible in specific cases (e.g. when
+argument `copy`. When `copy == true`, the result will be a tensor with newly allocated data
+that can independently be modified from that of the input tensor `t`. When `copy` takes the
+default value `false`, `permute` can try to return the result in a way that it shares its
+data with the input tensor `t`, though this is only possible in specific cases (e.g. when
 `sectortype(S) == Trivial` and `(p1..., p2...) = (1:(N₁+N₂)...)`).
 
 Both `braid` and `permute` come in a version where the result is stored in an already
@@ -552,7 +666,7 @@ in the `transpose` implementation.
 ![transpose](img/tensor-transpose.svg)
 
 In categorical language, the reason for this extra twist is that we use the left
-coevaluation `η`, but the right evaluation `\tilde{ϵ}`, when repartitioning the indices
+coevaluation ``η``, but the right evaluation ``\tilde{ϵ}``, when repartitioning the indices
 between domain and codomain.
 
 There are a number of other index related manipulations. We can apply a twist (or inverse
@@ -565,24 +679,47 @@ simultaneously can be obtained by using the defining property
 
 but is currently not implemented explicitly.
 
-Another operation that one might be expecting is to fuse or join indices, and its inverse,
-to split a given index into two or more indices. For a plain tensor (i.e. with
+For all sector types `G` with `BraidingStyle(G) == Bosonic()`, all twists are `1` and thus
+have no effect. Let us start with some examples, in which we illustrate that, albeit
+`permute` might act highly non-trivial on the fusion trees and on the corresponding data,
+after conversion to a regular `Array` (when possible), it just acts like `permutedims`
+```@repl tensors
+domain(t) → codomain(t)
+ta = convert(Array, t);
+t′ = permute(t, (1,2,3,4));
+domain(t′) → codomain(t′)
+convert(Array, t′) ≈ ta
+t′′ = permute(t, (4,2,3),(1,));
+domain(t′′) → codomain(t′′)
+convert(Array, t′′) ≈ permutedims(ta, (4,2,3,1))
+m
+transpose(m)
+convert(Array, transpose(t)) ≈ permutedims(ta,(4,3,2,1))
+dot(t2, t) ≈ dot(transpose(t2), transpose(t))
+transpose(transpose(t)) ≈ t
+twist(t, 3) ≈ t
+# as twist acts trivially for
+BraidingStyle(sectortype(t))
+```
+
+A final operation that one might expect in this section is to fuse or join indices, and its
+inverse, to split a given index into two or more indices. For a plain tensor (i.e. with
 `sectortype(t) == Trivial`) amount to the equivalent of `reshape` on the multidimensional
 data. However, this represents only one possibility, as there is no canonically unique way
-to embed the tensor product of two spaces `V₁ ⊗ V₂` in a new space `V = fuse(V₁⊗V₂)`. Such
-a mapping can always be accompagnied by a basis transform. So far, we do not provide a
-dedicated interface to e.g. fuse two neighboring indices `i` and `i+1` into a single index,
-but this can easily be accomplished by contracting the tensor (see below) with a dedicated
-tensor `x = TensorMap(randisometry, fuse(V₁⊗V₂), V₁ ⊗ V₂)` and its inverse `x'`. Instead of
-`randisometry`, one can also use `x = isomorphism(fuse(V₁⊗V₂), V₁ ⊗ V₂)` or
-`x = unitary(fuse(V₁⊗V₂), V₁ ⊗ V₂)`.
+to embed the tensor product of two spaces `V₁ ⊗ V₂` in a new space `V = fuse(V₁⊗V₂)`. Such a
+mapping can always be accompagnied by a basis transform. However, one particular choice is
+created by the function `isomorphism`, or for `EuclideanSpace` spaces, `unitary`. Hence, we
+can join or fuse two indices of a tensor by first constructing
+`u = unitary(fuse(space(t, i) ⊗ space(t, j)), space(t, i) ⊗ space(t, j))` and then
+contracting this map with indices `i` and `j` of `t`, as explained in the section on
+[contracting tensors](@ref ss_tensor_contraction). Note, however, that a typical algorithm
+is not expected to often need to fuse and split indices, as e.g. tensor factorizations can
+easily be applied without needing to `reshape` or fuse indices first, as explained in the
+next section.
 
-Note that a typical algorithms is not expected to often need to fuse and split indices (to continue...)
+## [Tensor factorizations](@id ss_tensor_factorization)
 
-
-
-## Tensor factorizations
-
+### Eigenvalue decomposition
 As tensors are linear maps, they have various kinds of factorizations. Endomorphism, i.e.
 tensor maps `t` with `codomain(t) == domain(t)`, have an eigenvalue decomposition. For
 this, we overload both `LinearAlgebra.eigen(t; kwargs...)` and
@@ -610,13 +747,18 @@ and always returns complex values eigenvalues and eigenvectors. Like for matrice
 `LinearAlgebra.eigen` is type unstable and checks hermiticity at run-time, then falling back
 to either `eig` or `eigh`.
 
+### Orthogonal factorizations
+
 Other factorizations that are provided by TensorKit.jl are orthogonal or unitary in nature,
 and thus always require a `AbstractEuclideanTensorMap`. However, they don't require equal
 domain and codomain. Let us first discuss the *singular value decomposition*, for which we
 define and export the methods `tsvd` and `tsvd!` (where as always, the latter destroys the
 input).
 
-`U, Σ, Vʰ, ϵ = tsvd(t; truncation = notrunc(), p::Real = 2, alg::OrthogonalFactorizationAlgorithm = SDD())`
+```julia
+U, Σ, Vʰ, ϵ = tsvd(t; truncation = notrunc(), p::Real = 2,
+                        alg::OrthogonalFactorizationAlgorithm = SDD())
+```
 
 This computes a (possibly truncated) singular value decomposition of
 `t::TensorMap{S,N₁,N₂}` (with `S<:EuclideanSpace`), such that
@@ -692,8 +834,8 @@ in its image or coimage.
     definite; in this case `SDD()` is used to actually compute the singular value
     decomposition and no `atol` or `rtol` can be provided.
 
-*   `L, Q = leftorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos())`: this produces a
-    general tensor map `L::TensorMap{S,N₁,1}` and the adjoint of an isometry
+*   `L, Q = leftorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos())`:
+    this produces a general tensor map `L::TensorMap{S,N₁,1}` and the adjoint of an isometry
     `Q::TensorMap{S,1,N₂}`, such that `t ≈ L*Q`. Here, the domain of `L` and thus codomain
     of `Q` is a single vector space of type `S` that is typically given by
     `min(fuse(codomain(t)), fuse(domain(t)))`.
@@ -751,6 +893,8 @@ Note that the methods `leftorth`, `rightorth`, `leftnull` and `rightnull` also c
 form with exclamation mark, i.e. `leftorth!`, `rightorth!`, `leftnull!` and `rightnull!`,
 which destroy the input tensor `t`.
 
+### Factorizations for custom index bipartions
+
 Finally, note that each of the factorizations take a single argument, the tensor map `t`,
 and a number of keyword arguments. They perform the factorization according to the given
 codomain and domain of the tensor map. In many cases, we want to perform the factorization
@@ -758,7 +902,7 @@ according to a different bipartition of the indices. When `BraidingStyle(sectort
 SymmetricBraiding`, we can immediately specify an alternative bipartition of the indices of
 `t` in all of these methods, in the form
 
-```
+```julia
 factorize(t::AbstracTensorMap, pleft::NTuple{N₁′,Int}, pright::NTuple{N₂′,Int}; kwargs...)
 ```
 
@@ -767,15 +911,15 @@ indices of the domain. Here, `factorize` is any of the methods `LinearAlgebra.ei
 `eigh`, `tsvd`, `LinearAlgebra.svd`, `leftorth`, `rightorth`, `leftnull` and `rightnull`.
 This signature does not allow for the exclamation mark, because it amounts to
 
-```
+```julia
 factorize!(permute(t, pleft, pright; copy = true); kwargs...)
 ```
 
-where `permute` was introduced and discussed in the previous section. When the braiding
-is not symmetric, the user should manually apply `braid` to bring the tensor map in
-proper form before performing the factorization.
+where [`permute`](@ref) was introduced and discussed in the previous section. When the
+braiding is not symmetric, the user should manually apply [`braid`](@ref) to bring the
+tensor map in proper form before performing the factorization.
 
-## Bosonic tensor contractions and tensor networks
+## [Bosonic tensor contractions and tensor networks]((@id ss_tensor_contraction))
 
 TODO
 

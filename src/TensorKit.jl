@@ -28,7 +28,8 @@ export SpaceMismatch, SectorMismatch, IndexError # error types
 export space, field, dual, dim, dims, fuse, flip, isdual
 
 # methods for sectors and properties thereof
-export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol, frobeniusschur
+export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
+        frobeniusschur, twist
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 export fusiontrees, braid, permute#, artin_braid, repartition, insertat, merge
 
@@ -54,7 +55,7 @@ export leftorth, rightorth, leftnull, rightnull,
         leftorth!, rightorth!, leftnull!, rightnull!,
         tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
         isposdef, isposdef!, ishermitian
-export braid!, permute!, transpose, transpose!
+export braid!, permute!, transpose, transpose!, twist!
 export catdomain, catcodomain
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,

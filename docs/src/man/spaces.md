@@ -29,6 +29,10 @@ type `S`. Its properties are discussed in the section on
 [Composite spaces](@ref ss_compositespaces), together with possible extensions for the
 future.
 
+Throughout TensorKit.jl, the function `spacetype` returns the type of `ElementarySpace`
+associated with e.g. a composite space or a tensor. It works both on instances and in the
+type domain. Its use will be illustrated below.
+
 ## [Fields](@id ss_fields)
 
 Vector spaces are defined over a field of scalars. We define a type hierarchy to specify the
@@ -54,7 +58,7 @@ ComplexF64 ⊆ ℂ
 ℝ ⊆ ℂ
 ℂ ⊆ ℝ
 ```
-and furthermore—probably more usefully—`ℝ^n` and `ℂ^n` create specific elementary vector
+and furthermore —probably more usefully— `ℝ^n` and `ℂ^n` create specific elementary vector
 spaces as described in the next section. The underlying field of a vector space or tensor
 `a` can be obtained with `field(a)`.
 
@@ -122,21 +126,31 @@ struct ComplexSpace <: EuclideanSpace{ℂ}
 end
 ```
 to represent the Euclidean spaces $ℝ^d$ or $ℂ^d$ without further inner structure. They can
-be created using the syntax `ℝ^d` and `ℂ^d`, or `(ℂ^d)'`for the dual space of the latter.
-Note that the brackets are required because of the precedence rules, since `d' == d` for
-`d::Integer`. Some examples:
+be created using the syntax `CartesianSpace(d) == ℝ^d == ℝ[d]` and
+`ComplexSpace(d) == ℂ^d == ℂ[d]`, or
+`ComplexSpace(d, true) == ComplexSpace(d; dual = true) == (ℂ^d)' == ℂ[d]'` for the
+dual space of the latter. Note that the brackets are required because of the precedence
+rules, since `d' == d` for `d::Integer`.
+
+Some examples:
 ```@repl tensorkit
 dim(ℝ^10)
-(ℝ^10)' == ℝ^10
+(ℝ^10)' == ℝ^10 == ℝ[10] == ℝ[](10)
 isdual((ℂ^5))
 isdual((ℂ^5)')
 isdual((ℝ^5)')
-dual(ℂ^5) == (ℂ^5)' == conj(ℂ^5)
+dual(ℂ^5) == (ℂ^5)' == conj(ℂ^5) == ComplexSpace(5; dual = true)
+typeof(ℝ^3)
+spacetype(ℝ^3)
+spacetype(ℝ[])
 ```
-We refer to the subsection on [representation spaces](@ref s_rep) on the
-[next page](@ref s_sectorsrepfusion) for further information about `RepresentationSpace`,
-which is another subtype of `EuclideanSpace{ℂ}` with an inner structure corresponding to
-the irreducible representations of a group.
+Note that `ℝ[]` and `ℂ[]` are synonyms for `CartesianSpace` and `ComplexSpace` respectively,
+such that yet another syntax is e.g. `ℂ[](d)`. This is not very useful in itself, and is
+motivated by its generalization to `RepresentationSpace`. We refer to the subsection on
+[representation spaces](@ref s_rep) on the [next page](@ref s_sectorsrepfusion) for further
+information about `RepresentationSpace`, which is another subtype of `EuclideanSpace{ℂ}`
+with an inner structure corresponding to the irreducible representations of a group, or more
+generally, the simple objects of a fusion category.
 
 !!! note
     For `ℂ^n` the dual space is equal (or naturally isomorphic) to the conjugate space, but
@@ -154,8 +168,8 @@ the irreducible representations of a group.
 ## [Composite spaces](@id ss_compositespaces)
 
 Composite spaces are vector spaces that are built up out of individual elementary vector
-spaces. The most prominent (and currently only) example is a tensor product of `N`
-elementary spaces of the same type `S`, which is implemented as
+spaces of the same type. The most prominent (and currently only) example is a tensor
+product of `N` elementary spaces of the same type `S`, which is implemented as
 ```julia
 struct ProductSpace{S<:ElementarySpace, N} <: CompositeSpace{S}
     spaces::NTuple{N, S}
@@ -175,6 +189,8 @@ V1^3
 dim(V1 ⊗ V2)
 dims(V1 ⊗ V2)
 dual(V1 ⊗ V2)
+spacetype(V1 ⊗ V2)
+spacetype(ProductSpace{ComplexSpace,3})
 ```
 Here, the new function `dims` maps `dim` to the individual spaces in a `ProductSpace` and
 returns the result as a tuple. Note that the rationale for the last result was explained in
