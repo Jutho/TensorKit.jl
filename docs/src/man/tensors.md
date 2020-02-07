@@ -651,8 +651,8 @@ data with the input tensor `t`, though this is only possible in specific cases (
 `sectortype(S) == Trivial` and `(p1..., p2...) = (1:(N₁+N₂)...)`).
 
 Both `braid` and `permute` come in a version where the result is stored in an already
-existing tensor, i.e. `braid!(tdst, tsrc, levels, p1, p2)` and
-`permute!(tdst, tsrc, p1, p2)`.
+existing tensor, i.e. [`braid!(tdst, tsrc, levels, p1, p2)`](@ref) and
+[`permute!(tdst, tsrc, p1, p2)`](@ref).
 
 Another operation that belongs und index manipulations is taking the `transpose` of a
 tensor, i.e. `LinearAlgebra.transpose(t)` and `LinearAlgebra.transpose!(tdst, tsrc)`, both
@@ -670,10 +670,10 @@ coevaluation ``η``, but the right evaluation ``\tilde{ϵ}``, when repartitionin
 between domain and codomain.
 
 There are a number of other index related manipulations. We can apply a twist (or inverse
-twist) to one of the tensor map indices via `twist(t, i; inv = false)` or
-`twist!(t, i; inv = false)`. Note that the latter method does not store the result in a new
-destination tensor, but just modifies the tensor `t` in place. Twisting several indices
-simultaneously can be obtained by using the defining property
+twist) to one of the tensor map indices via [`twist(t, i; inv = false)`](@ref) or
+[`twist!(t, i; inv = false)`](@ref). Note that the latter method does not store the result
+in a new destination tensor, but just modifies the tensor `t` in place. Twisting several
+indices simultaneously can be obtained by using the defining property
 
 ``θ_{V⊗W} = τ_{W,V} ∘ (θ_W ⊗ θ_V) ∘ τ_{V,W} = (θ_V ⊗ θ_W) ∘ τ_{W,V} ∘ τ_{V,W}.``
 
@@ -700,6 +700,28 @@ transpose(transpose(t)) ≈ t
 twist(t, 3) ≈ t
 # as twist acts trivially for
 BraidingStyle(sectortype(t))
+```
+Note that `transpose` acts like one would expect on a ``TensorMap{S,1,1}``. On a
+`TensorMap{S,N₁,N₂}`, because `transpose` replaces the codomain with the dual of the
+domain, which has its tensor product operation reversed, this in the end amounts in a
+complete reversal of all tensor indices when representing it as a plain mutli-dimensional
+`Array`.
+
+To show the effect of `twist`, we now consider a type of sector `G` for which
+`BraidingStyle{G} != Bosonic()`. In particular, we use `FibonacciAnyon`. We cannot convert
+the resulting `TensorMap` to an `Array`, so we have to rely on indirect tests to verify our
+results.
+
+```@repl tensors
+V1 = RepresentationSpace{FibonacciAnyon}(:I=>3,:τ=>2)
+V2 = RepresentationSpace{FibonacciAnyon}(:I=>2,:τ=>1)
+m = TensorMap(randn, Float32, V1, V2)
+transpose(m)
+twist(braid(m, (1,2), (2,), (1,)), 1)
+t1 = TensorMap(randn, V1*V2', V2*V1)
+t2 = TensorMap(randn, ComplexF64, V1*V2', V2*V1)
+dot(t1, t2) ≈ dot(transpose(t1), transpose(t2))
+transpose(transpose(t1)) ≈ t1
 ```
 
 A final operation that one might expect in this section is to fuse or join indices, and its
@@ -752,11 +774,11 @@ to either `eig` or `eigh`.
 Other factorizations that are provided by TensorKit.jl are orthogonal or unitary in nature,
 and thus always require a `AbstractEuclideanTensorMap`. However, they don't require equal
 domain and codomain. Let us first discuss the *singular value decomposition*, for which we
-define and export the methods `tsvd` and `tsvd!` (where as always, the latter destroys the
-input).
+define and export the methods [`tsvd`](@ref) and [`tsvd!`](@ref) (where as always, the
+latter destroys the input).
 
 ```julia
-U, Σ, Vʰ, ϵ = tsvd(t; truncation = notrunc(), p::Real = 2,
+U, Σ, Vʰ, ϵ = tsvd(t; trunc = notrunc(), p::Real = 2,
                         alg::OrthogonalFactorizationAlgorithm = SDD())
 ```
 
@@ -766,14 +788,13 @@ This computes a (possibly truncated) singular value decomposition of
 `Vʰ::TensorMap{S,1,N₂}` and `ϵ::Real`. `U` is an isometry, i.e. `U'*U` approximates the
 identity, whereas `U*U'` is an idempotent (squares to itself). The same holds for
 `adjoint(Vʰ)`. The domain of `U` equals the domain and codomain of `Σ` and the codomain of
-`Vʰ`. In the case of `truncation = notrunc()` (default value, see below), this space is
+`Vʰ`. In the case of `trunc = notrunc()` (default value, see below), this space is
 given by `min(fuse(codomain(t)), fuse(domain(t)))`. The singular values are contained in `Σ`
 and are stored on the diagonal of a (collection of) `DenseMatrix` instance(s), similar to
 the eigenvalues before.
 
-The keyword argument `truncation` provides a way to control the truncation, and is
-connected to the keyword argument `p`. The default value `notrunc()` implies no truncation,
-and thus `ϵ = 0`. Other valid options are
+The keyword argument `trunc` provides a way to control the truncation, and is connected to the keyword argument `p`. The default value `notrunc()` implies no truncation, and thus
+`ϵ = 0`. Other valid options are
 
 *   `truncerr(η::Real)`: truncates such that the `p`-norm of the truncated singular values
     is smaller than `η` times the `p`-norm of all singular values;
@@ -800,14 +821,14 @@ available in the `LinearAlgebra` standard library, where they are specified as
 
 Note that we defined the new method `tsvd` (truncated or tensor singular value
 decomposition), rather than overloading `LinearAlgebra.svd`. We (will) also support
-`LinearAlgebra.svd(t)` as alternative for `tsvd(t; truncation = notrunc())`, but note that
+`LinearAlgebra.svd(t)` as alternative for `tsvd(t; trunc = notrunc())`, but note that
 the return values are then given by `U, Σ, V = svd(t)` with `V = adjoint(Vʰ)`.
 
 We also define the following pair of orthogonal factorization algorithms, which are useful
 when one is not interested in truncating a tensor or knowing the singular values, but only
 in its image or coimage.
 
-*   `Q, R = leftorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos(), kwargs...)`:
+*   [`Q, R = leftorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos(), kwargs...)`](@ref):
     this produces an isometry `Q::TensorMap{S,N₁,1}` (i.e. `Q'*Q` approximates the identity,
     `Q*Q'` is an idempotent, i.e. squares to itself) and a general tensor map
     `R::TensorMap{1,N₂}`, such that `t ≈ Q*R`. Here, the domain of `Q` and thus codomain of
@@ -828,7 +849,7 @@ in its image or coimage.
     `Q=U` and `R=Σ*Vʰ` from the corresponding singular value decomposition, where only
     these singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors
     in `U`) are kept. More finegrained control on the chosen singular values can be
-    obtained with `tsvd` and its `truncation` keyword.
+    obtained with `tsvd` and its `trunc` keyword.
 
     Finally, `Polar()` sets `Q=U*Vʰ` and `R = (Vʰ)'*Σ*Vʰ`, such that `R` is positive
     definite; in this case `SDD()` is used to actually compute the singular value
@@ -854,7 +875,7 @@ in its image or coimage.
     `L=U*Σ` and `Q=Vʰ` from the corresponding singular value decomposition, where only these
     singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors in
     `Vʰ`) are kept. More finegrained control on the chosen singular values can be obtained
-    with `tsvd` and its `truncation` keyword.
+    with `tsvd` and its `trunc` keyword.
 
     Finally, `Polar()` sets `L = U*Σ*U'` and `Q=U*Vʰ`, such that `L` is positive definite;
     in this case `SDD()` is used to actually compute the singular value decomposition and no

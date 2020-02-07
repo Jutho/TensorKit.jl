@@ -70,10 +70,10 @@ scalarBA′ = dot(B′,A)
 ```
 
 However, in this particular case, we can reorder the indices of `B′` to match space of `A`,
-using the routine `permuteind` (we deliberately choose not to overload `permutedims` from
+using the routine `permute` (we deliberately choose not to overload `permutedims` from
 Julia Base, for reasons that become clear below):
 ```@repl tutorial
-space(permuteind(B′,(3,2,1))) == space(A)
+space(permute(B′,(3,2,1))) == space(A)
 ```
 
 We can contract two tensors using Einstein summation convention, which takes the interface
@@ -94,12 +94,12 @@ its complement. With a plain Julia `Array`, one would apply `permutedims` and `r
 cast the array into a matrix before applying e.g. the singular value decomposition. With
 TensorKit.jl, one just specifies which indices go to the left (rows) and right (columns)
 ```@repl tutorial
-U, S, Vd = svd(A, (1,3), (2,));
+U, S, Vd = tsvd(A, (1,3), (2,));
 @tensor A′[a,b,c] := U[a,c,d]*S[d,e]*Vd[e,b];
 A ≈ A′
 U
 ```
-Note that the `svd` routine returns the decomposition of the linear map as three factors,
+Note that the `tsvd` routine returns the decomposition of the linear map as three factors,
 `U`, `S` and `Vd`, each of them a `TensorMap`, such that `Vd` is already what is commonly
 called `V'`. Furthermore, observe that `U` is printed differently then `A`, i.e. as a
 `TensorMap((ℝ^3 ⊗ ℝ^4) ← ProductSpace(ℝ^2))`. What this means is that tensors (or more
@@ -149,16 +149,16 @@ Here, the adjoint of a `TensorMap` results in a new tensor map (actually a simpl
 of type `AdjointTensorMap <: AbstractTensorMap`) with domain and codomain interchanged.
 
 Our original tensor `A` living in `ℝ^4 * ℝ^2 * ℝ^3` is isomorphic to e.g. a linear map
-`ℝ^3 → ℝ^4 * ℝ^2`. This is where the full power of `permuteind` emerges. It allows to
+`ℝ^3 → ℝ^4 * ℝ^2`. This is where the full power of `permute` emerges. It allows to
 specify a permutation where some indices go to the codomain, and others go to the domain,
 as in
 ```@repl tutorial
-A2 = permuteind(A,(1,2),(3,))
+A2 = permute(A,(1,2),(3,))
 codomain(A2)
 domain(A2)
 ```
-In fact, `svd(A, (1,3),(2,))` is a shorthand for `svd(permuteind(A,(1,3),(2,)))`, where
-`svd(A::TensorMap)` will just compute the singular value decomposition according to the
+In fact, `tsvd(A, (1,3),(2,))` is a shorthand for `tsvd(permute(A,(1,3),(2,)))`, where
+`tsvd(A::TensorMap)` will just compute the singular value decomposition according to the
 given codomain and domain of `A`.
 
 Note, finally, that the `@tensor` macro treats all indices at the same footing and thus
@@ -199,10 +199,10 @@ C = im*A + (2.5-0.8im)*B
 scalarBA = dot(B,A)
 scalarAA = dot(A,A)
 normA² = norm(A)^2
-U,S,Vd = svd(A,(1,3),(2,));
+U,S,Vd = tsvd(A,(1,3),(2,));
 @tensor A′[a,b,c] := U[a,c,d]*S[d,e]*Vd[e,b];
 A′ ≈ A
-permuteind(A,(1,3),(2,)) ≈ U*S*Vd
+permute(A,(1,3),(2,)) ≈ U*S*Vd
 ```
 
 However, trying the following
@@ -228,7 +228,7 @@ It also makes clear the isomorphism between linear maps `ℂ^n → ℂ^m` and te
 `ℂ^m ⊗ (ℂ^n)'`:
 ```@repl tutorial
 m = TensorMap(randn, ComplexF64, ℂ^3, ℂ^4)
-m2 = permuteind(m, (1,2), ())
+m2 = permute(m, (1,2), ())
 codomain(m2)
 space(m, 1)
 space(m, 2)
@@ -275,7 +275,7 @@ encountered in the previous examples.
 ```@repl tutorial
 B = Tensor(randn, V1'*V1*V2);
 @tensor C[a,b] := A[a,c,d]*B[c,b,d]
-U,S,V = svd(A,(1,3),(2,));
+U,S,V = tsvd(A,(1,3),(2,));
 U'*U # should be the identity on the corresponding domain = codomain
 U'*U ≈ one(U'*U)
 P = U*U' # should be a projector

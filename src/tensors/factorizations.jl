@@ -7,20 +7,20 @@ const SVDAlg = Union{SVD,SDD}
 
 Base.@deprecate(
     svd(t::AbstractTensorMap, leftind::IndexTuple, rightind::IndexTuple;
-            truncation::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
-    tsvd(t, leftind, rightind; truncation = truncation, p = p, alg = alg))
+            trunc::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
+    tsvd(t, leftind, rightind; trunc = trunc, p = p, alg = alg))
 Base.@deprecate(
     svd(t::AbstractTensorMap;
-            truncation::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
-    tsvd(t; truncation = truncation, p = p, alg = alg))
+            trunc::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
+    tsvd(t; trunc = trunc, p = p, alg = alg))
 Base.@deprecate(
     svd!(t::AbstractTensorMap;
-            truncation::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
-    tsvd(t; truncation = truncation, p = p, alg = alg))
+            trunc::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
+    tsvd(t; trunc = trunc, p = p, alg = alg))
 
 """
     tsvd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
-        truncation::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD,SDD} = SDD())
+        trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD,SDD} = SDD())
         -> U, S, V, ϵ
 
 Compute the (possibly truncated)) singular value decomposition such that
@@ -28,10 +28,10 @@ Compute the (possibly truncated)) singular value decomposition such that
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in
-`t` to be destroyed/overwritten, by using `tsvd!(t, truncation = notrunc(), p = 2)`.
+`t` to be destroyed/overwritten, by using `tsvd!(t, trunc = notrunc(), p = 2)`.
 
-A truncation parameter can be specified for the new internal dimension, in which case
-a truncated singular value decomposition will be computed. Choices are:
+A truncation parameter `trunc` can be specified for the new internal dimension, in which
+case a truncated singular value decomposition will be computed. Choices are:
 *   `notrunc()`: no truncation (default);
 *   `truncerr(η::Real)`: truncates such that the p-norm of the truncated singular values is
     smaller than `η` times the p-norm of all singular values;
