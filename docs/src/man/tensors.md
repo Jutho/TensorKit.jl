@@ -324,7 +324,7 @@ for (c,b) in blocks(t2)
 end
 ```
 
-### Special purpose constructors
+### Constructing similar tensors
 
 A third way to construct a `TensorMap` instance is to use `Base.similar`, i.e.
 
@@ -338,6 +338,8 @@ values just take the value from the input tensor `t`. The result will be a new `
 instance, with `undef` data, but whose data is stored in the same subtype of `DenseMatrix`
 (e.g. `Matrix` or `CuMatrix` or ...) as `t`. In particular, this uses the methods
 `storagetype(t)` and `TensorKit.similarstoragetype(t, T)`.
+
+### Special purpose constructors
 
 Finally, there are methods `zero`, `one`, `id`, `isomorphism` and `unitary` to create
 specific new tensors. Tensor maps behave as vectors and can be added (if they have the same
@@ -494,6 +496,25 @@ fusiontrees(t)
 f1, f2 = first(fusiontrees(t))
 t[f1,f2]
 ```
+
+## [Reading and writing tensors: `Dict` conversion](@id ss_tensor_readwrite)
+
+There are no custom or dedicated methods for reading, writing or storing `TensorMaps`,
+however, there is the possibility to convert a `t::AbstractTensorMap` into a `Dict`, simply
+as `convert(Dict, t)`. The backward conversion `convert(TensorMap, dict)` will return a
+tensor that is equal to `t`, i.e. `t == convert(TensorMap, convert(Dict, t))`.
+
+This conversion relies on that the string represenation of objects such as `VectorSpace`,
+`FusionTree` or `Sector` should be such that it represents valid code to recreate the
+object. Hence, we store information about the domain and codomain of the tensor, and the
+sector associated with each data block, as a `String` obtained with `repr`. This provides
+the flexibility to still change the internal structure of such objects, without this
+breaking the ability to load older data files. The resulting dictionary can then be stored
+using any of the provided Julia packages such as
+[JLD.jl](https://github.com/JuliaIO/JLD.jl),
+[JLD2.jl](https://github.com/JuliaIO/JLD2.jl),
+[BSON.jl](https://github.com/JuliaIO/BSON.jl),
+[JSON.jl](https://github.com/JuliaIO/JSON.jl), ...
 
 ## [Vector space and linear algebra operations](@id ss_tensor_linalg)
 
@@ -718,8 +739,8 @@ V2 = RepresentationSpace{FibonacciAnyon}(:I=>2,:τ=>1)
 m = TensorMap(randn, Float32, V1, V2)
 transpose(m)
 twist(braid(m, (1,2), (2,), (1,)), 1)
-t1 = TensorMap(randn, V1*V2', V2*V1)
-t2 = TensorMap(randn, ComplexF64, V1*V2', V2*V1)
+t1 = TensorMap(randn, V1*V2', V2*V1);
+t2 = TensorMap(randn, ComplexF64, V1*V2', V2*V1);
 dot(t1, t2) ≈ dot(transpose(t1), transpose(t2))
 transpose(transpose(t1)) ≈ t1
 ```

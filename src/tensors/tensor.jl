@@ -66,6 +66,7 @@ end
 function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
     G = sectortype(S)
     G == keytype(data) || throw(SectorMismatch())
+    G == Trivial && return TensorMap(data[Trivial()], codom, dom)
     F₁ = fusiontreetype(G, StaticLength(N₁))
     F₂ = fusiontreetype(G, StaticLength(N₂))
     rowr = SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}()
@@ -203,7 +204,8 @@ Base.similar(t::AbstractTensorMap{S}, ::Type{T},
     TensorMap(d->similarstoragetype(t, T)(undef, d), P)
 Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} =
     Tensor(d->similarstoragetype(t, T)(undef, d), P)
-Base.similar(t::AbstractTensorMap{S}, P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} =
+Base.similar(t::AbstractTensorMap{S},
+                P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} =
     TensorMap(d->storagetype(t)(undef, d), P)
 Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} =
     Tensor(d->storagetype(t)(undef, d), P)
@@ -217,6 +219,26 @@ function Base.complex(t::AbstractTensorMap)
         data = SectorDict(c=>complex(d) for (c,d) in t.data)
         return TensorMap(data, codomain(t), domain(t))
     end
+end
+
+# Conversion between TensorMap and Dict, for read and write purpose
+#------------------------------------------------------------------
+function Base.convert(::Type{Dict}, t::AbstractTensorMap)
+    d = Dict{Symbol,Any}()
+    d[:codomain] = repr(codomain(t))
+    d[:domain] = repr(domain(t))
+    data = Dict{String,Any}()
+    for (c,b) in blocks(t)
+        data[repr(c)] = Array(b)
+    end
+    d[:data] = data
+    return d
+end
+function Base.convert(::Type{TensorMap}, d::Dict{Symbol,Any})
+    codomain = eval(Meta.parse(d[:codomain]))
+    domain = eval(Meta.parse(d[:domain]))
+    data = SectorDict(eval(Meta.parse(c))=>b for (c,b) in d[:data])
+    return TensorMap(data, codomain, domain)
 end
 
 # Getting and setting the data

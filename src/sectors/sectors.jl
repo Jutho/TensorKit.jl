@@ -70,6 +70,8 @@ function Base.isreal(::Type{G}) where {G<:Sector}
     return (eltype(Fsymbol(u,u,u,u,u,u))<:Real) && (eltype(Rsymbol(u,u,u))<:Real)
 end
 
+Base.isless(::Trivial, ::Trivial) = false
+
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
 """

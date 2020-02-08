@@ -89,6 +89,7 @@ using Base: @boundscheck, @propagate_inbounds, OneTo, tail, front,
 using Base.Iterators: product, filter
 
 using LinearAlgebra
+import Base.Meta
 
 const IndexTuple{N} = NTuple{N,Int}
 

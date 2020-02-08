@@ -46,9 +46,17 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test domain(t) == one(W)
         end
     end
+    @testset TimedTestSet "Tensor Dict conversion" begin
+    W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+        for T in (Int, Float32, ComplexF64)
+            t = TensorMap(rand, T, W)
+            d = convert(Dict, t)
+            @test t == convert(TensorMap, d)
+        end
+    end
     @testset TimedTestSet "Basic linear algebra" begin
         W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             t = TensorMap(rand, T, W)
             @test eltype(t) == T
             @test codomain(t) == W.second
@@ -74,7 +82,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     end
     @testset TimedTestSet "Basic linear algebra: test via conversion" begin
         W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             t = TensorMap(rand, T, W)
             t2 = TensorMap(rand, T, W)
             @test norm(t, 2) ≈ norm(convert(Array,t), 2)
@@ -217,7 +225,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     end
     @testset TimedTestSet "Factorization" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             # Test both a normal tensor and an adjoint one.
             ts = (Tensor(rand, T, W), Tensor(rand, T, W)')
             for t in ts
@@ -276,7 +284,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         end
     end
     @testset TimedTestSet "Tensor truncation" begin
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             for p in (1, 2, 3, Inf)
                 # Test both a normal tensor and an adjoint one.
                 ts = (TensorMap(randn, T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
@@ -307,7 +315,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     end
     @testset TimedTestSet "Exponentiation" begin
         W = V1 ⊗ V2 ⊗ V3
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             t = TensorMap(rand, T, W, W)
             s = dim(W)
             expt = @inferred exp(t)
@@ -316,7 +324,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         end
     end
     @testset TimedTestSet "Tensor product: test via norm preservation" begin
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
             t = @inferred (t1 ⊗ t2)
@@ -324,7 +332,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         end
     end
     @testset TimedTestSet "Tensor product: test via conversion" begin
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
             t = @inferred (t1 ⊗ t2)
@@ -339,7 +347,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         end
     end
     @testset TimedTestSet "Tensor product: test via tensor contraction" begin
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
+        for T in (Float32, ComplexF64)
             t1 = Tensor(rand, T, V2 ⊗ V3 ⊗ V1)
             t2 = Tensor(rand, T, V2 ⊗ V1 ⊗ V3)
             t = @inferred (t1 ⊗ t2)
