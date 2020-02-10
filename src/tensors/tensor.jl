@@ -157,30 +157,75 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
     end
 end
 
-TensorMap(f, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
+TensorMap(f,
+            ::Type{T},
+            codom::ProductSpace{S},
+            dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
     TensorMap(d->f(T, d), codom, dom)
-TensorMap(::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(undef, d), codom, dom)
-TensorMap(I::UniformScaling, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(I, d), codom, dom)
-TensorMap(I::UniformScaling, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(I, Float64, codom, dom)
-TensorMap(::UndefInitializer, ::Type{T}, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
-    TensorMap(d->Array{T}(undef, d), codom, dom)
-TensorMap(::UndefInitializer, codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = TensorMap(undef, Float64, codom, dom)
 
-TensorMap(::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {T<:Number, S<:IndexSpace} = TensorMap(T, convert(ProductSpace, codom), convert(ProductSpace, dom))
-TensorMap(dataorf, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
-TensorMap(dataorf, ::Type{T}, codom::TensorSpace{S}, dom::TensorSpace{S}) where {T<:Number, S<:IndexSpace} = TensorMap(dataorf, T, convert(ProductSpace, codom), convert(ProductSpace, dom))
-TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(Float64, convert(ProductSpace, codom), convert(ProductSpace, dom))
+TensorMap(::Type{T},
+            codom::ProductSpace{S},
+            dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
+    TensorMap(d->Array{T}(undef, d), codom, dom)
 
-TensorMap(dataorf, T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, T, P[2], P[1])
-TensorMap(dataorf, P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, P[2], P[1])
-TensorMap(T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(T, P[2], P[1])
+TensorMap(::UndefInitializer,
+            ::Type{T},
+            codom::ProductSpace{S},
+            dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number} =
+    TensorMap(d->Array{T}(undef, d), codom, dom)
+
+TensorMap(::UndefInitializer,
+            codom::ProductSpace{S},
+            dom::ProductSpace{S}) where {S<:IndexSpace} =
+    TensorMap(undef, Float64, codom, dom)
+
+
+function TensorMap(I::UniformScaling,
+                    ::Type{T},
+                    codom::ProductSpace{S},
+                    dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number}
+    Base.depwarn("`TensorMap(I, T, codomain, domain)`  using `LinearAlgebra.I` is deprecated, use `id([A,], space)` for creating the identity tensor on a space, and `isomorphism([A,], codomain, domain)` to construct a fixed invertible map between two isomorphic spaces. When `spacetype(domain)<:EuclideanSpace`, one can also use `unitary([A,], codomain, domain)`, which will return a fixed unitary. `A` is the type of storage and can be chosen equal to `Matrix{T}`.", ((Base.Core).Typeof(TensorMap)).name.mt.name)
+    isomorphism(Matrix{T}, codom, dom)
+end
+TensorMap(I::UniformScaling,
+            codom::ProductSpace{S},
+            dom::ProductSpace{S}) where {S<:IndexSpace} =
+    TensorMap(I, Float64, codom, dom)
+
+TensorMap(::Type{T},
+            codom::TensorSpace{S},
+            dom::TensorSpace{S}) where {T<:Number, S<:IndexSpace} =
+    TensorMap(T, convert(ProductSpace, codom), convert(ProductSpace, dom))
+
+TensorMap(dataorf, codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} =
+    TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
+
+TensorMap(dataorf, ::Type{T},
+            codom::TensorSpace{S},
+            dom::TensorSpace{S}) where {T<:Number, S<:IndexSpace} =
+    TensorMap(dataorf, T, convert(ProductSpace, codom), convert(ProductSpace, dom))
+
+TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} =
+    TensorMap(Float64, convert(ProductSpace, codom), convert(ProductSpace, dom))
+
+TensorMap(dataorf, T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} =
+    TensorMap(dataorf, T, P[2], P[1])
+
+TensorMap(dataorf, P::TensorMapSpace{S}) where {S<:IndexSpace} =
+    TensorMap(dataorf, P[2], P[1])
+
+TensorMap(T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} =
+    TensorMap(T, P[2], P[1])
+
 TensorMap(P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(P[2], P[1])
 
-Tensor(dataorf, T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, T, P, one(P))
+Tensor(dataorf, T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} =
+    TensorMap(dataorf, T, P, one(P))
+
 Tensor(dataorf, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, P, one(P))
+
 Tensor(T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(T, P, one(P))
+
 Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
 
 # Efficient copy constructors
