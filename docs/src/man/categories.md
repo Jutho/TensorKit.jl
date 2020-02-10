@@ -36,14 +36,15 @@ denoted as ``End_C(V)``. When the category ``C`` is clear, we can drop the subsc
 ``f^{-1}:V→W`` called its inverse, such that ``f^{-1} ∘ f = \mathrm{id}_W`` and ``f ∘ f^{-1}
 = \mathrm{id}_V``.
 
-We associate a graphical representation to morphisms as boxes with an incoming and outgoing
-line denoting the object in its source and target. The flow from source to target, and thus
-the direction of morphism composition ``f ∘ g`` (sometimes known as the flow of time, when
-thinking about quantum systems) can be chosen left to right (like the arrow in ``f:W→V``),
-right to left (like the composition order ``f ∘ g``, or the matrix product), bottom to top
-(quantum field theory convention) or top to bottom (quantum circuit convention). Throughout
-this manual, we stick to this latter convention (which is not very common in manuscripts on
-category theory):
+Throughout this manual, we associate a graphical representation to morphisms and
+compositions thereof, which is sometimes referred to as the Penrose graphical calculus. To
+morphisms, we associate boxes with an incoming and outgoing line denoting the object in its
+source and target. The flow from source to target, and thus the direction of morphism
+composition ``f ∘ g`` (sometimes known as the flow of time) can be chosen left to right
+(like the arrow in ``f:W→V``), right to left (like the composition order ``f ∘ g``, or the
+matrix product), bottom to top (quantum field theory convention) or top to bottom (quantum
+circuit convention). Throughout this manual, we stick to this latter convention (which is
+not very common in manuscripts on category theory):
 
 ![composition](img/diagram_morphism.svg)
 
@@ -300,22 +301,22 @@ to its (left or right) transpose. In particular, the snake rules can now be read
 functioral requirement that ``{}^{∨}(\mathrm{id}_V) = \mathrm{id}_{{}^{∨}V}``.
 
 In all of this, left and right duality can be completely distinct. Equivalently, the left
-dual of the left dual of an object ``V``, i.e. ``{}^{∨∨}V`` is not necessarily ``V`` itself.
+dual of the left dual of an object ``V``, i.e. ``{}^{∨∨}V`` is not necessarily ``V`` itself,
+nor do the exact pairings enable us to construct an isomorphism between `{}^{∨∨}V` and `V`.
 For finite-dimensional vector spaces, however, ``{}^{∨∨}V`` and ``V``, or thus ``{}^{∨}V``
-and ``V^{∨}`` are isomorphic. The categorical generalization is that of a
-**pivotal category** (or sovereign category), i.e. a monoidal category with duals
+and ``V^{∨}`` are known to be isomorphic. The categorical generalization is that of a
+**pivotal category** (or sovereign category), i.e. a monoidal category with two-sided duals
 ``X^* = {}^{∨}X = X^{∨} = X^*`` such that the left and right duality functor coincide, and
 thus also the left and right transpose of morphisms, i.e.
-``f^* = {}^{∨}f = f^{∨} ∈ \mathrm{Hom}(V^*,W*)`` for any ``f∈\mathrm{Hom}(W,V)``. Given
-that ``\tilde{ϵ}_{X}`` and ``\tilde{η}_{X}`` can be interpreted as an exact pairing
-``ϵ_{X^*}`` and ``η_{X^*}``, this can be used to recognize ``X`` as a left dual of ``X^*``,
-which is then not necessarily equal but at least isomorphic to ``X^{**}`` with the
-isomorphism given by the mixed snake composition alluded to in the beginning of this
-section, i.e. ``δ_X: X → X^{**}`` given by
-``δ_X = (\tilde{ϵ}_X ⊗ \mathrm{id}_{X^*}) ∘ (\mathrm{id}_X ⊗ η_{X^*})``. A more formal
-statement is that ``δ`` is a natural isomorphism between the double dual functor and the
-identity functor of a category ``C``. In a similar manner, such a ``δ`` can be used to
-define a natural isomorphism between left and right dual functor (which is a slight
+``f^* = {}^{∨}f = f^{∨} ∈ \mathrm{Hom}(V^*,W*)`` for any ``f∈\mathrm{Hom}(W,V)``. Given that
+``\tilde{ϵ}_{X}`` and ``\tilde{η}_{X}`` can be interpreted as an exact pairing ``ϵ_{X^*}``
+and ``η_{X^*}``, this can be used to recognize ``X`` as a left dual of ``X^*``, which is
+then not necessarily equal but at least isomorphic to ``X^{**}`` with the isomorphism given
+by the mixed snake composition alluded to in the beginning of this section, i.e. ``δ_X: X →
+X^{**}`` given by ``δ_X = (\tilde{ϵ}_X ⊗ \mathrm{id}_{X^*}) ∘ (\mathrm{id}_X ⊗ η_{X^*})``. A
+more formal statement is that ``δ`` is a natural isomorphism between the double dual functor
+and the identity functor of a category ``C``. In a similar manner, such a ``δ`` can be used
+to define a natural isomorphism between left and right dual functor (which is a slight
 generalization of the above definition of a pivotal category), and as such it is often
 called the *pivotal structure*.
 

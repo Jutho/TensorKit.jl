@@ -34,7 +34,8 @@ Base.@pure Base.issubset(::ComplexNumbers, ::RealNumbers) = false
 """
     abstract type VectorSpace end
 
-Abstract type at the top of the type hierarchy for denoting vector spaces.
+Abstract type at the top of the type hierarchy for denoting vector spaces, or, more
+accurately, 𝕜-linear categories.
 """
 abstract type VectorSpace end
 
