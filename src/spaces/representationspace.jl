@@ -103,12 +103,13 @@ Base.getindex(::ComplexNumbers, d1::Pair{G,Int}, dims::Pair{G,Int}...) where {G<
 # Corresponding methods:
 # properties
 dim(V::GenericRepresentationSpace) =
-    mapreduce(c->dim(c)*V.dims[c], +, keys(V.dims); init = 0)
+    mapreduce(c->dim(c)*V.dims[c], +, keys(V.dims); init = zero(dim(one(sectortype(V)))))
 dim(V::GenericRepresentationSpace{G}, c::G) where {G<:Sector} =
     get(V.dims, isdual(V) ? dual(c) : c, 0)
 
 dim(V::FiniteRepresentationSpace{G}) where {G<:Sector} =
-    reduce(+, dc*dim(c) for (dc,c) in zip(V.dims, values(G)); init = 0)
+    reduce(+, dc*dim(c) for (dc,c) in zip(V.dims, values(G));
+            init = zero(dim(one(sectortype(V)))))
 dim(V::FiniteRepresentationSpace{G}, c::G) where {G<:Sector} =
     V.dims[findindex(values(G), isdual(V) ? dual(c) : c)]
 

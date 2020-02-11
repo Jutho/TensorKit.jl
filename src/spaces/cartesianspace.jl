@@ -8,7 +8,7 @@ vector space that is implicitly assumed in most of matrix algebra.
 struct CartesianSpace <: EuclideanSpace{ℝ}
     d::Int
 end
-CartesianSpace(d::Integer; dual = false) = CartesianSpace(Int(d))
+CartesianSpace(d::Integer = 0; dual = false) = CartesianSpace(Int(d))
 
 Base.getindex(::RealNumbers) = CartesianSpace
 Base.getindex(::RealNumbers, d::Int) = CartesianSpace(d)

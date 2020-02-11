@@ -9,7 +9,7 @@ struct ComplexSpace <: EuclideanSpace{ℂ}
   d::Int
   dual::Bool
 end
-ComplexSpace(d::Integer; dual = false) = ComplexSpace(Int(d), dual)
+ComplexSpace(d::Integer = 0; dual = false) = ComplexSpace(Int(d), dual)
 
 # convenience constructor
 Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)

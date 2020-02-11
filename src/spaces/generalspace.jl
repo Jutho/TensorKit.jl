@@ -19,7 +19,7 @@ struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
         end
     end
 end
-GeneralSpace{𝕜}(d::Int; dual::Bool = false, conj::Bool = false) where {𝕜} =
+GeneralSpace{𝕜}(d::Int = 0; dual::Bool = false, conj::Bool = false) where {𝕜} =
     GeneralSpace{𝕜}(d, dual, conj)
 
 dim(V::GeneralSpace) = V.d
