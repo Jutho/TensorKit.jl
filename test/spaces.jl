@@ -123,6 +123,8 @@ end
     @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     W = RepresentationSpace(one(G)=>1) # space with a single sector
     @test W == RepresentationSpace(one(G)=>1, randsector(G) => 0)
+    # space with no sectors
+    @test dim(@inferred RepresentationSpace{G}()) == 0
     # randsector never returns trivial sector, so this cannot error
     @test_throws ArgumentError RepresentationSpace(one(G)=>1, randsector(G) => 0, one(G)=>3)
     @test eval(Meta.parse(sprint(show,W))) == W

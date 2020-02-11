@@ -21,6 +21,8 @@ function GenericRepresentationSpace{G}(dims; dual::Bool = false) where {G<:Secto
     end
     return GenericRepresentationSpace{G}(d, dual)
 end
+GenericRepresentationSpace{G}(; dual::Bool = false) where {G<:Sector} =
+    GenericRepresentationSpace{G}((); dual = dual)
 GenericRepresentationSpace{G}(d1::Pair; dual::Bool = false) where {G<:Sector} =
     GenericRepresentationSpace{G}((d1, ); dual = dual)
 GenericRepresentationSpace{G}(d1::Pair, dims::Vararg{Pair};
@@ -60,9 +62,10 @@ function FiniteRepresentationSpace{G}(dims; dual::Bool = false) where {G<:Sector
     end
     return FiniteRepresentationSpace{G,N}(d, dual)
 end
+FiniteRepresentationSpace{G}(; dual::Bool = false) where {G<:Sector} =
+    FiniteRepresentationSpace{G}((); dual = dual)
 FiniteRepresentationSpace{G}(d1::Pair; dual::Bool = false) where {G<:Sector} =
     FiniteRepresentationSpace{G}((d1,); dual = dual)
-
 FiniteRepresentationSpace{G}(d1::Pair, dims::Vararg{Pair};
                                 dual::Bool = false) where {G<:Sector} =
     FiniteRepresentationSpace{G}((d1, dims...); dual = dual)
@@ -99,12 +102,13 @@ Base.getindex(::ComplexNumbers, d1::Pair{G,Int}, dims::Pair{G,Int}...) where {G<
 
 # Corresponding methods:
 # properties
-dim(V::GenericRepresentationSpace) = sum(c->dim(c)*V.dims[c], keys(V.dims))
+dim(V::GenericRepresentationSpace) =
+    mapreduce(c->dim(c)*V.dims[c], +, keys(V.dims); init = 0)
 dim(V::GenericRepresentationSpace{G}, c::G) where {G<:Sector} =
     get(V.dims, isdual(V) ? dual(c) : c, 0)
 
 dim(V::FiniteRepresentationSpace{G}) where {G<:Sector} =
-    sum(dc*dim(c) for (dc,c) in zip(V.dims, values(G)))
+    reduce(+, dc*dim(c) for (dc,c) in zip(V.dims, values(G)); init = 0)
 dim(V::FiniteRepresentationSpace{G}, c::G) where {G<:Sector} =
     V.dims[findindex(values(G), isdual(V) ? dual(c) : c)]
 

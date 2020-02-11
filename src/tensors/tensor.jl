@@ -96,11 +96,16 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
         push!(colr, c=>colrc)
     end
     if !isreal(G) && eltype(valtype(data)) <: Real
-        data2 = SectorDict((c=>complex(d)) for (c,d) in data)
+        b = valtype(data)(undef, (0,0))
+        V = typeof(complex(b))
+        K = keytype(data)
+        data2 = SectorDict{K,V}((c=>complex(b)) for (c,b) in data)
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     else
-        data2 = SectorDict((c=>d) for (c,d) in data)
+        V = valtype(data)
+        K = keytype(data)
+        data2 = SectorDict{K,V}((c=>d) for (c,d) in data)
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     end

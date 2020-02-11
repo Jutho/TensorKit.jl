@@ -262,6 +262,36 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     @test U*S*V ≈ permute(t, (3,4,2),(1,5))
                 end
             end
+            @testset "empty tensor" begin
+                t = TensorMap(randn, T, V1 ⊗ V2, typeof(V1)())
+                @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
+                    Q, R = @inferred leftorth(t; alg = alg)
+                    @test Q == t
+                    @test dim(Q) == dim(R) == 0
+                end
+                @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.SVD(), TensorKit.SDD())
+                    N = @inferred leftnull(t; alg = alg)
+                    @test N'*N ≈ id(domain(N))
+                    @test N*N' ≈ id(codomain(N))
+                end
+                @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.RQpos(), TensorKit.LQ(), TensorKit.LQpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
+                    L, Q = @inferred rightorth(t; alg = alg)
+                    @test L == t
+                    @test dim(Q) == dim(R) == 0
+                end
+                @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.SVD(), TensorKit.SDD())
+                    M = @inferred rightnull(t; alg = alg)
+                    @test M*M' ≈ id(codomain(M))
+                    @test M'*M ≈ id(domain(M))
+                end
+                @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                    U, S, V = @inferred tsvd(t; alg = alg)
+                    @test U == t
+                    @test dim(Q) == dim(R) == dim(V)
+                end
+            end
+
+
 
             t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
             @testset "eig and isposdef" begin
