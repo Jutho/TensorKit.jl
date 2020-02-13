@@ -51,9 +51,10 @@ end
 
 # more specific methods
 """
-    sectors(P::ProductSpace{<:ElementarySpace,N})
+    sectors(P::ProductSpace{S,N}) where {S<:ElementarySpace}
 
-Return an iterator over all possible combinations of sectors (represented as an ``NTuple{N,<:Sector}``) that can appear within the ``P``.
+Return an iterator over all possible combinations of sectors (represented as an
+`NTuple{N,sectortype(S)}`) that can appear within the tensor product space `P`.
 """
 sectors(P::ProductSpace) = _sectors(P, sectortype(P))
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} =
@@ -63,16 +64,18 @@ _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} =
 
 
 """
-    hassector(P::ProductSpace{<:ElementarySpace,N}, s::NTuple{N,<:Sector})
+    hassector(P::ProductSpace{S,N}, s::NTuple{N,sectortype(S)}) where {S<:ElementarySpace}
+    -> Bool
 
-Query whether ``P`` has a non-zero degeneracy of sector `s`, representing a combination of
+Query whether `P` has a non-zero degeneracy of sector `s`, representing a combination of
 sectors on the individual tensor indices.
 """
 hassector(V::ProductSpace{<:ElementarySpace,N}, s::NTuple{N}) where {N} =
     reduce(&, map(hassector, V.spaces, s); init = true)
 
 """
-    dims(P::ProductSpace{S,N}, s::NTuple{N,<:Sector}) -> Dims{N} = NTuple{N,Int}
+    dims(P::ProductSpace{S,N}, s::NTuple{N,sectortype(S)}) where {S<:ElementarySpace}
+    -> Dims{N} = NTuple{N,Int}
 
 Return the degeneracy dimensions corresponding to a tuple of sectors `s` for each of the
 spaces in the tensor product `P`.
@@ -81,23 +84,24 @@ dims(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N
     map(dim, P.spaces, sector)
 
 """
-    dim(P::ProductSpace{S,N}, s::NTuple{N,<:Sector}) -> Dims{N} = NTuple{N,Int}
+    dims(P::ProductSpace{S,N}, s::NTuple{N,sectortype(S)}) where {S<:ElementarySpace}
+    -> Int
 
 Return the total degeneracy dimension corresponding to a tuple of sectors for each of the
 spaces in the tensor product, obtained as `prod(dims(P, s))``.
 """
 dim(P::ProductSpace{<:ElementarySpace, N}, sector::NTuple{N,<:Sector}) where {N} =
-    prod(dims(P, sector))
+    reduce(*, dims(P, sector); init = 1)
 
 Base.axes(P::ProductSpace{<:ElementarySpace,N}, sectors::NTuple{N,<:Sector}) where {N} =
     map(axes, P.spaces, sectors)
 
 """
-    blocksectors(::ProductSpace)
+    blocksectors(P::ProductSpace)
 
-Return an iterator over the different coupled sector labels, i.e. the different fusion
-outputs that can be obtained by fusing the sectors present in the different spaces that
-make up the ``ProductSpace`` instance.
+Return an iterator over the different unique coupled sector labels, i.e. the different
+fusion outputs that can be obtained by fusing the sectors present in the different spaces
+that make up the `ProductSpace` instance.
 """
 function blocksectors(P::ProductSpace{S,N}) where {S,N}
     G = sectortype(S)

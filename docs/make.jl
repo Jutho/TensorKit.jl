@@ -10,7 +10,7 @@ makedocs(modules=[TensorKit],
                 "Home" => "index.md",
                 "Manual" => ["man/intro.md", "man/tutorial.md", "man/categories.md",
                                 "man/spaces.md", "man/sectors.md", "man/tensors.md"],
-                "Library" => ["lib/spaces.md"],
+                "Library" => ["lib/sectors.md","lib/spaces.md","lib/tensors.md"],
                 "Index" => ["index/index.md"]
             ])
 

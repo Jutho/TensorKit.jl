@@ -1,4 +1,12 @@
 # FibonacciAnyons
+"""
+    struct FibonacciAnyon <: Sector
+    FibonacciAnyon(s::Union{Symbol,Integer})
+
+Represents the Fibonacci fusion category. It can take two values, corresponding to the
+trivial sector `FibonacciAnyon(:I) == FibonacciAnyon(0)` and the non-trivial sector
+`FibonacciAnyon(:τ) = FibonacciAnyon(1)` with fusion rules ``τ ⊗ τ = 1 ⊕ τ``.
+"""
 struct FibonacciAnyon <: Sector
     isone::Bool
     function FibonacciAnyon(s::Symbol)
@@ -6,6 +14,8 @@ struct FibonacciAnyon <: Sector
         new(s === :I)
     end
 end
+Fibonacci(i::Integer) = iszero(i) ? Fibonacci(:I) :
+                            (isone(i) ? Fibonacci(:τ) : error("unkown Fibonacci anyon"))
 
 Base.IteratorSize(::Type{SectorValues{FibonacciAnyon}}) = HasLength()
 Base.length(::SectorValues{FibonacciAnyon}) = 2

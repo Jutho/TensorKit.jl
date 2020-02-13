@@ -200,7 +200,7 @@ abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 const Rep{G<:Sector} = RepresentationSpace{G}
 
 """
-    sectortype(a) -> Sector
+    sectortype(a) -> Type{<:Sector}
 
 Return the type of sector over which object `a` (e.g. a representation space or a tensor) is
 defined. Also works in type domain.
@@ -218,10 +218,9 @@ hassector(::ElementarySpace, ::Trivial) = true
 Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
 
 """
-    sectors(V::ElementarySpace) -> sectortype(V)
-    sectors(V::ProductSpace{S,N}) -> NTuple{N,sectortype{V}}
+    sectors(V::ElementarySpace)
 
-Return the different sectors of object `a` (e.g. a representation space or a tensor).
+Return an iterator over the different sectors of `V`.
 """
 sectors(::ElementarySpace) = (Trivial(),)
 dim(V::ElementarySpace, ::Trivial) =

@@ -1,6 +1,12 @@
 # TensorMap & Tensor:
 # general tensor implementation with arbitrary symmetries
 #==========================================================#
+"""
+    struct TensorMap{S<:IndexSpace, N₁, N₂, ...} <: AbstractTensorMap{S, N₁, N₂}
+
+Specific subtype of [`AbstractTensorMap`](@ref) for representing tensor maps (morphisms in
+a tensor category) whose data is stored in blocks of some subtype of `DenseMatrix`.
+"""
 struct TensorMap{S<:IndexSpace, N₁, N₂, G<:Sector, A<:Union{<:DenseMatrix,SectorDict{G,<:DenseMatrix}}, F₁, F₂} <: AbstractTensorMap{S, N₁, N₂}
     data::A
     codom::ProductSpace{S,N₁}

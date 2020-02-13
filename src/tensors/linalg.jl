@@ -43,10 +43,30 @@ function one!(t::AbstractTensorMap)
     end
     return t
 end
-id(V::VectorSpace) = id(Matrix{Float64}, V)
+
+"""
+    id([A::Type{<:DenseMatrix} = Matrix{Float64},] space::VectorSpace) -> TensorMap
+
+Construct the identity endomorphism on space `space`, i.e. return a `t::TensorMap` with `domain(t) == codomain(t) == V`, where `storagetype(t) = A` can be specified.
+"""
 id(A, V::ElementarySpace) = id(A, ProductSpace(V))
+id(V::VectorSpace) = id(Matrix{Float64}, V)
 id(A::Type{<:DenseMatrix}, P::ProductSpace) = one!(TensorMap(s->A(undef, s), P, P))
 
+"""
+    isomorphism([A::Type{<:DenseMatrix} = Matrix{Float64},]
+                    cod::VectorSpace, dom::VectorSpace)
+    -> TensorMap
+
+Return a `t::TensorMap` that implements a specific isomorphism between the codomain `cod`
+and the domain `dom`, and for which `storagetype(t)` can optionally be chosen to be of type
+`A`. If the two spaces do not allow for such an isomorphism, and are thus not isomorphic,
+and error will be thrown. When they are isomorphic, there is no canonical choice for a
+specific isomorphism, but the current choice is such that
+`isomorphism(cod, dom) == inv(isomorphism(dom, cod))`.
+
+See also [`unitary`](@ref) when `spacetype(cod) isa EuclideanSpace`.
+"""
 isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
 isomorphism(P::TensorMapSpace) = isomorphism(P[1], P[2])
 isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isomorphism(A, P[1], P[2])
@@ -71,32 +91,55 @@ const EuclideanTensorMapSpace = TensorMapSpace{<:EuclideanSpace}
 const AbstractEuclideanTensorMap = AbstractTensorMap{<:EuclideanTensorSpace}
 const EuclideanTensorMap = TensorMap{<:EuclideanTensorSpace}
 
+"""
+    unitary([A::Type{<:DenseMatrix} = Matrix{Float64},] cod::VectorSpace, dom::VectorSpace)
+    -> TensorMap
+
+Return a `t::TensorMap` that implements a specific unitary isomorphism between the codomain
+`cod` and the domain `dom`, for which `spacetype(dom)` (`== spacetype(cod)`) must be a
+subtype of `EuclideanSpace`. Furthermore, `storagetype(t)` can optionally be chosen to be
+of type `A`. If the two spaces do not allow for such an isomorphism, and are thus not
+isomorphic, and error will be thrown. When they are isomorphic, there is no canonical choice
+for a specific isomorphism, but the current choice is such that
+`isomorphism(cod, dom) == inv(isomorphism(dom, cod)) = adjoint(unitary(dom, cod))`.
+"""
 unitary(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) = isomorphism(cod, dom)
 unitary(P::EuclideanTensorMapSpace) = isomorphism(P)
 unitary(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isomorphism(A, P)
 unitary(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
     isomorphism(A, cod, dom)
 
-# isometry(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
-#     isometry(Matrix{Float64}, cod, dom)
-# isometry(P::EuclideanTensorMapSpace) = isometry(P[1], P[2])
-# isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isometry(A, P[1], P[2])
-# isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
-#     isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
-# function isometry(A::Type{<:DenseMatrix},
-#                     cod::EuclideanTensorSpace,
-#                     dom::EuclideanTensorSpace)
-#     spacetype(cod) == spacetype(dom) || throw(SpaceMismatch())
-#     for c in union(blocksectors(cod), blocksectors(dom))
-#         blockdim(cod, c) >= blockdim(dom, c) ||
-#             throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
-#     end
-#     t = TensorMap(s->A(undef, s), cod, dom)
-#     for (c,b) in blocks(t)
-#         _one!(b)
-#     end
-#     return t
-# end
+"""
+    isometry([A::Type{<:DenseMatrix} = Matrix{Float64},] cod::VectorSpace, dom::VectorSpace)
+    -> TensorMap
+
+Return a `t::TensorMap` that implements a specific isometry that embeds the domain `dom`
+into the codomain `cod`, and which requires that `spacetype(dom)` (`== spacetype(cod)`) is
+a subtype of `EuclideanSpace`. An isometry `t` is such that its adjoint `t'` is the left
+inverse of `t`, i.e. `t'*t = id(dom)`, while `t*t'` is some idempotent endomorphism of
+`cod`, i.e. it squares to itself. When `dom` and `cod` do not allow for such an isometric
+inclusion, an error will be thrown.
+"""
+isometry(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
+    isometry(Matrix{Float64}, cod, dom)
+isometry(P::EuclideanTensorMapSpace) = isometry(P[1], P[2])
+isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isometry(A, P[1], P[2])
+isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
+    isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
+function isometry(A::Type{<:DenseMatrix},
+                    cod::ProductSpace{S},
+                    dom::ProductSpace{S}) where {S<:EuclideanSpace}
+    spacetype(cod) == spacetype(dom) || throw(SpaceMismatch())
+    for c in union(blocksectors(cod), blocksectors(dom))
+        blockdim(cod, c) >= blockdim(dom, c) ||
+            throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
+    end
+    t = TensorMap(s->A(undef, s), cod, dom)
+    for (c,b) in blocks(t)
+        _one!(b)
+    end
+    return t
+end
 
 # Equality and approximality
 #----------------------------

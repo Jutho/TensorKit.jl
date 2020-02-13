@@ -1000,7 +1000,7 @@ t′ = permute(t, (1,), (2,3));
 t′ ≈ t′ * P
 ```
 
-## [Bosonic tensor contractions and tensor networks]((@id ss_tensor_contraction))
+## [Bosonic tensor contractions and tensor networks](@id ss_tensor_contraction)
 
 One of the most important operation with tensor maps is to compose them, more generally
 known as contracting them. As mentioned in the section on [category theory](@ref

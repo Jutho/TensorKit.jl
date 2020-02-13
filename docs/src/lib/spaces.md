@@ -1,11 +1,13 @@
-# Vector spaces, symmetry sectors an fusion trees
+# Vector spaces
 
 ```@meta
 CurrentModule = TensorKit
 ```
 
-The type hierarchy for representing vector spaces
+## Type hierarchy
+
 ```@docs
+Field
 VectorSpace
 ElementarySpace
 GeneralSpace
@@ -20,19 +22,7 @@ CompositeSpace
 ProductSpace
 ```
 
-The type hierarchy for representing sectors
-```@docs
-Sector
-FusionStyle
-BraidingStyle
-Irrep
-AbelianIrrep
-ZNIrrep
-U1Irrep
-SU2Irrep
-CU1Irrep
-```
-
+## Methods
 Methods often apply similar to e.g. spaces and corresponding tensors or tensor maps, e.g.:
 ```@docs
 field
@@ -43,7 +33,9 @@ dim
 dims
 blocksectors
 blockdim
+space
 ```
+
 The following methods act specifically on `ElementarySpace` spaces:
 ```@docs
 isdual
@@ -59,6 +51,4 @@ while the following also work on `ProductSpace`
 fuse
 :⊗
 one
-min
-max
 ```

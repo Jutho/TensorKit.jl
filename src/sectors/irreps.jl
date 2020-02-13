@@ -39,12 +39,12 @@ fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} =
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 127?
 """
     struct ZNIrrep{N} <: AbelianIrrep
-        n::Int8
-    end
+    ZNIrrep(n::Integer)
 
 Represents irreps of the group ``ℤ_N`` for some value of `N<64`. Unicode synonyms are
 available for the cases `N=2,3,4` as `ℤ₂`, `ℤ₃`, `ℤ₄`. Also the name `Parity` can be used
-as synonym for `ℤ₂`.
+as synonym for `ℤ₂`. An arbitrary `Integer` `n` can be provided to the constructor, but
+only the value `mod(n, N)` is relevant.
 """
 struct ZNIrrep{N} <: AbelianIrrep
     n::Int8
@@ -89,13 +89,13 @@ Base.show(io::IO, c::ZNIrrep{N}) where {N} =
 # U1Irrep: irreps of U1 are labelled by integers
 """
     struct U1Irrep <: AbelianIrrep
-        charge::HalfInt
-    end
+    U1Irrep(j::Real)
 
 Represents irreps of the group `U₁ == SO₂`, both of which are valid unicode synonyms.
 The irrep is labelled by a charge, which should be an integer for a linear representation.
 However, it is often useful to allow half integers to represent irreps of `U₁` subgroups of
-``SU₂``. Hence, the charge is stored as a `HalfInt` from the package HalfIntegers.jl.
+``SU₂``. Hence, the charge is stored as a `HalfInt` from the package HalfIntegers.jl, but
+can be entered as arbitrary `Real`.
 """
 struct U1Irrep <: AbelianIrrep
     charge::HalfInt
@@ -138,13 +138,12 @@ Base.show(io::IO, ::SU2IrrepException) =
 
 """
     struct SU2Irrep <: Irrep
-        j::HalfInt
-    end
+    SU2Irrep(j::Real)
 
 Represents irreps of the group `SU₂`, which is also a valid unicode synonym. The irrep is
-labelled by a half integer `j`, stored as a `HalfInt` from the HalfIntegers.jl package.
-Half-integer and integer irreps of `SU₂` are also projective and linear representation of
-`SO₃`, which is another valid unicode synonym.
+labelled by a half integer `j` which can be entered as an abitrary `Real`, but is stored as
+a `HalfInt` from the HalfIntegers.jl package. Half-integer and integer irreps of `SU₂` are
+also projective and linear representation of `SO₃`, which is another valid unicode synonym.
 """
 struct SU2Irrep <: Irrep
     j::HalfInt
@@ -211,8 +210,9 @@ Represents irreps of the group ``U₁ ⋉ C`` (``U₁`` and charge conjugation o
 which is also known as just `O₂`. Unicode synomyms are thus `CU₁` or `O₂`. The irrep is
 labelled by a positive half integer `j` (the ``U₁`` charge) and an integer `s` indicating
 the behaviour under charge conjugation. They take values:
-*   if j == 0, s = 0 (trivial charge conjugation) or s = 1 (non-trivial charge conjugation)
-*   if j > 0, s = 2 (two-dimensional representation)
+*   if `j == 0`, `s = 0` (trivial charge conjugation) or
+    `s = 1` (non-trivial charge conjugation)
+*   if `j > 0`, `s = 2` (two-dimensional representation)
 """
 struct CU1Irrep <: Irrep
     j::HalfInt # value of the U1 charge

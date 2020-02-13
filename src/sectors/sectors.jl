@@ -9,27 +9,49 @@ and pivotal) (pre-)fusion categories, e.g. the irreducible representations of a 
 compact group.
 
 Every new `G<:Sector` should implement the following methods:
-*   `one(::Type{G})` -> unit element of `G`
-*   `conj(a::G)` -> a̅: conjugate or dual label of a
-*   `⊗(a::G, b::G)` -> iterable with unique fusion outputs of `a ⊗ b`
+*   `one(::Type{G})`: unit element of `G`
+*   `conj(a::G)`: ``a̅``, conjugate or dual label of ``a``
+*   `⊗(a::G, b::G)`: iterable with unique fusion outputs of ``a ⊗ b``
     (i.e. don't repeat in case of multiplicities)
-*   `Nsymbol(a::G, b::G, c::G)` -> number of times `c` appears in `a ⊗ b`, i.e. the
+*   `Nsymbol(a::G, b::G, c::G)`: number of times `c` appears in `a ⊗ b`, i.e. the
     multiplicity
-*   `FusionStyle(::Type{G})` -> `Abelian()`, `SimpleNonAbelian()` or
+*   `FusionStyle(::Type{G})`: `Abelian()`, `SimpleNonAbelian()` or
     `DegenerateNonAbelian()`
-*   `BraidingStyle(::Type{G})` -> `Bosonic()`, `Fermionic()`, `Anyonic()`, ...
-and, if `FusionStyle(G) == NonAbelian()`,
-*   `Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G)` -> F-symbol: scalar (in case of
-    `SimpleNonAbelian`) or matrix (in case of `DegenerateNonAbelian`)
-*   ... can all other information (quantum dimension, cups and caps) be extracted from `F`?
-and if `BraidingStyle(G) == Fermionic()`
-*   `fermionparity(a::G)` -> `Bool` representing the fermion parity of sector `a`
-    and optionally, if if `FusionStyle(G) isa DegenerateNonAbelian`
-*   `vertex_ind2label(i::Int, a::G, b::G, c::G)` -> a custom label for the `i`th copy of `c` appearing in `a ⊗ b`
+*   `BraidingStyle(::Type{G})`: `Bosonic()`, `Fermionic()`, `Anyonic()`, ...
+*   `Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G)`: F-symbol: scalar (in case of
+    `Abelian`/`SimpleNonAbelian`) or matrix (in case of `DegenerateNonAbelian`)
+*   `Rsymbol(a::G, b::G, c::G)`: R-symbol: scalar (in case of
+    `Abelian`/`SimpleNonAbelian`) or matrix (in case of `DegenerateNonAbelian`)
+and optionally
+*   `dim(a::G)`: quantum dimension of sector `a`
+*   `frobeniusschur(a::G)`: Frobenius-Schur indicator of `a`
+*   `Bsymbol(a::G, b::G, c::G)`: B-symbol: scalar (in case of
+    `Abelian`/`SimpleNonAbelian`) or matrix (in case of `DegenerateNonAbelian`)
+*   `twist(a::G)` -> twist of sector `a`
+and optionally, if `FusionStyle(G) isa DegenerateNonAbelian`
+*   `vertex_ind2label(i::Int, a::G, b::G, c::G)` -> a custom label for the `i`th copy of
+    `c` appearing in `a ⊗ b`
+
+Furthermore, `iterate` and `Base.IteratorSize` should be made to work for the singleton type
+[`SectorValues{G}`](@ref).
 """
 abstract type Sector end
 
 # iterator over the values in the sector
+"""
+    struct SectorValues{G<:Sector}
+
+Singleton type to represent an iterator over the possible values of type `G`, whose instance is obtained as `values(G)`. For a new `G::Sector`, the following should be defined
+*   `Base.iterate(::SectorValues{G}[, state])`: iterate over the values
+*   `Base.IteratorSize(::Type{SectorValues{G}})`: `HasLenght()`, `SizeUnkown()`
+    or `IsInfinite()` depending on whether the number of values of type `G` is finite (and sufficiently small) or infinite; for a large number of values, `SizeUnknown()` is recommend because this will trigger the use of `GenericRepresentationSpace`.
+If `IteratorSize(G) == HasLength()`, also the following must be implemented:
+*   `Base.length(::SectorValues{G})`: the number of different values
+*   `Base.getindex(::SectorValues{G}, i::Int)`: a mapping between an index `i` and an
+    instance of `G`
+*   `findindex(::SectorValues{G}, c::G)`: reverse mapping between a value `c::G` and an
+    index `i::Integer ∈ 1:length(values(G))`
+"""
 struct SectorValues{G<:Sector} end
 Base.IteratorEltype(::Type{<:SectorValues}) = HasEltype()
 Base.eltype(::Type{SectorValues{G}}) where {G<:Sector} = G
@@ -64,11 +86,11 @@ Base.conj(::Trivial) = Trivial()
 Return whether the topological data (Fsymbol, Rsymbol) of the sector is real or not (in
 which case it is complex).
 """
-Base.isreal(::Type{Trivial}) = true
-function Base.isreal(::Type{G}) where {G<:Sector}
+Base.@pure function Base.isreal(G::Type{<:Sector})
     u = one(G)
     return (eltype(Fsymbol(u,u,u,u,u,u))<:Real) && (eltype(Rsymbol(u,u,u))<:Real)
 end
+Base.@pure Base.isreal(::Type{Trivial}) = true
 
 Base.isless(::Trivial, ::Trivial) = false
 
@@ -90,6 +112,7 @@ Note that every element `c` should appear at most once, fusion degeneracies (if
 Return an `Integer` representing the number of times `c` appears in the fusion product
 `a ⊗ b`. Could be a `Bool` if `FusionStyle(G) == Abelian()` or `SimpleNonAbelian()`.
 """
+function Nsymbol end
 Nsymbol(::Trivial, ::Trivial, ::Trivial) = true
 
 # trait to describe the fusion of superselection sectors
@@ -103,17 +126,20 @@ struct DegenerateNonAbelian <: NonAbelian # non-abelian fusion with multipliciti
 end
 
 """
+    FusionStyle(a::Sector) -> ::FusionStyle
     FusionStyle(G::Type{<:Sector}) -> ::FusionStyle
 
 Return the type of fusion behavior of sectors of type G, which can be either
 *   `Abelian()`: single fusion output when fusing two sectors;
 *   `SimpleNonAbelian()`: multiple outputs, but every output occurs at most one,
-    also known as multiplicity free (e.g. irreps of SU(2));
+    also known as multiplicity free (e.g. irreps of ``SU(2)``);
 *   `DegenerateNonAbelian()`: multiple outputs that can occur more than once (e.g. irreps
-    of SU(3)).
+    of ``SU(3)``).
+There is an abstract supertype `NonAbelian` of which both `SimpleNonAbelian` and
+`DegenerateNonAbelian` are subtypes.
 """
-FusionStyle(::Type{Trivial}) = Abelian()
 FusionStyle(a::Sector) = FusionStyle(typeof(a))
+FusionStyle(::Type{Trivial}) = Abelian()
 
 # NOTE: the following inline is extremely important for performance, especially
 # in the case of Abelian, because ⊗(...) is computed very often
@@ -134,9 +160,9 @@ end
 """
     Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:Sector}
 
-Return the F-symbol F^{abc}_d that associates the two different fusion orders of sectors
-`a`, `b` and `c` into an ouput sector `d`, using either an intermediate sector `a ⊗ b → e`
-or `b ⊗ c → f`:
+Return the F-symbol ``F^{abc}_d`` that associates the two different fusion orders of sectors
+`a`, `b` and `c` into an ouput sector `d`, using either an intermediate sector ``a ⊗ b → e``
+or ``b ⊗ c → f``:
 ```
 a-<-μ-<-e-<-ν-<-d                                     a-<-λ-<-d
     ∨       ∨       -> Fsymbol(a,b,c,d,e,f)[μ,ν,κ,λ]      ∨
@@ -154,7 +180,7 @@ Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 """
     Rsymbol(a::G, b::G, c::G) where {G<:Sector}
 
-Returns the R-symbol R^{ab}_c that maps between `a ⊗ b → c` and `b ⊗ a → c` as in
+Returns the R-symbol ``R^{ab}_c`` that maps between ``a ⊗ b → c`` and ``b ⊗ a → c`` as in
 ```
 a -<-μ-<- c                                 b -<-ν-<- c
      ∨          -> Rsymbol(a,b,c)[μ,ν]           ∧
@@ -249,7 +275,7 @@ end
 """
     Bsymbol(a::G, b::G, c::G) where {G<:Sector}
 
-Return the value of B^{ab}_c which appears in transforming a splitting vertex
+Return the value of ``B^{ab}_c`` which appears in transforming a splitting vertex
 into a fusion vertex using the transformation
 ```
 a -<-μ-<- c                                                    a -<-ν-<- c
@@ -298,20 +324,21 @@ Base.:&(::Bosonic,::Anyonic) = Anyonic()
 Base.:&(::Fermionic,::Anyonic) = Anyonic()
 
 """
+    BraidingStyle(::Sector) -> ::BraidingStyle
     BraidingStyle(G::Type{<:Sector}) -> ::BraidingStyle
 
-Return the type of braiding behavior of sectors of type G, which can be either
-*   `Bosonic()`: trivial exchange
-*   `Fermionic()`: fermionic exchange depending on `fermionparity`
-*   `Anyonic()`: requires general R_(a,b)^c phase or matrix
-    (depending on `SimpleNonAbelian` or `DegenerateNonAbelian` fusion)
+Return the type of braiding and twist behavior of sectors of type `G`, which can be either
+*   `Bosonic()`: symmetric braiding with trivial twist (i.e. identity)
+*   `Fermionic()`: symmetric braiding with non-trivial twist (squares to identity)
+*   `Anyonic()`: general ``R_(a,b)^c`` phase or matrix (depending on `SimpleNonAbelian` or
+    `DegenerateNonAbelian` fusion) and arbitrary twists
 
 Note that `Bosonic` and `Fermionic` are subtypes of `SymmetricBraiding`, which means that
 braids are in fact equivalent to crossings (i.e. braiding twice is an identity:
 `Rsymbol(b,a,c)*Rsymbol(a,b,c) = I`) and permutations are uniquely defined.
 """
-BraidingStyle(::Type{Trivial}) = Bosonic()
 BraidingStyle(a::Sector) = BraidingStyle(typeof(a))
+BraidingStyle(::Type{Trivial}) = Bosonic()
 
 # SectorSet:
 #-------------------------------------------------------------------------------

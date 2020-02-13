@@ -1,5 +1,14 @@
 # Fusion trees:
 #==============================================================================#
+"""
+    struct FusionTree{G,N,M,L,T}
+
+Represents a fusion tree of sectors of type `G<:Sector`, fusing (or splitting) `N` uncoupled
+sectors to a coupled sector. This fusion tree has `M=max(0,N-2)` inner lines. Furthermore,
+for `FusionStyle(G) isa DegenerateNonAbelian`, the `L=max(0,N-1)` corresponding vertices
+carry a label of type `T`. If `FusionStyle(G) isa Union{Abelian,SimpleNonAbelian}`,
+`T = Nothing`.
+"""
 struct FusionTree{G<:Sector,N,M,L,T}
     uncoupled::NTuple{N,G}
     coupled::G

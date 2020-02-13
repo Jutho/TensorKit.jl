@@ -46,7 +46,7 @@ export blocksectors, blockdim, block, blocks
 export randuniform, randnormal, randisometry, randhaar
 
 # special purpose constructors
-export zero, one, one!, id, isomorphism, unitary
+export zero, one, one!, id, isomorphism, unitary, isometry
 
 # tensor algebra and factorizations
 export dot, norm, normalize, normalize!

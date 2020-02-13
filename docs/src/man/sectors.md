@@ -1165,6 +1165,7 @@ There is currently one example of a `Sector` subtype that has anyonic braiding s
 namely that of the Fibonacci fusion category. It has to (isomorphism classes of) simple
 objects, namely the identity `𝟙` and a non-trivial object known as `τ`, with fusion rules
 `τ ⊗ τ = 𝟙 ⊕ τ`. Let's summarize the topological data
+
 ```@repl sectors
 𝟙 = FibonacciAnyon(:I)
 τ = FibonacciAnyon(:τ)
@@ -1176,7 +1177,7 @@ dim(τ)
 F𝟙 = Fsymbol(τ,τ,τ,𝟙,τ,τ)
 Fτ = [Fsymbol(τ,τ,τ,τ,𝟙,𝟙) Fsymbol(τ,τ,τ,τ,𝟙,τ); Fsymbol(τ,τ,τ,τ,τ,𝟙) Fsymbol(τ,τ,τ,τ,τ,τ)]
 Fτ'*Fτ
-polar(x) = round.((abs(x), angle(x)/(2π)); sigdigits = 6)
+polar(x) = rationalize.((abs(x), angle(x)/(2π)))
 Rsymbol(τ,τ,𝟙) |> polar
 Rsymbol(τ,τ,τ) |> polar
 twist(τ) |> polar

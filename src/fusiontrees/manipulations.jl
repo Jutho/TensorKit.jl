@@ -73,15 +73,15 @@ end
 # braid fusion tree
 """
     braid(f::FusionTree{<:Sector,N}, levels::NTuple{N,Int}, p::NTuple{N,Int})
-        -> <:AbstractDict{typeof(t),<:Number}
+    -> <:AbstractDict{typeof(t),<:Number}
 
 Perform a braiding of the uncoupled indices of the fusion tree `f` and returns the result
 as a `<:AbstractDict` of output trees and corresponding coefficients. The braiding is
 specified by specifying that index `i` goes to position `perm[i]` and assinging to every
 index a distinct level or depth `levels[i]`. This permutation is then decomposed into
 elementary swaps between neighbouring indices, where the swaps are applied as braids such
-that if `i` and `j` cross, `τ_{i,j}` is applied if `levels[i] < levels[j]` and
-`τ_{j,i}^{-1}` if `levels[i] > levels[j]`. This does not allow to encode the most general
+that if `i` and `j` cross, ``τ_{i,j}`` is applied if `levels[i] < levels[j]` and
+``τ_{j,i}^{-1}`` if `levels[i] > levels[j]`. This does not allow to encode the most general
 braid, but a general braid can be obtained by combining such operations.
 """
 function braid(f::FusionTree{G,N},
@@ -354,8 +354,7 @@ end
 
 # repartition double fusion tree
 """
-    repartition(f1::FusionTree{G,N₁},
-                f2::FusionTree{G,N₂},
+    repartition(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂},
                 ::StaticLength{N}) where {G,N₁,N₂,N}
     -> <:AbstractDict{Tuple{FusionTree{G,N}, FusionTree{G,N₁+N₂-N}},<:Number}
 
@@ -426,6 +425,24 @@ const braidcache = LRU{Any,Any}(; maxsize = 10^5)
 const usebraidcache_abelian = Ref{Bool}(false)
 const usebraidcache_nonabelian = Ref{Bool}(true)
 
+"""
+    braid(f1::FusionTree{G}, f2::FusionTree{G},
+            levels1::IndexTuple, levels2::IndexTuple,
+            p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {G<:Sector,N₁,N₂}
+    -> <:AbstractDict{Tuple{FusionTree{G,N₁}, FusionTree{G,N₂}},<:Number}
+
+Input is a fusion-splitting tree pair that describes the fusion of a set of incoming
+uncoupled sectors to a set of outgoing uncoupled sectors, represented using the splitting
+tree `f1` and fusion tree `f2`, such that the incoming sectors `f2.uncoupled` are fused to
+`f1.coupled == f2.coupled` and then to the outgoing sectors `f1.uncoupled`. Compute new
+trees and corresponding coefficients obtained from repartitioning and braiding the tree such
+that sectors `p1` become outgoing and sectors `p2` become incoming. The uncoupled indices in
+splitting tree `f1` and fusion tree `f2` have levels (or depths) `levels1` and `levels2`
+respectively, which determines how indices braid. In particular, if `i` and `j` cross,
+``τ_{i,j}`` is applied if `levels[i] < levels[j]` and ``τ_{j,i}^{-1}`` if `levels[i] >
+levels[j]`. This does not allow to encode the most general braid, but a general braid can
+be obtained by combining such operations.
+"""
 function braid(f1::FusionTree{G}, f2::FusionTree{G},
                 levels1::IndexTuple, levels2::IndexTuple,
                 p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {G<:Sector,N₁,N₂}
