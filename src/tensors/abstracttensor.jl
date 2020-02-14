@@ -97,6 +97,34 @@ function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
     return intersect(blocksectors(codom), blocksectors(dom))
 end
 
+# Equality and approximality
+#----------------------------
+function Base.:(==)(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    (codomain(t1) == codomain(t2) && domain(t1) == domain(t2)) || return false
+    for c in blocksectors(t1)
+        block(t1, c) == block(t2, c) || return false
+    end
+    return true
+end
+function Base.hash(t::AbstractTensorMap, h::UInt)
+    h = hash(codomain(t), h)
+    h = hash(domain(t), h)
+    for (c, b) in blocks(t)
+        h = hash(c, hash(b, h))
+    end
+    return h
+end
+
+function Base.isapprox(t1::AbstractTensorMap, t2::AbstractTensorMap;
+                atol::Real=0, rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
+    d = norm(t1 - t2)
+    if isfinite(d)
+        return d <= max(atol, rtol*max(norm(t1), norm(t2)))
+    else
+        return false
+    end
+end
+
 # Conversion to Array:
 #----------------------
 # probably not optimized for speed, only for checking purposes

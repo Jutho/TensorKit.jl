@@ -39,6 +39,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
             t = Tensor(zeros, T, W)
+            @test @inferred(hash(t)) == hash(deepcopy(t))
             @test eltype(t) == T
             @test norm(t) == 0
             @test codomain(t) == W

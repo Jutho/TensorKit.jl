@@ -48,11 +48,13 @@ end
     @test isa(V, InnerProductSpace)
     @test isa(V, EuclideanSpace)
     @test isa(V, CartesianSpace)
+    @test @inferred(hash(V)) == hash(deepcopy(V))
     @test V == @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V))
     @test field(V) == ℝ
     @test @inferred(sectortype(V)) == Trivial
     @test @inferred(TensorKit.hassector(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
+    @test dim(@inferred(typeof(V)())) == 0
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
     @test ⊕(V,V) == ℝ^(2d)
@@ -70,6 +72,7 @@ end
     @test isa(V, InnerProductSpace)
     @test isa(V, EuclideanSpace)
     @test isa(V, ComplexSpace)
+    @test @inferred(hash(V)) == hash(deepcopy(V)) != hash(V')
     @test @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V)) != V
     @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == Trivial
@@ -77,6 +80,7 @@ end
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
+    @test dim(@inferred(typeof(V)())) == 0
     @test @inferred(⊕(V,V)) == ℂ^(2d)
     @test_throws SpaceMismatch (⊕(V, V'))
     @test_throws MethodError (⊕(ℝ^d, ℂ^d))
@@ -93,6 +97,7 @@ end
     @test isa(V, ElementarySpace)
     @test !isa(V, InnerProductSpace)
     @test !isa(V, EuclideanSpace)
+    @test @inferred(hash(V)) == hash(deepcopy(V)) != hash(V')
     @test @inferred(dual(V)) != @inferred(conj(V)) != V
     @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == Trivial
@@ -119,12 +124,13 @@ end
     @test V' == @inferred RepresentationSpace{G}(gen; dual = true)
     @test V == @inferred RepresentationSpace{G}(gen...)
     @test V' == @inferred RepresentationSpace{G}(gen...; dual = true)
+    @test @inferred(hash(V)) == hash(deepcopy(V)) != hash(V')
     @test eval(Meta.parse(sprint(show,V))) == V
     @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
     W = RepresentationSpace(one(G)=>1) # space with a single sector
     @test W == RepresentationSpace(one(G)=>1, randsector(G) => 0)
     # space with no sectors
-    @test dim(@inferred RepresentationSpace{G}()) == 0
+    @test dim(@inferred(typeof(V)())) == 0
     # randsector never returns trivial sector, so this cannot error
     @test_throws ArgumentError RepresentationSpace(one(G)=>1, randsector(G) => 0, one(G)=>3)
     @test eval(Meta.parse(sprint(show,W))) == W

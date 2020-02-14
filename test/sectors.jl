@@ -7,6 +7,7 @@ ti = time()
         s = (randsector(G), randsector(G), randsector(G))
         @test eval(Meta.parse(sprint(show,G))) == G
         @test eval(Meta.parse(sprint(show,s[1]))) == s[1]
+        @test @inferred(hash(s[1])) == hash(deepcopy(s[1]))
         @test @inferred(one(s[1])) == @inferred(one(G))
         @inferred dual(s[1])
         @inferred dim(s[1])
