@@ -147,6 +147,8 @@ end
 
 Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
 
+Base.hash(P::ProductSpace, h::UInt) = hash(P.spaces, h)
+
 # Default construction from product of spaces
 #---------------------------------------------
 ⊗(V1::S, V2::S) where {S<:ElementarySpace}= ProductSpace((V1, V2))

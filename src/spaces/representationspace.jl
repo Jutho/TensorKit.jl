@@ -34,7 +34,7 @@ Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) =
     values(V1.dims) == values(V2.dims) &&
     V1.dual == V2.dual
 
-Base.hash(V::GenericRepresentationSpace, h::UInt) = hash(V.dual, hash(V1.dims, h))
+Base.hash(V::GenericRepresentationSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
 
 """
     struct FiniteRepresentationSpace{G<:Sector,N} <: AbstractRepresentationSpace{G}
