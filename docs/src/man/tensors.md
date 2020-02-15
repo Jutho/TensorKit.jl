@@ -341,28 +341,34 @@ instance, with `undef` data, but whose data is stored in the same subtype of `De
 
 ### Special purpose constructors
 
-Finally, there are methods `zero`, `one`, `id`, `isomorphism` and `unitary` to create
-specific new tensors. Tensor maps behave as vectors and can be added (if they have the same
-domain and codomain); `zero(t)` is the additive identity, i.e. a `TensorMap` instance where
-all entries are zero. For a `t::TensorMap` with `domain(t) == codomain(t)`, i.e. an
-endomorphism, `one(t)` creates the identity tensor, i.e. the identity under composition.
-As discussed in the section on [linear algebra operations](@ref ss_tensor_linalg), we
-denote composition of tensor maps with the mutliplication operator `*`, such that `one(t)`
-is the multiplicative identity. Similarly, it can be created as `id(V)` with `V` the
-relevant vector space, e.g. `one(t) == id(domain(t))`. The identity tensor is currently
-represented with dense data, and one can use `id(A::Type{<:DenseMatrix}, V)` to specify the
-type of `DenseMatrix` (and its `eltype`), e.g. `A = Matrix{Float64}`. Finally, it often
-occurs that we want to construct a specific isomorphism between two spaces that are
-isomorphic but not equal, and for which there is no canonical choice. Hereto, one can use
-the method `u = isomorphism([A::Type{<:DenseMatrix}, ] codomain, domain)`, which will
-explicitly check that the domain and codomain are isomorphic, and return an error
+Finally, there are methods `zero`, `one`, `id`, `isomorphism`, `unitary` and `isometry` to
+create specific new tensors. Tensor maps behave as vectors and can be added (if they have
+the same domain and codomain); `zero(t)` is the additive identity, i.e. a `TensorMap`
+instance where all entries are zero. For a `t::TensorMap` with `domain(t) == codomain(t)`,
+i.e. an endomorphism, `one(t)` creates the identity tensor, i.e. the identity under
+composition. As discussed in the section on [linear algebra operations](@ref
+ss_tensor_linalg), we denote composition of tensor maps with the mutliplication operator
+`*`, such that `one(t)` is the multiplicative identity. Similarly, it can be created as
+`id(V)` with `V` the relevant vector space, e.g. `one(t) == id(domain(t))`. The identity
+tensor is currently represented with dense data, and one can use `id(A::Type{<:DenseMatrix},
+V)` to specify the type of `DenseMatrix` (and its `eltype`), e.g. `A = Matrix{Float64}`.
+Finally, it often occurs that we want to construct a specific isomorphism between two spaces
+that are isomorphic but not equal, and for which there is no canonical choice. Hereto, one
+can use the method `u = isomorphism([A::Type{<:DenseMatrix}, ] codomain, domain)`, which
+will explicitly check that the domain and codomain are isomorphic, and return an error
 otherwise. Again, an optional first argument can be given to specify the specific type of
 `DenseMatrix` that is currently used to store the rather trivial data of this tensor. If
-`spacetype(u) <: EuclideanSpace`, the same result can be obtained with the method
-`u = unitary([A::Type{<:DenseMatrix}, ] codomain, domain)`. Note that reversing the domain
-and codomain yields the inverse morphism, which in the case of `EuclideanSpace` coincides
-with the adjoint morphism, i.e. `isomorphism(A, domain, codomain) == adjoint(u) == inv(u)`,
-where `inv` and `adjoint` will be further discussed [below](@ref ss_tensor_linalg).
+`spacetype(u) <: EuclideanSpace`, the same result can be obtained with the method `u =
+unitary([A::Type{<:DenseMatrix}, ] codomain, domain)`. Note that reversing the domain and
+codomain yields the inverse morphism, which in the case of `EuclideanSpace` coincides with
+the adjoint morphism, i.e. `isomorphism(A, domain, codomain) == adjoint(u) == inv(u)`, where
+`inv` and `adjoint` will be further discussed [below](@ref ss_tensor_linalg). Finally, if
+two spaces `V1` and `V2` are such that `V2` can be embedded in `V1`, i.e. there exists an
+inclusion with a left inverse, and furthermore they represent tensor products of some
+`EuclideanSpace`, the function `w = isometry([A::Type{<:DenseMatrix}, ], V1, V2)` creates
+one specific isometric embedding, such that `adjoint(w)*w == id(V2)` and `w*adjoint(w)` is
+some hermitian idempotent (a.k.a. orthogonal projector) acting on `V1`. An error will be
+thrown if such a map cannot be constructed for the given domain and codomain.
 
 Let's conclude this section with some examples with `RepresentationSpace`.
 ```@repl tensors
@@ -393,7 +399,7 @@ to an `Array`. This only works when `sectortype(t)` supports `fusiontensor`, and
 particular when `BraidingStyle(sectortype(t)) == Bosonic()`, e.g. the case of trivial
 tensors (the category ``\mathbf{Vect}``) and group representations (the category
 ``\mathbf{Rep}_{\mathsf{G}}``, which can be interpreted as a subcategory of
-``\mathbf{Vect}``). Here, we are in this case with `\mathsf{G} = ℤ₂`. For a
+``\mathbf{Vect}``). Here, we are in this case with ``\mathsf{G} = ℤ₂``. For a
 `TensorMap{S,1,1}`, the blocks directly correspond to the diagonal blocks in the block
 diagonal structure of its representation as an `Array`, there is no basis transform in
 between. This is no longer the case for `TensorMap{S,N₁,N₂}` with different values of `N₁`
@@ -969,7 +975,7 @@ braiding is not symmetric, the user should manually apply [`braid`](@ref) to bri
 tensor map in proper form before performing the factorization.
 
 Some examples to conclude this section
-```@repl tensorkit
+```@repl tensors
 V1 = SU₂Space(0=>2,1/2=>1)
 V2 = SU₂Space(0=>1,1/2=>1,1=>1)
 
