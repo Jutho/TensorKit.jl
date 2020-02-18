@@ -61,7 +61,7 @@ space(t::AbstractTensor, i) = space(t)[i]
 Base.@pure codomainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
     ntuple(n->n, StaticLength(N₁))
 Base.@pure domainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
-    ntuple(n->n, StaticLength(N₂))
+    ntuple(n-> N₁+n, StaticLength(N₂))
 Base.@pure allind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
     ntuple(n->n, StaticLength(N₁+N₂))
 
