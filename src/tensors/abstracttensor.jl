@@ -58,10 +58,16 @@ space(t::AbstractTensor) = codomain(t)
 space(t::AbstractTensor, i) = space(t)[i]
 
 # some index manipulation utilities
-codomainind(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂} =
+Base.@pure codomainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
     ntuple(n->n, StaticLength(N₁))
-domainind(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂} =
-    ntuple(n->N₁+n, StaticLength(N₂))
+Base.@pure domainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
+    ntuple(n->n, StaticLength(N₂))
+Base.@pure allind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
+    ntuple(n->n, StaticLength(N₁+N₂))
+
+codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
+domainind(t::AbstractTensorMap) = domainind(typeof(t))
+allind(t::AbstractTensorMap) = allind(typeof(t))
 
 adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
     ifelse(i<=N₁, N₂+i, i-N₁)
