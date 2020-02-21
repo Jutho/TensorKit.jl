@@ -43,7 +43,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test eltype(t) == T
             @test norm(t) == 0
             @test codomain(t) == W
-            @test space(t) == W
+            @test space(t) == (W ← one(W))
             @test domain(t) == one(W)
         end
     end
@@ -60,8 +60,9 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         for T in (Float32, ComplexF64)
             t = TensorMap(rand, T, W)
             @test eltype(t) == T
-            @test codomain(t) == W.second
-            @test domain(t) == W.first
+            @test space(t) == W
+            @test codomain(t) == codomain(W)
+            @test domain(t) == domain(W)
             @test isa(@inferred(norm(t)), real(T))
             @test norm(t)^2 ≈ dot(t,t)
             α = rand(T)

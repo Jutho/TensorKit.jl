@@ -49,7 +49,7 @@ export randuniform, randnormal, randisometry, randhaar
 export zero, one, one!, id, isomorphism, unitary, isometry
 
 # tensor algebra and factorizations
-export dot, norm, normalize, normalize!
+export dot, norm, normalize, normalize!, tr
 export mul!, lmul!, rmul!, adjoint!, pinv, axpy!, axpby!
 export leftorth, rightorth, leftnull, rightnull,
         leftorth!, rightorth!, leftnull!, rightnull!,

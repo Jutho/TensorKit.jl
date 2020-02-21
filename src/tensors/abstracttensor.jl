@@ -51,11 +51,8 @@ codomain(t::AbstractTensorMap, i) = codomain(t)[i]
 domain(t::AbstractTensorMap, i) = domain(t)[i]
 source(t::AbstractTensorMap) = domain(t) # categorical terminology
 target(t::AbstractTensorMap) = codomain(t) # categorical terminology
-space(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
-    i <= N₁ ? codomain(t,i) : dual(domain(t, i-N₁))
-
-space(t::AbstractTensor) = codomain(t)
-space(t::AbstractTensor, i) = space(t)[i]
+space(t::AbstractTensorMap) = HomSpace(codomain(t), domain(t))
+space(t::AbstractTensorMap, i::Int) = space(t)[i]
 
 # some index manipulation utilities
 Base.@pure codomainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
@@ -80,28 +77,6 @@ adjointtensorindices(t::AbstractTensorMap, I::IndexTuple) =
 #     ifelse(i<=N₁, i, 2N₁+N₂+1-i)
 # space2tensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
 #     ifelse(i<=N₁, i, 2N₁+N₂+1-i)
-
-# Defining vector spaces:
-#------------------------
-const TensorSpace{S<:IndexSpace} = Union{S, ProductSpace{S}}
-const TensorMapSpace{S<:IndexSpace, N₁, N₂} = Pair{ProductSpace{S,N₂},ProductSpace{S,N₁}}
-
-# Little unicode hack to define TensorMapSpace
-→(dom::ProductSpace{S}, codom::ProductSpace{S}) where {S<:IndexSpace} = dom => codom
-→(dom::S, codom::ProductSpace{S}) where {S<:IndexSpace} = ProductSpace(dom) => codom
-→(dom::ProductSpace{S}, codom::S) where {S<:IndexSpace} = dom => ProductSpace(codom)
-→(dom::S, codom::S) where {S<:IndexSpace} = ProductSpace(dom) => ProductSpace(codom)
-
-←(codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:IndexSpace} = dom => codom
-←(codom::S, dom::ProductSpace{S}) where {S<:IndexSpace} = dom => ProductSpace(codom)
-←(codom::ProductSpace{S}, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => codom
-←(codom::S, dom::S) where {S<:IndexSpace} = ProductSpace(dom) => ProductSpace(codom)
-
-# NOTE: do we still need this
-function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S,N₁,N₂}
-    sectortype(S) === Trivial && return (Trivial(),)
-    return intersect(blocksectors(codom), blocksectors(dom))
-end
 
 # Equality and approximality
 #----------------------------

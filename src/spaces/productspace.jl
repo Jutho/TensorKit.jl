@@ -13,6 +13,7 @@ ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} =
 ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace, N} =
     ProductSpace{S,N}(spaces)
 ProductSpace{S}(spaces) where {S<:ElementarySpace} = ProductSpace{S,length(spaces)}(spaces)
+ProductSpace(P::ProductSpace) = P
 
 # Corresponding methods
 #-----------------------
@@ -177,6 +178,7 @@ Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,
 Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 
 Base.convert(::Type{<:ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
+Base.:^(V::ElementarySpace, N::Int) = ProductSpace{typeof(V), N}(ntuple(n->V, N))
 Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val{N}) where N =
     ProductSpace{typeof(V), N}(ntuple(n->V, p))
 Base.convert(::Type{S}, P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
@@ -191,8 +193,8 @@ Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
 Base.getindex(P::ProductSpace{S}, I::NTuple{N,Integer}) where {S<:ElementarySpace,N} =
     ProductSpace{S,N}(TupleTools.getindices(P.spaces, I))
 
-Base.iterate(P::ProductSpace) = Base.iterate(P.spaces)
-Base.iterate(P::ProductSpace, s) = Base.iterate(P.spaces, s)
+Base.iterate(P::ProductSpace, args...) = Base.iterate(P.spaces, args...)
+Base.indexed_iterate(P::ProductSpace, args...) = Base.indexed_iterate(P.spaces,  args...)
 
 Base.eltype(P::ProductSpace{S}) where {S<:ElementarySpace} = S
 

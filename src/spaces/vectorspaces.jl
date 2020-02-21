@@ -252,11 +252,15 @@ include("complexspace.jl")
 include("generalspace.jl")
 include("representationspace.jl")
 
-# # Specific realizations of CompositeSpace types
-# #-----------------------------------------------
+# Specific realizations of CompositeSpace types
+#-----------------------------------------------
 include("productspace.jl")
 
 # Other examples might include:
 # braidedspace and fermionspace
 # symmetric and antisymmetric subspace of a tensor product of identical vector spaces
 # ...
+
+# HomSpace: space of morphisms
+#------------------------------
+include("homspace.jl")

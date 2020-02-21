@@ -195,7 +195,7 @@ function TensorMap(I::UniformScaling,
                     ::Type{T},
                     codom::ProductSpace{S},
                     dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number}
-    Base.depwarn("`TensorMap(I, T, codomain, domain)`  using `LinearAlgebra.I` is deprecated, use `id([A,], space)` for creating the identity tensor on a space, and `isomorphism([A,], codomain, domain)` to construct a fixed invertible map between two isomorphic spaces. When `spacetype(domain)<:EuclideanSpace`, one can also use `unitary([A,], codomain, domain)`, which will return a fixed unitary. `A` is the type of storage and can be chosen equal to `Matrix{T}`.", ((Base.Core).Typeof(TensorMap)).name.mt.name)
+    Base.depwarn("`TensorMap(I, T, codomain, domain)`  using `LinearAlgebra.I` is deprecated, use `id([A,], space)` for creating the identity tensor on a space, and `isomorphism([A,], codomain, domain)` to construct a fixed invertible map between two isomorphic spaces. When `spacetype(domain)<:EuclideanSpace`, one can also use `unitary([A,], codomain, domain)` which is then equivalent to `isomorphism`. `A<:AbstractMatrix` is the type of storage, and is by default chosen equal to `Matrix{Float64}`.", ((Base.Core).Typeof(TensorMap)).name.mt.name)
     isomorphism(Matrix{T}, codom, dom)
 end
 TensorMap(I::UniformScaling,
@@ -220,15 +220,15 @@ TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace} =
     TensorMap(Float64, convert(ProductSpace, codom), convert(ProductSpace, dom))
 
 TensorMap(dataorf, T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} =
-    TensorMap(dataorf, T, P[2], P[1])
+    TensorMap(dataorf, T, codomain(P), domain(P))
 
 TensorMap(dataorf, P::TensorMapSpace{S}) where {S<:IndexSpace} =
-    TensorMap(dataorf, P[2], P[1])
+    TensorMap(dataorf, codomain(P), domain(P))
 
 TensorMap(T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace} =
-    TensorMap(T, P[2], P[1])
+    TensorMap(T, codomain(P), domain(P))
 
-TensorMap(P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(P[2], P[1])
+TensorMap(P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(codomain(P), domain(P))
 
 Tensor(dataorf, T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} =
     TensorMap(dataorf, T, P, one(P))
@@ -256,12 +256,12 @@ Base.similar(t::AbstractTensorMap, codomain::VectorSpace, domain::VectorSpace) =
     similar(t, codomain←domain)
 
 Base.similar(t::AbstractTensorMap{S}, ::Type{T},
-                P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {T,S} =
+                P::TensorMapSpace{S} = (domain(t) → codomain(t))) where {T,S} =
     TensorMap(d->similarstoragetype(t, T)(undef, d), P)
 Base.similar(t::AbstractTensorMap{S}, ::Type{T}, P::TensorSpace{S}) where {T,S} =
     Tensor(d->similarstoragetype(t, T)(undef, d), P)
 Base.similar(t::AbstractTensorMap{S},
-                P::TensorMapSpace{S} = (domain(t)=>codomain(t))) where {S} =
+                P::TensorMapSpace{S} = (domain(t) → codomain(t))) where {S} =
     TensorMap(d->storagetype(t)(undef, d), P)
 Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} =
     Tensor(d->storagetype(t)(undef, d), P)

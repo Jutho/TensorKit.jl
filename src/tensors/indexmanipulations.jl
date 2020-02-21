@@ -86,9 +86,15 @@ function braid(t::TensorMap{S}, levels::IndexTuple,
                     p1::IndexTuple, p2::IndexTuple=();
                     copy::Bool = false) where {S}
     @assert length(levels) == numind(t)
+    if BraidingStyle(sectortype(S)) isa SymmetricBraiding
+        return permute(t, p1, p2; copy = copy)
+    end
+    if !copy && p1 == codomainind(t) && p2 == domainind(t)
+        return t
+    end
+    # general case
     cod = ProductSpace{S}(map(n->space(t, n), p1))
     dom = ProductSpace{S}(map(n->dual(space(t, n)), p2))
-    # general case
     @inbounds begin
         return add!(true, t, false, similar(t, cod←dom), p1, p2, levels)
     end
