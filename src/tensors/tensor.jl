@@ -77,7 +77,7 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
     F₂ = fusiontreetype(G, StaticLength(N₂))
     rowr = SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}()
     colr = SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}()
-    for c in blocksectors(codom, dom)
+    for c in blocksectors(codom ← dom)
         rowrc = FusionTreeDict{F₁, UnitRange{Int}}()
         colrc = FusionTreeDict{F₂, UnitRange{Int}}()
         offset1 = 0
@@ -139,7 +139,7 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
         data = SectorDict{G,A}()
         rowr = SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}()
         colr = SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}()
-        for c in blocksectors(codom, dom)
+        for c in blocksectors(codom ← dom)
             rowrc = FusionTreeDict{F₁, UnitRange{Int}}()
             colrc = FusionTreeDict{F₂, UnitRange{Int}}()
             offset1 = 0

@@ -61,6 +61,8 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             t = TensorMap(rand, T, W)
             @test eltype(t) == T
             @test space(t) == W
+            @test space(t') == W'
+            @test dim(t) == dim(space(t))
             @test codomain(t) == codomain(W)
             @test domain(t) == domain(W)
             @test isa(@inferred(norm(t)), real(T))

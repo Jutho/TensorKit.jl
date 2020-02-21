@@ -6,23 +6,25 @@
 
 Represents the linear space of morphisms with codomain of type `P1` and domain of type `P2`.
 """
-struct HomSpace{S<:ElementarySpace,
-                    P1<:CompositeSpace{S},
-                    P2<:CompositeSpace{S}}
+struct HomSpace{S<:ElementarySpace, P1<:CompositeSpace{S}, P2<:CompositeSpace{S}}
     codomain::P1
     domain::P2
 end
 codomain(W::HomSpace) = W.codomain
 domain(W::HomSpace) = W.domain
 
-Base.adjoint(W::HomSpace) = HomSpace(W.domain, W.codomain)
+dual(W::HomSpace) = HomSpace(dual(W.domain), dual(W.codomain))
+Base.adjoint(W::HomSpace{<:EuclideanSpace}) = HomSpace(W.domain, W.codomain)
 
 Base.hash(W::HomSpace, h::UInt) = hash(domain(W), hash(codomain(W), h))
 Base.:(==)(W1::HomSpace, W2::HomSpace) =
     (W1.codomain == W2.codomain) & (W1.domain == W2.domain)
 
-spacetype(::Type{<:HomSpace{S}}) where S = S
 spacetype(W::HomSpace) = spacetype(typeof(W))
+sectortype(W::HomSpace) = sectortype(typeof(W))
+field(W::HomSpace) = field(typeof(W))
+
+spacetype(::Type{<:HomSpace{S}}) where S = S
 field(L::Type{<:HomSpace}) = field(spacetype(L))
 sectortype(L::Type{<:HomSpace}) = sectortype(spacetype(L))
 
@@ -52,14 +54,15 @@ function Base.show(io::IO, W::HomSpace)
     end
 end
 
-# NOTE: do we need this
 function blocksectors(W::HomSpace)
-    sectortype(S) === Trivial && return (Trivial(),)
-    return intersect(blocksectors(W.codom), blocksectors(W.dom))
+    sectortype(W) === Trivial && return (Trivial(),)
+    return intersect(blocksectors(codomain(W)), blocksectors(domain(W)))
 end
 
-# NOTE: do we need this
-function blocksectors(codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S,N₁,N₂}
-    sectortype(S) === Trivial && return (Trivial(),)
-    return intersect(blocksectors(codom), blocksectors(dom))
+function dim(W::HomSpace)
+    d = 0
+    for c in blocksectors(W)
+        d += blockdim(codomain(W), c) * blockdim(domain(W), c)
+    end
+    return d
 end

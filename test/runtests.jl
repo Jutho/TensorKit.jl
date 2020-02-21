@@ -46,7 +46,13 @@ function hasfusiontensor(G::Type{<:Sector})
     end
 end
 
+Ti = time()
 include("sectors.jl")
 include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")
+Tf = time()
+printstyled("Finished all tests in ",
+            string(round((Tf-Ti)/60; sigdigits=3)),
+            " minutes."; bold = true, color = Base.info_color())
+println()

@@ -57,6 +57,8 @@ end
     @test dim(@inferred(typeof(V)())) == 0
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
+    W = @inferred ℝ[1]
+    @test @inferred(oneunit(V)) == W == oneunit(typeof(V))
     @test ⊕(V,V) == ℝ^(2d)
     @test @inferred min(V, ℝ^3) == V
     @test @inferred max(V', ℝ^3) == ℝ^3
@@ -80,7 +82,8 @@ end
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
-    @test dim(@inferred(typeof(V)())) == 0
+    W = @inferred ℂ[1]
+    @test @inferred(oneunit(V)) == W == oneunit(typeof(V))
     @test @inferred(⊕(V,V)) == ℂ^(2d)
     @test_throws SpaceMismatch (⊕(V, V'))
     @test_throws MethodError (⊕(ℝ^d, ℂ^d))
@@ -125,12 +128,15 @@ end
     @test V == @inferred RepresentationSpace{G}(gen...)
     @test V' == @inferred RepresentationSpace{G}(gen...; dual = true)
     @test @inferred(hash(V)) == hash(deepcopy(V)) != hash(V')
+    @test V == RepresentationSpace(reverse(collect(gen))...)
     @test eval(Meta.parse(sprint(show,V))) == V
     @test eval(Meta.parse(sprint(show,typeof(V)))) == typeof(V)
-    W = RepresentationSpace(one(G)=>1) # space with a single sector
-    @test W == RepresentationSpace(one(G)=>1, randsector(G) => 0)
     # space with no sectors
     @test dim(@inferred(typeof(V)())) == 0
+    # space with a single sector
+    W = @inferred ℂ[one(G)=>1]
+    @test W == RepresentationSpace(one(G)=>1, randsector(G) => 0)
+    @test @inferred(oneunit(V)) == W == oneunit(typeof(V))
     # randsector never returns trivial sector, so this cannot error
     @test_throws ArgumentError RepresentationSpace(one(G)=>1, randsector(G) => 0, one(G)=>3)
     @test eval(Meta.parse(sprint(show,W))) == W
@@ -156,6 +162,84 @@ end
     @test V == @inferred min(V, ⊕(V,V))
     @test min(V, RepresentationSpace(one(G)=>3)) == RepresentationSpace(one(G)=>2)
     @test_throws SpaceMismatch (⊕(V, V'))
+end
+
+@testset TimedTestSet "ProductSpace{ℂ}" begin
+    V1, V2, V3, V4 = ℂ[1], ℂ[2], ℂ[3], ℂ[4]
+    P = @inferred ProductSpace(V1, V2, V3, V4)
+    @test eval(Meta.parse(sprint(show,P))) == P
+    @test eval(Meta.parse(sprint(show,typeof(P)))) == typeof(P)
+    @test isa(P, VectorSpace)
+    @test isa(P, CompositeSpace)
+    @test spacetype(P) == ComplexSpace
+    @test sectortype(P) == Trivial
+    @test @inferred(hash(P)) == hash(deepcopy(P)) != hash(P')
+    @test P == deepcopy(P)
+    @test @inferred(dual(P)) == P'
+    @test @inferred(field(P)) == ℂ
+    @test @inferred(*(V1, V2, V3, V4)) == P
+    @test @inferred(⊗(V1, V2, V3, V4)) == P
+    @test @inferred(adjoint(P)) == dual(P) == V4' ⊗ V3' ⊗ V2' ⊗ V1'
+    @test @inferred(⊗(V1)) == ProductSpace(V1)
+    @test @inferred(one(V1)) == @inferred(one(typeof(V1))) ==
+                @inferred(one(P)) == @inferred(one(typeof(P))) ==
+                ProductSpace{ComplexSpace}(())
+    @test @inferred(dims(P)) == map(dim, (V1, V2, V3, V4))
+    @test @inferred(dim(P)) == prod(dim, (V1, V2, V3, V4))
+    @test @inferred(sectors(P)) ==
+            (mapreduce(sectors, (a,b)->tuple(a...,b...), (V1, V2, V3, V4)),)
+    @test @inferred(dims(P, first(sectors(P)))) == dims(P)
+    @test @inferred(blocksectors(P)) == (Trivial(),)
+    @test @inferred(blockdim(P, first(blocksectors(P)))) == dim(P)
+end
+
+@testset TimedTestSet "ProductSpace{SU₂Space}" begin
+    V1, V2, V3, V4, V5 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1),
+                            SU₂Space(1//2=>1, 1=>1)', SU₂Space(0=>2, 1//2=>2),
+                            SU₂Space(0=>1, 1//2=>1, 3//2=>1)'
+    W = TensorKit.HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
+    @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
+    @test W == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
+    @test W' == (V1 ⊗ V2 → V3 ⊗ V4 ⊗ V5)
+    @test eval(Meta.parse(sprint(show,W))) == W
+    @test eval(Meta.parse(sprint(show,typeof(W)))) == typeof(W)
+    @test spacetype(W) == SU₂Space
+    @test sectortype(W) == SU₂
+    @test W[1] == V1
+    @test W[2] == V2
+    @test W[3] == V3'
+    @test W[4] == V4'
+    @test W[5] == V5'
+    @test @inferred(hash(W)) == hash(deepcopy(W)) != hash(W')
+    @test W == deepcopy(W)
+end
+
+@testset TimedTestSet "HomSpace" begin
+    V1, V2, V3 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1), SU₂Space(1//2=>1, 1=>1)'
+    P = @inferred ProductSpace(V1, V2, V3)
+    @test eval(Meta.parse(sprint(show,P))) == P
+    @test eval(Meta.parse(sprint(show,typeof(P)))) == typeof(P)
+    @test isa(P, VectorSpace)
+    @test isa(P, CompositeSpace)
+    @test spacetype(P) == SU₂Space
+    @test sectortype(P) == SU₂
+    @test @inferred(hash(P)) == hash(deepcopy(P)) != hash(P')
+    @test @inferred(dual(P)) == P'
+    @test @inferred(field(P)) == ℂ
+    @test @inferred(*(V1, V2, V3)) == P
+    @test @inferred(⊗(V1, V2, V3)) == P
+    @test @inferred(adjoint(P)) == dual(P) == V3' ⊗ V2' ⊗ V1'
+    @test @inferred(⊗(V1)) == ProductSpace(V1)
+    @test @inferred(one(V1)) == @inferred(one(typeof(V1))) ==
+                @inferred(one(P)) == @inferred(one(typeof(P))) ==
+                ProductSpace{ComplexSpace}(())
+    @test @inferred(dims(P)) == map(dim, (V1, V2, V3))
+    @test @inferred(dim(P)) == prod(dim, (V1, V2, V3))
+    for s in @inferred(sectors(P))
+        @test hassector(P, s)
+        @test @inferred(dims(P, s)) == dim.((V1, V2, V3), s)
+    end
+    @test sum(dim(c)*blockdim(P,c) for c in @inferred(blocksectors(P))) == dim(P)
 end
 tf = time()
 printstyled("Finished vector space tests in ",

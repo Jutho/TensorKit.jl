@@ -504,13 +504,15 @@ on objects, whereas on morphisms ``f:W→V`` it defines a morphism ``f^†:V→W
 * ``\mathrm{id}_V^† = \mathrm{id}_V``
 * ``(f ∘ g)^† = f^† ∘^{\mathrm{op}} g^† = g^† ∘ f^†``
 * ``(f^†)^† = f``
+Sometimes also the symbol ``*`` is used instead of ``†``, however we have already used
+``*`` to denote dual objects and transposed morphisms in the case of a pivotal category.
 
 If the category is ``ℂ``-linear, the dagger functor is often assumed to be antilinear, i.e.
 ``(λ f)^† = \bar{λ} f^†`` for ``λ ∈ ℂ`` and ``f ∈ \mathrm{Hom}(V,W)``. In a dagger
 category, a morphism ``f:W→V`` is said to be *unitary* if it is an isomorphism and
 ``f^{-1} = f^†``. Furthermore, an endomorphism ``f:V→V`` is *hermitian* or self-adjoint if
 ``f^† = f``. Finally, we will also use the term *isometry* for a morphism `f:W→V` which has
-a left inverse ``f^\dagger``, i.e. such that ``f^† ∘ f = \mathrm{id}_W``, but for which
+a left inverse ``f^†``, i.e. such that ``f^† ∘ f = \mathrm{id}_W``, but for which
 ``f ∘ f^†`` is not necessarily the identity (but rather some orthogonal projector, i.e. a
 hermitian idempotent in ``\mathrm{End}(V)``).
 

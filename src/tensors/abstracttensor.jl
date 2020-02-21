@@ -53,6 +53,7 @@ source(t::AbstractTensorMap) = domain(t) # categorical terminology
 target(t::AbstractTensorMap) = codomain(t) # categorical terminology
 space(t::AbstractTensorMap) = HomSpace(codomain(t), domain(t))
 space(t::AbstractTensorMap, i::Int) = space(t)[i]
+dim(t::AbstractTensorMap) = dim(space(t))
 
 # some index manipulation utilities
 Base.@pure codomainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
