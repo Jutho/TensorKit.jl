@@ -26,6 +26,8 @@ LinearAlgebra.normalize(t::AbstractTensorMap, p::Real = 2) =
 Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) =
     mul!(similar(t1, promote_type(eltype(t1),eltype(t2)), codomain(t1)←domain(t2)), t1, t2)
 Base.exp(t::AbstractTensorMap) = exp!(copy(t))
+Base.:^(t::AbstractTensorMap, p::Integer) =
+    p < 0 ? Base.power_by_squaring(inv(t), -p) : Base.power_by_squaring(t, p)
 
 # Special purpose constructors
 #------------------------------
@@ -51,7 +53,8 @@ Construct the identity endomorphism on space `space`, i.e. return a `t::TensorMa
 """
 id(A, V::ElementarySpace) = id(A, ProductSpace(V))
 id(V::VectorSpace) = id(Matrix{Float64}, V)
-id(A::Type{<:DenseMatrix}, P::ProductSpace) = one!(TensorMap(s->A(undef, s), P, P))
+id(::Type{A}, P::ProductSpace) where {A<:DenseMatrix} =
+    one!(TensorMap(s->A(undef, s), P, P))
 
 """
     isomorphism([A::Type{<:DenseMatrix} = Matrix{Float64},]
@@ -72,7 +75,7 @@ isomorphism(P::TensorMapSpace) = isomorphism(P[1], P[2])
 isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isomorphism(A, P[1], P[2])
 isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
     isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
-function isomorphism(A::Type{<:DenseMatrix}, cod::ProductSpace, dom::ProductSpace)
+function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:DenseMatrix}
     spacetype(cod) == spacetype(dom) ||
         throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
     for c in union(blocksectors(cod), blocksectors(dom))
@@ -126,9 +129,9 @@ isometry(P::EuclideanTensorMapSpace) = isometry(P[1], P[2])
 isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isometry(A, P[1], P[2])
 isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
     isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
-function isometry(A::Type{<:DenseMatrix},
+function isometry(::Type{A},
                     cod::ProductSpace{S},
-                    dom::ProductSpace{S}) where {S<:EuclideanSpace}
+                    dom::ProductSpace{S}) where {A<:DenseMatrix, S<:EuclideanSpace}
     spacetype(cod) == spacetype(dom) || throw(SpaceMismatch())
     for c in union(blocksectors(cod), blocksectors(dom))
         blockdim(cod, c) >= blockdim(dom, c) ||

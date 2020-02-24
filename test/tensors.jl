@@ -82,6 +82,17 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test dot(t2,t) ≈ conj(dot(t, t2))
             @test dot(t2,t) ≈ conj(dot(t2', t'))
             @test dot(t2,t) ≈ dot(t', t2')
+
+            i1 = @inferred(isomorphism(Matrix{T}, V1 ⊗ V2, V2 ⊗ V1))
+            i2 = @inferred(isomorphism(Matrix{T}, V2 ⊗ V1, V1 ⊗ V2))
+            @test i1 * i2 == @inferred(id(Matrix{T}, V1 ⊗ V2))
+            @test i2 * i1 == @inferred(id(Matrix{T}, V2 ⊗ V1))
+
+
+            w = @inferred(isometry(Matrix{T}, V1 ⊗ (oneunit(V1) ⊕ oneunit(V1)), V1))
+            @test dim(w) == 2*dim(V1←V1)
+            @test w'*w == id(Matrix{T}, V1)
+            @test w*w' == (w*w')^2
         end
     end
     @testset TimedTestSet "Basic linear algebra: test via conversion" begin
