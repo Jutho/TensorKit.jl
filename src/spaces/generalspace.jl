@@ -45,4 +45,3 @@ function Base.show(io::IO, V::GeneralSpace{𝕜}) where {𝕜}
         print(io, ")")
     end
 end
-Base.show(io::IO, ::Type{GeneralSpace}) = print(io, "GeneralSpace")

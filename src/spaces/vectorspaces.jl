@@ -28,6 +28,7 @@ Base.@pure Base.issubset(::Type{<:Number}, ::ComplexNumbers) = true
 Base.@pure Base.issubset(::RealNumbers, ::RealNumbers) = true
 Base.@pure Base.issubset(::RealNumbers, ::ComplexNumbers) = true
 Base.@pure Base.issubset(::ComplexNumbers, ::RealNumbers) = false
+Base.@pure Base.issubset(::ComplexNumbers, ::ComplexNumbers) = true
 
 # VECTOR SPACES:
 #==============================================================================#
