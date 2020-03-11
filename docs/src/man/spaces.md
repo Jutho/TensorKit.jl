@@ -269,7 +269,7 @@ left inverse, but possibly without right inverse) from both `V` to `V1` and `V` 
 Vice versa, `max(V1,V2)` should be the minimal space space `V` such that there exist
 isometries `V1→V` and `V2→V`.
 
-## Space of morphisms
+## [Space of morphisms](@id ss_homspaces)
 Given that we define tensor maps as morphisms in a ``𝕜``-linear monoidal category, i.e.
 linear maps, we also define a type to denote the corresponding space. Indeed, in a
 ``𝕜``-linear category ``C``, the set of morphisms ``\mathrm{Hom}(W,V)`` for ``V,W ∈ C`` is

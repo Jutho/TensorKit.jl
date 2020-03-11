@@ -918,16 +918,17 @@ computationally more efficient. However, the end result should be the same, prov
 pentagon and hexagon equations are satisfied. We always assume that these are satisfied for
 any new subtype of `Sector`, and it is up to the user to verify that they are when
 implementing new custom `Sector` types. This result is implemented in the function
-[`artin_braid(f::FusionTree, i; inv = false)`](@ref) where `i` denotes the position of the
-first sector (i.e. labeled `b` in the above graph) which is then braided with the sector at
-position `i+1` in the fusion tree `f`. The keyword argument `inv` allows to select the
-inverse braiding operation, which amounts to replacing the R-matrix with its inverse (or
-thus, adjoint) in the above steps. The result is returned as a dictionary with possible
-output fusion trees as keys and corresponding coefficients as value. In the case of
-`FusionStyle(G) == Abelian()`, their is only one resulting fusion tree, with corresponding
-coefficient a complex phase (which is one for the bosonic representation theory of an
-Abelian group), and the result is a special `SingletonDict<:AbstractDict`, a `struct`
-type defined in TensorKit.jl to hold a single key value pair.
+[`artin_braid(f::FusionTree, i; inv = false)`](@ref TensorKit.artin_braid) where `i`
+denotes the position of the first sector (i.e. labeled `b` in the above graph) which is then
+braided with the sector at position `i+1` in the fusion tree `f`. The keyword argument `inv`
+allows to select the inverse braiding operation, which amounts to replacing the R-matrix
+with its inverse (or thus, adjoint) in the above steps. The result is returned as a
+dictionary with possible output fusion trees as keys and corresponding coefficients as
+value. In the case of `FusionStyle(G) == Abelian()`, their is only one resulting fusion
+tree, with corresponding coefficient a complex phase (which is one for the bosonic
+representation theory of an Abelian group), and the result is a special
+`SingletonDict<:AbstractDict`, a `struct` type defined in TensorKit.jl to hold a single key
+value pair.
 
 With the elementary `artin_braid`, we can then compute a more general braid. For this, we
 provide an interface
@@ -960,31 +961,31 @@ the interface
 
 Other manipulations which are sometimes needed are
 
-*   [insertat(f1::FusionTree{G,N₁}, i::Int, f2::FusionTree{G,N₂})](@ref) : inserts a fusion
-    tree `f2` at the `i`th uncoupled sector of fusion tree `f1` (this requires that the
-    coupled sector `f2` matches with the `i`th uncoupled sector of `f1`, and that
-    `!f1.isdual[i]`, i.e. that there is no ``Z``-isomorphism on the `i`th line of `f1`),
-    and recouple this into a linear combination of trees in canonical order, with `N₁+N₂-1`
-    uncoupled sectors, i.e. diagrammatically for `i=3`
+*   [insertat(f1::FusionTree{G,N₁}, i::Int, f2::FusionTree{G,N₂})](@ref TensorKit.insertat) :
+    inserts a fusion tree `f2` at the `i`th uncoupled sector of fusion tree `f1` (this
+    requires that the coupled sector `f2` matches with the `i`th uncoupled sector of `f1`,
+    and that `!f1.isdual[i]`, i.e. that there is no ``Z``-isomorphism on the `i`th line of
+    `f1`), and recouple this into a linear combination of trees in canonical order, with
+    `N₁+N₂-1` uncoupled sectors, i.e. diagrammatically for `i=3`
 
     ![insertat](img/tree-insertat.svg)
 
-*   [split(f::FusionTree{G,N}, StaticLength(M))](@ref) : splits a fusion tree `f` into
-    two trees `f1` and `f2`, such that `f1` has the first `M` uncoupled sectors of `f`, and
-    `f2` the remaining `N-M`. This is the inverse of `insertat` in the sence that
-    `insertat(f2, 1, f1)` should return a dictionary with a single key-value pair `f=>1`.
-    Here, `M` is specified via `StaticLength` which is a value type (i.e. it encodes the
-    value of `M` in compile time information) exported by TensorKit.jl (actually defined in
-    TupleTools.jl) which supports basic arithmitic. Diagrammatically, for `M=4`, the
-    function `split` returns
+*   [split(f::FusionTree{G,N}, StaticLength(M))](@ref TensorKit.split) :
+    splits a fusion tree `f` into two trees `f1` and `f2`, such that `f1` has the first `M`
+    uncoupled sectors of `f`, and `f2` the remaining `N-M`. This is the inverse of
+    `insertat` in the sence that `insertat(f2, 1, f1)` should return a dictionary with a
+    single key-value pair `f=>1`. Here, `M` is specified via `StaticLength` which is a value
+    type (i.e. it encodes the value of `M` in compile time information) exported by
+    TensorKit.jl (actually defined in TupleTools.jl) which supports basic arithmitic.
+    Diagrammatically, for `M=4`, the function `split` returns
 
     ![split](img/tree-split.svg)
 
-*   [merge(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}, c::G, μ=nothing)](@ref) : merges two
-    fusion trees `f1` and `f2` by fusing the coupled sectors of `f1` and `f2` into a sector
-    `c` (with vertex label `μ` if `FusionStyle(G) == DegenerateNonAbelian()`), and
-    reexpressing the result as a linear combination of fusion trees with `N₁+N₂` uncoupled
-    sectors in canonical order. This is a simple application of `insertat`.
+*   [merge(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}, c::G, μ=nothing)](@ref TensorKit.merge) :
+    merges two fusion trees `f1` and `f2` by fusing the coupled sectors of `f1` and `f2`
+    into a sector `c` (with vertex label `μ` if `FusionStyle(G) == DegenerateNonAbelian()`),
+    and reexpressing the result as a linear combination of fusion trees with `N₁+N₂`
+    uncoupled sectors in canonical order. This is a simple application of `insertat`.
     Diagrammatically, this operation is represented as:
 
     ![merge](img/tree-merge.svg)
@@ -1177,7 +1178,7 @@ dim(τ)
 F𝟙 = Fsymbol(τ,τ,τ,𝟙,τ,τ)
 Fτ = [Fsymbol(τ,τ,τ,τ,𝟙,𝟙) Fsymbol(τ,τ,τ,τ,𝟙,τ); Fsymbol(τ,τ,τ,τ,τ,𝟙) Fsymbol(τ,τ,τ,τ,τ,τ)]
 Fτ'*Fτ
-polar(x) = rationalize.((abs(x), angle(x)/(2π)))
+polar(x) = rationalize.((abs(x), angle(x)/(2pi)))
 Rsymbol(τ,τ,𝟙) |> polar
 Rsymbol(τ,τ,τ) |> polar
 twist(τ) |> polar

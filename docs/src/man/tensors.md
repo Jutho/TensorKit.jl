@@ -259,20 +259,15 @@ could thus contain `NaN`s.
 
 In all of these constructors, the last two arguments can be replaced by `domain→codomain`
 or `codomain←domain`, where the arrows are obtained as `\rightarrow+TAB` and
-`\leftarrow+TAB`. These arrows just create a Julia `Pair`, i.e. also `domain => codomain`
-can be used, provided that `domain` and `codomain` are of type `ProductSpace`. The
-advantage of the unicode arrows is that they will also convert a single instance of type
-`S<:ElementarySpace` to a corresponding `ProductSpace{S,1}`. Some examples are perhaps in
-order
+`\leftarrow+TAB` and create a `HomSpace` as explained in the section on
+["Spaces of morphisms"](@ref ss_homspaces). Some examples are perhaps in order
 
 ```@repl tensors
 t1 = TensorMap(randnormal, ℂ^2 ⊗ ℂ^3, ℂ^2)
 t2 = TensorMap(randisometry, Float32, ℂ^2 ⊗ ℂ^3 ← ℂ^2)
 t3 = TensorMap(undef, ℂ^2 → ℂ^2 ⊗ ℂ^3)
-t4failed = TensorMap(undef, ComplexF64, ℂ^2 => ℂ^2 ⊗ ℂ^3)
-t4 = TensorMap(undef, ComplexF64, ProductSpace(ℂ^2) => ℂ^2 ⊗ ℂ^3)
-domain(t1) == domain(t2) == domain(t3) == domain(t4)
-codomain(t1) == codomain(t2) == codomain(t3) == codomain(t4)
+domain(t1) == domain(t2) == domain(t3)
+codomain(t1) == codomain(t2) == codomain(t3)
 disp(x) = show(IOContext(Core.stdout, :compact=>false), "text/plain", trunc.(x; digits = 3));
 t1[] |> disp
 block(t1, Trivial()) |> disp
@@ -1064,8 +1059,6 @@ or
 ```
 where the latter syntax is known as NCON-style, and labels the unconnected or outgoing
 indices with negative integers, and the contracted indices with positive integers.
-TensorOperations.jl accepts both integers and any valid variable name as dummy label for
-indices, however, the l
 
 A number of remarks are in order. TensorOperations.jl accepts both integers and any valid
 variable name as dummy label for indices, and everything in between `[ ]` is not resolved in
@@ -1082,7 +1075,7 @@ is only unambiguous for a symmetric braiding, where there is a unique way to per
 indices.
 
 With the current syntax, we create a new object `E` because we use the definition operator
-`:=`. Furthermore, with the current synbtax, it will be a `Tensor`, i.e. it will have a
+`:=`. Furthermore, with the current syntax, it will be a `Tensor`, i.e. it will have a
 trivial domain, and correspond to the dotted box in the picture above, rather than the
 actual morphism `E`. We can also directly define `E` with the correct codomain and domain by rather using
 ```julia
