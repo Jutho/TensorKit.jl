@@ -82,7 +82,7 @@ methods
 *   `dual(::S) where {S<:ElementarySpace} -> ::S` returns the
     [dual space](http://en.wikipedia.org/wiki/Dual_space) `dual(V)`, using an instance of
     the same concrete type (i.e. not via type parameters); this should satisfy
-    `dual(dual(V)==V`
+    `dual(dual(V))==V`
 
 *   `conj(::S) where {S<:ElementarySpace} -> ::S` returns the
     [complex conjugate space](http://en.wikipedia.org/wiki/Complex_conjugate_vector_space)
