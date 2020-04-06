@@ -358,14 +358,38 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset TimedTestSet "Exponentiation" begin
+    @testset TimedTestSet "Tensor functions" begin
         W = V1 ⊗ V2 ⊗ V3
-        for T in (Float32, ComplexF64)
-            t = TensorMap(rand, T, W, W)
+        for T in (Float64, ComplexF64)
+            t = TensorMap(randn, T, W, W)
             s = dim(W)
             expt = @inferred exp(t)
             @test reshape(convert(Array, expt), (s,s)) ≈
                     exp(reshape(convert(Array, t), (s,s)))
+            @test exp(@inferred log(t)) ≈ t # reverse order not necessarily true due to branch cuts
+            @test (@inferred sqrt(t))^2 ≈ t
+            @test (@inferred cos(t))^2 + (@inferred sin(t))^2 ≈ id(W)
+            @test (@inferred tan(t)) ≈ sin(t)/cos(t)
+            @test (@inferred cot(t)) ≈ cos(t)/sin(t)
+            @test (@inferred cosh(t))^2 - (@inferred sinh(t))^2 ≈ id(W)
+            @test (@inferred tanh(t)) ≈ sinh(t)/cosh(t)
+            @test (@inferred coth(t)) ≈ cosh(t)/sinh(t)
+            t1 = sin(t)
+            @test sin(@inferred asin(t1)) ≈ t1
+            t2 = cos(t)
+            @test cos(@inferred acos(t2)) ≈ t2
+            t3 = sinh(t)
+            @test sinh(@inferred asinh(t3)) ≈ t3
+            t4 = cosh(t)
+            @test cosh(@inferred acosh(t4)) ≈ t4
+            t5 = tan(t)
+            @test tan(@inferred atan(t5)) ≈ t5
+            t6 = cot(t)
+            @test cot(@inferred acot(t6)) ≈ t6
+            t7 = tanh(t)
+            @test tanh(@inferred atanh(t7)) ≈ t7
+            t8 = coth(t)
+            @test coth(@inferred acoth(t8)) ≈ t8
         end
     end
     @testset TimedTestSet "Tensor product: test via norm preservation" begin

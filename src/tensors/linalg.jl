@@ -326,6 +326,48 @@ function exp!(t::TensorMap)
     return t
 end
 
+# functions that map ℝ to (a subset of) ℝ
+for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh)
+    sf = string(f)
+    @eval function Base.$f(t::AbstractTensorMap)
+        domain(t) == codomain(t) ||
+            error("$sf of a tensor only exist when domain == codomain.")
+        G = sectortype(t)
+        T = similarstoragetype(t, float(eltype(t)))
+        if sectortype(t) isa Trivial
+            if eltype(t) <: Real
+                data = T(real($f(t[])))
+            else
+                data = T($f(t[]))
+            end
+            return TensorMap(data, codomain(t), domain(t))
+        else
+            if eltype(t) <: Real
+                data = SectorDict{G,T}(c=>T(real($f(b))) for (c,b) in blocks(t))
+            else
+                data = SectorDict{G,T}(c=>T($f(b)) for (c,b) in blocks(t))
+            end
+            return TensorMap(data, codomain(t), domain(t))
+        end
+    end
+end
+# functions that don't map ℝ to (a subset of) ℝ
+for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
+    sf = string(f)
+    @eval function Base.$f(t::AbstractTensorMap)
+        domain(t) == codomain(t) ||
+            error("$sf of a tensor only exist when domain == codomain.")
+        G = sectortype(t)
+        T = similarstoragetype(t, complex(float(eltype(t))))
+        if sectortype(t) isa Trivial
+            return TensorMap(T($f(t[])), codomain(t), domain(t))
+        else
+            data = SectorDict{G,T}(c=>T($f(b)) for (c,b) in blocks(t))
+            return TensorMap(data, codomain(t), domain(t))
+        end
+    end
+end
+
 # # concatenate tensors
 # function concatenate(t1::AbstractTensorMap{S}, ts::AbstractTensorMap{S}...; direction::Symbol) where {S}
 #     if direction = :domain
