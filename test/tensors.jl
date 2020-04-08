@@ -371,6 +371,11 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test reshape(convert(Array, sqrt(t^2)), (s,s)) ≈
                     sqrt(reshape(convert(Array, t^2), (s,s)))
 
+            @test exp(@inferred log(expt)) ≈ expt
+            @test reshape(convert(Array, log(expt)), (s,s)) ≈
+                    log(reshape(convert(Array, expt), (s,s)))
+
+
             @test (@inferred cos(t))^2 + (@inferred sin(t))^2 ≈ id(W)
             @test (@inferred tan(t)) ≈ sin(t)/cos(t)
             @test (@inferred cot(t)) ≈ cos(t)/sin(t)
@@ -378,28 +383,22 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test (@inferred tanh(t)) ≈ sinh(t)/cosh(t)
             @test (@inferred coth(t)) ≈ cosh(t)/sinh(t)
 
-            @static if VERSION >= v"1.0.6"
-                @test exp(@inferred log(expt)) ≈ expt
-                @test reshape(convert(Array, log(expt)), (s,s)) ≈
-                        log(reshape(convert(Array, expt), (s,s)))
-
-                t1 = sin(t)
-                @test sin(@inferred asin(t1)) ≈ t1
-                t2 = cos(t)
-                @test cos(@inferred acos(t2)) ≈ t2
-                t3 = sinh(t)
-                @test sinh(@inferred asinh(t3)) ≈ t3
-                t4 = cosh(t)
-                @test cosh(@inferred acosh(t4)) ≈ t4
-                t5 = tan(t)
-                @test tan(@inferred atan(t5)) ≈ t5
-                t6 = cot(t)
-                @test cot(@inferred acot(t6)) ≈ t6
-                t7 = tanh(t)
-                @test tanh(@inferred atanh(t7)) ≈ t7
-                t8 = coth(t)
-                @test coth(@inferred acoth(t8)) ≈ t8
-            end
+            t1 = sin(t)
+            @test sin(@inferred asin(t1)) ≈ t1
+            t2 = cos(t)
+            @test cos(@inferred acos(t2)) ≈ t2
+            t3 = sinh(t)
+            @test sinh(@inferred asinh(t3)) ≈ t3
+            t4 = cosh(t)
+            @test cosh(@inferred acosh(t4)) ≈ t4
+            t5 = tan(t)
+            @test tan(@inferred atan(t5)) ≈ t5
+            t6 = cot(t)
+            @test cot(@inferred acot(t6)) ≈ t6
+            t7 = tanh(t)
+            @test tanh(@inferred atanh(t7)) ≈ t7
+            t8 = coth(t)
+            @test coth(@inferred acoth(t8)) ≈ t8
         end
     end
     @testset TimedTestSet "Tensor product: test via norm preservation" begin

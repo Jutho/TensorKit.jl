@@ -344,11 +344,11 @@ for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asi
             return TensorMap(data, codomain(t), domain(t))
         else
             if eltype(t) <: Real
-                data = SectorDict{G,T}(c=>real($f(b)) for (c,b) in blocks(t))
+                datadict = SectorDict{G,T}(c=>real($f(b)) for (c,b) in blocks(t))
             else
-                data = SectorDict{G,T}(c=>$f(b) for (c,b) in blocks(t))
+                datadict = SectorDict{G,T}(c=>$f(b) for (c,b) in blocks(t))
             end
-            return TensorMap(data, codomain(t), domain(t))
+            return TensorMap(datadict, codomain(t), domain(t))
         end
     end
 end
