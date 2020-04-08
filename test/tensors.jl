@@ -359,15 +359,22 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         end
     end
     @testset TimedTestSet "Tensor functions" begin
-        W = V1 ⊗ V2 ⊗ V3
+        W = V1 ⊗ V2
         for T in (Float64, ComplexF64)
             t = TensorMap(randn, T, W, W)
             s = dim(W)
             expt = @inferred exp(t)
             @test reshape(convert(Array, expt), (s,s)) ≈
                     exp(reshape(convert(Array, t), (s,s)))
-            @test exp(@inferred log(t)) ≈ t # reverse order not necessarily true due to branch cuts
+
+            @test exp(@inferred log(expt)) ≈ expt
+            @test reshape(convert(Array, log(expt)), (s,s)) ≈
+                    log(reshape(convert(Array, expt), (s,s)))
+
             @test (@inferred sqrt(t))^2 ≈ t
+            @test reshape(convert(Array, sqrt(t^2)), (s,s)) ≈
+                    sqrt(reshape(convert(Array, t^2), (s,s)))
+
             @test (@inferred cos(t))^2 + (@inferred sin(t))^2 ≈ id(W)
             @test (@inferred tan(t)) ≈ sin(t)/cos(t)
             @test (@inferred cot(t)) ≈ cos(t)/sin(t)
