@@ -334,18 +334,19 @@ for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asi
             error("$sf of a tensor only exist when domain == codomain.")
         G = sectortype(t)
         T = similarstoragetype(t, float(eltype(t)))
-        if sectortype(t) isa Trivial
+        if sectortype(t) === Trivial
+            local data::T
             if eltype(t) <: Real
-                data = T(real($f(t[])))
+                data = real($f(block(t, Trivial())))
             else
-                data = T($f(t[]))
+                data = $f(block(t, Trivial()))
             end
             return TensorMap(data, codomain(t), domain(t))
         else
             if eltype(t) <: Real
-                data = SectorDict{G,T}(c=>T(real($f(b))) for (c,b) in blocks(t))
+                data = SectorDict{G,T}(c=>real($f(b)) for (c,b) in blocks(t))
             else
-                data = SectorDict{G,T}(c=>T($f(b)) for (c,b) in blocks(t))
+                data = SectorDict{G,T}(c=>$f(b) for (c,b) in blocks(t))
             end
             return TensorMap(data, codomain(t), domain(t))
         end
@@ -359,11 +360,12 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
             error("$sf of a tensor only exist when domain == codomain.")
         G = sectortype(t)
         T = similarstoragetype(t, complex(float(eltype(t))))
-        if sectortype(t) isa Trivial
-            return TensorMap(T($f(t[])), codomain(t), domain(t))
-        else
-            data = SectorDict{G,T}(c=>T($f(b)) for (c,b) in blocks(t))
+        if sectortype(t) === Trivial
+            data::T = $f(block(t, Trivial()))
             return TensorMap(data, codomain(t), domain(t))
+        else
+            datadict = SectorDict{G,T}(c=>$f(b) for (c,b) in blocks(t))
+            return TensorMap(datadict, codomain(t), domain(t))
         end
     end
 end
