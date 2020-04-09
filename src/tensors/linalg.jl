@@ -72,7 +72,8 @@ See also [`unitary`](@ref) when `spacetype(cod) isa EuclideanSpace`.
 """
 isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
 isomorphism(P::TensorMapSpace) = isomorphism(codomain(P), domain(P))
-isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isomorphism(A, P[1], P[2])
+isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) =
+    isomorphism(A, codomain(P), domain(P))
 isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
     isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
 function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:DenseMatrix}
@@ -126,7 +127,8 @@ inclusion, an error will be thrown.
 isometry(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
     isometry(Matrix{Float64}, cod, dom)
 isometry(P::EuclideanTensorMapSpace) = isometry(codomain(P), domain(P))
-isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isometry(A, P[1], P[2])
+isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) =
+    isometry(A, codomain(P), domain(P))
 isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
     isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
 function isometry(::Type{A},
