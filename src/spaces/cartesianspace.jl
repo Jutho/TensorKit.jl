@@ -9,6 +9,15 @@ struct CartesianSpace <: EuclideanSpace{ℝ}
     d::Int
 end
 CartesianSpace(d::Integer = 0; dual = false) = CartesianSpace(Int(d))
+function CartesianSpace(dim::Pair; dual = false)
+    if dim.first === Trivial()
+        return CartesianSpace(dim.second; dual = dual)
+    else
+        msg = "$(dim) is not a valid dimension for CartesianSpace"
+        throw(ArgumentError(msg))
+    end
+end
+CartesianSpace(dim::AbstractDict; dual = false) = CartesianSpace(dim...; dual = dual)
 
 Base.getindex(::RealNumbers) = CartesianSpace
 Base.getindex(::RealNumbers, d::Int) = CartesianSpace(d)

@@ -56,6 +56,7 @@ end
     @test isa(V, CartesianSpace)
     @test !isdual(V)
     @test !isdual(V')
+    @test V == CartesianSpace(Trivial() => d) == CartesianSpace(Dict(Trivial() => d))
     @test @inferred(hash(V)) == hash(deepcopy(V))
     @test V == @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V))
     @test field(V) == ℝ
@@ -91,6 +92,7 @@ end
     @test isa(V, ComplexSpace)
     @test !isdual(V)
     @test isdual(V')
+    @test V == ComplexSpace(Trivial() => d) == ComplexSpace(Dict(Trivial() => d))
     @test @inferred(hash(V)) == hash(deepcopy(V)) != hash(V')
     @test @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V)) != V
     @test @inferred(field(V)) == ℂ
