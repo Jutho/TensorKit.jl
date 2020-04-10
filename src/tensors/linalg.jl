@@ -71,8 +71,9 @@ specific isomorphism, but the current choice is such that
 See also [`unitary`](@ref) when `spacetype(cod) isa EuclideanSpace`.
 """
 isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
-isomorphism(P::TensorMapSpace) = isomorphism(P[1], P[2])
-isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isomorphism(A, P[1], P[2])
+isomorphism(P::TensorMapSpace) = isomorphism(codomain(P), domain(P))
+isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) =
+    isomorphism(A, codomain(P), domain(P))
 isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
     isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
 function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:DenseMatrix}
@@ -125,8 +126,9 @@ inclusion, an error will be thrown.
 """
 isometry(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
     isometry(Matrix{Float64}, cod, dom)
-isometry(P::EuclideanTensorMapSpace) = isometry(P[1], P[2])
-isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isometry(A, P[1], P[2])
+isometry(P::EuclideanTensorMapSpace) = isometry(codomain(P), domain(P))
+isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) =
+    isometry(A, codomain(P), domain(P))
 isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
     isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
 function isometry(::Type{A},
@@ -324,6 +326,50 @@ function exp!(t::TensorMap)
         copyto!(b, LinearAlgebra.exp!(b))
     end
     return t
+end
+
+# functions that map ℝ to (a subset of) ℝ
+for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh)
+    sf = string(f)
+    @eval function Base.$f(t::AbstractTensorMap)
+        domain(t) == codomain(t) ||
+            error("$sf of a tensor only exist when domain == codomain.")
+        G = sectortype(t)
+        T = similarstoragetype(t, float(eltype(t)))
+        if sectortype(t) === Trivial
+            local data::T
+            if eltype(t) <: Real
+                data = real($f(block(t, Trivial())))
+            else
+                data = $f(block(t, Trivial()))
+            end
+            return TensorMap(data, codomain(t), domain(t))
+        else
+            if eltype(t) <: Real
+                datadict = SectorDict{G,T}(c=>real($f(b)) for (c,b) in blocks(t))
+            else
+                datadict = SectorDict{G,T}(c=>$f(b) for (c,b) in blocks(t))
+            end
+            return TensorMap(datadict, codomain(t), domain(t))
+        end
+    end
+end
+# functions that don't map ℝ to (a subset of) ℝ
+for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
+    sf = string(f)
+    @eval function Base.$f(t::AbstractTensorMap)
+        domain(t) == codomain(t) ||
+            error("$sf of a tensor only exist when domain == codomain.")
+        G = sectortype(t)
+        T = similarstoragetype(t, complex(float(eltype(t))))
+        if sectortype(t) === Trivial
+            data::T = $f(block(t, Trivial()))
+            return TensorMap(data, codomain(t), domain(t))
+        else
+            datadict = SectorDict{G,T}(c=>$f(b) for (c,b) in blocks(t))
+            return TensorMap(datadict, codomain(t), domain(t))
+        end
+    end
 end
 
 # # concatenate tensors
