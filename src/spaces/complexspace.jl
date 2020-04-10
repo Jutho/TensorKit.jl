@@ -10,6 +10,15 @@ struct ComplexSpace <: EuclideanSpace{ℂ}
   dual::Bool
 end
 ComplexSpace(d::Integer = 0; dual = false) = ComplexSpace(Int(d), dual)
+function ComplexSpace(dim::Pair; dual = false)
+    if dim.first === Trivial()
+        return ComplexSpace(dim.second; dual = dual)
+    else
+        msg = "$(dim) is not a valid dimension for ComplexSpace"
+        throw(ArgumentError(msg))
+    end
+end
+ComplexSpace(dims::AbstractDict; dual = false) = ComplexSpace(dims...; dual = dual)
 
 # convenience constructor
 Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)
