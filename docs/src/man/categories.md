@@ -302,13 +302,13 @@ functioral requirement that ``{}^{∨}(\mathrm{id}_V) = \mathrm{id}_{{}^{∨}V}`
 
 In all of this, left and right duality can be completely distinct. Equivalently, the left
 dual of the left dual of an object ``V``, i.e. ``{}^{∨∨}V`` is not necessarily ``V`` itself,
-nor do the exact pairings enable us to construct an isomorphism between `{}^{∨∨}V` and `V`.
+nor do the exact pairings enable us to construct an isomorphism between ``{}^{∨∨}V`` and ``V``.
 For finite-dimensional vector spaces, however, ``{}^{∨∨}V`` and ``V``, or thus ``{}^{∨}V``
 and ``V^{∨}`` are known to be isomorphic. The categorical generalization is that of a
 **pivotal category** (or sovereign category), i.e. a monoidal category with two-sided duals
 ``X^* = {}^{∨}X = X^{∨} = X^*`` such that the left and right duality functor coincide, and
 thus also the left and right transpose of morphisms, i.e.
-``f^* = {}^{∨}f = f^{∨} ∈ \mathrm{Hom}(V^*,W*)`` for any ``f∈\mathrm{Hom}(W,V)``. Given that
+``f^* = {}^{∨}f = f^{∨} ∈ \mathrm{Hom}(V^*,W^*)`` for any ``f∈\mathrm{Hom}(W,V)``. Given that
 ``\tilde{ϵ}_{X}`` and ``\tilde{η}_{X}`` can be interpreted as an exact pairing ``ϵ_{X^*}``
 and ``η_{X^*}``, this can be used to recognize ``X`` as a left dual of ``X^*``, which is
 then not necessarily equal but at least isomorphic to ``X^{**}`` with the isomorphism given
