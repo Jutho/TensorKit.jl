@@ -15,7 +15,7 @@ function ComplexSpace(dim::Pair; dual = false)
         return ComplexSpace(dim.second; dual = dual)
     else
         msg = "$(dim) is not a valid dimension for ComplexSpace"
-        throw(ArgumentError(msg))
+        throw(SectorMismatch(msg))
     end
 end
 ComplexSpace(dims::AbstractDict; dual = false) = ComplexSpace(dims...; dual = dual)

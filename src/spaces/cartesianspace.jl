@@ -14,7 +14,7 @@ function CartesianSpace(dim::Pair; dual = false)
         return CartesianSpace(dim.second; dual = dual)
     else
         msg = "$(dim) is not a valid dimension for CartesianSpace"
-        throw(ArgumentError(msg))
+        throw(SectorMismatch(msg))
     end
 end
 CartesianSpace(dim::AbstractDict; dual = false) = CartesianSpace(dim...; dual = dual)
