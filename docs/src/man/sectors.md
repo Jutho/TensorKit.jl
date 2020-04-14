@@ -238,7 +238,7 @@ struct Anyonic <: BraidingStyle end
 ```
 New sector types `G<:Sector` should then indicate which fusion style they have by defining
 `BraidingStyle(::Type{G})`. Note that `Bosonic()` braiding does not mean that all
-permutations are trivial and `R^{ab}_c = 1`, but that `R^{ab}_c R^{ba}_c = 1`. For
+permutations are trivial and ``R^{ab}_c = 1``, but that ``R^{ab}_c R^{ba}_c = 1``. For
 example, for the irreps of ``\mathsf{SU}_2``, the R-symbol associated with the fusion of
 two spin-1/2 particles to spin zero is ``-1``, i.e. the singlet of two spin-1/2 particles
 is antisymmetric. For a `Bosonic()` braiding style, all twists are simply ``+1``. The case
@@ -674,7 +674,7 @@ representation space `V` has certain sectors `a` with dimensions `n_a`, then its
 will report to have sectors `dual(a)`, and `dim(V', dual(a)) == n_a`. There is a subtelty
 regarding the difference between the dual of a representation space ``R_a^*``, on which the
 conjugate representation acts, and the representation space of the irrep `dual(a)==conj(a)`
-that is isomorphic to the conjugate representation, i.e. `R_{\bar{a}} ≂ R_a^*` but they are
+that is isomorphic to the conjugate representation, i.e. ``R_{\bar{a}} ≂ R_a^*`` but they are
 not equal. We return to this in the section on [fusion trees](@ref ss_fusiontrees).
 
 Other methods for `ElementarySpace`, such as [`dual`](@ref), [`fuse`](@ref) and
