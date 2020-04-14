@@ -379,7 +379,7 @@ the domain or codomain of a tensor map , i.e. within a tensor product
 ``V_1 ⊗ V_2 ⁠⊗ … V_N`` requires additional structure. In particular, we need at the very
 least a **braided tensor category** ``C``, which is endowed with a *braiding* ``τ``, i.e. a
 natural isomorphism ``{τ_{V,W}:V⊗W → W⊗V}_{V,W ∈ \mathrm{Ob}(C)}`` between the functors ``⊗`` and
-``⊗^{\mathrm{op}}`` such that ``τ_{V,V′}∘(f ⊗ g) = (f⊗g)∘τ_{W,W′}`` for any morphisms
+``⊗^{\mathrm{op}}`` such that ``τ_{V,V′}∘(f ⊗ g) = (g ⊗ f)∘τ_{W,W′}`` for any morphisms
 ``f ∈ \mathrm{Hom}(W,V)`` and ``g ∈ \mathrm{Hom}(W′,V′)``. A valid braiding needs to satisfy a coherence
 condition with the associator ``α`` known as the *hexagon equation*, which expresses that
 the braiding is ``⊗``-multiplicative, i.e.
@@ -511,7 +511,7 @@ If the category is ``ℂ``-linear, the dagger functor is often assumed to be ant
 ``(λ f)^† = \bar{λ} f^†`` for ``λ ∈ ℂ`` and ``f ∈ \mathrm{Hom}(V,W)``. In a dagger
 category, a morphism ``f:W→V`` is said to be *unitary* if it is an isomorphism and
 ``f^{-1} = f^†``. Furthermore, an endomorphism ``f:V→V`` is *hermitian* or self-adjoint if
-``f^† = f``. Finally, we will also use the term *isometry* for a morphism `f:W→V` which has
+``f^† = f``. Finally, we will also use the term *isometry* for a morphism ``f:W→V`` which has
 a left inverse ``f^†``, i.e. such that ``f^† ∘ f = \mathrm{id}_W``, but for which
 ``f ∘ f^†`` is not necessarily the identity (but rather some orthogonal projector, i.e. a
 hermitian idempotent in ``\mathrm{End}(V)``).
