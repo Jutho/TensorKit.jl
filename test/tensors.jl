@@ -401,6 +401,14 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test coth(@inferred acoth(t8)) ≈ t8
         end
     end
+    @testset TimedTestSet "Real and imaginary parts" begin
+        W = V1 ⊗ V2
+        for T in (Float64, ComplexF64, ComplexF32)
+            t = TensorMap(randn, T, W, W)
+            @test real(convert(Array, t)) == convert(Array, @inferred real(t))
+            @test imag(convert(Array, t)) == convert(Array, @inferred imag(t))
+        end
+    end
     @testset TimedTestSet "Tensor product: test via norm preservation" begin
         for T in (Float32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)

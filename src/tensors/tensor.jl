@@ -410,6 +410,34 @@ function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
     end
 end
 
+# Real and imaginary parts
+#---------------------------
+function Base.real(t::AbstractTensorMap{S}) where {S}
+    # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
+    # that the real/imaginary part of a tensor `t` can be obtained by just taking
+    # real/imaginary part of the degeneracy data.
+    if isreal(sectortype(S))
+        realdata = Dict(k => real(v) for (k, v) in blocks(t))
+        return TensorMap(realdata, codomain(t), domain(t))
+    else
+        msg = "`real` has not been implemented for `AbstractTensorMap{$(S)}`."
+        throw(msg)
+    end
+end
+
+function Base.imag(t::AbstractTensorMap{S}) where {S}
+    # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
+    # that the real/imaginary part of a tensor `t` can be obtained by just taking
+    # real/imaginary part of the degeneracy data.
+    if isreal(sectortype(S))
+        imagdata = Dict(k => imag(v) for (k, v) in blocks(t))
+        return TensorMap(imagdata, codomain(t), domain(t))
+    else
+        msg = "`imag` has not been implemented for `AbstractTensorMap{$(S)}`."
+        throw(msg)
+    end
+end
+
 # Conversion and promotion:
 #---------------------------
 # TODO
