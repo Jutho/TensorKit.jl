@@ -421,7 +421,7 @@ function Base.real(t::AbstractTensorMap{S}) where {S}
         return TensorMap(realdata, codomain(t), domain(t))
     else
         msg = "`real` has not been implemented for `AbstractTensorMap{$(S)}`."
-        throw(msg)
+        throw(ArgumentError(msg))
     end
 end
 
@@ -434,7 +434,7 @@ function Base.imag(t::AbstractTensorMap{S}) where {S}
         return TensorMap(imagdata, codomain(t), domain(t))
     else
         msg = "`imag` has not been implemented for `AbstractTensorMap{$(S)}`."
-        throw(msg)
+        throw(ArgumentError(msg))
     end
 end
 
