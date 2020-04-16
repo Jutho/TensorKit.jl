@@ -13,7 +13,7 @@ to know how to create and initialize a tensor, but will in fact also shed light 
 of the methods work.
 
 As mentioned, all tensors in TensorKit.jl are interpreted as linear maps (morphisms) from a
-domain (a `ProductSpace{S,N₂}`) to a domain (another `ProductSpace{S,N₁}`), with the same
+domain (a `ProductSpace{S,N₂}`) to a codomain (another `ProductSpace{S,N₁}`), with the same
 `S<:ElementarySpace` that labels the type of spaces associated with the individual tensor
 indices. The overall type for all such tensor maps is `AbstractTensorMap{S, N₁, N₂}`. Note
 that we place information about the codomain before that of the domain. Indeed, we have
