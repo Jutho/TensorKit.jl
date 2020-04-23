@@ -215,7 +215,7 @@ Hence, as before, we only store the diagonal blocks ``B_c`` of size
 `block(t, c)`. Within this matrix, there are regions of the form
 `view(block(t, c), m₁:m₂, n₁:n₂)` that correspond to the data
 ``t^c_{(a_1 … a_{N₁})α, (b_1 … b_{N₂})β}`` associated with a pair of fusion trees
-``X^{(a_1 … a_{N₁}}_{c,α}`` and ``X^{(b_1 … b_{N₂})}_{c,β}``, henceforth again denoted as
+``X^{(a_1 … a_{N₁})}_{c,α}`` and ``X^{(b_1 … b_{N₂})}_{c,β}``, henceforth again denoted as
 `f₁` and `f₂`, with `f₁.coupled == f₂.coupled == c`. The ranges where this subblock is
 living are managed within the tensor implementation, and these subblocks can be accessed
 via `t[f₁,f₂]`, and is returned as a `StridedArray` of size
@@ -260,7 +260,7 @@ could thus contain `NaN`s.
 In all of these constructors, the last two arguments can be replaced by `domain→codomain`
 or `codomain←domain`, where the arrows are obtained as `\rightarrow+TAB` and
 `\leftarrow+TAB` and create a `HomSpace` as explained in the section on
-["Spaces of morphisms"](@ref ss_homspaces). Some examples are perhaps in order
+[Spaces of morphisms](@ref ss_homspaces). Some examples are perhaps in order
 
 ```@repl tensors
 t1 = TensorMap(randnormal, ℂ^2 ⊗ ℂ^3, ℂ^2)
@@ -723,7 +723,7 @@ twist(t, 3) ≈ t
 # as twist acts trivially for
 BraidingStyle(sectortype(t))
 ```
-Note that `transpose` acts like one would expect on a ``TensorMap{S,1,1}``. On a
+Note that `transpose` acts like one would expect on a `TensorMap{S,1,1}`. On a
 `TensorMap{S,N₁,N₂}`, because `transpose` replaces the codomain with the dual of the
 domain, which has its tensor product operation reversed, this in the end amounts in a
 complete reversal of all tensor indices when representing it as a plain mutli-dimensional
@@ -1095,7 +1095,7 @@ all of the following lines are now equivalent
 ```julia
 @tensor E[(a,b,c);(d,e)] = A[v,w,d,x]*B[y,z,c,x]*C[v,e,y,b]*D[a,w,z]
 @tensor E[a,b,c,d,e] = A[v w d;x]*B[(y,z,c);(x,)]*C[v e y; b]*D[a,w,z]
-@tensor E[a b; c d e)] = A[v; w d x]*B[y,z,c,x]*C[v,e,y,b]*D[a w;z]
+@tensor E[a b; c d e] = A[v; w d x]*B[y,z,c,x]*C[v,e,y,b]*D[a w;z]
 ```
 and none of those will or can change the partition of the indices of `E` into its codomain
 and its domain.
