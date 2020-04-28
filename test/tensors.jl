@@ -107,6 +107,14 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test convert(Array, t+t) ≈ 2*convert(Array,t)
         end
     end
+    @testset TimedTestSet "Real and imaginary parts" begin
+        W = V1 ⊗ V2
+        for T in (Float64, ComplexF64, ComplexF32)
+            t = TensorMap(randn, T, W, W)
+            @test real(convert(Array, t)) == convert(Array, @inferred real(t))
+            @test imag(convert(Array, t)) == convert(Array, @inferred imag(t))
+        end
+    end
     @testset TimedTestSet "Permutations: test via inner product invariance" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         t = Tensor(rand, ComplexF64, W);
@@ -306,8 +314,6 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 end
             end
 
-
-
             t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
             @testset "eig and isposdef" begin
                 D, V = eigen(t, (1,3), (2,4))
@@ -375,7 +381,6 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test reshape(convert(Array, log(expt)), (s,s)) ≈
                     log(reshape(convert(Array, expt), (s,s)))
 
-
             @test (@inferred cos(t))^2 + (@inferred sin(t))^2 ≈ id(W)
             @test (@inferred tan(t)) ≈ sin(t)/cos(t)
             @test (@inferred cot(t)) ≈ cos(t)/sin(t)
@@ -401,12 +406,17 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test coth(@inferred acoth(t8)) ≈ t8
         end
     end
-    @testset TimedTestSet "Real and imaginary parts" begin
-        W = V1 ⊗ V2
-        for T in (Float64, ComplexF64, ComplexF32)
-            t = TensorMap(randn, T, W, W)
-            @test real(convert(Array, t)) == convert(Array, @inferred real(t))
-            @test imag(convert(Array, t)) == convert(Array, @inferred imag(t))
+    @testset TimedTestSet "Sylvester equation" begin
+        for T in (Float32, ComplexF64)
+            tA = TensorMap(rand, T, V1 ⊗ V3, V1 ⊗ V3)
+            tB = TensorMap(rand, T, V2 ⊗ V4, V2 ⊗ V4)
+            tC = TensorMap(rand, T, V1 ⊗ V3, V2 ⊗ V4)
+            t = @inferred sylvester(tA, tB, tC)
+            @test codomain(t) == V1 ⊗ V3
+            @test domain(t) == V2 ⊗ V4
+            @test norm(tA*t + t*tB + tC) < sqrt(eps(real(T)))
+            matrix(x) = reshape(convert(Array, x), dim(codomain(x)), dim(domain(x)))
+            @test matrix(t) ≈ sylvester(matrix(tA), matrix(tB), matrix(tC))
         end
     end
     @testset TimedTestSet "Tensor product: test via norm preservation" begin

@@ -54,7 +54,7 @@ export mul!, lmul!, rmul!, adjoint!, pinv, axpy!, axpby!
 export leftorth, rightorth, leftnull, rightnull,
         leftorth!, rightorth!, leftnull!, rightnull!,
         tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
-        isposdef, isposdef!, ishermitian
+        isposdef, isposdef!, ishermitian, sylvester
 export braid!, permute!, transpose, transpose!, twist!
 export catdomain, catcodomain
 

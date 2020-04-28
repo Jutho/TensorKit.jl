@@ -328,6 +328,19 @@ function exp!(t::TensorMap)
     return t
 end
 
+# Sylvester equation with TensorMap objects:
+function LinearAlgebra.sylvester(A::AbstractTensorMap,
+                                    B::AbstractTensorMap,
+                                    C::AbstractTensorMap)
+    (codomain(A) == domain(A) == codomain(C) && codomain(B) == domain(B) == domain(C)) ||
+        throw(SpaceMismatch())
+    cod = domain(A)
+    dom = codomain(B)
+    sylABC(c) = sylvester(block(A,c), block(B, c), block(C, c))
+    data = SectorDict(c=>sylABC(c) for c in blocksectors(cod ← dom))
+    return TensorMap(data, cod ← dom)
+end
+
 # functions that map ℝ to (a subset of) ℝ
 for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh)
     sf = string(f)
