@@ -408,8 +408,8 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     end
     @testset TimedTestSet "Sylvester equation" begin
         for T in (Float32, ComplexF64)
-            tA = TensorMap(rand, T, V1 ⊗ V3, V1 ⊗ V3)
-            tB = TensorMap(rand, T, V2 ⊗ V4, V2 ⊗ V4)
+            _, tA = leftorth!(TensorMap(rand, T, V1 ⊗ V3, V1 ⊗ V3), alg = Polar())
+            _, tB = leftorth!(TensorMap(rand, T, V2 ⊗ V4, V2 ⊗ V4), alg = Polar())
             tC = TensorMap(rand, T, V1 ⊗ V3, V2 ⊗ V4)
             t = @inferred sylvester(tA, tB, tC)
             @test codomain(t) == V1 ⊗ V3
