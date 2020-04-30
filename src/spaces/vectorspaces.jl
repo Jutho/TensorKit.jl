@@ -245,6 +245,10 @@ spacetype(V::CompositeSpace) = spacetype(typeof(V)) # = spacetype(typeof(V))
 field(P::Type{<:CompositeSpace}) = field(spacetype(P))
 sectortype(P::Type{<:CompositeSpace}) = sectortype(spacetype(P))
 
+# make ElementarySpace instances behave similar to ProductSpace instances
+blocksectors(V::ElementarySpace) = sectors(V)
+blockdim(V::ElementarySpace, c::Sector) = dim(V, c)
+
 # Specific realizations of ElementarySpace types
 #------------------------------------------------
 # spaces without internal structure
@@ -265,3 +269,47 @@ include("productspace.jl")
 # HomSpace: space of morphisms
 #------------------------------
 include("homspace.jl")
+
+# Partial order for vector spaces
+#---------------------------------
+function isisomorphic(V1::VectorSpace, V2::VectorSpace)
+    spacetype(V1) == spacetype(V2) || return false
+    for c in union(blocksectors(V1), blocksectors(V2))
+        if blockdim(V1, c) != blockdim(V2, c)
+            return false
+        end
+    end
+    return true
+end
+function ismonomorphic(V1::VectorSpace, V2::VectorSpace)
+    spacetype(V1) == spacetype(V2) || return false
+    for c in blocksectors(V1)
+        if blockdim(V1, c) > blockdim(V2, c)
+            return false
+        end
+    end
+    return true
+end
+function isepimorphic(V1::VectorSpace, V2::VectorSpace)
+    spacetype(V1) == spacetype(V2) || return false
+    for c in blocksectors(V1)
+        if blockdim(V1, c) < blockdim(V2, c)
+            return false
+        end
+    end
+    return true
+end
+
+# unicode alternatives
+const ≅ = isisomorphic
+const ≾ = ismonomorphic
+const ≿ = isepimorphic
+
+infinum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
+    infinum(infinum(V1, V2), V3...)
+supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
+    supremum(supremum(V1, V2), V3...)
+
+import Base: min, max
+Base.@deprecate min(V1::ElementarySpace, V2::ElementarySpace) infinum(V1,V2)
+Base.@deprecate max(V1::ElementarySpace, V2::ElementarySpace) supremum(V1,V2)

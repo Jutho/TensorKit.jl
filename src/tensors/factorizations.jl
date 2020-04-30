@@ -279,351 +279,255 @@ function tsvd!(t::AdjointTensorMap{S};
     return adjoint(vt), adjoint(s), adjoint(u), err
 end
 
-function leftorth!(t::TensorMap{S};
+function leftorth!(t::TensorMap{<:EuclideanSpace};
                     alg::Union{QR,QRpos,QL,QLpos,SVD,SDD,Polar} = QRpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+                    eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    if sectortype(t) === Trivial
-        Q, R = _leftorth!(block(t, Trivial()), alg, atol)
-        d = size(Q,2)
-        if length(codomain(t)) == 1 && dim(codomain(t)[1]) == d
-            V = codomain(t)[1]
-        elseif length(domain(t)) == 1 && dim(domain(t)[1]) == d
-            V = domain(t)[1]
-        else
-            V = S(d)
-        end
-        return TensorMap(Q, codomain(t)←V), TensorMap(R, V←domain(t))
-    else
-        Qdata = empty(t.data)
-        Rdata = empty(t.data)
-        dims = SectorDict{sectortype(t), Int}()
-        for (c,b) in blocks(t)
-            Q, R = _leftorth!(b, alg, atol)
-            Qdata[c] = Q
-            Rdata[c] = R
-            dims[c] = size(Q,2)
-        end
-        if length(codomain(t)) == 1 && codomain(t)[1].dims == dims
-            V = codomain(t)[1]
-        elseif length(domain(t)) == 1 && domain(t)[1].dims == dims
-            V = domain(t)[1]
-        else
-            V = S(dims)
-        end
-        return TensorMap(Qdata, codomain(t)←V), TensorMap(Rdata, V←domain(t))
+    G = sectortype(t)
+    S = spacetype(t)
+    A = storagetype(t)
+    Qdata = SectorDict{G, A}()
+    Rdata = SectorDict{G, A}()
+    dims = SectorDict{G, Int}()
+    for (c,b) in blocks(t)
+        Q, R = _leftorth!(b, alg, atol)
+        Qdata[c] = Q
+        Rdata[c] = R
+        dims[c] = size(Q,2)
     end
+    V = S(dims)
+    if alg isa Polar
+        @assert V ≅ domain(t)
+        W = domain(t)
+    elseif length(domain(t)) == 1 && domain(t) ≅ V
+        W = domain(t)
+    elseif length(codomain(t)) == 1 && codomain(t) ≅ V
+        W = codomain(t)
+    else
+        W = ProductSpace(V)
+    end
+    return TensorMap(Qdata, codomain(t)←W), TensorMap(Rdata, W←domain(t))
 end
 
-function leftnull!(t::TensorMap{S};
+function leftnull!(t::TensorMap{<:EuclideanSpace};
                     alg::Union{QR,QRpos,SVD,SDD} = QRpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+                    eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    if sectortype(t) === Trivial
-        N = _leftnull!(block(t, Trivial()), alg, atol)
-        W = S(size(N, 2))
-        return TensorMap(N, codomain(t)←W)
-    else
-        V = codomain(t)
-        Ndata = empty(t.data)
-        dims = SectorDict{sectortype(t), Int}()
-        for c in blocksectors(V)
-            N = _leftnull!(block(t,c), alg, atol)
-            Ndata[c] = N
-            dims[c] = size(N,2)
-        end
-        W = S(dims)
-        return TensorMap(Ndata, V←W)
+    G = sectortype(t)
+    S = spacetype(t)
+    A = storagetype(t)
+    V = codomain(t)
+    Ndata = SectorDict{G, A}()
+    dims = SectorDict{G, Int}()
+    for c in blocksectors(V)
+        N = _leftnull!(block(t,c), alg, atol)
+        Ndata[c] = N
+        dims[c] = size(N,2)
     end
+    W = S(dims)
+    return TensorMap(Ndata, V←W)
 end
 
-function rightorth!(t::TensorMap{S};
+function rightorth!(t::TensorMap{<:EuclideanSpace};
                     alg::Union{LQ,LQpos,RQ,RQpos,SVD,SDD,Polar} = LQpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+                    eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    if sectortype(t) === Trivial
-        L, Q = _rightorth!(block(t, Trivial()), alg, atol)
-        d = size(Q,1)
-        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
-            V = domain(t)[1]
-        elseif length(codomain(t)) == 1 && dim(codomain(t)[1]) == d
-            V = codomain(t)[1]
-        else
-            V = S(d)
-        end
-        return TensorMap(L, codomain(t)←V), TensorMap(Q, V←domain(t))
-    else
-        Ldata = empty(t.data)
-        Qdata = empty(t.data)
-        dims = SectorDict{sectortype(t), Int}()
-        for (c,b) in blocks(t)
-            L, Q = _rightorth!(b, alg, atol)
-            Ldata[c] = L
-            Qdata[c] = Q
-            dims[c] = size(Q,1)
-        end
-        if length(domain(t)) == 1 && domain(t)[1].dims == dims
-            V = domain(t)[1]
-        elseif length(codomain(t)) == 1 && codomain(t)[1].dims == dims
-            V = codomain(t)[1]
-        else
-            V = S(dims)
-        end
-        return TensorMap(Ldata, codomain(t)←V), TensorMap(Qdata, V←domain(t))
+    G = sectortype(t)
+    S = spacetype(t)
+    A = storagetype(t)
+    Ldata = SectorDict{G, A}()
+    Qdata = SectorDict{G, A}()
+    dims = SectorDict{G, Int}()
+    for (c,b) in blocks(t)
+        L, Q = _rightorth!(b, alg, atol)
+        Ldata[c] = L
+        Qdata[c] = Q
+        dims[c] = size(Q,1)
     end
+    V = S(dims)
+    if alg isa Polar
+        @assert V ≅ codomain(t)
+        W = codomain(t)
+    elseif length(codomain(t)) == 1 && codomain(t) ≅ V
+        W = codomain(t)
+    elseif length(domain(t)) == 1 && domain(t) ≅ V
+        W = domain(t)
+    else
+        W = ProductSpace(V)
+    end
+    return TensorMap(Ldata, codomain(t)←W), TensorMap(Qdata, W←domain(t))
 end
 
-function rightnull!(t::TensorMap{S};
+function rightnull!(t::TensorMap{<:EuclideanSpace};
                     alg::Union{LQ,LQpos,SVD,SDD} = LQpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                    eps(real(float(one(eltype(t)))))*iszero(atol)) where {S<:EuclideanSpace}
+                    eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    if sectortype(t) === Trivial
-        N = _rightnull!(block(t, Trivial()), alg, atol)
-        W = S(size(N, 1))
-        return TensorMap(N, W←domain(t))
-    else
-        V = domain(t)
-        Ndata = empty(t.data)
-        A = valtype(Ndata)
-        dims = SectorDict{sectortype(t), Int}()
-        for c in blocksectors(V)
-            N = _rightnull!(block(t,c), alg, atol)
-            Ndata[c] = N
-            dims[c] = size(N,1)
-        end
-        W = S(dims)
-        return TensorMap(Ndata, W←V)
+    G = sectortype(t)
+    S = spacetype(t)
+    A = storagetype(t)
+    V = domain(t)
+    Ndata = SectorDict{G, A}()
+    dims = SectorDict{G, Int}()
+    for c in blocksectors(V)
+        N = _rightnull!(block(t,c), alg, atol)
+        Ndata[c] = N
+        dims[c] = size(N,1)
     end
+    W = S(dims)
+    return TensorMap(Ndata, W←V)
 end
 
-function tsvd!(t::TensorMap{S};
+function tsvd!(t::TensorMap{<:EuclideanSpace};
                 trunc::TruncationScheme = NoTruncation(),
                 p::Real = 2,
-                alg::Union{SVD,SDD} = SDD()) where {S<:EuclideanSpace}
-    if sectortype(t) === Trivial
-        U,Σ,V = _svd!(block(t, Trivial()), alg)
-        dmax = length(Σ)
-        Σ, truncerr = _truncate!(Σ, trunc, p)
-        d = length(Σ)
-        if d < dmax
-            U = U[:,1:d]
-            V = V[1:d,:]
-        end
-        Σm = copyto!(similar(Σ, (d,d)), Diagonal(Σ))
-        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
-            W = domain(t)[1]
-        elseif length(codomain(t)) == 1 && dim(codomain(t)[1]) == d
-            W = codomain(t)[1]
-        else
-            W = S(d)
-        end
-        return TensorMap(U, codomain(t)←W), TensorMap(Σm, W←W), TensorMap(V, W←domain(t)), truncerr
-        #TODO: make this work with Diagonal(Σ) in such a way that it is type stable and
-        # robust for all further operations on that tensor
-    else
-        # G = sectortype(t)
-        # Udata = empty(t.data)
-        # Σdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
-        # Vdata = empty(t.data)
-        # dims = SectorDict{G, Int}()
-        # truncerr = abs(zero(eltype(t)))
-        # for (c, b) in blocks(t)
-        #     U,Σ,V = _svd!(b, alg)
-        #     Udata[c] = U
-        #     Σdata[c] = Σ
-        #     Vdata[c] = V
-        #     dims[c] = length(Σ)
-        # end
-        G = sectortype(t)
-        it = blocksectors(t)
-        dims = SectorDict{sectortype(t), Int}()
-        next = iterate(it)
-        if next === nothing
-            emptyrealdata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
-            W = S(dims)
-            truncerr = abs(zero(eltype(t)))
-            return TensorMap(empty(t.data), codomain(t)←W), TensorMap(emptyrealdata, W←W), TensorMap(empty(t.data), W←domain(t)), truncerr
-        end
-        c, s = next
-        U,Σ,V = _svd!(block(t,c), alg)
-        Udata = SectorDict(c=>U)
-        Σdata = SectorDict(c=>Σ)
-        Σmdata = SectorDict(c=>copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ)))
-        Vdata = SectorDict(c=>V)
-        dims[c] = length(Σ)
-        next = iterate(it, s)
-        while next !== nothing
-            c, s = next
-            U,Σ,V = _svd!(block(t,c), alg)
-            Udata[c] = U
-            Σdata[c] = Σ
-            Vdata[c] = V
-            dims[c] = length(Σ)
-            next = iterate(it, s)
-        end
-        if !isa(trunc, NoTruncation)
-            Σdata, truncerr = _truncate!(Σdata, trunc, p)
-            truncdims = SectorDict{sectortype(t), Int}()
-            for c in blocksectors(t)
-                truncdim = length(Σdata[c])
-                if truncdim != 0
-                    truncdims[c] = truncdim
-                    if truncdim != dims[c]
-                        Udata[c] = Udata[c][:, 1:truncdim]
-                        Vdata[c] = Vdata[c][1:truncdim, :]
-                    end
-                else
-                    delete!(Udata, c)
-                    delete!(Vdata, c)
-                    delete!(Σdata, c)
-                end
-            end
-            dims = truncdims
-            W = S(dims)
-        else
-            if length(domain(t)) == 1 && domain(t)[1].dims == dims
-                W = domain(t)[1]
-            elseif length(codomain(t)) == 1 && codomain(t)[1].dims == dims
-                W = codomain(t)[1]
-            else
-                W = S(dims)
-            end
-            truncerr = abs(zero(eltype(t)))
-        end
-        empty!(Σmdata)
-        for (c,Σ) in Σdata
-            Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
-        end
+                alg::Union{SVD,SDD} = SDD())
+    S = spacetype(t)
+    G = sectortype(t)
+    A = storagetype(t)
+    Ar = similarstoragetype(t, real(eltype(t)))
+    Udata = SectorDict{G,A}()
+    Σmdata = SectorDict{G,Ar}() # this will contain the singular values as matrix
+    Vdata = SectorDict{G,A}()
+    dims = SectorDict{sectortype(t), Int}()
+    if isempty(blocksectors(t))
+        W = S(dims)
+        truncerr = zero(real(eltype(t)))
         return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
-                TensorMap(Vdata, W←domain(t)), truncerr
+                    TensorMap(Vdata, W←domain(t)), truncerr
     end
+    for (c,b) in blocks(t)
+        U, Σ, V = _svd!(b, alg)
+        Udata[c] = U
+        Vdata[c] = V
+        if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
+            Σdata[c] = Σ
+        else
+            Σdata = SectorDict(c=>Σ)
+        end
+        dims[c] = length(Σ)
+    end
+    if !isa(trunc, NoTruncation)
+        Σdata, truncerr = _truncate!(Σdata, trunc, p)
+        truncdims = SectorDict{G, Int}()
+        for c in blocksectors(t)
+            truncdim = length(Σdata[c])
+            if truncdim != 0
+                truncdims[c] = truncdim
+                if truncdim != dims[c]
+                    Udata[c] = Udata[c][:, 1:truncdim]
+                    Vdata[c] = Vdata[c][1:truncdim, :]
+                end
+            else
+                delete!(Udata, c)
+                delete!(Vdata, c)
+                delete!(Σdata, c)
+            end
+        end
+        dims = truncdims
+        W = S(dims)
+    else
+        W = S(dims)
+        if length(domain(t)) == 1 && domain(t)[1] ≅ W
+            W = domain(t)[1]
+        elseif length(codomain(t)) == 1 && codomain(t)[1] ≅ W
+            W = codomain(t)[1]
+        end
+        truncerr = abs(zero(eltype(t)))
+    end
+    for (c,Σ) in Σdata
+        Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
+    end
+    return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
+            TensorMap(Vdata, W←domain(t)), truncerr
 end
 
 function LinearAlgebra.ishermitian(t::TensorMap)
     domain(t) == codomain(t) || return false
     spacetype(t) <: EuclideanSpace || return false # hermiticity only defined for euclidean
-    if sectortype(t) == Trivial
-        return ishermitian(block(t, Trivial()))
-    else
-        for (c,b) in blocks(t)
-            ishermitian(b) || return false
-        end
-        return true
+    for (c,b) in blocks(t)
+        ishermitian(b) || return false
     end
+    return true
 end
 
 LinearAlgebra.eigen!(t::TensorMap) = ishermitian(t) ? eigh!(t) : eig!(t)
 
-function eigh!(t::TensorMap{S}; kwargs...) where {S<:EuclideanSpace}
+function eigh!(t::TensorMap{<:EuclideanSpace}; kwargs...)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
-    if sectortype(t) === Trivial
-        values, vectors = eigen!(Hermitian(block(t, Trivial())); kwargs...)
+    S = spacetype(t)
+    G = sectortype(t)
+    A = storagetype(t)
+    Ar = similarstoragetype(t, real(eltype(t)))
+    Ddata = SectorDict{G, Ar}()
+    Vdata = SectorDict{G, A}()
+    dims = SectorDict{G, Int}()
+    for (c,b) in blocks(t)
+        values, vectors = eigen!(Hermitian(b); kwargs...)
         d = length(values)
-        D = copyto!(similar(values, (d,d)), Diagonal(values))
-        V = vectors
-        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
-            W = domain(t)[1]
-        else
-            W = S(d)
-        end
-        return TensorMap(D, W←W), TensorMap(V, domain(t)←W)
-        #TODO: make this work with Diagonal(values) in such a way that it is type stable and
-        # robust for all further operations on that tensor
-    else
-        G = sectortype(t)
-        Ddata = SectorDict{G,similarstoragetype(t, real(eltype(t)))}()
-        Vdata = SectorDict{G,similarstoragetype(t, eltype(t))}()
-        dims = SectorDict{G,Int}()
-        for (c,b) in blocks(t)
-            values, vectors = eigen!(Hermitian(b); kwargs...)
-            d = length(values)
-            Ddata[c] = copyto!(similar(values, (d,d)), Diagonal(values))
-            Vdata[c] = vectors
-            dims[c] = d
-        end
-        if length(domain(t)) == 1 && domain(t)[1].dims == dims
-            W = domain(t)[1]
-        else
-            W = S(dims)
-        end
-        return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
+        Ddata[c] = copyto!(similar(values, (d,d)), Diagonal(values))
+        Vdata[c] = vectors
+        dims[c] = d
     end
+    if length(domain(t)) == 1
+        W = domain(t)[1]
+    else
+        W = S(dims)
+    end
+    return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
 end
 
-function eig!(t::TensorMap{S}; kwargs...) where S
+function eig!(t::TensorMap; kwargs...)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
-    if sectortype(t) === Trivial
-        values, vectors = eigen!(block(t, Trivial()); kwargs...)
-        T = complex(eltype(t))
+    S = spacetype(t)
+    G = sectortype(t)
+    T = complex(eltype(t))
+    Ac = similarstoragetype(t, T)
+    Ddata = SectorDict{G, Ac}()
+    Vdata = SectorDict{G, Ac}()
+    dims = SectorDict{G, Int}()
+    for (c,b) in blocks(t)
+        values, vectors = eigen!(b; kwargs...)
         d = length(values)
-        D = copyto!(similar(values, T, (d,d)), Diagonal(values))
+        Ddata[c] = copyto!(similar(values, T, (d,d)), Diagonal(values))
         if eltype(vectors) == T
-            V = vectors
+            Vdata[c] = vectors
         else
-            V = copyto!(similar(vectors, T), vectors)
+            Vdata[c] = copyto!(similar(vectors, T), vectors)
         end
-        if length(domain(t)) == 1 && dim(domain(t)[1]) == d
-            W = domain(t)[1]
-        else
-            W = S(d)
-        end
-        return TensorMap(D, W←W), TensorMap(V, domain(t)←W)
-        #TODO: make this work with Diagonal(values) in such a way that it is type stable and
-        # robust for all further operations on that tensor
-    else
-        G = sectortype(t)
-        T = complex(eltype(t))
-        Ddata = SectorDict{G,similarstoragetype(t, T)}()
-        Vdata = SectorDict{G,similarstoragetype(t, T)}()
-        dims = SectorDict{G,Int}()
-        for (c,b) in blocks(t)
-            values, vectors = eigen!(b; kwargs...)
-            d = length(values)
-            Ddata[c] = copyto!(similar(values, T, (d,d)), Diagonal(values))
-            if eltype(vectors) == T
-                Vdata[c] = vectors
-            else
-                Vdata[c] = copyto!(similar(vectors, T), vectors)
-            end
-            dims[c] = d
-        end
-        if length(domain(t)) == 1 && domain(t)[1].dims == dims
-            W = domain(t)[1]
-        else
-            W = S(dims)
-        end
-        return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
+        dims[c] = d
     end
+    if length(domain(t)) == 1
+        W = domain(t)[1]
+    else
+        W = S(dims)
+    end
+    return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
 end
 
 function LinearAlgebra.isposdef!(t::TensorMap)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`isposdef` requires domain and codomain to be the same"))
     spacetype(t) <: EuclideanSpace || return false
-    if sectortype(t) === Trivial
-        return isposdef!(block(t, Trivial()))
-    else
-        for (c,b) in blocks(t)
-            isposdef!(b) || return false
-        end
-        return true
+    for (c,b) in blocks(t)
+        isposdef!(b) || return false
     end
+    return true
 end

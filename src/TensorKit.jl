@@ -27,6 +27,9 @@ export SpaceMismatch, SectorMismatch, IndexError # error types
 # general vector space methods
 export space, field, dual, dim, dims, fuse, flip, isdual
 
+# partial order for vector spaces
+export infinum, supremum, isisomorphic, ismonomorphic, isepimorphic
+
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
         frobeniusschur, twist
@@ -34,7 +37,7 @@ export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 export fusiontrees, braid, permute#, artin_braid, repartition, insertat, merge
 
 # some unicode
-export ⊕, ⊗, ×, ℂ, ℝ, ←, →
+export ⊕, ⊗, ×, ℂ, ℝ, ←, →, ≾, ≿, ≅
 export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂, CU₁
 export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 

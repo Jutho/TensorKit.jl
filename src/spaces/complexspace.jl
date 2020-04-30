@@ -40,12 +40,12 @@ Base.oneunit(::Type{ComplexSpace}) = ComplexSpace(1)
 fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d*V2.d)
 flip(V::ComplexSpace) = dual(V)
 
-Base.min(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
+infinum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
     ComplexSpace(min(dim(V1), dim(V2)), isdual(V1)) :
-    throw(SpaceMismatch("Mininum of space and dual space does not exist"))
-Base.max(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
+    throw(SpaceMismatch("Infinum of space and dual space does not exist"))
+supremum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
     ComplexSpace(max(dim(V1), dim(V2)), isdual(V1)) :
-    throw(SpaceMismatch("Maximum of space and dual space does not exist"))
+    throw(SpaceMismatch("Supremum of space and dual space does not exist"))
 
 Base.show(io::IO, V::ComplexSpace) = print(io, isdual(V) ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")
 Base.show(io::IO, ::Type{ComplexSpace}) = print(io, "ComplexSpace")

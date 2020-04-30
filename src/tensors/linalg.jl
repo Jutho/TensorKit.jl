@@ -77,12 +77,7 @@ isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) =
 isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
     isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
 function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:DenseMatrix}
-    spacetype(cod) == spacetype(dom) ||
-        throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
-    for c in union(blocksectors(cod), blocksectors(dom))
-        blockdim(cod, c) == blockdim(dom, c) ||
-            throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
-    end
+    cod ≅ dom || throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
     t = TensorMap(s->A(undef, s), cod, dom)
     for (c,b) in blocks(t)
         _one!(b)
@@ -105,7 +100,7 @@ subtype of `EuclideanSpace`. Furthermore, `storagetype(t)` can optionally be cho
 of type `A`. If the two spaces do not allow for such an isomorphism, and are thus not
 isomorphic, and error will be thrown. When they are isomorphic, there is no canonical choice
 for a specific isomorphism, but the current choice is such that
-`isomorphism(cod, dom) == inv(isomorphism(dom, cod)) = adjoint(unitary(dom, cod))`.
+`unitary(cod, dom) == inv(unitary(dom, cod)) = adjoint(unitary(dom, cod))`.
 """
 unitary(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) = isomorphism(cod, dom)
 unitary(P::EuclideanTensorMapSpace) = isomorphism(P)
@@ -134,11 +129,7 @@ isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensor
 function isometry(::Type{A},
                     cod::ProductSpace{S},
                     dom::ProductSpace{S}) where {A<:DenseMatrix, S<:EuclideanSpace}
-    spacetype(cod) == spacetype(dom) || throw(SpaceMismatch())
-    for c in union(blocksectors(cod), blocksectors(dom))
-        blockdim(cod, c) >= blockdim(dom, c) ||
-            throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
-    end
+    dom ≾ cod || throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
     t = TensorMap(s->A(undef, s), cod, dom)
     for (c,b) in blocks(t)
         _one!(b)
@@ -385,24 +376,14 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
     end
 end
 
-# # concatenate tensors
-# function concatenate(t1::AbstractTensorMap{S}, ts::AbstractTensorMap{S}...; direction::Symbol) where {S}
-#     if direction = :domain
-#         numin(t1) == 1 || throw(SpaceMismatch("concatenation along domain"))
-#         for t2 in ts
-#             domain(t1) == domain(t2) || throw(SpaceMismatch())
-#         end
-#         t = t1
-#         for t2 in ts
-#             cat(t1)
-
+# concatenate tensors
 function catdomain(t1::AbstractTensorMap{S,N₁,1}, t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
     codomain(t1) == codomain(t2) || throw(SpaceMismatch())
 
     V1, = domain(t1)
     V2, = domain(t2)
     isdual(V1) == isdual(V2) ||
-        throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
+        throw(SpaceMismatch("cannot horizontally concatenate tensors whose domain has non-matching duality"))
 
     V = V1 ⊕ V2
     t = TensorMap(undef, promote_type(eltype(t1), eltype(t2)), codomain(t1), V)
@@ -418,7 +399,7 @@ function catcodomain(t1::AbstractTensorMap{S,1,N₂}, t2::AbstractTensorMap{S,1,
     V1, = codomain(t1)
     V2, = codomain(t2)
     isdual(V1) == isdual(V2) ||
-        throw(SpaceMismatch("cannot hcat tensors whose domain has non-matching duality"))
+        throw(SpaceMismatch("cannot vertically concatenate tensors whose codomain has non-matching duality"))
 
     V = V1 ⊕ V2
     t = TensorMap(undef, promote_type(eltype(t1),eltype(t2)), V, domain(t1))

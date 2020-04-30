@@ -201,21 +201,21 @@ function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:
     return RepresentationSpace{G}(dims)
 end
 
-function Base.min(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G}
+function infinum(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G}
     if V1.dual == V2.dual
         RepresentationSpace{G}(c=>min(dim(V1,c), dim(V2,c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
     else
-        throw(SpaceMismatch("V1 and V2 should both be normal or dual spaces"))
+        throw(SpaceMismatch("Infinum of space and dual space does not exist"))
     end
 end
 
-function Base.max(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G}
+function supremum(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G}
     if V1.dual == V2.dual
         RepresentationSpace{G}(c=>max(dim(V1,c), dim(V2,c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
     else
-        throw(SpaceMismatch("V1 and V2 should both be normal or dual spaces"))
+        throw(SpaceMismatch("Supremum of space and dual space does not exist"))
     end
 end
 

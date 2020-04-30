@@ -75,8 +75,11 @@ end
     @test @inferred(fuse(V,V)) == ℝ^(d^2)
     @test @inferred(fuse(V,V',V,V')) == ℝ^(d^4)
     @test @inferred(flip(V)) == V'
-    @test @inferred(min(V, ℝ^3)) == V
-    @test @inferred(max(V', ℝ^3)) == ℝ^3
+    @test flip(V) ≅ V
+    @test flip(V) ≾ V
+    @test flip(V) ≿ V
+    @test @inferred(infinum(V, ℝ^3)) == V
+    @test @inferred(supremum(V', ℝ^3)) == ℝ^3
 end
 
 @testset TimedTestSet "ElementarySpace: ComplexSpace" begin
@@ -114,8 +117,11 @@ end
     @test @inferred(fuse(V,V)) == ℂ^(d^2)
     @test @inferred(fuse(V,V',V,V')) == ℂ^(d^4)
     @test @inferred(flip(V)) == V'
-    @test @inferred(min(V, ℂ^3)) == V
-    @test @inferred(max(V', ℂ[3]')) == ℂ[3]'
+    @test flip(V) ≅ V
+    @test flip(V) ≾ V
+    @test flip(V) ≿ V
+    @test @inferred(infinum(V, ℂ^3)) == V
+    @test @inferred(supremum(V', ℂ[3]')) == ℂ[3]'
 end
 
 @testset TimedTestSet "ElementarySpace: GeneralSpace" begin
@@ -219,9 +225,14 @@ end
     @test @inferred(fuse(V,V)) == RepresentationSpace(d)
     @test @inferred(flip(V)) ==
             RepresentationSpace{G}(conj(c)=>dim(V,c) for c in sectors(V))'
-    @test @inferred(⊕(V, V)) == @inferred max(V, ⊕(V, V))
-    @test V == @inferred min(V, ⊕(V, V))
-    @test min(V, RepresentationSpace(one(G)=>3)) == RepresentationSpace(one(G)=>2)
+    @test flip(V) ≅ V
+    @test flip(V) ≾ V
+    @test flip(V) ≿ V
+    @test @inferred(⊕(V, V)) == @inferred supremum(V, ⊕(V, V))
+    @test V == @inferred infinum(V, ⊕(V, V))
+    @test ⊕(V, V) ≿ V
+    @test V ≾ ⊕(V, V)
+    @test infinum(V, RepresentationSpace(one(G)=>3)) == RepresentationSpace(one(G)=>2)
     @test_throws SpaceMismatch (⊕(V, V'))
 end
 
@@ -245,6 +256,10 @@ end
     @test @inferred(⊗(V1⊗V2, V3⊗V4)) == P
     @test @inferred(⊗(V1, V2, V3⊗V4)) == P
     @test @inferred(⊗(V1, V2⊗V3, V4)) == P
+    @test fuse(V1, V2', V3) ≅ V1 ⊗ V2' ⊗ V3
+    @test fuse(V1, V2', V3) ≾ V1 ⊗ V2' ⊗ V3
+    @test fuse(V1, V2', V3) ≿ V1 ⊗ V2' ⊗ V3
+    @test fuse(flip(V1), V2, flip(V3)) ≅ V1 ⊗ V2 ⊗ V3
     @test @inferred(⊗(P)) == P
     @test @inferred(⊗(V1)) == ProductSpace(V1)
     @test eval(Meta.parse(sprint(show, ⊗(V1)))) == ⊗(V1)
@@ -290,6 +305,12 @@ end
     @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
     @test spacetype(W) == SU₂Space
     @test sectortype(W) == SU₂
+    @test fuse(V1, V2', V3) ≅ V1 ⊗ V2' ⊗ V3
+    @test fuse(V1, V2', V3) ≾ V1 ⊗ V2' ⊗ V3 ≾ fuse(V1 ⊗ V2' ⊗ V3)
+    @test fuse(V1, V2') ⊗ V3 ≾ V1 ⊗ V2' ⊗ V3
+    @test fuse(V1, V2', V3) ≿ V1 ⊗ V2' ⊗ V3 ≿ fuse(V1 ⊗ V2' ⊗ V3)
+    @test V1 ⊗ fuse(V2', V3) ≿ V1 ⊗ V2' ⊗ V3
+    @test fuse(flip(V1) ⊗ V2) ⊗ flip(V3) ≅ V1 ⊗ V2 ⊗ V3
     @test W[1] == V1
     @test W[2] == V2
     @test W[3] == V3'

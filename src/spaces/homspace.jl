@@ -54,11 +54,24 @@ function Base.show(io::IO, W::HomSpace)
     end
 end
 
+"""
+    blocksectors(W::HomSpace)
+
+Return an iterator over the different unique coupled sector labels, i.e. the intersection
+of the different fusion outputs that can be obtained by fusing the sectors present in the
+domain, as well as from the codomain.
+"""
 function blocksectors(W::HomSpace)
     sectortype(W) === Trivial && return (Trivial(),)
     return intersect(blocksectors(codomain(W)), blocksectors(domain(W)))
 end
 
+"""
+    dim(W::HomSpace)
+
+Return the total dimension of a `HomSpace`, i.e. the number of linearly independent
+morphisms that can be constructed within this space.
+"""
 function dim(W::HomSpace)
     d = 0
     for c in blocksectors(W)

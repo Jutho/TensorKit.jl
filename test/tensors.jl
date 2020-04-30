@@ -257,6 +257,10 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     QdQ = Q'*Q
                     @test QdQ ≈ one(QdQ)
                     @test Q*R ≈ permute(t, (3,4,2),(1,5))
+                    if alg isa Polar
+                        @test isposdef(R)
+                        @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'
+                    end
                 end
                 @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.SVD(), TensorKit.SDD())
                     N = @inferred leftnull(t, (3,4,2),(1,5); alg = alg)
@@ -269,6 +273,10 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     QQd = Q*Q'
                     @test QQd ≈ one(QQd)
                     @test L*Q ≈ permute(t, (3,4),(2,1,5))
+                    if alg isa Polar
+                        @test isposdef(L)
+                        @test domain(L) == codomain(L) == space(t, 3) ⊗ space(t, 4)
+                    end
                 end
                 @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.SVD(), TensorKit.SDD())
                     M = @inferred rightnull(t, (3,4),(2,1,5); alg = alg)

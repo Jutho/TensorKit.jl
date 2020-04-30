@@ -100,6 +100,7 @@ struct SortedVectorDict{K,V} <: AbstractDict{K,V}
         new{K,V}(keys, values)
     SortedVectorDict{K,V}() where {K,V} = new{K,V}(Vector{K}(undef, 0), Vector{V}(undef, 0))
 end
+SortedVectorDict{K,V}(kv::Pair{K,V}...) where {K,V} = SortedVectorDict{K,V}(kv)
 function SortedVectorDict{K,V}(kv) where {K,V}
     d = SortedVectorDict{K,V}()
     if Base.IteratorSize(kv) !== SizeUnknown()
@@ -118,7 +119,8 @@ Base.length(d::SortedVectorDict) = length(d.keys)
 Base.sizehint!(d::SortedVectorDict, newsz) =
     (sizehint!(d.keys, newsz); sizehint!(d.values, newsz); return d)
 
-Base.copy(d::SortedVectorDict{K,V}) where {K,V} = SortedVectorDict{K,V}(copy(d.keys), copy(d.values))
+Base.copy(d::SortedVectorDict{K,V}) where {K,V} =
+    SortedVectorDict{K,V}(copy(d.keys), copy(d.values))
 Base.empty(::SortedVectorDict, ::Type{K}, ::Type{V}) where {K, V} = SortedVectorDict{K, V}()
 Base.empty!(d::SortedVectorDict) = (empty!(d.keys); empty!(d.values); return d)
 
@@ -160,8 +162,10 @@ function Base.getindex(d::SortedVectorDict{K}, k) where {K}
         throw(KeyError(k))
     end
     i = _searchsortedfirst(d.keys, key)
-    @inbounds begin
-        return (i <= length(d) && isequal(d.keys[i], key)) ? d.values[i] : throw(KeyError(key))
+    @inbounds if (i <= length(d) && isequal(d.keys[i], key))
+        return d.values[i]
+    else
+        throw(KeyError(key))
     end
 end
 function Base.setindex!(d::SortedVectorDict{K}, v, k) where {K}

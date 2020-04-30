@@ -33,8 +33,8 @@ Base.oneunit(::Type{CartesianSpace}) = CartesianSpace(1)
 fuse(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(V1.d*V2.d)
 flip(V::CartesianSpace) = V
 
-Base.min(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(min(V1.d, V2.d))
-Base.max(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(max(V1.d, V2.d))
+infinum(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(min(V1.d, V2.d))
+supremum(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(max(V1.d, V2.d))
 
 Base.show(io::IO, V::CartesianSpace) = print(io, "ℝ^$(V.d)")
 Base.show(io::IO, ::Type{CartesianSpace}) = print(io, "CartesianSpace")
