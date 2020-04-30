@@ -857,7 +857,7 @@ We also define the following pair of orthogonal factorization algorithms, which 
 when one is not interested in truncating a tensor or knowing the singular values, but only
 in its image or coimage.
 
-*   [`Q, R = leftorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos(), kwargs...)`](@ref):
+*   `Q, R = leftorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos(), kwargs...)`:
     this produces an isometry `Q::TensorMap{S,N₁,1}` (i.e. `Q'*Q` approximates the identity,
     `Q*Q'` is an idempotent, i.e. squares to itself) and a general tensor map
     `R::TensorMap{1,N₂}`, such that `t ≈ Q*R`. Here, the domain of `Q` and thus codomain of
@@ -884,7 +884,7 @@ in its image or coimage.
     definite; in this case `SDD()` is used to actually compute the singular value
     decomposition and no `atol` or `rtol` can be provided.
 
-*   `L, Q = leftorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos())`:
+*   `L, Q = rightorth(t; alg::OrthogonalFactorizationAlgorithm = QRpos())`:
     this produces a general tensor map `L::TensorMap{S,N₁,1}` and the adjoint of an isometry
     `Q::TensorMap{S,1,N₂}`, such that `t ≈ L*Q`. Here, the domain of `L` and thus codomain
     of `Q` is a single vector space of type `S` that is typically given by
