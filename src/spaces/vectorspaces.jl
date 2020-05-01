@@ -276,6 +276,7 @@ include("homspace.jl")
 #---------------------------------
 """
     isisomorphic(V1::VectorSpace, V2::VectorSpace)
+    V1 ≅ V2
 
 Return if `V1` and `V2` are isomorphic, meaning that there exists isomorphisms from `V1` to
 `V2`, i.e. morphisms with left and right inverses.
@@ -292,6 +293,7 @@ end
 
 """
     ismonomorphic(V1::VectorSpace, V2::VectorSpace)
+    V1 ≾ V2
 
 Return whether there exist monomorphisms from `V1` to `V2`, i.e. 'injective' morphisms with
 left inverses.
@@ -308,6 +310,7 @@ end
 
 """
     isepimorphic(V1::VectorSpace, V2::VectorSpace)
+    V1 ≿ V2
 
 Return whether there exist epimorphisms from `V1` to `V2`, i.e. 'surjective' morphisms with
 right inverses.
