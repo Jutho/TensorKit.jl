@@ -715,9 +715,11 @@ hassector(V1, U₁(1))
 hassector(V1, U₁(2))
 dual(V1)
 flip(V1)
+dual(V1) ≅ V1
+flip(V1) ≅ V1
 V2 = U1Space(0=>2, 1=>1, -1=>1, 2=>1, -2=>1)
-min(V1,V2)
-max(V1,V2)
+infinum(V1,V2)
+supremum(V1,V2)
 ⊕(V1,V2)
 W = ⊗(V1,V2)
 collect(sectors(W))
@@ -742,8 +744,8 @@ hassector(V1, SU₂(2))
 dual(V1)
 flip(V1)
 V2 = SU2Space(0=>2, 1//2=>1, 1=>1, 3//2=>1, 2=>1)
-min(V1,V2)
-max(V1,V2)
+infinum(V1,V2)
+supremum(V1,V2)
 ⊕(V1,V2)
 W = ⊗(V1,V2)
 collect(sectors(W))
@@ -1173,11 +1175,11 @@ FusionStyle(τ)
 BraidingStyle(τ)
 dim(𝟙)
 dim(τ)
-#F𝟙 = Fsymbol(τ,τ,τ,𝟙,τ,τ)
-#Fτ = [Fsymbol(τ,τ,τ,τ,𝟙,𝟙) Fsymbol(τ,τ,τ,τ,𝟙,τ); Fsymbol(τ,τ,τ,τ,τ,𝟙) Fsymbol(τ,τ,τ,τ,τ,τ)]
-#Fτ'*Fτ
-#polar(x) = rationalize.((abs(x), angle(x)/(2pi)))
-#Rsymbol(τ,τ,𝟙) |> polar
-#Rsymbol(τ,τ,τ) |> polar
-#twist(τ) |> polar
+F𝟙 = Fsymbol(τ,τ,τ,𝟙,τ,τ)
+Fτ = [Fsymbol(τ,τ,τ,τ,𝟙,𝟙) Fsymbol(τ,τ,τ,τ,𝟙,τ); Fsymbol(τ,τ,τ,τ,τ,𝟙) Fsymbol(τ,τ,τ,τ,τ,τ)]
+Fτ'*Fτ
+polar(x) = rationalize.((abs(x), angle(x)/(2pi)))
+Rsymbol(τ,τ,𝟙) |> polar
+Rsymbol(τ,τ,τ) |> polar
+twist(τ) |> polar
 ```

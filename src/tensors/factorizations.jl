@@ -121,7 +121,6 @@ value decomposition, and one can specify an absolute or relative tolerance for w
 singular values are to be considered zero, where `max(atol, norm(t)*rtol)` is used as upper
 bound.
 
-
 Orthogonality requires `spacetype(t)<:InnerProductSpace`, and `leftnull(!)` is currently
 only implemented for `spacetype(t)<:EuclideanSpace`.
 """
