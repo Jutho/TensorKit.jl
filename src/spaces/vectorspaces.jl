@@ -147,7 +147,9 @@ individual spaces `V1`, `V2`, ..., or the spaces contained in `P`.
 """
 function fuse end
 fuse(V::ElementarySpace) = V
-fuse(V1, V2, V3, V4...) = fuse(fuse(V1, V2), V3, V4...)
+fuse(V1::VectorSpace, V2::VectorSpace, V3::VectorSpace...) =
+    fuse(fuse(fuse(V1), fuse(V2)), V3...)
+    # calling fuse on V1 and V2 will allow these to be `ProductSpace`
 
 """
     flip(V::S) where {S<:ElementarySpace} -> S
@@ -272,6 +274,12 @@ include("homspace.jl")
 
 # Partial order for vector spaces
 #---------------------------------
+"""
+    isisomorphic(V1::VectorSpace, V2::VectorSpace)
+
+Return if `V1` and `V2` are isomorphic, meaning that there exists isomorphisms from `V1` to
+`V2`, i.e. morphisms with left and right inverses.
+"""
 function isisomorphic(V1::VectorSpace, V2::VectorSpace)
     spacetype(V1) == spacetype(V2) || return false
     for c in union(blocksectors(V1), blocksectors(V2))
@@ -281,6 +289,13 @@ function isisomorphic(V1::VectorSpace, V2::VectorSpace)
     end
     return true
 end
+
+"""
+    ismonomorphic(V1::VectorSpace, V2::VectorSpace)
+
+Return whether there exist monomorphisms from `V1` to `V2`, i.e. 'injective' morphisms with
+left inverses.
+"""
 function ismonomorphic(V1::VectorSpace, V2::VectorSpace)
     spacetype(V1) == spacetype(V2) || return false
     for c in blocksectors(V1)
@@ -290,6 +305,13 @@ function ismonomorphic(V1::VectorSpace, V2::VectorSpace)
     end
     return true
 end
+
+"""
+    isepimorphic(V1::VectorSpace, V2::VectorSpace)
+
+Return whether there exist epimorphisms from `V1` to `V2`, i.e. 'surjective' morphisms with
+right inverses.
+"""
 function isepimorphic(V1::VectorSpace, V2::VectorSpace)
     spacetype(V1) == spacetype(V2) || return false
     for c in blocksectors(V1)
@@ -305,8 +327,28 @@ const ≅ = isisomorphic
 const ≾ = ismonomorphic
 const ≿ = isepimorphic
 
+≺(V1::VectorSpace, V2::VectorSpace) = V1 ≾ V2 && !(V1 ≿ V2)
+≻(V1::VectorSpace, V2::VectorSpace) = V1 ≿ V2 && !(V1 ≾ V2)
+
+"""
+    infinum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
+
+Return the infinum of a number of elementary spaces, i.e. an instance `V::ElementarySpace`
+such that `V ≾ V1`, `V ≾ V2`, ... and no other `W ≻ V` has this property. This requires
+that all arguments have the same value of `isdual( )`, and also the return value `V` will
+have the same value.
+"""
 infinum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     infinum(infinum(V1, V2), V3...)
+
+"""
+    supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
+
+Return the supremum of a number of elementary spaces, i.e. an instance `V::ElementarySpace`
+such that `V ≿ V1`, `V ≿ V2`, ... and no other `W ≺ V` has this property. This requires
+that all arguments have the same value of `isdual( )`, and also the return value `V` will
+have the same value.
+"""
 supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     supremum(supremum(V1, V2), V3...)
 

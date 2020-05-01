@@ -78,6 +78,8 @@ end
     @test flip(V) ≅ V
     @test flip(V) ≾ V
     @test flip(V) ≿ V
+    @test V ≺ ⊕(V,V)
+    @test !(V ≻ ⊕(V,V))
     @test @inferred(infinum(V, ℝ^3)) == V
     @test @inferred(supremum(V', ℝ^3)) == ℝ^3
 end
@@ -120,6 +122,8 @@ end
     @test flip(V) ≅ V
     @test flip(V) ≾ V
     @test flip(V) ≿ V
+    @test V ≺ ⊕(V,V)
+    @test !(V ≻ ⊕(V,V))
     @test @inferred(infinum(V, ℂ^3)) == V
     @test @inferred(supremum(V', ℂ[3]')) == ℂ[3]'
 end
@@ -230,8 +234,8 @@ end
     @test flip(V) ≿ V
     @test @inferred(⊕(V, V)) == @inferred supremum(V, ⊕(V, V))
     @test V == @inferred infinum(V, ⊕(V, V))
-    @test ⊕(V, V) ≿ V
-    @test V ≾ ⊕(V, V)
+    @test V ≺ ⊕(V,V)
+    @test !(V ≻ ⊕(V,V))
     @test infinum(V, RepresentationSpace(one(G)=>3)) == RepresentationSpace(one(G)=>2)
     @test_throws SpaceMismatch (⊕(V, V'))
 end

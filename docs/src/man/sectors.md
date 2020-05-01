@@ -688,12 +688,10 @@ such that, if `V = RepresentationSpace(a=>n_a,...)` then
 
 Furthermore, for two spaces `V1 = RepresentationSpace(a=>n1_a, ...)` and
 `V2 = RepresentationSpace(a=>n2_a, ...)`, we have
-`min(V1,V2) = RepresentationSpace(a=>min(n1_a,n2_a), ....)` and similarly for `max`,
-i.e. they act on the degeneracy dimensions of every sector separately. Therefore, it can be
-that the return value of `min(V1,V2)` or `max(V1,V2)` is neither equal to `V1` or `V2`. As
-mentioned on the previous page on [vector spaces](@ref s_spaces), `V=min(V1,V2)` is such
-that it admits isometries `V→V1` and `V→V2`, while `V=max(V1,V2)` is such that it admits
-isometries `V1→V` and `V2→V`.
+`infinum(V1,V2) = RepresentationSpace(a=>min(n1_a,n2_a), ....)` and similarly for
+`supremum`, i.e. they act on the degeneracy dimensions of every sector separately.
+Therefore, it can be that the return value of `infinum(V1,V2)` or `supremum(V1,V2)` is
+neither equal to `V1` or `V2`.
 
 For `W` a `ProductSpace{<:RepresentationSpace{G},N}`, [`sectors(W)`](@ref) returns an
 iterator that generates all possible combinations of sectors `as` represented as
@@ -1175,11 +1173,11 @@ FusionStyle(τ)
 BraidingStyle(τ)
 dim(𝟙)
 dim(τ)
-F𝟙 = Fsymbol(τ,τ,τ,𝟙,τ,τ)
-Fτ = [Fsymbol(τ,τ,τ,τ,𝟙,𝟙) Fsymbol(τ,τ,τ,τ,𝟙,τ); Fsymbol(τ,τ,τ,τ,τ,𝟙) Fsymbol(τ,τ,τ,τ,τ,τ)]
-Fτ'*Fτ
-polar(x) = rationalize.((abs(x), angle(x)/(2pi)))
-Rsymbol(τ,τ,𝟙) |> polar
-Rsymbol(τ,τ,τ) |> polar
-twist(τ) |> polar
+#F𝟙 = Fsymbol(τ,τ,τ,𝟙,τ,τ)
+#Fτ = [Fsymbol(τ,τ,τ,τ,𝟙,𝟙) Fsymbol(τ,τ,τ,τ,𝟙,τ); Fsymbol(τ,τ,τ,τ,τ,𝟙) Fsymbol(τ,τ,τ,τ,τ,τ)]
+#Fτ'*Fτ
+#polar(x) = rationalize.((abs(x), angle(x)/(2pi)))
+#Rsymbol(τ,τ,𝟙) |> polar
+#Rsymbol(τ,τ,τ) |> polar
+#twist(τ) |> polar
 ```

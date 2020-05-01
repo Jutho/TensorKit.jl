@@ -37,7 +37,7 @@ export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 export fusiontrees, braid, permute#, artin_braid, repartition, insertat, merge
 
 # some unicode
-export ⊕, ⊗, ×, ℂ, ℝ, ←, →, ≾, ≿, ≅
+export ⊕, ⊗, ×, ℂ, ℝ, ←, →, ≾, ≿, ≅, ≺, ≻
 export ℤ₂, ℤ₃, ℤ₄, U₁, SU₂, CU₁
 export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 

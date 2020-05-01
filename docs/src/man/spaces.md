@@ -10,11 +10,12 @@ definition of a tensor (map) is specifying the vector spaces and their structure
 abstract type VectorSpace end
 ```
 which is actually a too restricted name. All instances of subtypes of `VectorSpace` will
-represent ``𝕜``-linear monoidal categories, but this can go beyond ``\mathbf{Vect}`` and
-even ``\mathbf{SVect}``. However, in order not to make the remaining discussion to abstract
-or complicated, we will simply refer to  subtypes of `VectorSpace` instead of categories,
-and to spaces instead of objects from these categories. In particular, we define two
-abstract subtypes
+represent objects in ``𝕜``-linear monoidal categories, but this can go beyond normal
+vector spaces (i.e. objects in the category ``\mathbf{Vect}``) and even beyond objects of
+``\mathbf{SVect}``. However, in order not to make the remaining discussion to abstract
+or complicated, we will simply refer to subtypes of `VectorSpace` instead of specific
+categories, and to spaces (i.e. `VectorSpace` instances) instead of objects from these
+categories. In particular, we define two abstract subtypes
 ```julia
 abstract type ElementarySpace{𝕜} <: VectorSpace end
 const IndexSpace = ElementarySpace
@@ -216,64 +217,11 @@ which correspond to the symmetric (permutation invariant) or antisymmetric subsp
 domains, like general relativity, might also benefit from tensors living in a subspace with
 certain symmetries under specific index permutations.
 
-## Some more functionality
-Some more convenience functions are provided for the euclidean spaces
-[`CartesianSpace`](@ref) and [`ComplexSpace`](@ref), as well as for
-[`RepresentationSpace`](@ref) discussed in the next section. All functions below that act
-on more than a single elementary space, are only defined when the different spaces are of
-the same concrete subtype `S<:ElementarySpace`
-
-The function `fuse(V1, V2, ...)` or `fuse(V1 ⊗ V2 ⊗ ...)` returns an elementary space that
-is isomorphic to `V1 ⊗ V2 ⊗ ...`, in the sense that a unitary tensor map can be constructed
-between those spaces, e.g. from `W = V1 ⊗ V2 ⊗ ...` to `V = fuse(V1 ⊗ V2 ⊗ ...)`. The
-function `flip(V1)` returns a space that is isomorphic to `V1` but has
-`isdual(flip(V1)) == isdual(V1')`, i.e. if `V1` is a normal space than `flip(V1)` is a dual
-space. Again, isomorphism here implies that a unitary map (but there is no canonical
-choice) can be constructed between both spaces. `flip(V1)` is different from `dual(V1)` in
-the case of [`RepresentationSpace`](@ref). It is useful to flip a tensor index from a ket
-to a bra (or vice versa), by contracting that index with a unitary map from `V1` to
-`flip(V1)`. We refer to [Index operations](@ref) for further information. Some examples:
-```@repl tensorkit
-fuse(ℝ^5, ℝ^3)
-fuse(ℂ^3, (ℂ^5)', ℂ^2)
-flip(ℂ^4)
-```
-
-We also define the direct sum `V1` and `V2` as `V1 ⊕ V2`, where `⊕` is obtained by typing
-`\oplus`+TAB. This is possible only if `isdual(V1) == isdual(V2)`. With a little pun on
-Julia Base, `oneunit` applied to an elementary space (in the value or type domain) returns
-the one-dimensional space, which is isomorphic to the scalar field of the space itself. Some
-examples illustrate this better
-```@repl tensorkit
-ℝ^5 ⊕ ℝ^3
-ℂ^5 ⊕ ℂ^3
-ℂ^5 ⊕ (ℂ^3)'
-oneunit(ℝ^3)
-ℂ^5 ⊕ oneunit(ComplexSpace)
-oneunit((ℂ^3)')
-(ℂ^5) ⊕ oneunit((ℂ^5))
-(ℂ^5)' ⊕ oneunit((ℂ^5)')
-```
-
-For two spaces `V1` and `V2`, `min(V1,V2)` returns the space with the smallest dimension,
-whereas `max(V1,V2)` returns the space with the largest dimension, as illustrated by
-```@repl tensorkit
-min(ℝ^5, ℝ^3)
-max(ℂ^5, ℂ^3)
-max(ℂ^5, (ℂ^3)')
-```
-Again, we impose `isdual(V1) == isdual(V2)`. There is a more technical definition, which
-will be necessary for the case of `RepresentationSpace`. `min(V1,V2)` should be the maximal
-space `V` (in terms of dimensions) that admits an isometry (i.e. a map with its dagger as
-left inverse, but possibly without right inverse) from both `V` to `V1` and `V` to `V2`.
-Vice versa, `max(V1,V2)` should be the minimal space space `V` such that there exist
-isometries `V1→V` and `V2→V`.
-
 ## [Space of morphisms](@id ss_homspaces)
 Given that we define tensor maps as morphisms in a ``𝕜``-linear monoidal category, i.e.
 linear maps, we also define a type to denote the corresponding space. Indeed, in a
 ``𝕜``-linear category ``C``, the set of morphisms ``\mathrm{Hom}(W,V)`` for ``V,W ∈ C`` is
-always an actual vector space, irrespective of whether ``C`` is a subcategory of
+always an actual vector space, irrespective of whether or not ``C`` is a subcategory of
 ``\mathbf{(S)Vect}``.
 
 We introduce the type
@@ -311,3 +259,84 @@ instances of type [`TensorMap`](@ref), which represent morphisms living in such 
 individual spaces, but that this is no longer true once symmetries are involved. At any
 time will `dim(::HomSpace)` represent the number of linearly independent morphisms in this
 space.
+
+## Partial order among vector spaces
+
+Vector spaces of the same `spacetype` can be given a partial order, based on whether there
+exist injective morphisms (a.k.a *monomorphisms*) or surjective morphisms (a.k.a.
+*epimorphisms*) between them. In particular, we define `ismonomorphic(V1, V2)`, with
+Unicode synonym `V1 ≾ V2` (obtained as `\precsim+TAB`), to express whether there exist
+monomorphisms in `V1→V2`. Similarly, we define `isepimorphic(V1, V2)`, with Unicode
+synonym `V1 ≿ V2` (obtained as `\succsim+TAB`), to express whether there exist
+epimorphisms in `V1→V2`. Finally, we define `isisomorphic(V1, V2)`, with Unicode
+alternative `V1 ≅ V2` (obtained as `\cong+TAB`), to express whether there exist
+isomorphism in `V1→V2`. In particular `V1 ≅ V2` if and only if `V1 ≾ V2 && V1 ≿ V2`.
+
+For completeness, we also export the strict comparison operators `≺` and `≻` (`\prec+TAB` and `\succ+TAB`), with definitions
+```julia
+≺(V1::VectorSpace, V2::VectorSpace) = V1 ≾ V2 && !(V1 ≿ V2)
+≻(V1::VectorSpace, V2::VectorSpace) = V1 ≿ V2 && !(V1 ≾ V2)
+```
+However, as we expect these to be less commonly used, no ASCII alternative is provided.
+
+In the context of `spacetype(V) <: EuclideanSpace`, `V1 ≾ V2` implies that there exists
+isometries ``W:V1 → V2`` such that ``W^† ∘ W = \mathrm{id}_{V1}``, while `V1 ≅ V2` implies
+that there exist unitaries ``U:V1→V2`` such that ``U^† ∘ U = \mathrm{id}_{V1}`` and
+``U ∘ U^† = \mathrm{id}_{V2}``.
+
+Note that spaces that are isomorphic are not necessarily equal. One can be a dual space,
+and the other a normal space, or one can be an instance of `ProductSpace`, while the other
+is an `ElementarySpace`. There will exist (infinitely) many isomorphisms between the
+corresponding spaces, but in general none of those will be canonical.
+
+There are also a number of convenience functions to create isomorphic spaces. The function
+`fuse(V1, V2, ...)` or `fuse(V1 ⊗ V2 ⊗ ...)` returns an elementary space that is isomorphic
+to `V1 ⊗ V2 ⊗ ...`. The function `flip(V::ElementarySpace)` returns a space that is
+isomorphic to `V` but has `isdual(flip(V)) == isdual(V')`, i.e. if `V` is a normal space
+than `flip(V)` is a dual space. `flip(V)` is different from `dual(V)` in the case of
+[`RepresentationSpace`](@ref). It is useful to flip a tensor index from a ket to a bra (or
+vice versa), by contracting that index with a unitary map from `V1` to `flip(V1)`. We refer
+to [Index operations](@ref) for further information. Some examples:
+```@repl tensorkit
+ℝ^3 ≾ ℝ^5
+ℂ^3 ≾ (ℂ^5)'
+(ℂ^5) ≅ (ℂ^5)'
+fuse(ℝ^5, ℝ^3)
+fuse(ℂ^3, (ℂ^5)' ⊗ ℂ^2)
+fuse(ℂ^3, (ℂ^5)') ⊗ ℂ^2 ≅ fuse(ℂ^3, (ℂ^5)', ℂ^2) ≅ ℂ^3 ⊗ (ℂ^5)' ⊗ ℂ^2
+flip(ℂ^4)
+flip(ℂ^4) ≅ ℂ^4
+flip(ℂ^4) == ℂ^4
+```
+
+We also define the direct sum `V1` and `V2` as `V1 ⊕ V2`, where `⊕` is obtained by typing
+`\oplus`+TAB. This is possible only if `isdual(V1) == isdual(V2)`. With a little pun on
+Julia Base, `oneunit` applied to an elementary space (in the value or type domain) returns
+the one-dimensional space, which is isomorphic to the scalar field of the space itself. Some
+examples illustrate this better
+```@repl tensorkit
+ℝ^5 ⊕ ℝ^3
+ℂ^5 ⊕ ℂ^3
+ℂ^5 ⊕ (ℂ^3)'
+oneunit(ℝ^3)
+ℂ^5 ⊕ oneunit(ComplexSpace)
+oneunit((ℂ^3)')
+(ℂ^5) ⊕ oneunit((ℂ^5))
+(ℂ^5)' ⊕ oneunit((ℂ^5)')
+```
+
+Finally, while spaces have a partial order, there is no unique infinum or supremum of a two
+or more spaces. However, if `V1` and `V2` are two `ElementarySpace` instances with
+`isdual(V1) == isdual(V2)`, then we can define a unique infinum `V::ElementarySpace` with
+the same value of `isdual` that satisfies `V ≾ V1` and `V ≾ V2`, as well as a unique
+supremum `W::ElementarySpace` with the same value of `isdual` that satisfies `W ≿ V1`
+and `W ≿ V2`. For `CartesianSpace` and `ComplexSpace`, this simply amounts to the
+space with minimal or maximal dimension, i.e.
+```@repl tensorkit
+infinum(ℝ^5, ℝ^3)
+supremum(ℂ^5, ℂ^3)
+supremum(ℂ^5, (ℂ^3)')
+```
+The names `infinum` and `supremum` are especially suited in the case of
+[`RepresentationSpace`](@ref), as the infinum of two spaces might be different from either
+of those two spaces, and similar for the supremum.
