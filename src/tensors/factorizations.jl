@@ -469,7 +469,7 @@ LinearAlgebra.eigen!(t::TensorMap) = ishermitian(t) ? eigh!(t) : eig!(t)
 
 function eigh!(t::TensorMap{<:EuclideanSpace}; kwargs...)
     domain(t) == codomain(t) ||
-        throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
+        throw(SpaceMismatch("`eigh!` requires domain and codomain to be the same"))
     S = spacetype(t)
     G = sectortype(t)
     A = storagetype(t)
@@ -494,7 +494,7 @@ end
 
 function eig!(t::TensorMap; kwargs...)
     domain(t) == codomain(t) ||
-        throw(SpaceMismatch("`eigen` requires domain and codomain to be the same"))
+        throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
     S = spacetype(t)
     G = sectortype(t)
     T = complex(eltype(t))

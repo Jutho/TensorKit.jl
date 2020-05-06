@@ -91,7 +91,14 @@ using Base: @boundscheck, @propagate_inbounds, OneTo, tail, front,
             SizeUnknown, HasLength, HasShape, IsInfinite, EltypeUnknown, HasEltype
 using Base.Iterators: product, filter
 
-using LinearAlgebra
+import LinearAlgebra
+using LinearAlgebra: norm, dot, normalize, normalize!, tr,
+                        axpy!, axpby!, lmul!, rmul!, mul!,
+                        adjoint, adjoint!, transpose, transpose!,
+                        pinv, sylvester,
+                        eigen, eigen!, svd, svd!,
+                        isposdef, isposdef!, ishermitian,
+                        Diagonal, Hermitian
 import Base.Meta
 
 const IndexTuple{N} = NTuple{N,Int}

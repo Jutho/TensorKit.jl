@@ -325,6 +325,9 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
             @testset "eig and isposdef" begin
                 D, V = eigen(t, (1,3), (2,4))
+                D̃, Ṽ = @inferred eig(t, (1,3), (2,4))
+                @test D ≈ D̃
+                @test V ≈ Ṽ
                 VdV = V'*V
                 VdV = (VdV + VdV')/2
                 @test isposdef(VdV)
@@ -335,7 +338,10 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 D, V = eigen(t2)
                 VdV = V'*V
                 @test VdV ≈ one(VdV)
-                λ = minimum(minimum(real(diag(b))) for (c,b) in blocks(D))
+                D̃, Ṽ = @inferred eigh(t2)
+                @test D ≈ D̃
+                @test V ≈ Ṽ
+                λ = minimum(minimum(real(LinearAlgebra.diag(b))) for (c,b) in blocks(D))
                 @test isposdef(t2) == isposdef(λ)
                 @test isposdef(t2 - λ*one(t2) + 0.1*one(t2))
                 @test !isposdef(t2 - λ*one(t2) - 0.1*one(t2))

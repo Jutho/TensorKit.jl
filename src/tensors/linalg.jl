@@ -210,18 +210,29 @@ function LinearAlgebra.dot(t1::AbstractEuclideanTensorMap, t2::AbstractEuclidean
     end
 end
 
-LinearAlgebra.norm(t::AbstractEuclideanTensorMap, p::Real) =
-    isempty(blocks(t)) ? zero(real(eltype(t))) : _norm(blocks(t), p)
-function _norm(blockiterator, p::Real)
+LinearAlgebra.norm(t::AbstractEuclideanTensorMap, p::Real = 2) =
+    _norm(blocks(t), p, float(zero(real(eltype(t)))))
+function _norm(blockiter, p::Real, init::Real)
     if p == Inf
-        maximum(norm(b, p) for (c,b) in blockiterator)
-    elseif p == -Inf
-        minimum(norm(b, p) for (c,b) in blockiterator)
+        return mapreduce(max, blockiter; init = init) do (c,b)
+            isempty(b) ? init : oftype(init, LinearAlgebra.normInf(b))
+        end
+    elseif p == 2
+        return sqrt(mapreduce(+, blockiter; init = init) do (c,b)
+            isempty(b) ? init : oftype(init, dim(c)*LinearAlgebra.norm2(b)^2)
+        end)
     elseif p == 1
-        sum(dim(c)*norm(b, p) for (c,b) in blockiterator)
-    else
-        s = sum(dim(c)*norm(b, p)^p for (c,b) in blockiterator)
+        return mapreduce(+, blockiter; init = init) do (c,b)
+            isempty(b) ? init : oftype(init, dim(c)*sum(abs, b))
+        end
+    elseif p > 0
+        s = mapreduce(+, blockiter; init = init) do (c,b)
+            isempty(b) ? init : oftype(init, dim(c)*LinearAlgebra.normp(b, p)^p)
+        end
         return s^inv(oftype(s, p))
+    else
+        msg = "Norm with non-positive p is not defined for `AbstractTensorMap`"
+        throw(ArgumentError(msg))
     end
 end
 

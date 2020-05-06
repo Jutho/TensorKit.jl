@@ -191,14 +191,14 @@ TensorMap(::UndefInitializer,
     TensorMap(undef, Float64, codom, dom)
 
 
-function TensorMap(I::UniformScaling,
+function TensorMap(I::LinearAlgebra.UniformScaling,
                     ::Type{T},
                     codom::ProductSpace{S},
                     dom::ProductSpace{S}) where {S<:IndexSpace, T<:Number}
     Base.depwarn("`TensorMap(I, T, codomain, domain)`  using `LinearAlgebra.I` is deprecated, use `id([A,], space)` for creating the identity tensor on a space, and `isomorphism([A,], codomain, domain)` to construct a fixed invertible map between two isomorphic spaces. When `spacetype(domain)<:EuclideanSpace`, one can also use `unitary([A,], codomain, domain)` which is then equivalent to `isomorphism`. `A<:AbstractMatrix` is the type of storage, and is by default chosen equal to `Matrix{Float64}`.", ((Base.Core).Typeof(TensorMap)).name.mt.name)
     isomorphism(Matrix{T}, codom, dom)
 end
-TensorMap(I::UniformScaling,
+TensorMap(I::LinearAlgebra.UniformScaling,
             codom::ProductSpace{S},
             dom::ProductSpace{S}) where {S<:IndexSpace} =
     TensorMap(I, Float64, codom, dom)

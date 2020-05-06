@@ -1,12 +1,16 @@
 # custom wrappers for BLAS and LAPACK routines, together with some custom definitions
-using LinearAlgebra: BlasFloat, Char, BlasInt, LAPACKException,
-    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare
+using LinearAlgebra: BlasFloat, Char, BlasInt, LAPACK, LAPACKException,
+    DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare,
+    triu!
 using LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
 using LinearAlgebra.LAPACK: liblapack, chklapackerror
 
 function _one!(A::DenseMatrix)
-    fill!(A, zero(eltype(A)))
-    A[diagind(A)] .= one(eltype(A))
+    Threads.@threads for j = 1:size(A,2)
+        @simd for i = 1:size(A,1)
+            @inbounds A[i,j] = i == j
+        end
+    end
     return A
 end
 
@@ -157,7 +161,7 @@ function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::R
 end
 
 function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
-    size(A, 2) == 0 && return copyto!(similar(A, (size(A,1), size(A,1))), I)
+    size(A, 2) == 0 && return _one!(similar(A, (size(A,1), size(A,1))))
     U, S, V = alg isa SVD ? LAPACK.gesvd!('A', 'N', A) : LAPACK.gesdd!('A', A)
     indstart = count(>(atol), S) + 1
     return U[:, indstart:end]
@@ -244,7 +248,7 @@ function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos}, atol::
 end
 
 function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
-    size(A, 1) == 0 && return copyto!(similar(A, (size(A,2), size(A,2))), I)
+    size(A, 1) == 0 && return _one!(similar(A, (size(A,2), size(A,2))))
     U, S, V = alg isa SVD ? LAPACK.gesvd!('N', 'A', A) : LAPACK.gesdd!('A', A)
     indstart = count(>(atol), S) + 1
     return V[indstart:end, :]

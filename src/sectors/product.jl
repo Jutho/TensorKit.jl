@@ -114,26 +114,26 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
 
 # Default construction from tensor product of sectors
 #-----------------------------------------------------
-LinearAlgebra.:×(S1, S2, S3, S4...) = ×(×(S1, S2), S3, S4...)
+×(S1, S2, S3, S4...) = ×(×(S1, S2), S3, S4...)
 
-LinearAlgebra.:×(S1::Sector, S2::Sector) = ProductSector((S1, S2))
-LinearAlgebra.:×(P1::ProductSector, S2::Sector) = ProductSector(tuple(P1.sectors..., S2))
-LinearAlgebra.:×(S1::Sector, P2::ProductSector) = ProductSector(tuple(S1, P2.sectors...))
-LinearAlgebra.:×(P1::ProductSector, P2::ProductSector) =
+×(S1::Sector, S2::Sector) = ProductSector((S1, S2))
+×(P1::ProductSector, S2::Sector) = ProductSector(tuple(P1.sectors..., S2))
+×(S1::Sector, P2::ProductSector) = ProductSector(tuple(S1, P2.sectors...))
+×(P1::ProductSector, P2::ProductSector) =
     ProductSector(tuple(P1.sectors..., P2.sectors...))
 
-LinearAlgebra.:×(G1::Type{ProductSector{Tuple{}}},
+×(G1::Type{ProductSector{Tuple{}}},
                     G2::Type{ProductSector{T}}) where {T<:SectorTuple} = G2
-LinearAlgebra.:×(G1::Type{ProductSector{T1}},
+×(G1::Type{ProductSector{T1}},
                     G2::Type{ProductSector{T2}}) where {T1<:SectorTuple,T2<:SectorTuple} =
     tuple_type_head(T1) × (ProductSector{tuple_type_tail(T1)} × G2)
-LinearAlgebra.:×(G1::Type{ProductSector{Tuple{}}}, G2::Type{<:Sector}) =
+×(G1::Type{ProductSector{Tuple{}}}, G2::Type{<:Sector}) =
     ProductSector{Tuple{G2}}
-LinearAlgebra.:×(G1::Type{ProductSector{T}}, G2::Type{<:Sector}) where {T<:SectorTuple} =
+×(G1::Type{ProductSector{T}}, G2::Type{<:Sector}) where {T<:SectorTuple} =
     Base.tuple_type_head(T) × (ProductSector{Base.tuple_type_tail(T)} × G2)
-LinearAlgebra.:×(G1::Type{<:Sector}, G2::Type{ProductSector{T}}) where {T<:SectorTuple} =
+×(G1::Type{<:Sector}, G2::Type{ProductSector{T}}) where {T<:SectorTuple} =
     ProductSector{Base.tuple_type_cons(G1,T)}
-LinearAlgebra.:×(G1::Type{<:Sector}, G2::Type{<:Sector}) = ProductSector{Tuple{G1,G2}}
+×(G1::Type{<:Sector}, G2::Type{<:Sector}) = ProductSector{Tuple{G1,G2}}
 
 function Base.show(io::IO, P::ProductSector)
     sectors = P.sectors

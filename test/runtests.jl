@@ -1,6 +1,6 @@
 using Test
 using Random
-using LinearAlgebra
+using TensorKit
 using Combinatorics
 using TensorKit
 using TensorKit: ProductSector, fusiontensor
@@ -9,6 +9,7 @@ TensorOperations.disable_cache() # avoids memory overflow during CI?
 using TupleTools
 using TupleTools: StaticLength
 using Base.Iterators: take, product
+import LinearAlgebra
 
 include("timedtest.jl")
 

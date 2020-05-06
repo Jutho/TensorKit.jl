@@ -119,7 +119,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationError, p = 2)
         cmin === nothing && break
         truncdim[cmin] -= 1
         prevtruncerr = truncerr
-        truncerr = _norm((c=>view(v, truncdim[c]+1:length(v)) for (c,v) in V), p)
+        truncerr = _norm((c=>view(v, truncdim[c]+1:length(v)) for (c,v) in V), p, zero(S))
         if truncerr > trunc.ϵ
             truncdim[cmin] += 1
             truncerr = prevtruncerr
@@ -140,7 +140,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationDimension, p = 2)
         cmin === nothing && break
         truncdim[cmin] -= 1
     end
-    truncerr::S = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+    truncerr::S = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p, zero(S))
     for (c,v) in V
         resize!(v, truncdim[c])
     end
@@ -150,7 +150,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationSpace, p = 2)
     G = keytype(V)
     S = real(eltype(valtype(V)))
     truncdim = SectorDict{G,Int}(c=>min(length(v), dim(trunc.space, c)) for (c,v) in V)
-    truncerr::S = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+    truncerr::S = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p, zero(S))
     for c in keys(V)
         resize!(V[c], truncdim[c])
     end
@@ -168,7 +168,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p = 2)
             truncdim[c] = newdim
         end
     end
-    truncerr::S = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p)
+    truncerr::S = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p, zero(S))
     for (c,v) in V
         resize!(v, truncdim[c])
     end
