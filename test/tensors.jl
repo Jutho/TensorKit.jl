@@ -33,7 +33,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     println("------------------------------------")
     println("Tensors with symmetry: $G")
     println("------------------------------------")
-    ti = time()
+    global ti = time()
     V1, V2, V3, V4, V5 = V
     @testset TimedTestSet "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
@@ -467,7 +467,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test t ≈ t′
         end
     end
-    tf = time()
+    global tf = time()
     printstyled("Finished tensor tests with symmetry $G in ",
                 string(round(tf-ti; sigdigits=3)),
                 " seconds."; bold = true, color = Base.info_color())
