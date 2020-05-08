@@ -27,7 +27,7 @@ underlying storage of a tensor's data can be any `DenseArray`. Currently, certai
 are already multithreaded, either by distributing the different blocks in case of a
 structured tensor (i.e. with symmetries) or by using multithreading provided by the package
 [Strided.jl](https://github.com/Jutho/Strided.jl). In the future, we also plan to
-investigate using `GPUArray`s as underlying storage for the tensors data, so as to leverage
+investigate using `CuArray`s as underlying storage for the tensors data, so as to leverage
 GPUs for the different operations defined on tensors.
 
 ## Contents of the manual
