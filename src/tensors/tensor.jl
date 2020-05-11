@@ -40,7 +40,7 @@ const TrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} = TensorMap{S,
 codomain(t::TensorMap) = t.codom
 domain(t::TensorMap) = t.dom
 
-blocksectors(t::TrivialTensorMap) = (Trivial(),)
+blocksectors(t::TrivialTensorMap) = TrivialOrEmptyIterator(dim(t) == 0)
 blocksectors(t::TensorMap) = keys(t.data)
 
 Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where
@@ -72,7 +72,13 @@ end
 function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
     G = sectortype(S)
     G == keytype(data) || throw(SectorMismatch())
-    G == Trivial && return TensorMap(data[Trivial()], codom, dom)
+    if G == Trivial
+        if dim(dom) != 0 && dim(codom) != 0
+            return TensorMap(data[Trivial()], codom, dom)
+        else
+            return TensorMap(valtype(data)(undef, dim(codom), dim(dom)), codom, dom)
+        end
+    end
     F₁ = fusiontreetype(G, StaticLength(N₁))
     F₂ = fusiontreetype(G, StaticLength(N₂))
     rowr = SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}()

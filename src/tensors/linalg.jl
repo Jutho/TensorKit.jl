@@ -141,13 +141,12 @@ end
 #------------------
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
 # Copy, adjoint! and fill:
-function Base.copyto!(tdest::AbstractTensorMap, tsource::AbstractTensorMap)
-    codomain(tdest) == codomain(tsource) && domain(tdest) == domain(tsource) ||
-        throw(SpaceMismatch())
-    for c in blocksectors(tdest)
-        copyto!(StridedView(block(tdest, c)), StridedView(block(tsource, c)))
+function Base.copyto!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
+    space(tdst) == space(tsrc) || throw(SpaceMismatch())
+    for c in blocksectors(tdst)
+        copyto!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
     end
-    return tdest
+    return tdst
 end
 function Base.fill!(t::AbstractTensorMap, value::Number)
     for (c,b) in blocks(t)
@@ -157,8 +156,7 @@ function Base.fill!(t::AbstractTensorMap, value::Number)
 end
 function LinearAlgebra.adjoint!(tdst::AbstractEuclideanTensorMap,
                                 tsrc::AbstractEuclideanTensorMap)
-    (codomain(tdst) == domain(tsrc) && domain(tdst) == codomain(tsrc)) ||
-        throw(SpaceMismatch())
+    space(tdst) == adjoint(space(tsrc)) || throw(SpaceMismatch())
     for c in blocksectors(tdst)
         adjoint!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
     end
@@ -170,21 +168,21 @@ LinearAlgebra.rmul!(t::AbstractTensorMap, α::Number) = mul!(t, t, α)
 LinearAlgebra.lmul!(α::Number, t::AbstractTensorMap) = mul!(t, α, t)
 
 function LinearAlgebra.mul!(t1::AbstractTensorMap, t2::AbstractTensorMap, α::Number)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
+    space(t1) == space(t2) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         mul!(StridedView(block(t1, c)), StridedView(block(t2, c)), α)
     end
     return t1
 end
 function LinearAlgebra.mul!(t1::AbstractTensorMap, α::Number, t2::AbstractTensorMap)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
+    space(t1) == space(t2) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         mul!(StridedView(block(t1, c)), α, StridedView(block(t2, c)))
     end
     return t1
 end
 function LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTensorMap)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
+    space(t1) == space(t2) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         axpy!(α, StridedView(block(t1, c)), StridedView(block(t2, c)))
     end
@@ -192,7 +190,7 @@ function LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTens
 end
 function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap,
                                 β::Number, t2::AbstractTensorMap)
-    (codomain(t1)==codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
+    space(t1) == space(t2) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         axpby!(α, StridedView(block(t1, c)), β, StridedView(block(t2, c)))
     end
@@ -201,7 +199,7 @@ end
 
 # inner product and norm only valid for spaces with Euclidean inner product
 function LinearAlgebra.dot(t1::AbstractEuclideanTensorMap, t2::AbstractEuclideanTensorMap)
-    (codomain(t1) == codomain(t2) && domain(t1) == domain(t2)) || throw(SpaceMismatch())
+    space(t1) == space(t2) || throw(SpaceMismatch())
     iter = blocksectors(t1)
     if isempty(iter)
         return zero(eltype(t1))*zero(eltype(t2))

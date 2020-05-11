@@ -61,10 +61,12 @@ end
     @test V == @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V))
     @test field(V) == ℝ
     @test @inferred(sectortype(V)) == Trivial
-    @test @inferred(sectors(V)) == (Trivial(),)
+    @test ((@inferred sectors(V))...,) == (Trivial(),)
+    @test length(sectors(V)) == 1
     @test @inferred(TensorKit.hassector(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
     @test dim(@inferred(typeof(V)())) == 0
+    @test (sectors(typeof(V)())...,) == ()
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
     W = @inferred ℝ[1]
@@ -102,9 +104,13 @@ end
     @test @inferred(dual(V)) == @inferred(conj(V)) == @inferred(adjoint(V)) != V
     @test @inferred(field(V)) == ℂ
     @test @inferred(sectortype(V)) == Trivial
-    @test @inferred(sectors(V)) == (Trivial(),)
+    @test @inferred(sectortype(V)) == Trivial
+    @test ((@inferred sectors(V))...,) == (Trivial(),)
+    @test length(sectors(V)) == 1
     @test @inferred(TensorKit.hassector(V, Trivial()))
     @test @inferred(dim(V)) == d == @inferred(dim(V, Trivial()))
+    @test dim(@inferred(typeof(V)())) == 0
+    @test (sectors(typeof(V)())...,) == ()
     @test @inferred(TensorKit.axes(V)) == Base.OneTo(d)
     @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
     W = @inferred ℂ[1]
@@ -286,7 +292,8 @@ end
     @test V1^N == V1 ⊗ V1 ⊗ V1
     @test P^2 == P ⊗ P
     @test @inferred(dims(P, first(sectors(P)))) == dims(P)
-    @test @inferred(blocksectors(P)) == (Trivial(),)
+    @test ((@inferred blocksectors(P))...,) == (Trivial(),)
+    @test (blocksectors(P ⊗ ℂ[0])...,) == ()
     @test @inferred(blockdim(P, first(blocksectors(P)))) == dim(P)
     @test Base.IteratorEltype(P) == Base.IteratorEltype(typeof(P)) ==
                                     Base.IteratorEltype(P.spaces)

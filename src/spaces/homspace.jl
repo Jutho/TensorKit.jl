@@ -18,7 +18,7 @@ Base.adjoint(W::HomSpace{<:EuclideanSpace}) = HomSpace(W.domain, W.codomain)
 
 Base.hash(W::HomSpace, h::UInt) = hash(domain(W), hash(codomain(W), h))
 Base.:(==)(W1::HomSpace, W2::HomSpace) =
-    (W1.codomain == W2.codomain) & (W1.domain == W2.domain)
+    (W1.codomain == W2.codomain) && (W1.domain == W2.domain)
 
 spacetype(W::HomSpace) = spacetype(typeof(W))
 sectortype(W::HomSpace) = sectortype(typeof(W))
@@ -62,7 +62,8 @@ of the different fusion outputs that can be obtained by fusing the sectors prese
 domain, as well as from the codomain.
 """
 function blocksectors(W::HomSpace)
-    sectortype(W) === Trivial && return (Trivial(),)
+    sectortype(W) === Trivial &&
+        return TrivialOrEmptyIterator(dim(domain(W)) == 0 || dim(codomain(W)) == 0)
     return intersect(blocksectors(codomain(W)), blocksectors(domain(W)))
 end
 
