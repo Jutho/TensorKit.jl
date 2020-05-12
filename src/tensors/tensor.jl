@@ -83,7 +83,8 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
     F₂ = fusiontreetype(G, StaticLength(N₂))
     rowr = SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}()
     colr = SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}()
-    for c in blocksectors(codom ← dom)
+    blockiterator = blocksectors(codom ← dom)
+    for c in blockiterator
         rowrc = FusionTreeDict{F₁, UnitRange{Int}}()
         colrc = FusionTreeDict{F₂, UnitRange{Int}}()
         offset1 = 0
@@ -111,13 +112,13 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
         b = valtype(data)(undef, (0,0))
         V = typeof(complex(b))
         K = keytype(data)
-        data2 = SectorDict{K,V}((c=>complex(b)) for (c,b) in data)
+        data2 = SectorDict{K,V}((c=>complex(data[c])) for c in blockiterator)
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     else
         V = valtype(data)
         K = keytype(data)
-        data2 = SectorDict{K,V}((c=>d) for (c,d) in data)
+        data2 = SectorDict{K,V}((c=>data[c]) for c in blockiterator)
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, G, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     end
