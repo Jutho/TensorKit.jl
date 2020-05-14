@@ -144,7 +144,7 @@ canonical order ``(…((V_1 ⊗ V_2) ⊗ V_3) … ⊗ V_N)``. A similar approach
 turn any tensor category into a strict tensor category (see Section XI.5 of [^kassel]).
 
 The different natural isomorphisms involving the unit object have various relations, such
-as ``λ_{V⊗W} ∘ α_{I,V,W} = l_V ⊗ \mathrm{id}_W`` and ``λ_I = ρ_I : I ⊗ I → I``. The last
+as ``λ_{V⊗W} ∘ α_{I,V,W} = λ_V ⊗ \mathrm{id}_W`` and ``λ_I = ρ_I : I ⊗ I → I``. The last
 relation defines an isomorphism between ``I ⊗ I`` and ``I``, which can also be used to
 state that for ``f, g ∈ End_C(I)``, ``f ∘ g = ρ_I ∘ (f ⊗ g) ∘ λ_I^{-1} = g ∘ f``. Hence, the
 tensor product of morphisms in ``End_C(I)`` can be related to morphism composition in
@@ -160,7 +160,7 @@ left and right unitors (involving all possible objects in ``C``) commutes. For w
 concerns the graphical notation, the natural isomorphisms will not be represented and we
 make no distinction between ``(V_1 ⊗ V_2) ⊗ V_3`` and ``V_1 ⊗ (V_2 ⊗ V_3)``. Similarly, the
 identity object ``I`` can be added or removed at will, and when drawn, is often represented
-by a dotted or dashed line. Note that any consistent way of inserting the assocatior or
+by a dotted or dashed line. Note that any consistent way of inserting the associator or
 left or right unitor to convert a graphical representation to a diagram of compositions and
 tensor products of morphisms gives rise to the same result, by virtue of Mac Lane's
 coherence theorem. Using the horizontal direction (left to right) to stack tensor products,
@@ -235,7 +235,7 @@ coevaluation (or unit) ``η_V: I → V ⊗ {}^{∨}V`` which satisfy the "snake 
 
 and can be used to define an isomorphism between ``\mathrm{Hom}(W ⊗ V, U)`` and
 ``\mathrm{Hom}(W, U ⊗ {}^{∨}V)`` for any triple of objects ``U, V, W ∈ \mathrm{Ob}(C)``.
-Note that if there are different duals (with corrsponding exact pairings) associated
+Note that if there are different duals (with corresponding exact pairings) associated
 to an object ``V``, a mixed snake composition using the evaluation of one and coevaluation
 of the other duality can be used to construct an isomorphism between the two associated
 dual objects. Hence, duality is unique up to isomorphisms.
@@ -601,8 +601,8 @@ In particular, for a pivotal ``𝕜``-linear category where ``I`` is simple, it 
 the left and right dimensions of any simple object ``V`` are invertible in ``𝕜``, and that
 any endomorphism ``f ∈ \mathrm{End}(V)`` can be written as
 
-``f = (\mathrm{dim}_\mathrm{l}(V))^{-1} \mathrm{tr}_{\mathrm{l}}(V) \mathrm{id}_V =
-(\mathrm{dim}_\mathrm{r}(V))^{-1} \mathrm{tr}_{\mathrm{r}}(V) \mathrm{id}_V``
+``f = (\mathrm{dim}_\mathrm{l}(V))^{-1} \mathrm{tr}_{\mathrm{l}}(f) \mathrm{id}_V =
+(\mathrm{dim}_\mathrm{r}(V))^{-1} \mathrm{tr}_{\mathrm{r}}(f) \mathrm{id}_V``
 
 Strictly speaking, this holds only if the category is non-degenerate, which means that
 ``I`` is simple and that any non-degenerate pairing ``e:V ⊗ W → I`` induces a non-
@@ -837,7 +837,7 @@ entries of the F-symbol, namely
 
 and
 
-``[B^{ab}_c]^\nu_\mu = \sqrt{\frac{d_a d_b}{d_c}} [F^{ab\bar{b}}_b]^{(111)}_{(cμν)}.``
+``[B^{ab}_c]^\nu_\mu = \sqrt{\frac{d_a d_b}{d_c}} [F^{ab\bar{b}}_a]^{(111)}_{(cμν)}.``
 
 Composing the left hand side of first graphical equation with its dagger, and noting that
 the resulting element ``f ∈ \mathrm{End}(a)`` must satisfy
