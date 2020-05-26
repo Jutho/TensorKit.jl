@@ -1,6 +1,15 @@
 # import TensorOperations: checked_similar_from_indices, scalar, isblascontractable, add!, contract!, unsafe_contract!
 
 # Add support for TensorOperations.jl
+function TensorOperations.memsize(t::TensorMap)
+    s = 0
+    for (c,b) in blocks(t)
+        s += sizeof(b)
+    end
+    return s
+end
+TensorOperations.memsize(t::AdjointTensorMap) = TensorOperations.memsize(t')
+
 function checked_similar_from_indices(tC, ::Type{T}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
         t::AbstractTensorMap{S}) where {T,S<:IndexSpace,N₁,N₂}
 

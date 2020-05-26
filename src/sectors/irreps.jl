@@ -159,7 +159,8 @@ Base.getindex(::SectorValues{SU2Irrep}, i::Int) =
     1 <= i ? SU2Irrep(half(i-1)) : throw(BoundsError(values(SU2Irrep), i))
 findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j)+1
 
-Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInt))
+const _su2one = SU2Irrep(zero(HalfInt))
+Base.one(::Type{SU2Irrep}) = _su2one
 Base.conj(s::SU2Irrep) = s
 ⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
 
@@ -172,9 +173,15 @@ Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
 Base.isreal(::Type{SU2Irrep}) = true
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
-Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
-        s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep) =
-    WignerSymbols.racahW(s1.j, s2.j, s4.j, s3.j, s5.j, s6.j)*sqrt(dim(s5)*dim(s6))
+function Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
+                    s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep)
+    if all(==(_su2one), (s1, s2, s3, s4, s5, s6))
+        return 1.0
+    else
+        return sqrt(dim(s5) * dim(s6)) * WignerSymbols.racahW(Float64, s1.j, s2.j,
+                                                                s4.j, s3.j, s5.j, s6.j)
+    end
+end
 function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
     Nsymbol(sa, sb, sc) || return 0.
     iseven(convert(Int, sa.j+sb.j-sc.j)) ? 1.0 : -1.0
