@@ -130,15 +130,9 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         K = Threads.nthreads()
         if K > 1
             let iterator = fusiontrees(tsrc)
-                Threads.@threads for k = 1:K
-                    counter = 0
-                    for (f1,f2) in iterator
-                        counter += 1
-                        if mod1(counter, K) == k
-                            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
-                        end
-                    end
-                end
+                fetch.(map(iterator) do (f1,f2)
+                    @Threads.spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+                end)
             end
         else # debugging is easier this way
             for (f1,f2) in fusiontrees(tsrc)
