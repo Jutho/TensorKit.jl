@@ -67,9 +67,12 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
     elseif FusionStyle(G) isa Abelian && BraidingStyle(G) isa SymmetricBraiding
         if Threads.nthreads() > 1
+            nstridedthreads = Strided.get_num_threads()
+            Strided.set_num_threads(1)
             Threads.@sync for (f1,f2) in fusiontrees(tsrc)
                 Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
             end
+            Strided.set_num_threads(nstridedthreads)
         else # debugging is easier this way
             for (f1,f2) in fusiontrees(tsrc)
                 _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
