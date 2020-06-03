@@ -1,64 +1,3 @@
-# import TensorOperations: checked_similar_from_indices, scalar, isblascontractable, add!, contract!, unsafe_contract!
-
-# Add support for TensorOperations.jl
-function TensorOperations.memsize(t::TensorMap)
-    s = 0
-    for (c,b) in blocks(t)
-        s += sizeof(b)
-    end
-    return s
-end
-TensorOperations.memsize(t::AdjointTensorMap) = TensorOperations.memsize(t')
-
-function checked_similar_from_indices(tC, ::Type{T}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
-        t::AbstractTensorMap{S}) where {T,S<:IndexSpace,N₁,N₂}
-
-    cod = ProductSpace{S,N₁}(space.(Ref(t), p1))
-    dom = ProductSpace{S,N₂}(dual.(space.(Ref(t), p2)))
-    A = similarstoragetype(t, T)
-
-    if tC !== nothing && (tC isa TensorMap{S,N₁,N₂}) && eltype(tC) == T &&
-        codomain(tC) == cod && domain(tC) == dom && storagetype(tC) == A
-        G = sectortype(S)
-        if G === Trivial
-            return tC::TensorMap{S,N₁,N₂,G,A,Nothing,Nothing}
-        else
-            F₁ = fusiontreetype(G, StaticLength(N₁))
-            F₂ = fusiontreetype(G, StaticLength(N₂))
-            return tC::TensorMap{S,N₁,N₂,G,SectorDict{G,A},F₁,F₂}
-        end
-    else
-        tC = similar(t, T, cod←dom)
-        return tC
-    end
-end
-
-function checked_similar_from_indices(tC, ::Type{T}, oindA::IndexTuple, oindB::IndexTuple,
-    p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, tA::AbstractTensorMap{S},
-    tB::AbstractTensorMap{S}) where {T, S<:IndexSpace,N₁,N₂}
-
-    spaces = (space.(Ref(tA), oindA)..., space.(Ref(tB), oindB)...)
-    cod = ProductSpace{S,N₁}(getindex.(Ref(spaces), p1))
-    dom = ProductSpace{S,N₂}(dual.(getindex.(Ref(spaces), p2)))
-    A = similarstoragetype(tA, T)
-    @assert A === similarstoragetype(tB, T)
-
-    if tC !== nothing && (tC isa TensorMap{S,N₁,N₂}) && eltype(tC) == T &&
-        codomain(tC) == cod && domain(tC) == dom && storagetype(tC) == A
-        G = sectortype(S)
-        if G === Trivial
-            return tC::TensorMap{S,N₁,N₂,G,A,Nothing,Nothing}
-        else
-            F₁ = fusiontreetype(G, StaticLength(N₁))
-            F₂ = fusiontreetype(G, StaticLength(N₂))
-            return tC::TensorMap{S,N₁,N₂,G,SectorDict{G,A},F₁,F₂}
-        end
-    else
-        tC = similar(tA, T, cod←dom)
-        return tC
-    end
-end
-
 function cached_permute(sym::Symbol, t::TensorMap{S},
                             p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂}
     cod = ProductSpace{S,N₁}(map(n->space(t, n), p1))
@@ -127,18 +66,9 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
         pdata = (p1..., p2...)
         axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
     elseif FusionStyle(G) isa Abelian && BraidingStyle(G) isa SymmetricBraiding
-        K = Threads.nthreads()
-        if K > 1
-            let iterator = fusiontrees(tsrc)
-                Threads.@threads for k = 1:K
-                    counter = 0
-                    for (f1,f2) in iterator
-                        counter += 1
-                        if mod1(counter, K) == k
-                            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
-                        end
-                    end
-                end
+        if Threads.nthreads() > 1
+            Threads.@sync for (f1,f2) in fusiontrees(tsrc)
+                Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
             end
         else # debugging is easier this way
             for (f1,f2) in fusiontrees(tsrc)
@@ -319,36 +249,63 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     return C
 end
 
-# # Compatibility layer for working with the `@tensor` macro from TensorOperations
-function TO.checked_similar_from_indices(C, T::Type,
-    p1::IndexTuple, p2::IndexTuple, A::AbstractTensorMap, CA::Symbol = :N)
+# Add support for cache and API (`@tensor` macro & friends) from TensorOperations.jl:
+# compatibility layer
+function TensorOperations.memsize(t::TensorMap)
+    s = 0
+    for (c,b) in blocks(t)
+        s += sizeof(b)
+    end
+    return s
+end
+TensorOperations.memsize(t::AdjointTensorMap) = TensorOperations.memsize(t')
+
+function TO.similarstructure_from_indices(T::Type, p1::IndexTuple, p2::IndexTuple,
+        A::AbstractTensorMap, CA::Symbol = :N)
     if CA == :N
-        checked_similar_from_indices(C, T, p1, p2, A)
+        _similarstructure_from_indices(T, p1, p2, A)
     else
         p1 = adjointtensorindices(A, p1)
         p2 = adjointtensorindices(A, p2)
-        checked_similar_from_indices(C, T, p1, p2, adjoint(A))
+        _similarstructure_from_indices(T, p1, p2, adjoint(A))
     end
 end
 
-function TO.checked_similar_from_indices(C, T::Type,
-    poA::IndexTuple, poB::IndexTuple,
-    p1::IndexTuple, p2::IndexTuple,
-    A::AbstractTensorMap, B::AbstractTensorMap, CA::Symbol = :N, CB::Symbol = :N)
+function TO.similarstructure_from_indices(T::Type, poA::IndexTuple, poB::IndexTuple,
+        p1::IndexTuple, p2::IndexTuple,
+        A::AbstractTensorMap, B::AbstractTensorMap,
+        CA::Symbol = :N, CB::Symbol = :N)
 
     if CA == :N && CB == :N
-        checked_similar_from_indices(C, T, poA, poB, p1, p2, A, B)
+        _similarstructure_from_indices(T, poA, poB, p1, p2, A, B)
     elseif CA == :C && CB == :N
         poA = adjointtensorindices(A, poA)
-        checked_similar_from_indices(C, T, poA, poB, p1, p2, adjoint(A), B)
+        _similarstructure_from_indices(T, poA, poB, p1, p2, adjoint(A), B)
     elseif CA == :N && CB == :C
         poB = adjointtensorindices(B, poB)
-        checked_similar_from_indices(C, T, poA, poB, p1, p2, A, adjoint(B))
+        _similarstructure_from_indices(T, poA, poB, p1, p2, A, adjoint(B))
     else
         poA = adjointtensorindices(A, poA)
         poB = adjointtensorindices(B, poB)
-        checked_similar_from_indices(C, T, poA, poB, p1, p2, adjoint(A), adjoint(B))
+        _similarstructure_from_indices(T, poA, poB, p1, p2, adjoint(A), adjoint(B))
     end
+end
+
+function _similarstructure_from_indices(::Type{T}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
+        t::AbstractTensorMap{S}) where {T,S<:IndexSpace,N₁,N₂}
+
+    cod = ProductSpace{S,N₁}(space.(Ref(t), p1))
+    dom = ProductSpace{S,N₂}(dual.(space.(Ref(t), p2)))
+    return dom→cod
+end
+function _similarstructure_from_indices(::Type{T}, oindA::IndexTuple, oindB::IndexTuple,
+        p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
+        tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}) where {T, S<:IndexSpace,N₁,N₂}
+
+    spaces = (space.(Ref(tA), oindA)..., space.(Ref(tB), oindB)...)
+    cod = ProductSpace{S,N₁}(getindex.(Ref(spaces), p1))
+    dom = ProductSpace{S,N₂}(dual.(getindex.(Ref(spaces), p2)))
+    return dom→cod
 end
 
 TO.scalar(t::AbstractTensorMap) = scalar(t)
