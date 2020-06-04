@@ -4,7 +4,7 @@ A Julia package for large-scale tensor computations, with a hint of category the
 
 | **Documentation**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] [![][codecov-img]][codecov-url] [![][coveralls-img]][coveralls-url] |
+| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![CI][github-img]][github-url] [![][codecov-img]][codecov-url] |
 
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://jutho.github.io/TensorKit.jl/latest
@@ -12,14 +12,12 @@ A Julia package for large-scale tensor computations, with a hint of category the
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-stable-url]: https://jutho.github.io/TensorKit.jl/stable
 
-[travis-img]: https://travis-ci.org/Jutho/TensorKit.jl.svg?branch=master
-[travis-url]: https://travis-ci.org/Jutho/TensorKit.jl
-
-[appveyor-img]: https://ci.appveyor.com/api/projects/status/github/Jutho/TensorKit.jl?svg=true&branch=master
-[appveyor-url]: https://ci.appveyor.com/project/jutho/tensorkit-jl/branch/master
+[github-img]: https://github.com/Jutho/TensorKit.jl/workflows/CI/badge.svg
+[github-url]: https://github.com/Jutho/TensorKit.jl/actions?query=workflow%3ACI
 
 [codecov-img]: https://codecov.io/gh/Jutho/TensorKit.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/Jutho/TensorKit.jl
 
-[coveralls-img]: https://coveralls.io/repos/github/Jutho/TensorKit.jl/badge.svg?branch=master
-[coveralls-url]: https://coveralls.io/github/Jutho/TensorKit.jl
+Install via the package manager.
+
+Check out the [tutorial](https://jutho.github.io/TensorKit.jl/stable/man/tutorial/) and the full [documentation](https://jutho.github.io/TensorKit.jl/stable/man/).
