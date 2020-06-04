@@ -20,4 +20,4 @@ A Julia package for large-scale tensor computations, with a hint of category the
 
 Install via the package manager.
 
-Check out the [tutorial](https://jutho.github.io/TensorKit.jl/stable/man/tutorial/) and the full [documentation](https://jutho.github.io/TensorKit.jl/stable/man/).
+Check out the [tutorial](https://jutho.github.io/TensorKit.jl/stable/man/tutorial/) and the full [documentation](https://jutho.github.io/TensorKit.jl/stable).
