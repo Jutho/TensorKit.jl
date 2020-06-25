@@ -272,7 +272,6 @@ function twist(a::Sector)
     else
         # TODO: is this correct?
         # θ = sum(dim(b)/dim(a)*tr(Rsymbol(a,a,b)) for b in a ⊗ a)
-	  # XY: I think it's correct
         throw(MethodError(twist, (a,)))
     end
     return θ
