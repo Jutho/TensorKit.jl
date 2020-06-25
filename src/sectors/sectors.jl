@@ -40,7 +40,7 @@ abstract type Sector end
 # iterator over the values (i.e., elements of representative set of simple objects) 
 # in the sector
 """
-    struct SectorValues{G<:Sector} end
+    struct SectorValues{G<:Sector} 
 
 Singleton type to represent an iterator over the possible values of type `G`, whose 
 instance is obtained as `values(G)`. For a new `G::Sector`, the following should be defined
