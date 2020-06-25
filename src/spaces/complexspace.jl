@@ -21,9 +21,9 @@ end
 ComplexSpace(dims::AbstractDict; dual = false) = ComplexSpace(dims...; dual = dual)
 
 # convenience constructor
-Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)
 Base.getindex(::ComplexNumbers) = ComplexSpace
-Base.getindex(::ComplexNumbers, d::Int) = ComplexSpace(d)
+Base.getindex(::ComplexNumbers, d::Int) = ComplexSpace(d)  # ℂ[d]
+Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)
 
 # Corresponding methods:
 #------------------------
@@ -40,9 +40,9 @@ Base.oneunit(::Type{ComplexSpace}) = ComplexSpace(1)
 fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d*V2.d)
 flip(V::ComplexSpace) = dual(V)
 
-infinum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
+infimum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
     ComplexSpace(min(dim(V1), dim(V2)), isdual(V1)) :
-    throw(SpaceMismatch("Infinum of space and dual space does not exist"))
+    throw(SpaceMismatch("Infimum of space and dual space does not exist"))
 supremum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
     ComplexSpace(max(dim(V1), dim(V2)), isdual(V1)) :
     throw(SpaceMismatch("Supremum of space and dual space does not exist"))

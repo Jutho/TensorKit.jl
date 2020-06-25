@@ -3,7 +3,8 @@
 
 Generic implementation of a representation space, i.e. a complex Euclidean space with a
 direct sum structure corresponding to different superselection sectors of type `G<:Sector`,
-e.g. the irreps of a compact or finite group, or the labels of a unitary fusion category.
+e.g. the irreps of a compact or finite group, or the simple objects of a unitary 
+fusion category.
 
 This fallback is used when `IteratorSize(values(G)) == IsInfinite()`.
 """
@@ -37,10 +38,12 @@ Base.:(==)(V1::GenericRepresentationSpace, V2::GenericRepresentationSpace) =
 Base.hash(V::GenericRepresentationSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
 
 """
-    struct FiniteRepresentationSpace{G<:Sector,N} <: AbstractRepresentationSpace{G}
+    struct FiniteRepresentationSpace{G<:Sector,N} <: RepresentationSpace{G}
 
-Optimized implementation for a representation space (fusion category) with a finite number of labels (simple objects), i.e. a complex Euclidean space with a direct sum structure corresponding to different superselection sectors of type `G<:Sector`,
-e.g. the irreps of a finite group, or the labels of a unitary fusion category.
+Optimized implementation for a representation space (fusion category) with a finite number 
+of labels (simple objects), i.e. a complex Euclidean space with a direct sum structure 
+corresponding to different superselection sectors of type `G<:Sector`, e.g. the irreps of 
+a finite group, or the labels of a unitary fusion category.
 
 This fallback is used when `IteratorSize(values(G))` is of type `HasLength` or `HasShape`.
 """
@@ -201,12 +204,12 @@ function fuse(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:
     return RepresentationSpace{G}(dims)
 end
 
-function infinum(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G}
+function infimum(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G}
     if V1.dual == V2.dual
         RepresentationSpace{G}(c=>min(dim(V1,c), dim(V2,c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
     else
-        throw(SpaceMismatch("Infinum of space and dual space does not exist"))
+        throw(SpaceMismatch("Infimum of space and dual space does not exist"))
     end
 end
 

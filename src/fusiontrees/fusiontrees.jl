@@ -4,10 +4,13 @@
     struct FusionTree{G,N,M,L,T}
 
 Represents a fusion tree of sectors of type `G<:Sector`, fusing (or splitting) `N` uncoupled
-sectors to a coupled sector. This fusion tree has `M=max(0,N-2)` inner lines. Furthermore,
-for `FusionStyle(G) isa DegenerateNonAbelian`, the `L=max(0,N-1)` corresponding vertices
-carry a label of type `T`. If `FusionStyle(G) isa Union{Abelian,SimpleNonAbelian}`,
-`T = Nothing`.
+sectors to a coupled sector. (It actually represents a splitting tree, but fusion tree 
+is a more common term). The `isdual` field indicates whether an isomorphism is present 
+(if the corresponding value is true) or not. The field `uncoupled` contains the sectors 
+coming out of the splitting trees, before the possible 𝑍 isomorphism. This fusion tree 
+has `M=max(0,N-2)` inner lines. Furthermore, for `FusionStyle(G) isa DegenerateNonAbelian`, 
+the `L=max(0,N-1)` corresponding vertices carry a label of type `T`. If `FusionStyle(G) 
+isa Union{Abelian,SimpleNonAbelian}`, `T = Nothing`.
 """
 struct FusionTree{G<:Sector,N,M,L,T}
     uncoupled::NTuple{N,G}

@@ -36,15 +36,16 @@ Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
 fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} =
     fill(Float64(Nsymbol(a,b,c)), (1,1,1))
 
-# ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 127?
+# ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 64?
 """
     struct ZNIrrep{N} <: AbelianIrrep
     ZNIrrep(n::Integer)
 
-Represents irreps of the group ``ℤ_N`` for some value of `N<64`. Unicode synonyms are
-available for the cases `N=2,3,4` as `ℤ₂`, `ℤ₃`, `ℤ₄`. Also the name `Parity` can be used
-as synonym for `ℤ₂`. An arbitrary `Integer` `n` can be provided to the constructor, but
-only the value `mod(n, N)` is relevant.
+Represents irreps of the group ``ℤ_N`` for some value of `N<64`. (We need 2*(N-1) <= 127 
+in order for a ⊗ b to work correctly.) Unicode synonyms are available for the cases 
+`N=2,3,4` as `ℤ₂`, `ℤ₃`, `ℤ₄`. Also the name `Parity` can be used as synonym for `ℤ₂`. 
+An arbitrary `Integer` `n` can be provided to the constructor, but only the value 
+`mod(n, N)` is relevant.
 """
 struct ZNIrrep{N} <: AbelianIrrep
     n::Int8
@@ -68,6 +69,9 @@ Base.conj(c::ZNIrrep{N}) where {N} = ZNIrrep{N}(-c.n)
 
 ZNIrrep{N}(n::Real) where {N} = convert(ZNIrrep{N}, n)
 Base.convert(Z::Type{<:ZNIrrep}, n::Real) = Z(convert(Int, n))
+
+Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
+Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
 
 const ℤ₂ = ZNIrrep{2}
 const ℤ₃ = ZNIrrep{3}
@@ -94,8 +98,9 @@ Base.show(io::IO, c::ZNIrrep{N}) where {N} =
 Represents irreps of the group `U₁ == SO₂`, both of which are valid unicode synonyms.
 The irrep is labelled by a charge, which should be an integer for a linear representation.
 However, it is often useful to allow half integers to represent irreps of `U₁` subgroups of
-``SU₂``. Hence, the charge is stored as a `HalfInt` from the package HalfIntegers.jl, but
-can be entered as arbitrary `Real`.
+``SU₂``, such as the Sz of spin-1/2 system. Hence, the charge is stored as a `HalfInt` 
+from the package HalfIntegers.jl, but can be entered as arbitrary `Real`.
+The sequence of the charges is: 0, 1/2, -1/2, 1, -1, ...
 """
 struct U1Irrep <: AbelianIrrep
     charge::HalfInt
@@ -116,6 +121,10 @@ Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 
 Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(c)
 
+Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
+@inline Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
+    isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
+    
 const U₁ = U1Irrep
 const SO₂ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
@@ -123,13 +132,7 @@ Base.show(io::IO, c::U1Irrep) =
     get(io, :typeinfo, nothing) === U1Irrep ? print(io, c.charge) :
         print(io, "U₁(", c.charge, ")")
 
-Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
-Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
-Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
-@inline Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
-    isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
-
-# Nob-abelian groups
+# Non-abelian groups
 #------------------------------------------------------------------------------#
 # SU2Irrep: irreps of SU2 are labelled by half integers j
 struct SU2IrrepException <: Exception end
@@ -206,14 +209,14 @@ Base.show(io::IO, s::SU2Irrep) =
 Base.hash(s::SU2Irrep, h::UInt) = hash(s.j, h)
 Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 
-# U₁ ⋉ C (U₁ and charge conjugation)
+# U₁ ⋊ C (U₁ and charge conjugation)
 """
     struct CU1Irrep <: Irrep
         j::HalfInt # value of the U1 charge
         s::Int # rep of charge conjugation:
     end
 
-Represents irreps of the group ``U₁ ⋉ C`` (``U₁`` and charge conjugation or reflection),
+Represents irreps of the group ``U₁ ⋊ C`` (``U₁`` and charge conjugation or reflection),
 which is also known as just `O₂`. Unicode synomyms are thus `CU₁` or `O₂`. The irrep is
 labelled by a positive half integer `j` (the ``U₁`` charge) and an integer `s` indicating
 the behaviour under charge conjugation. They take values:

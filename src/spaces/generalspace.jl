@@ -1,9 +1,9 @@
 """
     struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
 
-A finite-dimensional space over an arbitrary field `𝕜` without additional structure. It is
-thus characterized by its dimension, and whether or not it is the dual and/or conjugate
-space. For a real field `𝕜`, the space and its conjugate are the same.
+A finite-dimensional space over an arbitrary field `𝕜` without additional structure. 
+It is thus characterized by its dimension, and whether or not it is the dual and/or 
+conjugate space. For a real field `𝕜`, the space and its conjugate are the same.
 """
 struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
     d::Int
