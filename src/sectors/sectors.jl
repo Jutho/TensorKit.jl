@@ -186,7 +186,7 @@ Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 """
     Rsymbol(a::G, b::G, c::G) where {G<:Sector}
 
-Returns the R-symbol ``R^{ab}_c`` that maps between ``a ⊗ b → c`` and ``b ⊗ a → c`` as in
+Returns the R-symbol ``R^{ab}_c`` that maps between ``c → a ⊗ b`` and ``c → b ⊗ a`` as in
 ```
 a -<-μ-<- c                                 b -<-ν-<- c
      ∨          -> Rsymbol(a,b,c)[μ,ν]           v
