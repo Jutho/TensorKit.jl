@@ -24,9 +24,9 @@ truncspace(space::ElementarySpace) = TruncationSpace(space)
 
 struct TruncationCutoff{T<:Real} <: TruncationScheme
     ϵ::T
-    addone::Bool
+    add_back::Int
 end
-truncbelow(epsilon::Real, addone::Bool=false) = TruncationCutoff(epsilon, addone)
+truncbelow(epsilon::Real, add_back::Int=0) = TruncationCutoff(epsilon, add_back)
 
 
 # For a single vector
@@ -72,7 +72,9 @@ function _truncate!(v::AbstractVector, trunc::TruncationCutoff, p::Real = 2)
     if dtrunc === nothing
         dtrunc = 0
     end
-    dtrunc < length(v) && trunc.addone && (dtrunc+=1)
+    for i in 1:trunc.add_back
+	dtrunc < length(v) && (dtrunc+=1)
+    end
     truncerr = norm(view(v, dtrunc+1:length(v)), p)
     resize!(v, dtrunc)
     return v, truncerr
@@ -166,21 +168,24 @@ end
 function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p = 2)
     G = keytype(V)
     S = real(eltype(valtype(V)))
-    truncdim = SectorDict{G,Int}(c=>length(v) for (c,v) in V)
-    next_val = SectorDict{G,S  }(c=>zero(S)   for (c,v) in V)
+    truncdim = SectorDict{G,Int      }(c=>length(v) for (c,v) in V)
+    next_val = SectorDict{G,Array{S} }(c=>[zero(S)] for (c,v) in V)
     for (c,v) in V
         newdim = findlast(Base.Fix2(>, trunc.ϵ), v)
         if newdim == nothing
             truncdim[c] = 0
-	    next_val[c] = v[1]
-	elseif newdim < truncdim[c]
- 	    truncdim[c] = newdim
-	    next_val[c] = v[newdim+1]
+	    next_val[c] = v
 	else
 	    truncdim[c] = newdim
+            next_val[c] = v[newdim+1:end]
         end
     end
-    trunc.addone && (truncdim[findmax(next_val)[2]]+=1)
+    for i in 1:trunc.add_back
+        key_max = findmax(next_val)[2] 
+	length(next_val[key_max]) == 0 && break
+        truncdim[key_max] += 1
+        next_val[key_max] = next_val[key_max][2:end]
+    end    
     truncerr = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p, zero(S))
     for (c,v) in V
         resize!(v, truncdim[c])
