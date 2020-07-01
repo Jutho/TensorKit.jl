@@ -72,9 +72,7 @@ function _truncate!(v::AbstractVector, trunc::TruncationCutoff, p::Real = 2)
     if dtrunc === nothing
         dtrunc = 0
     end
-    for i in 1:trunc.add_back
-	dtrunc < length(v) && (dtrunc+=1)
-    end
+    dtrunc = min(dtrunc + trunc.add_back, length(v))
     truncerr = norm(view(v, dtrunc+1:length(v)), p)
     resize!(v, dtrunc)
     return v, truncerr
@@ -181,7 +179,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p = 2)
         end
     end
     for i in 1:trunc.add_back
-        key_max = findmax(next_val)[2] 
+        key_max = argmax(next_val) 
 	length(next_val[key_max]) == 0 && break
         truncdim[key_max] += 1
         next_val[key_max] = next_val[key_max][2:end]
