@@ -12,7 +12,7 @@ an input space of type `ProductSpace{S,N₂}` to an output space of type
 """
 abstract type AbstractTensorMap{S<:IndexSpace, N₁, N₂} end
 """
-    AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{T,S,N,0}
+    AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S,N,0}
 
 Abstract supertype of all tensors, i.e. elements in the tensor product space
 of type `ProductSpace{S,N}`, built from elementary spaces of type `S<:IndexSpace`.

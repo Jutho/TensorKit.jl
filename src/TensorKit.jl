@@ -28,7 +28,7 @@ export SpaceMismatch, SectorMismatch, IndexError # error types
 export space, field, dual, dim, dims, fuse, flip, isdual
 
 # partial order for vector spaces
-export infinum, supremum, isisomorphic, ismonomorphic, isepimorphic
+export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
 
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
