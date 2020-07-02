@@ -69,7 +69,7 @@ function dim end
     dual(V::VectorSpace) -> VectorSpace
 
 Return the dual space of `V`; also obtained via `V'`. This should satisfy 
-dual(dual(V))==V. It is assumed that `typeof(V) == typeof(V')`.
+`dual(dual(V)) == V`. It is assumed that `typeof(V) == typeof(V')`.
 """
 function dual end
 
@@ -168,7 +168,7 @@ function flip end
 """
     conj(V::S) where {S<:ElementarySpace} -> S
 
-Return the conjugate space of `V`. This should satisfy conj(conj(V))==V.
+Return the conjugate space of `V`. This should satisfy `conj(conj(V)) == V`.
 
 For `field(V)==ℝ`, `conj(V) == V`. It is assumed that `typeof(V) == typeof(conj(V))`.
 """
@@ -177,7 +177,7 @@ Base.conj(V::ElementarySpace{ℝ}) = V
 """
     abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
 
-Abstract type for denoting vector with an inner product, thus a canonical mapping from 
+Abstract type for denoting vector spaces with an inner product, thus a canonical mapping from 
 `dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This mapping 
 is provided by the metric, but no further support for working with metrics is currently 
 implemented.
