@@ -4,8 +4,8 @@
     abstract type Field end
 
 Abstract type at the top of the type hierarchy for denoting fields over which vector spaces
-can be defined. Two common fields are `ℝ` and `ℂ`, representing the field of real or complex
-numbers respectively.
+(or more generally, linear categories) can be defined. Two common fields are `ℝ` and `ℂ`, 
+representing the field of real or complex numbers respectively.
 """
 abstract type Field end
 
@@ -36,7 +36,8 @@ Base.@pure Base.issubset(::ComplexNumbers, ::ComplexNumbers) = true
     abstract type VectorSpace end
 
 Abstract type at the top of the type hierarchy for denoting vector spaces, or, more
-accurately, 𝕜-linear categories.
+accurately, 𝕜-linear categories. All instances of subtypes of VectorSpace will 
+represent objects in 𝕜-linear monoidal categories.
 """
 abstract type VectorSpace end
 
@@ -67,10 +68,13 @@ function dim end
 """
     dual(V::VectorSpace) -> VectorSpace
 
-Return the dual space of `V`; also obtained via `V'`. It is assumed that
-`typeof(V) == typeof(V')`.
+Return the dual space of `V`; also obtained via `V'`. This should satisfy 
+`dual(dual(V)) == V`. It is assumed that `typeof(V) == typeof(V')`.
 """
 function dual end
+
+# convenience definitions:
+Base.adjoint(V::VectorSpace) = dual(V)
 
 """
     isdual(V::ElementarySpace) -> Bool
@@ -80,17 +84,15 @@ Return wether an ElementarySpace `V` is normal or rather a dual space. Always re
 """
 function isdual end
 
-# convenience definitions:
-Base.adjoint(V::VectorSpace) = dual(V)
-Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
-
 # Hierarchy of elementary vector spaces
 #---------------------------------------
 """
     abstract type ElementarySpace{𝕜} <: VectorSpace end
 
 Elementary finite-dimensional vector space over a field `𝕜` that can be used as the index
-space corresponding to the indices of a tensor.
+space corresponding to the indices of a tensor. ElementarySpace is a super type for all 
+vector spaces (objects) that can be associated with the individual indices of a tensor, 
+as hinted to by its alias IndexSpace.
 
 Every elementary vector space should respond to the methods [`conj`](@ref) and
 [`dual`](@ref), returning the complex conjugate space and the dual space respectively. The
@@ -138,6 +140,9 @@ elementary space of type `S` that is isomorphic to this tensor product.
 function ⊗ end
 ⊗(V1, V2, V3, V4...) = ⊗(⊗(V1, V2), V3, V4...)
 
+# convenience definitions:
+Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
+
 """
     fuse(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
     fuse(P::ProductSpace{S}) where {S<:ElementarySpace} -> S
@@ -163,7 +168,7 @@ function flip end
 """
     conj(V::S) where {S<:ElementarySpace} -> S
 
-Return the conjugate space of `V`.
+Return the conjugate space of `V`. This should satisfy `conj(conj(V)) == V`.
 
 For `field(V)==ℝ`, `conj(V) == V`. It is assumed that `typeof(V) == typeof(conj(V))`.
 """
@@ -172,32 +177,35 @@ Base.conj(V::ElementarySpace{ℝ}) = V
 """
     abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
 
-Abstract type for denoting vector with an inner product and a corresponding metric, which
-can be used to raise or lower indices of tensors.
+Abstract type for denoting vector spaces with an inner product, thus a canonical mapping from 
+`dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This mapping 
+is provided by the metric, but no further support for working with metrics is currently 
+implemented.
 """
 abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
 
 """
     abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end
 
-Abstract type for denoting real or complex spaces with a standard (Euclidean) inner product
-(i.e. orthonormal basis), such that the dual space is naturally isomorphic to the conjugate
-space (in the complex case) or even to the space itself (in the real case), also known as
-the category of finite-dimensional Hilbert spaces ``FdHilb``.
+Abstract type for denoting real or complex spaces with a standard Euclidean inner product
+(i.e. orthonormal basis, and the metric is identity), such that the dual space is naturally 
+isomorphic to the conjugate space `dual(V) == conj(V)` (in the complex case) or even to 
+the space itself `dual(V) == V` (in the real case), also known as the category of 
+finite-dimensional Hilbert spaces ``FdHilb``. In the language of categories, this subtype 
+represents dagger or unitary categories, and support an adjoint operation. 
 """
 abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end # 𝕜 should be ℝ or ℂ
 
 dual(V::EuclideanSpace) = conj(V)
 isdual(V::EuclideanSpace{ℝ}) = false
-# dual space is naturally isomorphic to conjugate space for inner product spaces
 
-# representation spaces: we restrict to complex Euclidean space supporting unitary representations
 """
     abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 
 Complex Euclidean space with a direct sum structure corresponding to different
 superselection sectors of type `G<:Sector`, e.g. the elements or irreps of a compact or
-finite group, or the labels of a unitary fusion category.
+finite group, or the simple objects of a unitary fusion category. We restrict to complex 
+Euclidean space supporting unitary representations.
 """
 abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
 const Rep{G<:Sector} = RepresentationSpace{G}
@@ -215,7 +223,8 @@ sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 """
     hassector(V::VectorSpace, a::Sector) -> Bool
 
-Return whether a vector space `V` has a subspace corresponding to sector `a` with non-zero dimension, i.e. `dim(V, a) > 0`.
+Return whether a vector space `V` has a subspace corresponding to sector `a` with non-zero 
+dimension, i.e. `dim(V, a) > 0`.
 """
 hassector(V::ElementarySpace, ::Trivial) = dim(V) != 0
 Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
@@ -269,10 +278,14 @@ blockdim(V::ElementarySpace, c::Sector) = dim(V, c)
 include("cartesianspace.jl")
 include("complexspace.jl")
 include("generalspace.jl")
+
+# space with internal structure corresponding to the irreducible representations of 
+# a group, or more generally, the simple objects of a fusion category.
 include("representationspace.jl")
 
 # Specific realizations of CompositeSpace types
 #-----------------------------------------------
+# a tensor product of N elementary spaces of the same type S
 include("productspace.jl")
 
 # Other examples might include:
@@ -346,15 +359,15 @@ const ≿ = isepimorphic
 ≻(V1::VectorSpace, V2::VectorSpace) = V1 ≿ V2 && !(V1 ≾ V2)
 
 """
-    infinum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
+    infimum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
 
-Return the infinum of a number of elementary spaces, i.e. an instance `V::ElementarySpace`
+Return the infimum of a number of elementary spaces, i.e. an instance `V::ElementarySpace`
 such that `V ≾ V1`, `V ≾ V2`, ... and no other `W ≻ V` has this property. This requires
 that all arguments have the same value of `isdual( )`, and also the return value `V` will
 have the same value.
 """
-infinum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
-    infinum(infinum(V1, V2), V3...)
+infimum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
+    infimum(infimum(V1, V2), V3...)
 
 """
     supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
@@ -368,5 +381,5 @@ supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     supremum(supremum(V1, V2), V3...)
 
 import Base: min, max
-Base.@deprecate min(V1::ElementarySpace, V2::ElementarySpace) infinum(V1,V2)
+Base.@deprecate min(V1::ElementarySpace, V2::ElementarySpace) infimum(V1,V2)
 Base.@deprecate max(V1::ElementarySpace, V2::ElementarySpace) supremum(V1,V2)

@@ -37,14 +37,18 @@ Furthermore, `iterate` and `Base.IteratorSize` should be made to work for the si
 """
 abstract type Sector end
 
-# iterator over the values in the sector
+# iterator over the values (i.e., elements of representative set of simple objects) 
+# in the sector
 """
-    struct SectorValues{G<:Sector}
+    struct SectorValues{G<:Sector} 
 
-Singleton type to represent an iterator over the possible values of type `G`, whose instance is obtained as `values(G)`. For a new `G::Sector`, the following should be defined
+Singleton type to represent an iterator over the possible values of type `G`, whose 
+instance is obtained as `values(G)`. For a new `G::Sector`, the following should be defined
 *   `Base.iterate(::SectorValues{G}[, state])`: iterate over the values
 *   `Base.IteratorSize(::Type{SectorValues{G}})`: `HasLenght()`, `SizeUnkown()`
-    or `IsInfinite()` depending on whether the number of values of type `G` is finite (and sufficiently small) or infinite; for a large number of values, `SizeUnknown()` is recommend because this will trigger the use of `GenericRepresentationSpace`.
+    or `IsInfinite()` depending on whether the number of values of type `G` is finite 
+    (and sufficiently small) or infinite; for a large number of values, `SizeUnknown()` is 
+    recommend because this will trigger the use of `GenericRepresentationSpace`.
 If `IteratorSize(G) == HasLength()`, also the following must be implemented:
 *   `Base.length(::SectorValues{G})`: the number of different values
 *   `Base.getindex(::SectorValues{G}, i::Int)`: a mapping between an index `i` and an
@@ -166,7 +170,9 @@ or ``b ⊗ c → f``:
 ```
 a-<-μ-<-e-<-ν-<-d                                     a-<-λ-<-d
     ∨       ∨       -> Fsymbol(a,b,c,d,e,f)[μ,ν,κ,λ]      ∨
-    b       c                                         b-<-κ
+    b       c                                             f
+                                                          v                            
+                                                      b-<-κ
                                                           ∨
                                                           c
 ```
@@ -180,10 +186,10 @@ Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 """
     Rsymbol(a::G, b::G, c::G) where {G<:Sector}
 
-Returns the R-symbol ``R^{ab}_c`` that maps between ``a ⊗ b → c`` and ``b ⊗ a → c`` as in
+Returns the R-symbol ``R^{ab}_c`` that maps between ``c → a ⊗ b`` and ``c → b ⊗ a`` as in
 ```
 a -<-μ-<- c                                 b -<-ν-<- c
-     ∨          -> Rsymbol(a,b,c)[μ,ν]           ∧
+     ∨          -> Rsymbol(a,b,c)[μ,ν]           v
      b                                           a
 ```
 If `FusionStyle(G)` is `Abelian()` or `SimpleNonAbelian()`, the R-symbol is a number.
@@ -203,11 +209,11 @@ output occurs only once and `i == 1`, the default is to suppress vertex labels b
 them equal to `nothing`. For `FusionStyle(G) == DegenerateNonAbelian()`, the default is to
 just use `i`, unless a specialized method is provided.
 """
-vertex_ind2label(i::Int, s1::G, s2::G, sout::G) where {G<:Sector}=
-    _ind2label(FusionStyle(G), i::Int, s1::G, s2::G, sout::G)
-_ind2label(::Abelian, i, s1, s2, sout) = nothing
-_ind2label(::SimpleNonAbelian, i, s1, s2, sout) = nothing
-_ind2label(::DegenerateNonAbelian, i, s1, s2, sout) = i
+vertex_ind2label(i::Int, a::G, b::G, c::G) where {G<:Sector}=
+    _ind2label(FusionStyle(G), i::Int, a::G, b::G, c::G)
+_ind2label(::Abelian, i, a, b, c) = nothing
+_ind2label(::SimpleNonAbelian, i, a, b, c) = nothing
+_ind2label(::DegenerateNonAbelian, i, a, b, c) = i
 
 """
     vertex_labeltype(G::Type{<:Sector}) -> Type
