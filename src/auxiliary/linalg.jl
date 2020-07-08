@@ -5,6 +5,26 @@ using LinearAlgebra: BlasFloat, Char, BlasInt, LAPACK, LAPACKException,
 using LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
 using LinearAlgebra.LAPACK: liblapack, chklapackerror
 
+set_num_blas_threads(n::Integer) = LinearAlgebra.BLAS.set_num_threads(n)
+
+function get_num_blas_threads()
+	blas = LinearAlgebra.BLAS.vendor()
+	# Wrap in a try to catch unsupported blas versions
+	if blas == :openblas
+		return ccall((:openblas_get_num_threads, Base.libblas_name), Cint, ())
+	elseif blas == :openblas64
+		return ccall((:openblas_get_num_threads64_, Base.libblas_name), Cint, ())
+	elseif blas == :mkl
+		return ccall((:mkl_get_max_threads, Base.libblas_name), Cint, ())
+	end
+
+	# OSX BLAS looks at an environment variable
+	@static if Sys.isapple()
+		return tryparse(Cint, get(ENV, "VECLIB_MAXIMUM_THREADS", "1"))
+	end
+    error("unknown BLAS")
+end
+
 function _one!(A::DenseMatrix)
     Threads.@threads for j = 1:size(A,2)
         @simd for i = 1:size(A,1)
