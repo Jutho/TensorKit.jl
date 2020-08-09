@@ -51,11 +51,11 @@ function Base.getindex(t::AdjointTensorMap{S,N₁,N₂,G},
 end
 @propagate_inbounds Base.setindex!(t::AdjointTensorMap{S,N₁,N₂}, v,
                         f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {S,N₁,N₂,G} =
-    copyto!(getindex(t, f1, f2), v)
+    copy!(getindex(t, f1, f2), v)
 
 @inline Base.getindex(t::AdjointTrivialTensorMap) =
     sreshape(StridedView(t.parent.data)', (dims(codomain(t))..., dims(domain(t))...))
-@inline Base.setindex!(t::AdjointTrivialTensorMap, v) = copyto!(getindex(t), v)
+@inline Base.setindex!(t::AdjointTrivialTensorMap, v) = copy!(getindex(t), v)
 
 @inline Base.getindex(t::AdjointTrivialTensorMap, ::Tuple{Nothing,Nothing}) = getindex(t)
 @inline Base.setindex!(t::AdjointTrivialTensorMap, v, ::Tuple{Nothing,Nothing}) =

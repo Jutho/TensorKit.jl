@@ -363,12 +363,16 @@ end
         return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], d)
     end
 end
-@propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G}, v, f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} = copyto!(getindex(t, f1, f2), v)
+@propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,G},
+                                    v,
+                                    f1::FusionTree{G,N₁},
+                                    f2::FusionTree{G,N₂}) where {N₁,N₂,G<:Sector} =
+                                    copy!(getindex(t, f1, f2), v)
 
 # For a tensor with trivial symmetry, allow no argument indexing
 @inline Base.getindex(t::TrivialTensorMap) =
     sreshape(StridedView(t.data), (dims(codomain(t))..., dims(domain(t))...))
-@inline Base.setindex!(t::TrivialTensorMap, v) = copyto!(getindex(t), v)
+@inline Base.setindex!(t::TrivialTensorMap, v) = copy!(getindex(t), v)
 
 # For a tensor with trivial symmetry, fusiontrees returns (nothing,nothing)
 @inline Base.getindex(t::TrivialTensorMap, ::Tuple{Nothing,Nothing}) = getindex(t)
@@ -447,4 +451,16 @@ end
 
 # Conversion and promotion:
 #---------------------------
-# TODO
+Base.convert(::Type{TensorMap}, t::TensorMap) = t
+Base.convert(::Type{TensorMap}, t::AbstractTensorMap) =
+    copy!(TensorMap(undef, eltype(t), codomain(t), domain(t)), t)
+
+function Base.convert(T::Type{TensorMap{S,N₁,N₂,G,A,F1,F2}},
+                        t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂,G,A,F1,F2}
+    if typeof(t) == T
+        return t
+    else
+        t′ = TensorMap(sz->storagetype(T)(sz), codomain(t), domain(t))
+        return copy!(t′, t)
+    end
+end

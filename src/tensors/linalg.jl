@@ -1,15 +1,15 @@
 # Basic algebra
 #---------------
-Base.copy(t::AbstractTensorMap) = Base.copyto!(similar(t), t)
+Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
 
 Base.:-(t::AbstractTensorMap) = mul!(similar(t), t, -one(eltype(t)))
 function Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap)
     T = promote_type(eltype(t1), eltype(t2))
-    return axpy!(one(T), t2, copyto!(similar(t1, T), t1))
+    return axpy!(one(T), t2, copy!(similar(t1, T), t1))
 end
 function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
     T = promote_type(eltype(t1), eltype(t2))
-    return axpy!(-one(T), t2, copyto!(similar(t1, T), t1))
+    return axpy!(-one(T), t2, copy!(similar(t1, T), t1))
 end
 
 Base.:*(t::AbstractTensorMap, α::Number) =
@@ -139,12 +139,17 @@ end
 
 # In-place methods
 #------------------
+import Base: copyto!
+Base.@deprecate(
+    copyto!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap),
+    copy!(tdst, tsrc))
+
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
 # Copy, adjoint! and fill:
-function Base.copyto!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
+function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
     space(tdst) == space(tsrc) || throw(SpaceMismatch())
     for c in blocksectors(tdst)
-        copyto!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
+        copy!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
     end
     return tdst
 end
@@ -323,7 +328,7 @@ function exp!(t::TensorMap)
     domain(t) == codomain(t) ||
         error("Exponentional of a tensor only exist when domain == codomain.")
     for (c,b) in blocks(t)
-        copyto!(b, LinearAlgebra.exp!(b))
+        copy!(b, LinearAlgebra.exp!(b))
     end
     return t
 end
