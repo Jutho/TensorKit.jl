@@ -79,8 +79,8 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
             return TensorMap(valtype(data)(undef, dim(codom), dim(dom)), codom, dom)
         end
     end
-    F₁ = fusiontreetype(G, StaticLength(N₁))
-    F₂ = fusiontreetype(G, StaticLength(N₂))
+    F₁ = fusiontreetype(G, N₁)
+    F₂ = fusiontreetype(G, N₂)
     rowr = SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}()
     colr = SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}()
     blockiterator = blocksectors(codom ← dom)
@@ -134,8 +134,8 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
         A = typeof(data)
         return TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data, codom, dom)
     else
-        F₁ = fusiontreetype(G, StaticLength(N₁))
-        F₂ = fusiontreetype(G, StaticLength(N₂))
+        F₁ = fusiontreetype(G, N₁)
+        F₂ = fusiontreetype(G, N₂)
         # TODO: the current approach is not very efficient and somewhat wasteful
         sampledata = f((1,1))
         if !isreal(G) && eltype(sampledata) <: Real

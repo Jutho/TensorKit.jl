@@ -455,8 +455,8 @@ function braid(f1::FusionTree{G}, f2::FusionTree{G},
         if usebraidcache_abelian[]
             u = one(G)
             T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u)*Rsymbol(u,u,u))
-            F₁ = fusiontreetype(G, StaticLength(N₁))
-            F₂ = fusiontreetype(G, StaticLength(N₂))
+            F₁ = fusiontreetype(G, N₁)
+            F₂ = fusiontreetype(G, N₂)
             D = SingletonDict{Tuple{F₁,F₂}, T}
             return _get_braid(D, (f1, f2, levels1, levels2, p1, p2))
         else
@@ -466,8 +466,8 @@ function braid(f1::FusionTree{G}, f2::FusionTree{G},
         if usebraidcache_nonabelian[]
             u = one(G)
             T = typeof(sqrt(dim(u))*Fsymbol(u,u,u,u,u,u)*Rsymbol(u,u,u))
-            F₁ = fusiontreetype(G, StaticLength(N₁))
-            F₂ = fusiontreetype(G, StaticLength(N₂))
+            F₁ = fusiontreetype(G, N₁)
+            F₂ = fusiontreetype(G, N₂)
             D = FusionTreeDict{Tuple{F₁,F₂}, T}
             return _get_braid(D, (f1, f2, levels1, levels2, p1, p2))
         else
