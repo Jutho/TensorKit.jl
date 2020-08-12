@@ -91,13 +91,13 @@ struct SortedVectorDict{K,V} <: AbstractDict{K,V}
     keys::Vector{K}
     values::Vector{V}
     function SortedVectorDict{K,V}(pairs::Vector{Pair{K,V}}) where {K,V}
-        if !issorted(pairs, by=first)
-            pairs = sort(pairs, by=first)
-        end
-        return new{K,V}(map(first, pairs), map(last, pairs))
+        pairs = sort!(pairs, by=first)
+        return new{K,V}(first.(pairs), last.(pairs))
     end
-    SortedVectorDict{K,V}(keys::Vector{K}, values::Vector{V}) where {K,V} =
+    function SortedVectorDict{K,V}(keys::Vector{K}, values::Vector{V}) where {K,V}
+        @assert issorted(keys)
         new{K,V}(keys, values)
+    end
     SortedVectorDict{K,V}() where {K,V} = new{K,V}(Vector{K}(undef, 0), Vector{V}(undef, 0))
 end
 SortedVectorDict{K,V}(kv::Pair{K,V}...) where {K,V} = SortedVectorDict{K,V}(kv)
@@ -112,8 +112,37 @@ function SortedVectorDict{K,V}(kv) where {K,V}
     return d
 end
 SortedVectorDict(pairs::Vector{Pair{K,V}}) where {K,V} = SortedVectorDict{K,V}(pairs)
+@noinline function _no_pair_error()
+    msg = "SortedVectorDict(kv): kv needs to be an iterator of pairs"
+    throw(ArgumentError(msg))
+end
+function SortedVectorDict(pairs::Vector)
+    all(p->isa(p, Pair), pairs) || _no_pair_error()
+    pairs = sort!(pairs, by=first)
+    keys = map(first, pairs)
+    values = map(last, pairs)
+    return SortedVectorDict{eltype(keys),eltype(values)}(keys, values)
+end
+
 SortedVectorDict(kv::Pair{K,V}...) where {K,V} = SortedVectorDict{K,V}(kv)
-SortedVectorDict(g::Base.Generator) = SortedVectorDict(g...)
+
+Base.@pure _getKV(::Type{Pair{K,V}}) where {K,V} = (K,V)
+function SortedVectorDict(kv)
+    if Base.IteratorEltype(kv) === Base.HasEltype()
+        P = eltype(kv)
+    elseif kv isa Base.Generator && kv.f isa Type
+        P = kv.f
+    else
+        P = Base.Core.Compiler.return_type(first, Tuple{typeof(kv)})
+    end
+    if P <: Pair && Base.isconcretetype(P)
+        K, V = _getKV(P)
+        return SortedVectorDict{K,V}(kv)
+    else
+        return SortedVectorDict(collect(kv))
+    end
+end
+SortedVectorDict() = SortedVectorDict{Any,Any}()
 
 Base.length(d::SortedVectorDict) = length(d.keys)
 Base.sizehint!(d::SortedVectorDict, newsz) =
