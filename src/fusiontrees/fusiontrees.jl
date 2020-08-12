@@ -33,7 +33,7 @@ FusionTree{G}(uncoupled::NTuple{N,Any},
                 innerlines,
                 vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))
                 ) where {G<:Sector,N} =
-    fusiontreetype(G, StaticLength(N))(map(s->convert(G,s),uncoupled),
+    fusiontreetype(G, N)(map(s->convert(G,s),uncoupled),
         convert(G,coupled), isdual, map(s->convert(G,s), innerlines), vertices)
 FusionTree(uncoupled::NTuple{N,G},
             coupled::G,
@@ -41,7 +41,7 @@ FusionTree(uncoupled::NTuple{N,G},
             innerlines,
             vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))
             ) where {G<:Sector,N} =
-    fusiontreetype(G, StaticLength(N))(uncoupled, coupled, isdual, innerlines, vertices)
+    fusiontreetype(G, N)(uncoupled, coupled, isdual, innerlines, vertices)
 
 function FusionTree{G}(uncoupled::NTuple{N}, coupled = one(G),
                         isdual = ntuple(n->false, StaticLength(N))) where {G<:Sector, N}
@@ -99,19 +99,33 @@ function Base.isequal(f1::FusionTree{G,N}, f2::FusionTree{G,N}) where {G<:Sector
 end
 Base.isequal(f1::FusionTree, f2::FusionTree) = false
 
+
 # Facilitate getting correct fusion tree types
-Base.@pure fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} =
-    FusionTree{G, 0, 0, 0, vertex_labeltype(G)}
-Base.@pure fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} =
-    FusionTree{G, 1, 0, 0, vertex_labeltype(G)}
-Base.@pure fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} =
-    FusionTree{G, 2, 0, 1, vertex_labeltype(G)}
-Base.@pure fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} =
-    _fusiontreetype(G, StaticLength(N),
-        StaticLength(N) - StaticLength(2), StaticLength(N) - StaticLength(1))
-Base.@pure _fusiontreetype(::Type{G}, ::StaticLength{N}, ::StaticLength{M},
-                            ::StaticLength{L}) where {G<:Sector, N, M, L} =
-    FusionTree{G,N,M,L,vertex_labeltype(G)}
+Base.@pure function fusiontreetype(::Type{G}, N::Int) where {G<:Sector}
+    if N === 0
+        FusionTree{G, 0, 0, 0, vertex_labeltype(G)}
+    elseif N === 1
+        FusionTree{G, 1, 0, 0, vertex_labeltype(G)}
+    else
+        FusionTree{G, N, N-2, N-1, vertex_labeltype(G)}
+    end
+end
+
+# TODO: remove in following version
+Base.@deprecate(fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector,N},
+    fusiontreetype(G, N))
+# Base.@pure fusiontreetype(::Type{G}, ::StaticLength{0}) where {G<:Sector} =
+#     FusionTree{G, 0, 0, 0, vertex_labeltype(G)}
+# Base.@pure fusiontreetype(::Type{G}, ::StaticLength{1}) where {G<:Sector} =
+#     FusionTree{G, 1, 0, 0, vertex_labeltype(G)}
+# Base.@pure fusiontreetype(::Type{G}, ::StaticLength{2}) where {G<:Sector} =
+#     FusionTree{G, 2, 0, 1, vertex_labeltype(G)}
+# Base.@pure fusiontreetype(::Type{G}, ::StaticLength{N}) where {G<:Sector, N} =
+#     _fusiontreetype(G, StaticLength(N),
+#         StaticLength(N) - StaticLength(2), StaticLength(N) - StaticLength(1))
+# Base.@pure _fusiontreetype(::Type{G}, ::StaticLength{N}, ::StaticLength{M},
+#                             ::StaticLength{L}) where {G<:Sector, N, M, L} =
+#     FusionTree{G,N,M,L,vertex_labeltype(G)}
 
 # converting to actual array
 function Base.convert(::Type{Array}, f::FusionTree{G, 0}) where {G}

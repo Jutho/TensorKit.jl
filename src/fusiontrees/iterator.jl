@@ -16,7 +16,7 @@ end
 Base.IteratorSize(::FusionTreeIterator) = Base.HasLength()
 Base.IteratorEltype(::FusionTreeIterator) = Base.HasEltype()
 Base.eltype(T::Type{FusionTreeIterator{G,N}}) where {G<:Sector, N} =
-    fusiontreetype(G, StaticLength(N))
+    fusiontreetype(G, N)
 
 Base.length(iter::FusionTreeIterator) = _fusiondim(iter.uncoupled, iter.coupled)
 _fusiondim(u::Tuple{}, c::G) where {G<:Sector} = Int(one(c) == c)
