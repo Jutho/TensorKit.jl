@@ -35,6 +35,25 @@ end
 const Tensor{S<:IndexSpace, N, G<:Sector, A, F₁, F₂} = TensorMap{S, N, 0, G, A, F₁, F₂}
 const TrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} = TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}
 
+Base.@pure function tensormaptype(::Type{S}, N₁::Int, N₂::Int, ::Type{T}) where {S,T}
+    G = sectortype(S)
+    if T <: DenseMatrix
+        M = T
+    elseif T <: Number
+        M = Matrix{T}
+    else
+        throw(ArgumentError("the final argument of `tensormaptype` should either be the scalar or the storage type, i.e. a subtype of `Number` or of `DenseMatrix`"))
+    end
+    if G === Trivial
+        return TensorMap{S,N₁,N₂,G,M,Nothing,Nothing}
+    else
+        F₁ = fusiontreetype(G, N₁)
+        F₂ = fusiontreetype(G, N₂)
+        return TensorMap{S,N₁,N₂,G,SectorDict{G,M},F₁,F₂}
+    end
+end
+tensormaptype(S, N₁, N₂ = 0) = tensormaptype(S, N₁, N₂, Float64)
+
 # Basic methods for characterising a tensor:
 #--------------------------------------------
 codomain(t::TensorMap) = t.codom
