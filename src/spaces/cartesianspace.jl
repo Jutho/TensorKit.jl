@@ -17,7 +17,16 @@ function CartesianSpace(dim::Pair; dual = false)
         throw(SectorMismatch(msg))
     end
 end
-CartesianSpace(dim::AbstractDict; dual = false) = CartesianSpace(dim...; dual = dual)
+function CartesianSpace(dims::AbstractDict; kwargs...)
+    if length(dims) == 0
+        return CartesianSpace(0; kwargs...)
+    elseif length(dims) == 1
+        return CartesianSpace(first(dims); kwargs...)
+    else
+        msg = "$(dims) is not a valid dimension dictionary for CartesianSpace"
+        throw(SectorMismatch(msg))
+    end
+end
 
 # convenience constructor
 Base.getindex(::RealNumbers) = CartesianSpace
