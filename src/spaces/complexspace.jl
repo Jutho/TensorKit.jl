@@ -18,7 +18,16 @@ function ComplexSpace(dim::Pair; dual = false)
         throw(SectorMismatch(msg))
     end
 end
-ComplexSpace(dims::AbstractDict; dual = false) = ComplexSpace(dims...; dual = dual)
+function ComplexSpace(dims::AbstractDict; kwargs...)
+    if length(dims) == 0
+        return ComplexSpace(0; kwargs...)
+    elseif length(dims) == 1
+        return ComplexSpace(first(dims); kwargs...)
+    else
+        msg = "$(dims) is not a valid dimension dictionary for ComplexSpace"
+        throw(SectorMismatch(msg))
+    end
+end
 
 # convenience constructor
 Base.getindex(::ComplexNumbers) = ComplexSpace
