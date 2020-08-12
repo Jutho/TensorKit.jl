@@ -37,17 +37,17 @@ Furthermore, `iterate` and `Base.IteratorSize` should be made to work for the si
 """
 abstract type Sector end
 
-# iterator over the values (i.e., elements of representative set of simple objects) 
+# iterator over the values (i.e., elements of representative set of simple objects)
 # in the sector
 """
-    struct SectorValues{G<:Sector} 
+    struct SectorValues{G<:Sector}
 
-Singleton type to represent an iterator over the possible values of type `G`, whose 
+Singleton type to represent an iterator over the possible values of type `G`, whose
 instance is obtained as `values(G)`. For a new `G::Sector`, the following should be defined
 *   `Base.iterate(::SectorValues{G}[, state])`: iterate over the values
 *   `Base.IteratorSize(::Type{SectorValues{G}})`: `HasLenght()`, `SizeUnkown()`
-    or `IsInfinite()` depending on whether the number of values of type `G` is finite 
-    (and sufficiently small) or infinite; for a large number of values, `SizeUnknown()` is 
+    or `IsInfinite()` depending on whether the number of values of type `G` is finite
+    (and sufficiently small) or infinite; for a large number of values, `SizeUnknown()` is
     recommend because this will trigger the use of `GenericRepresentationSpace`.
 If `IteratorSize(G) == HasLength()`, also the following must be implemented:
 *   `Base.length(::SectorValues{G})`: the number of different values
@@ -171,7 +171,7 @@ or ``b ⊗ c → f``:
 a-<-μ-<-e-<-ν-<-d                                     a-<-λ-<-d
     ∨       ∨       -> Fsymbol(a,b,c,d,e,f)[μ,ν,κ,λ]      ∨
     b       c                                             f
-                                                          v                            
+                                                          v
                                                       b-<-κ
                                                           ∨
                                                           c

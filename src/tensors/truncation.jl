@@ -179,15 +179,15 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p = 2)
         end
     end
     for i in 1:trunc.add_back
-        key_max = argmax(next_val) 
+        key_max = argmax(next_val)
 	length(next_val[key_max]) == 0 && break
         truncdim[key_max] += 1
         next_val[key_max] = next_val[key_max][2:end]
-    end    
+    end
     truncerr = _norm((c=>view(v,truncdim[c]+1:length(v)) for (c,v) in V), p, zero(S))
     for (c,v) in V
         resize!(v, truncdim[c])
-    end	
+    end
     return V, truncerr
 end
 

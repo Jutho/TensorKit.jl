@@ -341,7 +341,7 @@ function LinearAlgebra.sylvester(A::AbstractTensorMap,
         throw(SpaceMismatch())
     cod = domain(A)
     dom = codomain(B)
-    sylABC(c) = sylvester(block(A,c), block(B, c), block(C, c))
+    sylABC(c) = sylvester(block(A, c), block(B, c), block(C, c))
     data = SectorDict(c=>sylABC(c) for c in blocksectors(cod ← dom))
     return TensorMap(data, cod ← dom)
 end
