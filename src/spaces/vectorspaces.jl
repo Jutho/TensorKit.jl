@@ -4,7 +4,7 @@
     abstract type Field end
 
 Abstract type at the top of the type hierarchy for denoting fields over which vector spaces
-(or more generally, linear categories) can be defined. Two common fields are `ℝ` and `ℂ`, 
+(or more generally, linear categories) can be defined. Two common fields are `ℝ` and `ℂ`,
 representing the field of real or complex numbers respectively.
 """
 abstract type Field end
@@ -36,7 +36,7 @@ Base.@pure Base.issubset(::ComplexNumbers, ::ComplexNumbers) = true
     abstract type VectorSpace end
 
 Abstract type at the top of the type hierarchy for denoting vector spaces, or, more
-accurately, 𝕜-linear categories. All instances of subtypes of VectorSpace will 
+accurately, 𝕜-linear categories. All instances of subtypes of VectorSpace will
 represent objects in 𝕜-linear monoidal categories.
 """
 abstract type VectorSpace end
@@ -68,7 +68,7 @@ function dim end
 """
     dual(V::VectorSpace) -> VectorSpace
 
-Return the dual space of `V`; also obtained via `V'`. This should satisfy 
+Return the dual space of `V`; also obtained via `V'`. This should satisfy
 `dual(dual(V)) == V`. It is assumed that `typeof(V) == typeof(V')`.
 """
 function dual end
@@ -90,8 +90,8 @@ function isdual end
     abstract type ElementarySpace{𝕜} <: VectorSpace end
 
 Elementary finite-dimensional vector space over a field `𝕜` that can be used as the index
-space corresponding to the indices of a tensor. ElementarySpace is a super type for all 
-vector spaces (objects) that can be associated with the individual indices of a tensor, 
+space corresponding to the indices of a tensor. ElementarySpace is a super type for all
+vector spaces (objects) that can be associated with the individual indices of a tensor,
 as hinted to by its alias IndexSpace.
 
 Every elementary vector space should respond to the methods [`conj`](@ref) and
@@ -177,9 +177,9 @@ Base.conj(V::ElementarySpace{ℝ}) = V
 """
     abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
 
-Abstract type for denoting vector spaces with an inner product, thus a canonical mapping from 
-`dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This mapping 
-is provided by the metric, but no further support for working with metrics is currently 
+Abstract type for denoting vector spaces with an inner product, thus a canonical mapping from
+`dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This mapping
+is provided by the metric, but no further support for working with metrics is currently
 implemented.
 """
 abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
@@ -188,11 +188,11 @@ abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
     abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end
 
 Abstract type for denoting real or complex spaces with a standard Euclidean inner product
-(i.e. orthonormal basis, and the metric is identity), such that the dual space is naturally 
-isomorphic to the conjugate space `dual(V) == conj(V)` (in the complex case) or even to 
-the space itself `dual(V) == V` (in the real case), also known as the category of 
-finite-dimensional Hilbert spaces ``FdHilb``. In the language of categories, this subtype 
-represents dagger or unitary categories, and support an adjoint operation. 
+(i.e. orthonormal basis, and the metric is identity), such that the dual space is naturally
+isomorphic to the conjugate space `dual(V) == conj(V)` (in the complex case) or even to
+the space itself `dual(V) == V` (in the real case), also known as the category of
+finite-dimensional Hilbert spaces ``FdHilb``. In the language of categories, this subtype
+represents dagger or unitary categories, and support an adjoint operation.
 """
 abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end # 𝕜 should be ℝ or ℂ
 
@@ -204,7 +204,7 @@ isdual(V::EuclideanSpace{ℝ}) = false
 
 Complex Euclidean space with a direct sum structure corresponding to different
 superselection sectors of type `G<:Sector`, e.g. the elements or irreps of a compact or
-finite group, or the simple objects of a unitary fusion category. We restrict to complex 
+finite group, or the simple objects of a unitary fusion category. We restrict to complex
 Euclidean space supporting unitary representations.
 """
 abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
@@ -223,7 +223,7 @@ sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
 """
     hassector(V::VectorSpace, a::Sector) -> Bool
 
-Return whether a vector space `V` has a subspace corresponding to sector `a` with non-zero 
+Return whether a vector space `V` has a subspace corresponding to sector `a` with non-zero
 dimension, i.e. `dim(V, a) > 0`.
 """
 hassector(V::ElementarySpace, ::Trivial) = dim(V) != 0
@@ -279,7 +279,7 @@ include("cartesianspace.jl")
 include("complexspace.jl")
 include("generalspace.jl")
 
-# space with internal structure corresponding to the irreducible representations of 
+# space with internal structure corresponding to the irreducible representations of
 # a group, or more generally, the simple objects of a fusion category.
 include("representationspace.jl")
 

@@ -3,7 +3,7 @@
 
 Generic implementation of a representation space, i.e. a complex Euclidean space with a
 direct sum structure corresponding to different superselection sectors of type `G<:Sector`,
-e.g. the irreps of a compact or finite group, or the simple objects of a unitary 
+e.g. the irreps of a compact or finite group, or the simple objects of a unitary
 fusion category.
 
 This fallback is used when `IteratorSize(values(G)) == IsInfinite()`.
@@ -40,9 +40,9 @@ Base.hash(V::GenericRepresentationSpace, h::UInt) = hash(V.dual, hash(V.dims, h)
 """
     struct FiniteRepresentationSpace{G<:Sector,N} <: RepresentationSpace{G}
 
-Optimized implementation for a representation space (fusion category) with a finite number 
-of labels (simple objects), i.e. a complex Euclidean space with a direct sum structure 
-corresponding to different superselection sectors of type `G<:Sector`, e.g. the irreps of 
+Optimized implementation for a representation space (fusion category) with a finite number
+of labels (simple objects), i.e. a complex Euclidean space with a direct sum structure
+corresponding to different superselection sectors of type `G<:Sector`, e.g. the irreps of
 a finite group, or the labels of a unitary fusion category.
 
 This fallback is used when `IteratorSize(values(G))` is of type `HasLength` or `HasShape`.
@@ -174,6 +174,9 @@ const SU2Space = SU₂Space
 Base.oneunit(::Type{<:RepresentationSpace{G}}) where {G<:Sector} =
     RepresentationSpace{G}(one(G)=>1)
 
+# TODO: the following methods can probably be implemented more efficiently for
+# `FiniteRepresentationSpace`, but we don't expect them to be used often in hot loops, so
+# these generic definitions (which are still quite efficient) are good for now.
 function ⊕(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:Sector}
     dual1 = isdual(V1)
     dual1 == isdual(V2) ||
@@ -186,11 +189,11 @@ function ⊕(V1::RepresentationSpace{G}, V2::RepresentationSpace{G}) where {G<:S
     return RepresentationSpace{G}(dims; dual = dual1)
 end
 
-function flip(V::RepresentationSpace)
+function flip(V::RepresentationSpace{G}) where {G}
     if isdual(V)
-        typeof(V)((c=>dim(V,c) for c in sectors(V))...)
+        RepresentationSpace{G}(c=>dim(V,c) for c in sectors(V))
     else
-        typeof(V)((dual(c)=>dim(V,c) for c in sectors(V))...)'
+        RepresentationSpace{G}(dual(c)=>dim(V,c) for c in sectors(V))'
     end
 end
 
