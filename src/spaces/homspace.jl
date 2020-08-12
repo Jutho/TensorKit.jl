@@ -30,8 +30,9 @@ spacetype(::Type{<:HomSpace{S}}) where S = S
 field(L::Type{<:HomSpace}) = field(spacetype(L))
 sectortype(L::Type{<:HomSpace}) = sectortype(spacetype(L))
 
-const TensorSpace{S} = Union{S, ProductSpace{S}}
-const TensorMapSpace{S, N₁, N₂} = HomSpace{S, ProductSpace{S,N₁}, ProductSpace{S,N₂}}
+const TensorSpace{S<:ElementarySpace} = Union{S, ProductSpace{S}}
+const TensorMapSpace{S<:ElementarySpace, N₁, N₂} =
+    HomSpace{S, ProductSpace{S,N₁}, ProductSpace{S,N₂}}
 
 Base.getindex(W::TensorMapSpace{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
     i <= N₁ ? codomain(W)[i] : dual(domain(W)[i-N₁])
