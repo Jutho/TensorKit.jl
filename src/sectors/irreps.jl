@@ -122,7 +122,7 @@ Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(c)
 
 Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
-@inline Base.isless(c1::U1Irrep, c2::U1Irrep) where {N} =
+@inline Base.isless(c1::U1Irrep, c2::U1Irrep) =
     isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
     
 const U₁ = U1Irrep

@@ -170,7 +170,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p = 2)
     next_val = SectorDict{G,Array{S} }(c=>[zero(S)] for (c,v) in V)
     for (c,v) in V
         newdim = findlast(Base.Fix2(>, trunc.ϵ), v)
-        if newdim == nothing
+        if newdim === nothing
             truncdim[c] = 0
 	    next_val[c] = v
 	else
