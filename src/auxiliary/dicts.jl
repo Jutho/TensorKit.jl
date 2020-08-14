@@ -45,7 +45,7 @@ Base.empty!(d::VectorDict) = (empty!(d.keys); empty!(d.values); return d)
 
 function Base.delete!(d::VectorDict, key)
     i = findfirst(isequal(key), d.keys)
-    if !(i == nothing || i == 0)
+    if !(i === nothing || i == 0)
         deleteat!(d.keys  , i)
         deleteat!(d.values, i)
     end
