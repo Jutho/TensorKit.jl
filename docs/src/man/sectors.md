@@ -970,14 +970,13 @@ Other manipulations which are sometimes needed are
 
     ![insertat](img/tree-insertat.svg)
 
-*   [split(f::FusionTree{G,N}, StaticLength(M))](@ref TensorKit.split) :
+*   [split(f::FusionTree{G,N}, M::Int)](@ref TensorKit.split) :
     splits a fusion tree `f` into two trees `f1` and `f2`, such that `f1` has the first `M`
-    uncoupled sectors of `f`, and `f2` the remaining `N-M`. This is the inverse of
-    `insertat` in the sence that `insertat(f2, 1, f1)` should return a dictionary with a
-    single key-value pair `f=>1`. Here, `M` is specified via `StaticLength` which is a value
-    type (i.e. it encodes the value of `M` in compile time information) exported by
-    TensorKit.jl (actually defined in TupleTools.jl) which supports basic arithmitic.
-    Diagrammatically, for `M=4`, the function `split` returns
+    uncoupled sectors of `f`, and `f2` the remaining `N-M`. This function is type stable if `M` is a compile time constant.
+
+    `split(f, M)` is the inverse of `insertat` in the sence that `insertat(f2, 1, f1)`
+    should return a dictionary with a single key-value pair `f=>1`. Diagrammatically, for
+    `M=4`, the function `split` returns
 
     ![split](img/tree-split.svg)
 
@@ -1041,16 +1040,16 @@ the splitting tree.
 
 The `FusionTree` interface to duality and line bending is given by
 
-`repartition(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}, StaticLength(N))`
+`repartition(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂}, N::Int)`
 
 which takes a splitting tree `f1` with `N₁` outgoing sectors, a fusion tree `f2` with `N₂`
 incoming sectors, and applies line bending such that the resulting splitting and fusion
 trees have `N` outgoing sectors, corresponding to the first `N` sectors out of the list
 ``(a_1, a_2, …, a_{N_1}, b_{N_2}^*, …, b_{1}^*)`` and `N₁+N₂-N` incoming sectors,
 corresponding to the dual of the last `N₁+N₂-N` sectors from the previous list, in reverse.
-Note that `N` is again provided via the `StaticLength` value type. Graphically, for
-`N₁ = 4`, `N₂ = 3`, `N = 2` and some particular of `isdual` in both the fusion and
-splitting tree:
+This return values are correctly inferred if `N` is a compile time constant.
+
+Graphically, for `N₁ = 4`, `N₂ = 3`, `N = 2` and some particular choice of `isdual` in both the fusion and splitting tree:
 
 ![repartition](img/tree-repartition.svg)
 
