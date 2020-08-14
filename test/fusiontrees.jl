@@ -114,10 +114,10 @@ ti = time()
             isdual1 = Base.setindex(isdual1, false, i)
             f1 = rand(collect(fusiontrees(out1, in1, isdual1)))
 
-            trees = @constinferred TK.insertat(f1, $i, f2)
+            trees = @constinferred TK.insertat(f1, i, f2)
             @test norm(values(trees)) ≈ 1
 
-            f1a, f1b = TK.split(f1, i)
+            f1a, f1b = @constinferred TK.split(f1, $i)
             @test length(TK.insertat(f1b, 1, f1a)) == 1
             @test first(TK.insertat(f1b, 1, f1a)) == (f1 => 1)
 
