@@ -12,8 +12,10 @@ using Base.Iterators: take, product
 import LinearAlgebra
 
 include("timedtest.jl")
+include("constinferred.jl")
 
 using .TimedTests
+using .ConstInferred
 
 const TK = TensorKit
 

@@ -57,11 +57,11 @@ dim(t::AbstractTensorMap) = dim(space(t))
 
 # some index manipulation utilities
 Base.@pure codomainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
-    ntuple(n->n, StaticLength(N₁))
+    ntuple(n->n, N₁)
 Base.@pure domainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
-    ntuple(n-> N₁+n, StaticLength(N₂))
+    ntuple(n-> N₁+n, N₂)
 Base.@pure allind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁, N₂} =
-    ntuple(n->n, StaticLength(N₁+N₂))
+    ntuple(n->n, N₁+N₂)
 
 codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
 domainind(t::AbstractTensorMap) = domainind(typeof(t))

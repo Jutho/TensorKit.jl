@@ -1,4 +1,3 @@
-
 function linearizepermutation(p1::NTuple{N₁,Int}, p2::NTuple{N₂}, n₁::Int, n₂::Int) where {N₁,N₂}
     p1′ = ntuple(StaticLength(N₁)) do n
         p1[n] > n₁ ? n₂+2n₁+1-p1[n] : p1[n]

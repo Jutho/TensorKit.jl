@@ -149,8 +149,8 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
         r2 = (p2..., q2...)
         for (f1,f2) in fusiontrees(tsrc)
             for ((f1′,f2′), coeff) in permute(f1, f2, r1, r2)
-                f1′′, g1 = split(f1′, StaticLength(N₁))
-                f2′′, g2 = split(f2′, StaticLength(N₂))
+                f1′′, g1 = split(f1′, N₁)
+                f2′′, g2 = split(f2′, N₂)
                 if g1 == g2
                     coeff *= dim(g1.coupled)/dim(g1.uncoupled[1])
                     TO._trace!(α*coeff, tsrc[f1,f2], true, tdst[f1′′,f2′′], pdata, q1, q2)
@@ -173,8 +173,8 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     # find optimal contraction scheme
     hsp = has_shared_permute
     ipC = TupleTools.invperm((p1..., p2...))
-    oindAinC = TupleTools.getindices(ipC, ntuple(n->n, StaticLength(N₁)))
-    oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, StaticLength(N₂)))
+    oindAinC = TupleTools.getindices(ipC, ntuple(n->n, N₁))
+    oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, N₂))
 
     qA = TupleTools.sortperm(cindA)
     cindA′ = TupleTools.getindices(cindA, qA)
@@ -232,8 +232,8 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
         B′ = cached_permute(syms[2], B, cindB, oindB)
     end
     ipC = TupleTools.invperm((p1..., p2...))
-    oindAinC = TupleTools.getindices(ipC, ntuple(n->n, StaticLength(N₁)))
-    oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, StaticLength(N₂)))
+    oindAinC = TupleTools.getindices(ipC, ntuple(n->n, N₁))
+    oindBinC = TupleTools.getindices(ipC, ntuple(n->n+N₁, N₂))
     if has_shared_permute(C, oindAinC, oindBinC)
         C′ = permute(C, oindAinC, oindBinC)
         mul!(C′, A′, B′, α, β)
@@ -241,8 +241,8 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
         if syms === nothing
             C′ = A′*B′
         else
-            p1′ = ntuple(identity, StaticLength(N₁))
-            p2′ = N₁ .+ ntuple(identity, StaticLength(N₂))
+            p1′ = ntuple(identity, N₁)
+            p2′ = N₁ .+ ntuple(identity, N₂)
             TC = eltype(C)
             C′ = TO.cached_similar_from_indices(syms[3], TC, oindA, oindB, p1′, p2′, A, B, :N, :N)
             mul!(C′, A′, B′)
@@ -360,8 +360,8 @@ function TO.contract!(α,
     syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
 
     p = (p1..., p2...)
-    pl = ntuple(n->p[n], StaticLength(N₁))
-    pr = ntuple(n->p[N₁+n], StaticLength(N₂))
+    pl = ntuple(n->p[n], N₁)
+    pr = ntuple(n->p[N₁+n], N₂)
     if CA == :N && CB == :N
         contract!(α, tA, tB, β, tC, oindA, cindA, oindB, cindB, pl, pr, syms)
     elseif CA == :N && CB == :C

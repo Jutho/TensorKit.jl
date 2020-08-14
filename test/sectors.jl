@@ -7,17 +7,17 @@ ti = time()
         s = (randsector(G), randsector(G), randsector(G))
         @test eval(Meta.parse(sprint(show,G))) == G
         @test eval(Meta.parse(sprint(show,s[1]))) == s[1]
-        @test @inferred(hash(s[1])) == hash(deepcopy(s[1]))
-        @test @inferred(one(s[1])) == @inferred(one(G))
-        @inferred dual(s[1])
-        @inferred dim(s[1])
-        @inferred frobeniusschur(s[1])
-        @inferred Nsymbol(s...)
-        @inferred Rsymbol(s...)
-        @inferred Bsymbol(s...)
-        @inferred Fsymbol(s..., s...)
-        it = @inferred s[1] ⊗ s[2]
-        @inferred ⊗(s..., s...)
+        @test @constinferred(hash(s[1])) == hash(deepcopy(s[1]))
+        @test @constinferred(one(s[1])) == @constinferred(one(G))
+        @constinferred dual(s[1])
+        @constinferred dim(s[1])
+        @constinferred frobeniusschur(s[1])
+        @constinferred Nsymbol(s...)
+        @constinferred Rsymbol(s...)
+        @constinferred Bsymbol(s...)
+        @constinferred Fsymbol(s..., s...)
+        it = @constinferred s[1] ⊗ s[2]
+        @constinferred ⊗(s..., s...)
     end
     @testset "Sector $G: Value iterator" begin
         @test eltype(values(G)) == G
@@ -28,7 +28,7 @@ ti = time()
                 @test_throws ArgumentError values(G)[i]
                 @test_throws ArgumentError TensorKit.findindex(values(G), s)
             else
-                @test s == @inferred (values(G)[i])
+                @test s == @constinferred (values(G)[i])
                 @test TensorKit.findindex(values(G), s) == i
             end
             sprev = s
@@ -38,9 +38,9 @@ ti = time()
         if Base.IteratorSize(values(G)) == Base.IsInfinite() && G <: ProductSector
             @test_throws ArgumentError TensorKit.findindex(values(G), one(G))
         else
-            @test (@inferred TensorKit.findindex(values(G), one(G))) == 1
+            @test (@constinferred TensorKit.findindex(values(G), one(G))) == 1
             for s in smallset(G)
-                @test (@inferred values(G)[TensorKit.findindex(values(G), s)]) == s
+                @test (@constinferred values(G)[TensorKit.findindex(values(G), s)]) == s
             end
         end
     end

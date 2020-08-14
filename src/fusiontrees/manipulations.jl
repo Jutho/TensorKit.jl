@@ -139,7 +139,7 @@ function permute(f::FusionTree{G,N}, p::NTuple{N,Int}) where {G<:Sector, N}
 end
 
 """
-    split(f::FusionTree{G,N}, ::StaticLength(M))
+    split(f::FusionTree{G,N}, M::Int)
     -> (::FusionTree{G,M}, ::FusionTree{G,N-M+1})
 
 Split a fusion tree with the first M outgoing indices, and an incoming index corresponding
@@ -147,13 +147,21 @@ to the internal fusion tree index between outgoing indices N and N+1 of the orig
 `f`; and a second fusion tree whose first outgoing index is that same internal index. Its
 remaining outgoing indices are the N-M outgoing indices of the original tree `f`, and also
 the incoming index is the same. This is in the inverse of `insertat` in the sense that if
-`f1, f2 = split(t, StaticLength(M)) ⇒ f == insertat(f2, 1, f1)`.
+`f1, f2 = split(t, M) ⇒ f == insertat(f2, 1, f1)`.
 """
-split(f::FusionTree{G,N}, ::StaticLength{N}) where {G,N} =
-    (f, FusionTree{G}((f.coupled,), f.coupled, (false,), (), ()))
-split(f::FusionTree{G,N}, ::StaticLength{1}) where {G,N} =
-    (FusionTree{G}((f.uncoupled[1],), f.uncoupled[1], (false,), (), ()), f)
-function split(f::FusionTree{G,N}, ::StaticLength{0}) where {G,N}
+@inline function split(f::FusionTree{G,N}, M::Int) where {G,N}
+    if M === N
+        (f, FusionTree{G}((f.coupled,), f.coupled, (false,), (), ()))
+    elseif M === 1
+        (FusionTree{G}((f.uncoupled[1],), f.uncoupled[1], (false,), (), ()), f)
+    elseif M === 0
+        _splitzero(f)
+    else
+        # this design for type inference with constant folding
+        FusionTree{G}(_splitgeneralf1(f, M)...), FusionTree{G}(_splitgeneralf2(f, M)...)
+    end
+end
+function _splitzero(f::FusionTree{G,N}) where {G,N}
     f1 = FusionTree{G}((), one(G), (), ())
     uncoupled2 = (one(G), f.uncoupled...)
     coupled2 = f.coupled
@@ -161,27 +169,28 @@ function split(f::FusionTree{G,N}, ::StaticLength{0}) where {G,N}
     innerlines2 = N >= 2 ? (f.uncoupled[1], f.innerlines...) : ()
     if FusionStyle(G) isa DegenerateNonAbelian
         vertices2 = (1, f.vertices...)
-        return f1, FusionTree(uncoupled2, coupled2, isdual2, innerlines2, vertices2)
+        return f1, FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2, vertices2)
     else
-        return f1, FusionTree(uncoupled2, coupled2, isdual2, innerlines2)
+        return f1, FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2)
     end
 end
-function split(f::FusionTree{G,N}, ::StaticLength{M}) where {G,N,M}
-    @assert 1 < M < N
-    uncoupled1 = ntuple(n->f.uncoupled[n], Val(M))
-    isdual1 = ntuple(n->f.isdual[n], Val(M))
-    innerlines1 = M>2 ? ntuple(n->f.innerlines[n], Val(M-2)) : ()
+function _splitgeneralf1(f::FusionTree{G,N}, M::Int) where {G,N}
+    uncoupled1 = ntuple(n->f.uncoupled[n], M)
+    isdual1 = ntuple(n->f.isdual[n], M)
+    innerlines1 = M>2 ? ntuple(n->f.innerlines[n], M-2) : ()
     coupled1 = f.innerlines[M-1]
-    vertices1 = ntuple(n->f.vertices[n], Val(M-1))
-    f1 = FusionTree(uncoupled1, coupled1, isdual1, innerlines1, vertices1)
-
-    uncoupled2 = (coupled1, ntuple(n->f.uncoupled[M+n], Val(N-M))...)
-    isdual2 = (false, ntuple(n->f.isdual[M+n], Val(N-M))...)
-    innerlines2 = ntuple(n->f.innerlines[M-1+n], Val(N-M-1))
+    vertices1 = ntuple(n->f.vertices[n], M-1)
+    return (uncoupled1, coupled1, isdual1, innerlines1, vertices1)
+end
+function _splitgeneralf2(f::FusionTree{G,N}, M::Int) where {G,N}
+    coupled1 = f.innerlines[M-1]
+    uncoupled2 = (coupled1, ntuple(n->f.uncoupled[M+n], N-M)...)
+    isdual2 = (false, ntuple(n->f.isdual[M+n], N-M)...)
+    innerlines2 = ntuple(n->f.innerlines[M-1+n], N-M-1)
     coupled2 = f.coupled
-    vertices2 = ntuple(n->f.vertices[M-1+n], Val(N-M))
-    f2 = FusionTree(uncoupled2, coupled2, isdual2, innerlines2, vertices2)
-    return f1, f2
+    vertices2 = ntuple(n->f.vertices[M-1+n], N-M)
+    return (uncoupled2, coupled2, isdual2, innerlines2, vertices2)
+    # return f1, f2
 end
 
 """
@@ -211,14 +220,14 @@ function merge(f1::FusionTree{G,0}, f2::FusionTree{G,0}, c::G, μ =nothing) wher
 end
 
 """
-    insertat(f::FusionTree{G,N₁}, i, f2::FusionTree{G,N₂})
+    insertat(f::FusionTree{G,N₁}, i::Int, f2::FusionTree{G,N₂})
     -> <:AbstractDict{<:FusionTree{G,N₁+N₂-1},<:Number}
 
 Attach a fusion tree `f2` to the uncoupled leg `i` of the fusion tree `f1` and bring it
 into a linear combination of fusion trees in standard form. This requires that
 `f2.coupled == f1.uncoupled[i]` and `f1.isdual[i] == false`.
 """
-function insertat(f1::FusionTree{G}, i, f2::FusionTree{G,0}) where {G}
+function insertat(f1::FusionTree{G}, i::Int, f2::FusionTree{G,0}) where {G}
     # this actually removes uncoupled line i, which should be trivial
     (f1.uncoupled[i] == f2.coupled && !f1.isdual[i]) ||
         throw(SectorMismatch("cannot connect $(f2.uncoupled) to $(f1.uncoupled[i])"))
@@ -329,7 +338,7 @@ function insertat(f1::FusionTree{G}, i, f2::FusionTree{G}) where {G}
         end
     else # recursive definition
         N2 = length(f2)
-        f2′, f2′′ = split(f2, StaticLength(N2) - StaticLength(1))
+        f2′, f2′′ = split(f2, N2 - 1)
         if FusionStyle(G) isa Abelian
             f, coeff = first(insertat(f1, i, f2′′))
             f′, coeff′ = first(insertat(f, i, f2′))
@@ -356,7 +365,7 @@ end
 # repartition double fusion tree
 """
     repartition(f1::FusionTree{G,N₁}, f2::FusionTree{G,N₂},
-                ::StaticLength{N}) where {G,N₁,N₂,N}
+                N::Int) where {G,N₁,N₂}
     -> <:AbstractDict{Tuple{FusionTree{G,N}, FusionTree{G,N₁+N₂-N}},<:Number}
 
 Input is a double fusion tree that describes the fusion of a set of incoming uncoupled
@@ -366,60 +375,142 @@ outgoing (`f1`) and incoming sectors (`f2`) respectively (with identical coupled
 repartitioning the tree by bending incoming to outgoing sectors (or vice versa) in order to
 have `N` outgoing sectors.
 """
-function repartition(f1::FusionTree{G,N₁},
+@inline function repartition(f1::FusionTree{G,N₁},
                         f2::FusionTree{G,N₂},
-                        V::StaticLength{N}) where {G<:Sector, N₁, N₂, N}
+                        N::Int) where {G<:Sector, N₁, N₂}
     f1.coupled == f2.coupled || throw(SectorMismatch())
     @assert 0 <= N <= N₁+N₂
-    V1 = V
-    V2 = StaticLength(N₁)+StaticLength(N₂)-V
 
     if FusionStyle(f1) isa Abelian || FusionStyle(f1) isa SimpleNonAbelian
-        coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
-        uncoupled = (f1.uncoupled..., map(dual, reverse(f2.uncoupled))...)
-        isdual = (f1.isdual..., map(!, reverse(f2.isdual))...)
-        inner1ext = isa(StaticLength(N₁), StaticLength{0}) ? () :
-                        (isa(StaticLength(N₁), StaticLength{1}) ? (one(G),) :
-                            (one(G), first(uncoupled), f1.innerlines...))
-        inner2ext = isa(StaticLength(N₂), StaticLength{0}) ? () :
-                        (isa(StaticLength(N₂), StaticLength{1}) ? (one(G),) :
-                            (one(G), dual(last(uncoupled)), f2.innerlines...))
-        innerext = (inner1ext..., f1.coupled, reverse(inner2ext)...) # length N₁+N₂+1
-        for n = N₁+1:N
-             # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
-            b = dual(uncoupled[n])
-            a = innerext[n+1]
-            c = innerext[n]
-            coeff *= sqrt(dim(c)/dim(a))*conj(Bsymbol(a,b,c))
-            if !isdual[n]
-                coeff *= frobeniusschur(dual(b))
-            end
-        end
-        for n = N₁:-1:N+1
-            # map splitting vertex (a,b)<-c to fusion vertex a<-(c,dual(b))
-            b = uncoupled[n]
-            a = innerext[n]
-            c = innerext[n+1]
-            coeff *= sqrt(dim(c)/dim(a))*Bsymbol(a,b,c)
-            if isdual[n]
-                coeff *= conj(frobeniusschur(dual(b)))
-            end
-        end
-        uncoupled1 = TupleTools.getindices(uncoupled, ntuple(n->n, V1))
-        uncoupled2 = TupleTools.getindices(map(dual,uncoupled), ntuple(n->N₁+N₂+1-n, V2))
-        isdual1 = TupleTools.getindices(isdual, ntuple(n->n, V1))
-        isdual2 = TupleTools.getindices(map(!,isdual), ntuple(n->N₁+N₂+1-n, V2))
-        innerlines1 = TupleTools.getindices(innerext, ntuple(n->n+2, V1 - StaticLength(2)))
-        innerlines2 = TupleTools.getindices(innerext, ntuple(n->N₁+N₂-n, V2 - StaticLength(2)))
-        c = innerext[N+1]
-        f1′ = FusionTree{G}(uncoupled1, c, isdual1, innerlines1)
-        f2′ = FusionTree{G}(uncoupled2, c, isdual2, innerlines2)
-        return SingletonDict((f1′, f2′)=>coeff)
+        _repartitionsingleton(f1, f2, N)
     else
         # TODO: implement DegenerateNonAbelian case
-        throw(MethodError(repartition, (f1, f2, V)))
+        throw(MethodError(repartition, (f1, f2, N)))
     end
 end
+
+@inline function _repartitionsingleton(f1::FusionTree{G,N₁},
+                        f2::FusionTree{G,N₂},
+                        N::Int) where {G<:Sector, N₁, N₂}
+    N₁′ = N
+    N₂′ = N₁ + N₂ - N
+
+    uncoupled = (f1.uncoupled..., map(dual, reverse(f2.uncoupled))...)
+    isdual = (f1.isdual..., map(!, reverse(f2.isdual))...)
+    inner1ext = N₁ === 0 ? () : (N₁ === 1 ? (one(G),) :
+                        (one(G), first(uncoupled), f1.innerlines...))
+    inner2ext = N₂ === 0 ? () : (N₂ === 1 ? (one(G),) :
+                        (one(G), dual(last(uncoupled)), f2.innerlines...))
+    innerext = (inner1ext..., f1.coupled, reverse(inner2ext)...) # length N₁+N₂+1
+    f₁′ = _getrepartitionf1(uncoupled, innerext, isdual, N₁′)
+    f₂′ = _getrepartitionf2(uncoupled, innerext, isdual, N₁′)
+    coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
+    coeff = _getrepartitioncoeff(coeff, uncoupled, innerext, isdual, N₁, N₁′)
+    fpair = (f₁′, f₂′)
+    return SingletonDict{typeof(fpair),typeof(coeff)}(fpair,coeff)
+end
+
+function _getrepartitioncoeff(coeff, uncoupled, innerext, isdual, N₁::Int, N₁′::Int)
+    for n = N₁+1:N₁′
+         # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
+        b = dual(uncoupled[n])
+        a = innerext[n+1]
+        c = innerext[n]
+        coeff *= sqrt(dim(c)/dim(a))*conj(Bsymbol(a,b,c))
+        if !isdual[n]
+            coeff *= frobeniusschur(dual(b))
+        end
+    end
+    for n = N₁:-1:N₁′+1
+        # map splitting vertex (a,b)<-c to fusion vertex a<-(c,dual(b))
+        b = uncoupled[n]
+        a = innerext[n]
+        c = innerext[n+1]
+        coeff *= sqrt(dim(c)/dim(a))*Bsymbol(a,b,c)
+        if isdual[n]
+            coeff *= conj(frobeniusschur(dual(b)))
+        end
+    end
+    return coeff
+end
+
+@inline function _getrepartitionf1(uncoupled, innerext, isdual, N₁′::Int)
+    uncoupled1 = ntuple(n->uncoupled[n], N₁′)
+    isdual1 = ntuple(n->isdual[n], N₁′)
+    innerlines1 = ntuple(n->innerext[n+2], max(0, N₁′ - 2))
+    c = innerext[N₁′+1]
+    vertices1 = ntuple(n->nothing, max(0, N₁′ - 1))
+    return FusionTree(uncoupled1, c, isdual1, innerlines1, vertices1)
+end
+@inline function _getrepartitionf2(uncoupled, innerext, isdual, N₁′::Int)
+    # uncoupled1 = ntuple(n->uncoupled[n], N₁′)
+    Ntot = length(uncoupled)
+    N₂′ = Ntot - N₁′
+    uncoupled2 = ntuple(n->dual(uncoupled[Ntot + 1 - n]), N₂′)
+    isdual2 = ntuple(n->!(isdual[Ntot + 1 - n]), N₂′)
+    innerlines2 = ntuple(n->innerext[Ntot - n], max(0, N₂′ - 2))
+    c = innerext[N₁′+1]
+    vertices2 = ntuple(n->nothing, max(0, N₂′ - 1))
+    return FusionTree(uncoupled2, c, isdual2, innerlines2, vertices2)
+end
+
+#     # uncoupled2 = TupleTools.getindices(map(dual,uncoupled), ntuple(n->N₁+N₂+1-n, N₂′))
+#     # isdual1 = TupleTools.getindices(isdual, ntuple(n->n, N₁′))
+#     # isdual2 = TupleTools.getindices(map(!,isdual), ntuple(n->N₁+N₂+1-n, N₂′))
+#     # innerlines1 = TupleTools.getindices(innerext, ntuple(n->n+2, max(0, N₁′ - 2)))
+#     # innerlines2 = TupleTools.getindices(innerext, ntuple(n->N₁+N₂-n, max(0, N₂′ - 2)))
+#     # c = innerext[N+1]
+#     # return uncoupled1
+#
+#     # f1′ = FusionTree{G}(uncoupled1, c, isdual1, innerlines1)
+#     # f2′ = FusionTree{G}(uncoupled2, c, isdual2, innerlines2)
+#
+#
+#
+#
+#     uncoupled1 = ntuple(n->uncoupled[n], N₁′)
+#     isdual1 = ntuple(n->isdual[n], N₁′)
+#     innerlines1 = ntuple(n->innerext[n+2], max(0, N₁′ - 2))
+#     c = innerext[N₁′+1]
+#     vertices = ntuple(n->nothing, max(0, N₁′ - 1))
+#     return uncoupled1, c, isdual1, innerlines1, vertices
+#     # f1′ = FusionTree{G}(uncoupled1, c, isdual1, innerlines1)
+# end
+
+    # coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
+    # for n = N₁+1:N
+    #      # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
+    #     b = dual(uncoupled[n])
+    #     a = innerext[n+1]
+    #     c = innerext[n]
+    #     coeff *= sqrt(dim(c)/dim(a))*conj(Bsymbol(a,b,c))
+    #     if !isdual[n]
+    #         coeff *= frobeniusschur(dual(b))
+    #     end
+    # end
+    # for n = N₁:-1:N+1
+    #     # map splitting vertex (a,b)<-c to fusion vertex a<-(c,dual(b))
+    #     b = uncoupled[n]
+    #     a = innerext[n]
+    #     c = innerext[n+1]
+    #     coeff *= sqrt(dim(c)/dim(a))*Bsymbol(a,b,c)
+    #     if isdual[n]
+    #         coeff *= conj(frobeniusschur(dual(b)))
+    #     end
+    # end
+    # uncoupled1 = ntuple(n->uncoupled[n], N₁′)
+    # uncoupled2 = TupleTools.getindices(map(dual,uncoupled), ntuple(n->N₁+N₂+1-n, N₂′))
+    # isdual1 = TupleTools.getindices(isdual, ntuple(n->n, N₁′))
+    # isdual2 = TupleTools.getindices(map(!,isdual), ntuple(n->N₁+N₂+1-n, N₂′))
+    # innerlines1 = TupleTools.getindices(innerext, ntuple(n->n+2, max(0, N₁′ - 2)))
+    # innerlines2 = TupleTools.getindices(innerext, ntuple(n->N₁+N₂-n, max(0, N₂′ - 2)))
+    # c = innerext[N+1]
+    # return uncoupled1
+
+    # f1′ = FusionTree{G}(uncoupled1, c, isdual1, innerlines1)
+    # f2′ = FusionTree{G}(uncoupled2, c, isdual2, innerlines2)
+    # return SingletonDict((f1′, f2′)=>coeff)
+# end
 
 # braid double fusion tree
 const braidcache = LRU{Any,Any}(; maxsize = 10^5)
@@ -491,15 +582,15 @@ function _braid((f1, f2, l1, l2, p1, p2)::BraidKey{G,N₁,N₂}) where {G<:Secto
     p = linearizepermutation(p1, p2, length(f1), length(f2))
     levels = (l1..., reverse(l2)...)
     if FusionStyle(f1) isa Abelian
-        (f,f0), coeff1 = first(repartition(f1, f2, StaticLength(N₁) + StaticLength(N₂)))
+        (f,f0), coeff1 = first(repartition(f1, f2, N₁ + N₂))
         f, coeff2 = first(braid(f, levels, p))
-        (f1′,f2′), coeff3 = first(repartition(f, f0, StaticLength(N₁)))
+        (f1′,f2′), coeff3 = first(repartition(f, f0, N₁))
         return SingletonDict((f1′,f2′)=>coeff1*coeff2*coeff3)
     elseif FusionStyle(f1) isa SimpleNonAbelian
-        (f,f0), coeff1 = first(repartition(f1, f2, StaticLength(N₁) + StaticLength(N₂)))
+        (f,f0), coeff1 = first(repartition(f1, f2, N₁ + N₂))
         local newtrees
         for (f, coeff2) in braid(f, levels, p)
-            (f1′, f2′), coeff3 = first(repartition(f, f0, StaticLength(N₁)))
+            (f1′, f2′), coeff3 = first(repartition(f, f0, N₁))
             if @isdefined newtrees
                 newtrees[(f1′,f2′)] = coeff1*coeff2*coeff3
             else
