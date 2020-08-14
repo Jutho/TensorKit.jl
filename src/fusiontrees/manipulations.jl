@@ -150,47 +150,67 @@ the incoming index is the same. This is in the inverse of `insertat` in the sens
 `f1, f2 = split(t, M) ⇒ f == insertat(f2, 1, f1)`.
 """
 @inline function split(f::FusionTree{G,N}, M::Int) where {G,N}
-    if M === N
+    if M > N || M < 0
+        throw(ArgumentError("M should be between 0 and N = $N"))
+    elseif M === N
         (f, FusionTree{G}((f.coupled,), f.coupled, (false,), (), ()))
     elseif M === 1
         (FusionTree{G}((f.uncoupled[1],), f.uncoupled[1], (false,), (), ()), f)
     elseif M === 0
-        _splitzero(f)
+        f1 = FusionTree{G}((), one(G), (), ())
+        uncoupled2 = (one(G), f.uncoupled...)
+        coupled2 = f.coupled
+        isdual2 = (false, f.isdual...)
+        innerlines2 = N >= 2 ? (f.uncoupled[1], f.innerlines...) : ()
+        if FusionStyle(G) isa DegenerateNonAbelian
+            vertices2 = (1, f.vertices...)
+            return f1, FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2, vertices2)
+        else
+            return f1, FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2)
+        end
     else
-        # this design for type inference with constant folding
-        FusionTree{G}(_splitgeneralf1(f, M)...), FusionTree{G}(_splitgeneralf2(f, M)...)
+        uncoupled1 = ntuple(n->f.uncoupled[n], M)
+        isdual1 = ntuple(n->f.isdual[n], M)
+        innerlines1 = ntuple(n->f.innerlines[n], max(0, M-2))
+        coupled1 = f.innerlines[M-1]
+        vertices1 = ntuple(n->f.vertices[n], M-1)
+
+        uncoupled2 = ntuple(N - M + 1) do n
+            n == 1 ? f.innerlines[M - 1] : f.uncoupled[M + n - 1]
+        end
+        isdual2 = ntuple(N - M + 1) do n
+            n == 1 ? false : f.isdual[M + n - 1]
+        end
+        innerlines2 = ntuple(n->f.innerlines[M-1+n], N-M-1)
+        coupled2 = f.coupled
+        vertices2 = ntuple(n->f.vertices[M-1+n], N-M)
+
+        f1 = FusionTree{G}(uncoupled1, coupled1, isdual1, innerlines1, vertices1)
+        f2 = FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2, vertices2)
+        return f1, f2
+        # # this design for type inference with constant folding
+        # _splitgeneralf1(f, M), _splitgeneralf2(f, M)
     end
 end
-function _splitzero(f::FusionTree{G,N}) where {G,N}
-    f1 = FusionTree{G}((), one(G), (), ())
-    uncoupled2 = (one(G), f.uncoupled...)
-    coupled2 = f.coupled
-    isdual2 = (false, f.isdual...)
-    innerlines2 = N >= 2 ? (f.uncoupled[1], f.innerlines...) : ()
-    if FusionStyle(G) isa DegenerateNonAbelian
-        vertices2 = (1, f.vertices...)
-        return f1, FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2, vertices2)
-    else
-        return f1, FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2)
-    end
-end
-function _splitgeneralf1(f::FusionTree{G,N}, M::Int) where {G,N}
+@inline function _splitgeneralf1(f::FusionTree{G,N}, M) where {G,N}
     uncoupled1 = ntuple(n->f.uncoupled[n], M)
     isdual1 = ntuple(n->f.isdual[n], M)
-    innerlines1 = M>2 ? ntuple(n->f.innerlines[n], M-2) : ()
+    innerlines1 = ntuple(n->f.innerlines[n], max(0, M-2))
     coupled1 = f.innerlines[M-1]
     vertices1 = ntuple(n->f.vertices[n], M-1)
-    return (uncoupled1, coupled1, isdual1, innerlines1, vertices1)
+    return FusionTree{G}(uncoupled1, coupled1, isdual1, innerlines1, vertices1)
 end
-function _splitgeneralf2(f::FusionTree{G,N}, M::Int) where {G,N}
-    coupled1 = f.innerlines[M-1]
-    uncoupled2 = (coupled1, ntuple(n->f.uncoupled[M+n], N-M)...)
-    isdual2 = (false, ntuple(n->f.isdual[M+n], N-M)...)
+@inline function _splitgeneralf2(f::FusionTree{G,N}, M) where {G,N}
+    uncoupled2 = ntuple(N - M + 1) do n
+        n == 1 ? f.innerlines[M - 1] : f.uncoupled[M + n - 1]
+    end
+    isdual2 = ntuple(N - M + 1) do n
+        n == 1 ? false : f.isdual[M + n - 1]
+    end
     innerlines2 = ntuple(n->f.innerlines[M-1+n], N-M-1)
     coupled2 = f.coupled
     vertices2 = ntuple(n->f.vertices[M-1+n], N-M)
-    return (uncoupled2, coupled2, isdual2, innerlines2, vertices2)
-    # return f1, f2
+    return FusionTree{G}(uncoupled2, coupled2, isdual2, innerlines2, vertices2)
 end
 
 """
