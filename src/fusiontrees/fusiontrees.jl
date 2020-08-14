@@ -27,11 +27,17 @@ struct FusionTree{G<:Sector,N,M,L,T}
         new{G,N,M,L,T}(uncoupled, coupled, isdual, innerlines, vertices)
     end
 end
+# FusionTree(uncoupled::NTuple{N,G},
+#                 coupled::G,
+#                 isdual::NTuple{N,Bool},
+#                 innerlines::NTuple{M,G},
+#                 vertices::NTuple{L,T}) where {G<:Sector,N,M,L,T} =
+#     FusionTree{G,N,M,L,T}(uncoupled, coupled, isdual, innerlines, vertices)
 FusionTree{G}(uncoupled::NTuple{N,Any},
                 coupled,
                 isdual::NTuple{N,Bool},
                 innerlines,
-                vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))
+                vertices = ntuple(n->nothing, max(0, N-1))
                 ) where {G<:Sector,N} =
     fusiontreetype(G, N)(map(s->convert(G,s),uncoupled),
         convert(G,coupled), isdual, map(s->convert(G,s), innerlines), vertices)
@@ -39,19 +45,19 @@ FusionTree(uncoupled::NTuple{N,G},
             coupled::G,
             isdual::NTuple{N,Bool},
             innerlines,
-            vertices = ntuple(n->nothing, StaticLength(N)-StaticLength(1))
+            vertices = ntuple(n->nothing, N-1)
             ) where {G<:Sector,N} =
     fusiontreetype(G, N)(uncoupled, coupled, isdual, innerlines, vertices)
 
 function FusionTree{G}(uncoupled::NTuple{N}, coupled = one(G),
-                        isdual = ntuple(n->false, StaticLength(N))) where {G<:Sector, N}
+                        isdual = ntuple(n->false, N)) where {G<:Sector, N}
     FusionStyle(G) isa Abelian ||
         error("fusion tree requires inner lines if `FusionStyle(G) <: NonAbelian`")
     FusionTree{G}(map(s->convert(G,s), uncoupled), convert(G, coupled), isdual,
                     _abelianinner(map(s->convert(G,s),(uncoupled..., dual(coupled)))))
 end
 function FusionTree(uncoupled::NTuple{N,G}, coupled::G = one(G),
-                        isdual = ntuple(n->false, StaticLength(N))) where {G<:Sector, N}
+                        isdual = ntuple(n->false, N)) where {G<:Sector, N}
     FusionStyle(G) isa Abelian ||
         error("fusion tree requires inner lines if `FusionStyle(G) <: NonAbelian`")
     FusionTree{G}(uncoupled, coupled, isdual, _abelianinner((uncoupled..., dual(coupled))))

@@ -59,7 +59,7 @@ Return an iterator over all possible combinations of sectors (represented as an
 """
 sectors(P::ProductSpace) = _sectors(P, sectortype(P))
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} =
-    (ntuple(n->Trivial(), StaticLength{N}()),) # speed up sectors for ungraded spaces
+    (ntuple(n->Trivial(), N),) # speed up sectors for ungraded spaces
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} =
     product(map(sectors, P.spaces)...)
 

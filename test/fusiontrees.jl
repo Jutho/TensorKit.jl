@@ -4,24 +4,24 @@ println("------------------------------------")
 ti = time()
 @testset TimedTestSet "Fusion trees for sector $G" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
     N = 5
-    out = ntuple(n->randsector(G), StaticLength(N))
-    isdual = ntuple(n->rand(Bool), StaticLength(N))
+    out = ntuple(n->randsector(G), N)
+    isdual = ntuple(n->rand(Bool), N)
     in = rand(collect(⊗(out...)))
     numtrees = count(n->true, fusiontrees(out, in, isdual))
     while !(0 < numtrees < 30)
-        out = ntuple(n->randsector(G), StaticLength(N))
+        out = ntuple(n->randsector(G), N)
         in = rand(collect(⊗(out...)))
         numtrees = count(n->true, fusiontrees(out, in, isdual))
     end
-    it = @inferred fusiontrees(out, in, isdual)
-    f = @inferred first(it)
+    it = @constinferred fusiontrees(out, in, isdual)
+    f = @constinferred first(it)
     @testset "Fusion tree $G: printing" begin
         @test eval(Meta.parse(sprint(show,f))) == f
     end
     @testset "Fusion tree $G: braiding" begin
         for in = ⊗(out...)
             for f in fusiontrees(out, in, isdual)
-                d1 = @inferred TK.artin_braid(f, 2)
+                d1 = @constinferred TK.artin_braid(f, 2)
                 d2 = empty(d1)
                 for (f1, coeff1) in d1
                     for (f2,coeff2) in TK.artin_braid(f1, 2; inv = true)
@@ -74,7 +74,7 @@ ti = time()
         ip = invperm(p)
 
         levels = ntuple(identity, N)
-        d = @inferred TK.braid(f, levels, p)
+        d = @constinferred TK.braid(f, levels, p)
         d2 = Dict{typeof(f), valtype(d)}()
         levels2 = p
         for (f2, coeff) in d
@@ -102,22 +102,22 @@ ti = time()
     end
     @testset "Fusion tree $G: insertat" begin
         N = 4
-        out2 = ntuple(n->randsector(G), StaticLength(N))
+        out2 = ntuple(n->randsector(G), N)
         in2 = rand(collect(⊗(out2...)))
-        isdual2 = ntuple(n->rand(Bool), StaticLength(N))
+        isdual2 = ntuple(n->rand(Bool), N)
         f2 = rand(collect(fusiontrees(out2, in2, isdual2)))
         for i = 1:N
-            out1 = ntuple(n->randsector(G), StaticLength(N))
+            out1 = ntuple(n->randsector(G), N)
             out1 = Base.setindex(out1, in2, i)
             in1 = rand(collect(⊗(out1...)))
-            isdual1 = ntuple(n->rand(Bool), StaticLength(N))
+            isdual1 = ntuple(n->rand(Bool), N)
             isdual1 = Base.setindex(isdual1, false, i)
             f1 = rand(collect(fusiontrees(out1, in1, isdual1)))
 
-            trees = @inferred TK.insertat(f1, i, f2)
+            trees = @constinferred TK.insertat(f1, $i, f2)
             @test norm(values(trees)) ≈ 1
 
-            f1a, f1b = TK.split(f1, StaticLength(i))
+            f1a, f1b = TK.split(f1, i)
             @test length(TK.insertat(f1b, 1, f1a)) == 1
             @test first(TK.insertat(f1b, 1, f1a)) == (f1 => 1)
 
@@ -155,13 +155,13 @@ ti = time()
     end
     @testset "Fusion tree $G: merging" begin
         N = 3
-        out1 = ntuple(n->randsector(G), StaticLength(N-1))
+        out1 = ntuple(n->randsector(G), N-1)
         in1 = rand(collect(⊗(out1...)))
         f1 = rand(collect(fusiontrees((out1..., dual(in1)), one(in1))))
-        out2 = ntuple(n->randsector(G), StaticLength(N))
+        out2 = ntuple(n->randsector(G), N)
         in2 = rand(collect(⊗(out2...)))
         f2 = rand(collect(fusiontrees(out2, in2)))
-        trees1 = @inferred TK.merge(f1, f2, first(f1.coupled ⊗ f2.coupled))
+        trees1 = @constinferred TK.merge(f1, f2, first(f1.coupled ⊗ f2.coupled))
         @test sum(abs2(coeff)*dim(c) for c in f1.coupled ⊗ f2.coupled
                     for (f,coeff) in TK.merge(f1, f2, c)) ≈ dim(f1.coupled)*dim(f2.coupled)
 
@@ -204,10 +204,10 @@ ti = time()
     else
         N = 4
     end
-    out = ntuple(n->randsector(G), StaticLength(N))
+    out = ntuple(n->randsector(G), N)
     numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
     while !(0 < numtrees < 100)
-        out = ntuple(n->randsector(G), StaticLength(N))
+        out = ntuple(n->randsector(G), N)
         numtrees = count(n->true, fusiontrees((out..., map(dual, out)...)))
     end
     incoming = rand(collect(⊗(out...)))
@@ -216,11 +216,11 @@ ti = time()
 
     @testset "Double fusion tree $G: repartioning" begin
         for n = 0:2*N
-            d = @inferred TK.repartition(f1, f2, StaticLength(n))
+            d = @constinferred TK.repartition(f1, f2, $n)
             @test dim(incoming) ≈ sum(abs2(coef)*dim(f1.coupled) for ((f1,f2), coef) in d)
             d2 = Dict{typeof((f1,f2)), valtype(d)}()
             for ((f1′,f2′),coeff) in d
-                for ((f1′′,f2′′),coeff2) in TK.repartition(f1′,f2′, StaticLength(N))
+                for ((f1′′,f2′′),coeff2) in TK.repartition(f1′,f2′, N)
                     d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff2*coeff
                 end
             end
@@ -268,7 +268,7 @@ ti = time()
                 ip = invperm(p)
                 ip1, ip2 = ip[1:N], ip[N+1:2N]
 
-                d = @inferred TensorKit.permute(f1, f2, p1, p2)
+                d = @constinferred TensorKit.permute(f1, f2, p1, p2)
                 @test dim(incoming) ≈ sum(abs2(coef)*dim(f1.coupled) for ((f1,f2), coef) in d)
                 d2 = Dict{typeof((f1,f2)), valtype(d)}()
                 for ((f1′,f2′), coeff) in d

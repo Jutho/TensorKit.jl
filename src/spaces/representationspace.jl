@@ -57,8 +57,8 @@ end
 
 function FiniteRepresentationSpace{G}(dims; dual::Bool = false) where {G<:Sector}
     N = length(values(G))
-    d = ntuple(n->0, StaticLength(N))
-    isset = ntuple(n->false, StaticLength(N))
+    d = ntuple(n->0, N)
+    isset = ntuple(n->false, N)
     for (c,dc) in dims
         i = findindex(values(G), convert(G, c))
         isset[i] && throw(ArgumentError("Sector $c appears multiple times"))
@@ -75,9 +75,11 @@ FiniteRepresentationSpace{G}(d1::Pair, dims::Vararg{Pair};
                                 dual::Bool = false) where {G<:Sector} =
     FiniteRepresentationSpace{G}((d1, dims...); dual = dual)
 # get rid of N parameter
-function FiniteRepresentationSpace{G,N}(args...; dual::Bool = false) where {G<:Sector, N}
+FiniteRepresentationSpace{G,N}(dims::Pair...; dual::Bool = false) where {G<:Sector, N} =
+    FiniteRepresentationSpace{G,N}(dims; dual = dual)
+function FiniteRepresentationSpace{G,N}(dims; dual::Bool = false) where {G<:Sector, N}
     @assert N == length(values(G))
-    FiniteRepresentationSpace{G}(args...; dual = dual)
+    FiniteRepresentationSpace{G}(dims; dual = dual)
 end
 
 # Never write GenericRepresentationSpace, just use RepresentationSpace

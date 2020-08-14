@@ -39,7 +39,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
             t = Tensor(zeros, T, W)
-            @test @inferred(hash(t)) == hash(deepcopy(t))
+            @test @constinferred(hash(t)) == hash(deepcopy(t))
             @test eltype(t) == T
             @test norm(t) == 0
             @test codomain(t) == W
@@ -65,7 +65,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test dim(t) == dim(space(t))
             @test codomain(t) == codomain(W)
             @test domain(t) == domain(W)
-            @test isa(@inferred(norm(t)), real(T))
+            @test isa(@constinferred(norm(t)), real(T))
             @test norm(t)^2 ≈ dot(t,t)
             α = rand(T)
             @test norm(α*t) ≈ abs(α)*norm(t)
@@ -83,13 +83,13 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test dot(t2,t) ≈ conj(dot(t2', t'))
             @test dot(t2,t) ≈ dot(t', t2')
 
-            i1 = @inferred(isomorphism(Matrix{T}, V1 ⊗ V2, V2 ⊗ V1))
-            i2 = @inferred(isomorphism(Matrix{T}, V2 ⊗ V1, V1 ⊗ V2))
-            @test i1 * i2 == @inferred(id(Matrix{T}, V1 ⊗ V2))
-            @test i2 * i1 == @inferred(id(Matrix{T}, V2 ⊗ V1))
+            i1 = @constinferred(isomorphism(Matrix{T}, V1 ⊗ V2, V2 ⊗ V1))
+            i2 = @constinferred(isomorphism(Matrix{T}, V2 ⊗ V1, V1 ⊗ V2))
+            @test i1 * i2 == @constinferred(id(Matrix{T}, V1 ⊗ V2))
+            @test i2 * i1 == @constinferred(id(Matrix{T}, V2 ⊗ V1))
 
 
-            w = @inferred(isometry(Matrix{T}, V1 ⊗ (oneunit(V1) ⊕ oneunit(V1)), V1))
+            w = @constinferred(isometry(Matrix{T}, V1 ⊗ (oneunit(V1) ⊕ oneunit(V1)), V1))
             @test dim(w) == 2*dim(V1←V1)
             @test w'*w == id(Matrix{T}, V1)
             @test w*w' == (w*w')^2
@@ -111,8 +111,8 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         W = V1 ⊗ V2
         for T in (Float64, ComplexF64, ComplexF32)
             t = TensorMap(randn, T, W, W)
-            @test real(convert(Array, t)) == convert(Array, @inferred real(t))
-            @test imag(convert(Array, t)) == convert(Array, @inferred imag(t))
+            @test real(convert(Array, t)) == convert(Array, @constinferred real(t))
+            @test imag(convert(Array, t)) == convert(Array, @constinferred imag(t))
         end
     end
     @testset TimedTestSet "Permutations: test via inner product invariance" begin
@@ -123,7 +123,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             for p in permutations(1:5)
                 p1 = ntuple(n->p[n], StaticLength(k))
                 p2 = ntuple(n->p[k+n], StaticLength(5-k))
-                t2 = @inferred permute(t, p1, p2)
+                t2 = @constinferred permute(t, p1, p2)
                 @test norm(t2) ≈ norm(t)
                 t2′= permute(t′, p1, p2)
                 @test dot(t2′,t2) ≈ dot(t′,t) ≈ dot(transpose(t2′), transpose(t2))
@@ -147,7 +147,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
     @testset TimedTestSet "Full trace: test self-consistency" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1');
         t2 = permute(t, (1,2), (4,3))
-        s = @inferred tr(t2)
+        s = @constinferred tr(t2)
         @test conj(s) ≈ tr(t2')
         @tensor s2 = t[a,b,b,a]
         @tensor t3[a,b] := t[a,c,c,b]
@@ -253,7 +253,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             ts = (Tensor(rand, T, W), Tensor(rand, T, W)')
             for t in ts
                 @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                    Q, R = @inferred leftorth(t, (3,4,2),(1,5); alg = alg)
+                    Q, R = @constinferred leftorth(t, (3,4,2),(1,5); alg = alg)
                     QdQ = Q'*Q
                     @test QdQ ≈ one(QdQ)
                     @test Q*R ≈ permute(t, (3,4,2),(1,5))
@@ -263,13 +263,13 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     end
                 end
                 @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.SVD(), TensorKit.SDD())
-                    N = @inferred leftnull(t, (3,4,2),(1,5); alg = alg)
+                    N = @constinferred leftnull(t, (3,4,2),(1,5); alg = alg)
                     NdN = N'*N
                     @test NdN ≈ one(NdN)
                     @test norm(N'*permute(t, (3,4,2),(1,5))) < 100*eps(norm(t))
                 end
                 @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.RQpos(), TensorKit.LQ(), TensorKit.LQpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                    L, Q = @inferred rightorth(t, (3,4),(2,1,5); alg = alg)
+                    L, Q = @constinferred rightorth(t, (3,4),(2,1,5); alg = alg)
                     QQd = Q*Q'
                     @test QQd ≈ one(QQd)
                     @test L*Q ≈ permute(t, (3,4),(2,1,5))
@@ -279,13 +279,13 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     end
                 end
                 @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.SVD(), TensorKit.SDD())
-                    M = @inferred rightnull(t, (3,4),(2,1,5); alg = alg)
+                    M = @constinferred rightnull(t, (3,4),(2,1,5); alg = alg)
                     MMd = M*M'
                     @test MMd ≈ one(MMd)
                     @test norm(permute(t, (3,4),(2,1,5))*M') < 100*eps(norm(t))
                 end
                 @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                    U, S, V = @inferred tsvd(t, (3,4,2),(1,5); alg = alg)
+                    U, S, V = @constinferred tsvd(t, (3,4,2),(1,5); alg = alg)
                     UdU = U'*U
                     @test UdU ≈ one(UdU)
                     VVd = V*V'
@@ -296,27 +296,27 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @testset "empty tensor" begin
                 t = TensorMap(randn, T, V1 ⊗ V2, typeof(V1)())
                 @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                    Q, R = @inferred leftorth(t; alg = alg)
+                    Q, R = @constinferred leftorth(t; alg = alg)
                     @test Q == t
                     @test dim(Q) == dim(R) == 0
                 end
                 @testset "leftnull with $alg" for alg in (TensorKit.QR(), TensorKit.SVD(), TensorKit.SDD())
-                    N = @inferred leftnull(t; alg = alg)
+                    N = @constinferred leftnull(t; alg = alg)
                     @test N'*N ≈ id(domain(N))
                     @test N*N' ≈ id(codomain(N))
                 end
                 @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.RQpos(), TensorKit.LQ(), TensorKit.LQpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                    L, Q = @inferred rightorth(copy(t'); alg = alg)
+                    L, Q = @constinferred rightorth(copy(t'); alg = alg)
                     @test Q == t'
                     @test dim(Q) == dim(L) == 0
                 end
                 @testset "rightnull with $alg" for alg in (TensorKit.LQ(), TensorKit.SVD(), TensorKit.SDD())
-                    M = @inferred rightnull(copy(t'); alg = alg)
+                    M = @constinferred rightnull(copy(t'); alg = alg)
                     @test M*M' ≈ id(codomain(M))
                     @test M'*M ≈ id(domain(M))
                 end
                 @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                    U, S, V = @inferred tsvd(t; alg = alg)
+                    U, S, V = @constinferred tsvd(t; alg = alg)
                     @test U == t
                     @test dim(U) == dim(S) == dim(V)
                 end
@@ -325,7 +325,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
             @testset "eig and isposdef" begin
                 D, V = eigen(t, (1,3), (2,4))
-                D̃, Ṽ = @inferred eig(t, (1,3), (2,4))
+                D̃, Ṽ = @constinferred eig(t, (1,3), (2,4))
                 @test D ≈ D̃
                 @test V ≈ Ṽ
                 VdV = V'*V
@@ -338,7 +338,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 D, V = eigen(t2)
                 VdV = V'*V
                 @test VdV ≈ one(VdV)
-                D̃, Ṽ = @inferred eigh(t2)
+                D̃, Ṽ = @constinferred eigh(t2)
                 @test D ≈ D̃
                 @test V ≈ Ṽ
                 λ = minimum(minimum(real(LinearAlgebra.diag(b))) for (c,b) in blocks(D))
@@ -357,7 +357,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 for t in ts
                     U₀, S₀, V₀, = tsvd(t)
                     t = rmul!(t, 1/norm(S₀, p))
-                    U, S, V, ϵ = @inferred tsvd(t; trunc = truncerr(5e-1), p = p)
+                    U, S, V, ϵ = @constinferred tsvd(t; trunc = truncerr(5e-1), p = p)
                     # @show p, ϵ
                     # @show domain(S)
                     # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
@@ -383,41 +383,41 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         for T in (Float64, ComplexF64)
             t = TensorMap(randn, T, W, W)
             s = dim(W)
-            expt = @inferred exp(t)
+            expt = @constinferred exp(t)
             @test reshape(convert(Array, expt), (s,s)) ≈
                     exp(reshape(convert(Array, t), (s,s)))
 
-            @test (@inferred sqrt(t))^2 ≈ t
+            @test (@constinferred sqrt(t))^2 ≈ t
             @test reshape(convert(Array, sqrt(t^2)), (s,s)) ≈
                     sqrt(reshape(convert(Array, t^2), (s,s)))
 
-            @test exp(@inferred log(expt)) ≈ expt
+            @test exp(@constinferred log(expt)) ≈ expt
             @test reshape(convert(Array, log(expt)), (s,s)) ≈
                     log(reshape(convert(Array, expt), (s,s)))
 
-            @test (@inferred cos(t))^2 + (@inferred sin(t))^2 ≈ id(W)
-            @test (@inferred tan(t)) ≈ sin(t)/cos(t)
-            @test (@inferred cot(t)) ≈ cos(t)/sin(t)
-            @test (@inferred cosh(t))^2 - (@inferred sinh(t))^2 ≈ id(W)
-            @test (@inferred tanh(t)) ≈ sinh(t)/cosh(t)
-            @test (@inferred coth(t)) ≈ cosh(t)/sinh(t)
+            @test (@constinferred cos(t))^2 + (@constinferred sin(t))^2 ≈ id(W)
+            @test (@constinferred tan(t)) ≈ sin(t)/cos(t)
+            @test (@constinferred cot(t)) ≈ cos(t)/sin(t)
+            @test (@constinferred cosh(t))^2 - (@constinferred sinh(t))^2 ≈ id(W)
+            @test (@constinferred tanh(t)) ≈ sinh(t)/cosh(t)
+            @test (@constinferred coth(t)) ≈ cosh(t)/sinh(t)
 
             t1 = sin(t)
-            @test sin(@inferred asin(t1)) ≈ t1
+            @test sin(@constinferred asin(t1)) ≈ t1
             t2 = cos(t)
-            @test cos(@inferred acos(t2)) ≈ t2
+            @test cos(@constinferred acos(t2)) ≈ t2
             t3 = sinh(t)
-            @test sinh(@inferred asinh(t3)) ≈ t3
+            @test sinh(@constinferred asinh(t3)) ≈ t3
             t4 = cosh(t)
-            @test cosh(@inferred acosh(t4)) ≈ t4
+            @test cosh(@constinferred acosh(t4)) ≈ t4
             t5 = tan(t)
-            @test tan(@inferred atan(t5)) ≈ t5
+            @test tan(@constinferred atan(t5)) ≈ t5
             t6 = cot(t)
-            @test cot(@inferred acot(t6)) ≈ t6
+            @test cot(@constinferred acot(t6)) ≈ t6
             t7 = tanh(t)
-            @test tanh(@inferred atanh(t7)) ≈ t7
+            @test tanh(@constinferred atanh(t7)) ≈ t7
             t8 = coth(t)
-            @test coth(@inferred acoth(t8)) ≈ t8
+            @test coth(@constinferred acoth(t8)) ≈ t8
         end
     end
     @testset TimedTestSet "Sylvester equation" begin
@@ -427,7 +427,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             tA = tA*tA'
             tB = tB*tB'
             tC = TensorMap(rand, T, V1 ⊗ V3, V2 ⊗ V4)
-            t = @inferred sylvester(tA, tB, tC)
+            t = @constinferred sylvester(tA, tB, tC)
             @test codomain(t) == V1 ⊗ V3
             @test domain(t) == V2 ⊗ V4
             # @test norm(tA*t + t*tB + tC) < (norm(tA)+norm(tB)+norm(tC))*eps(real(T))
@@ -439,7 +439,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         for T in (Float32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
-            t = @inferred (t1 ⊗ t2)
+            t = @constinferred (t1 ⊗ t2)
             @test norm(t) ≈ norm(t1) * norm(t2)
         end
     end
@@ -447,7 +447,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         for T in (Float32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
-            t = @inferred (t1 ⊗ t2)
+            t = @constinferred (t1 ⊗ t2)
             d1 = dim(codomain(t1))
             d2 = dim(codomain(t2))
             d3 = dim(domain(t1))
@@ -462,7 +462,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         for T in (Float32, ComplexF64)
             t1 = Tensor(rand, T, V2 ⊗ V3 ⊗ V1)
             t2 = Tensor(rand, T, V2 ⊗ V1 ⊗ V3)
-            t = @inferred (t1 ⊗ t2)
+            t = @constinferred (t1 ⊗ t2)
             @tensor t′[1, 2, 3, 4, 5, 6] := t1[1,2,3]*t2[4,5,6]
             @test t ≈ t′
         end
