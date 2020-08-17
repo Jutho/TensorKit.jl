@@ -369,6 +369,8 @@ have the same value.
 infimum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     infimum(infimum(V1, V2), V3...)
 
+Base.@deprecate(infinum(V1,V2...), infimum(V1,V2...))
+
 """
     supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
 
