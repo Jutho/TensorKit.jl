@@ -195,7 +195,8 @@ Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
 #     ProductSpace{S,N}(TupleTools.getindices(P.spaces, I))
 
 Base.iterate(P::ProductSpace, args...) = Base.iterate(P.spaces, args...)
-# Base.indexed_iterate(P::ProductSpace, args...) = Base.indexed_iterate(P.spaces,  args...)
+Base.indexed_iterate(P::ProductSpace, args...) = Base.indexed_iterate(P.spaces,  args...)
+Base.map(f, P::ProductSpace) = ProductSpace(map(f, P.spaces))
 
 Base.eltype(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = S
 Base.eltype(P::ProductSpace) = eltype(typeof(P))
