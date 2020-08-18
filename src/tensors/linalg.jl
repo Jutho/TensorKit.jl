@@ -16,8 +16,8 @@ Base.:*(t::AbstractTensorMap, α::Number) =
     mul!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
 Base.:*(α::Number, t::AbstractTensorMap) =
     mul!(similar(t, promote_type(eltype(t), typeof(α))), α, t)
-Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(α)/α)
-Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(α)/α)
+Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(eltype(t))/α)
+Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(eltype(t))/α)
 
 LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real = 2) = rmul!(t, inv(norm(t, p)))
 LinearAlgebra.normalize(t::AbstractTensorMap, p::Real = 2) =
