@@ -187,6 +187,17 @@ Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.
 fuse(P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
 fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 
+function insertunit(P::ProductSpace, i::Int = length(P)+1; dual = false, conj = false)
+    u = oneunit(spacetype(P))
+    if dual
+        u = TensorKit.dual(u)
+    end
+    if conj
+        u = TensorKit.conj(u)
+    end
+    ProductSpace(TupleTools.insertafter(P.spaces, i-1, (u,)))
+end
+
 # Functionality for extracting and iterating over spaces
 #--------------------------------------------------------
 Base.length(P::ProductSpace) = length(P.spaces)

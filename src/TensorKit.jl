@@ -25,7 +25,7 @@ export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
 # general vector space methods
-export space, field, dual, dim, dims, fuse, flip, isdual
+export space, field, dual, dim, dims, fuse, flip, isdual, insertunit
 
 # partial order for vector spaces
 export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
@@ -79,7 +79,7 @@ using TupleTools: StaticLength
 
 using Strided
 
-using TensorOperations: TensorOperations, @tensor, @tensoropt
+using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon
 const TO = TensorOperations
 
 using LRUCache

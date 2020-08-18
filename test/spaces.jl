@@ -268,6 +268,7 @@ end
     @test @constinferred(⊗(V1⊗V2, V3⊗V4)) == P
     @test @constinferred(⊗(V1, V2, V3⊗V4)) == P
     @test @constinferred(⊗(V1, V2⊗V3, V4)) == P
+    @test @constinferred(insertunit(P, 3)) == V1 * V2 * oneunit(V1) * V3 * V4
     @test fuse(V1, V2', V3) ≅ V1 ⊗ V2' ⊗ V3
     @test fuse(V1, V2', V3) ≾ V1 ⊗ V2' ⊗ V3
     @test fuse(V1, V2', V3) ≿ V1 ⊗ V2' ⊗ V3
@@ -307,33 +308,6 @@ end
 end
 
 @testset TimedTestSet "ProductSpace{SU₂Space}" begin
-    V1, V2, V3, V4, V5 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1),
-                            SU₂Space(1//2=>1, 1=>1)', SU₂Space(0=>2, 1//2=>2),
-                            SU₂Space(0=>1, 1//2=>1, 3//2=>1)'
-    W = TensorKit.HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
-    @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
-    @test W == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
-    @test W' == (V1 ⊗ V2 → V3 ⊗ V4 ⊗ V5)
-    @test eval(Meta.parse(sprint(show, W))) == W
-    @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
-    @test spacetype(W) == SU₂Space
-    @test sectortype(W) == SU₂
-    @test fuse(V1, V2', V3) ≅ V1 ⊗ V2' ⊗ V3
-    @test fuse(V1, V2', V3) ≾ V1 ⊗ V2' ⊗ V3 ≾ fuse(V1 ⊗ V2' ⊗ V3)
-    @test fuse(V1, V2') ⊗ V3 ≾ V1 ⊗ V2' ⊗ V3
-    @test fuse(V1, V2', V3) ≿ V1 ⊗ V2' ⊗ V3 ≿ fuse(V1 ⊗ V2' ⊗ V3)
-    @test V1 ⊗ fuse(V2', V3) ≿ V1 ⊗ V2' ⊗ V3
-    @test fuse(flip(V1) ⊗ V2) ⊗ flip(V3) ≅ V1 ⊗ V2 ⊗ V3
-    @test W[1] == V1
-    @test W[2] == V2
-    @test W[3] == V3'
-    @test W[4] == V4'
-    @test W[5] == V5'
-    @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
-    @test W == deepcopy(W)
-end
-
-@testset TimedTestSet "HomSpace" begin
     V1, V2, V3 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1), SU₂Space(1//2=>1, 1=>1)'
     P = @constinferred ProductSpace(V1, V2, V3)
     @test eval(Meta.parse(sprint(show, P))) == P
@@ -348,6 +322,13 @@ end
     @test @constinferred(*(V1, V2, V3)) == P
     @test @constinferred(⊗(V1, V2, V3)) == P
     @test @constinferred(adjoint(P)) == dual(P) == V3' ⊗ V2' ⊗ V1'
+    @test @constinferred(insertunit(P, 3; conj = true)) == V1 * V2 * oneunit(V1)' * V3
+    @test fuse(V1, V2', V3) ≅ V1 ⊗ V2' ⊗ V3
+    @test fuse(V1, V2', V3) ≾ V1 ⊗ V2' ⊗ V3 ≾ fuse(V1 ⊗ V2' ⊗ V3)
+    @test fuse(V1, V2') ⊗ V3 ≾ V1 ⊗ V2' ⊗ V3
+    @test fuse(V1, V2', V3) ≿ V1 ⊗ V2' ⊗ V3 ≿ fuse(V1 ⊗ V2' ⊗ V3)
+    @test V1 ⊗ fuse(V2', V3) ≿ V1 ⊗ V2' ⊗ V3
+    @test fuse(flip(V1) ⊗ V2) ⊗ flip(V3) ≅ V1 ⊗ V2 ⊗ V3
     @test @constinferred(⊗(V1)) == ProductSpace(V1)
     @test @constinferred(one(V1)) == @constinferred(one(typeof(V1))) ==
                 @constinferred(one(P)) == @constinferred(one(typeof(P))) ==
@@ -360,6 +341,28 @@ end
     end
     @test sum(dim(c)*blockdim(P, c) for c in @constinferred(blocksectors(P))) == dim(P)
 end
+
+@testset TimedTestSet "HomSpace" begin
+    V1, V2, V3, V4, V5 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1),
+                            SU₂Space(1//2=>1, 1=>1)', SU₂Space(0=>2, 1//2=>2),
+                            SU₂Space(0=>1, 1//2=>1, 3//2=>1)'
+    W = TensorKit.HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
+    @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
+    @test W == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
+    @test W' == (V1 ⊗ V2 → V3 ⊗ V4 ⊗ V5)
+    @test eval(Meta.parse(sprint(show, W))) == W
+    @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
+    @test spacetype(W) == SU₂Space
+    @test sectortype(W) == SU₂
+    @test W[1] == V1
+    @test W[2] == V2
+    @test W[3] == V3'
+    @test W[4] == V4'
+    @test W[5] == V5'
+    @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
+    @test W == deepcopy(W)
+end
+
 tf = time()
 printstyled("Finished vector space tests in ",
             string(round(tf-ti; sigdigits=3)),
