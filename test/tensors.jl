@@ -45,6 +45,7 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test codomain(t) == W
             @test space(t) == (W ← one(W))
             @test domain(t) == one(W)
+            @test typeof(t) == @constinferred tensormaptype(spacetype(t), 5, 0, T)
         end
     end
     @testset TimedTestSet "Tensor Dict conversion" begin
@@ -114,6 +115,15 @@ for (G,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test real(convert(Array, t)) == convert(Array, @constinferred real(t))
             @test imag(convert(Array, t)) == convert(Array, @constinferred imag(t))
         end
+    end
+    @testset TimedTestSet "Tensor conversation" begin
+        W = V1 ⊗ V2
+        t = TensorMap(randn, Float64, W, W)
+        @test typeof(convert(TensorMap, t')) == typeof(t)
+        tc = complex(t)
+        @test convert(typeof(tc), t) == tc
+        @test typeof(convert(typeof(tc), t)) == typeof(tc)
+        @test typeof(convert(typeof(tc), t')) == typeof(tc)
     end
     @testset TimedTestSet "Permutations: test via inner product invariance" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
