@@ -259,6 +259,7 @@ end
     @test @constinferred(hash(P)) == hash(deepcopy(P)) != hash(P')
     @test P == deepcopy(P)
     @test P == typeof(P)(P...)
+    @constinferred (x->tuple(x...))(P)
     @test @constinferred(dual(P)) == P'
     @test @constinferred(field(P)) == ℂ
     @test @constinferred(*(V1, V2, V3, V4)) == P
