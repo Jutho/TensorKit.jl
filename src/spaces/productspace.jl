@@ -194,9 +194,14 @@ Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
 # Base.getindex(P::ProductSpace{S}, I::NTuple{N,Integer}) where {S<:ElementarySpace,N} =
 #     ProductSpace{S,N}(TupleTools.getindices(P.spaces, I))
 
-Base.iterate(P::ProductSpace, args...) = Base.iterate(P.spaces, args...)
-Base.indexed_iterate(P::ProductSpace, args...) = Base.indexed_iterate(P.spaces,  args...)
-Base.map(f, P::ProductSpace) = ProductSpace(map(f, P.spaces))
+@inline function Base.iterate(P::ProductSpace, ::Val{i} = Val(1)) where {i}
+    if i > length(P)
+        return nothing
+    else
+        return P.spaces[i], Val(i+1)
+    end
+end
+Base.indexed_iterate(P::ProductSpace, args...) = Base.indexed_iterate(P.spaces, args...)
 
 Base.eltype(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = S
 Base.eltype(P::ProductSpace) = eltype(typeof(P))
