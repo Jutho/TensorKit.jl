@@ -394,8 +394,8 @@ end
 @inline Base.setindex!(t::TrivialTensorMap, v) = copy!(getindex(t), v)
 
 # For a tensor with trivial symmetry, fusiontrees returns (nothing,nothing)
-@inline Base.getindex(t::TrivialTensorMap, ::Tuple{Nothing,Nothing}) = getindex(t)
-@inline Base.setindex!(t::TrivialTensorMap, v, ::Tuple{Nothing,Nothing}) = setindex!(t, v)
+@inline Base.getindex(t::TrivialTensorMap, ::Nothing, ::Nothing) = getindex(t)
+@inline Base.setindex!(t::TrivialTensorMap, v, ::Nothing, ::Nothing) = setindex!(t, v)
 
 # For a tensor with trivial symmetry, allow direct indexing
 @inline function Base.getindex(t::TrivialTensorMap, I::Vararg{Int})
