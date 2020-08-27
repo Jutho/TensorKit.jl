@@ -352,15 +352,15 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
     FusionStyle(G) isa Abelian ||
         throw(SectorMismatch("Indexing with sectors only possible if abelian"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
-    s2 = TupleTools.getindices(sectors, domainind(t))
+    s2 = map(dual, TupleTools.getindices(sectors, domainind(t)))
     c1 = length(s1) == 0 ? one(G) : (length(s1) == 1 ? s1[1] : first(⊗(s1...)))
     @boundscheck begin
-        c2 = length(s2) == 0 ? one(G) : (length(s2) == 1 ? s2[1] : first(⊗(s1...)))
-        c2 == c1 || throw(SectorMismatch())
+        c2 = length(s2) == 0 ? one(G) : (length(s2) == 1 ? s2[1] : first(⊗(s2...)))
+        c2 == c1 || throw(SectorMismatch("Not a valid sector for this tensor"))
         hassector(codomain(t), s1) && hassector(domain(t), s2)
     end
-    f1 = FusionTree(s1,c1)
-    f2 = FusionTree(s2,c1)
+    f1 = FusionTree(s1, c1, map(isdual, tuple(codomain(t)...)))
+    f2 = FusionTree(s2, c1, map(isdual, tuple(domain(t)...)))
     @inbounds begin
         return t[f1,f2]
     end
