@@ -48,7 +48,7 @@ instance is obtained as `values(I)`. For a new `I::Sector`, the following should
 *   `Base.IteratorSize(::Type{SectorValues{I}})`: `HasLenght()`, `SizeUnkown()`
     or `IsInfinite()` depending on whether the number of values of type `I` is finite
     (and sufficiently small) or infinite; for a large number of values, `SizeUnknown()` is
-    recommend because this will trigger the use of `GenericRepresentationSpace`.
+    recommend because this will trigger the use of `GenericGradedSpace`.
 If `IteratorSize(I) == HasLength()`, also the following must be implemented:
 *   `Base.length(::SectorValues{I})`: the number of different values
 *   `Base.getindex(::SectorValues{I}, i::Int)`: a mapping between an index `i` and an

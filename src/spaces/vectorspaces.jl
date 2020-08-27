@@ -161,7 +161,7 @@ fuse(V1::VectorSpace, V2::VectorSpace, V3::VectorSpace...) =
 
 Return a single vector space of type `S` that has the same value of [`isdual`](@ref) as
 `dual(V)`, but yet is isomorphic to `V` rather than to `dual(V)`. The spaces `flip(V)` and
-`dual(V)` only differ in the case of [`RepresentationSpace{I}`](@ref).
+`dual(V)` only differ in the case of [`GradedSpace{I}`](@ref).
 """
 function flip end
 
@@ -200,15 +200,20 @@ dual(V::EuclideanSpace) = conj(V)
 isdual(V::EuclideanSpace{ℝ}) = false
 
 """
-    abstract type RepresentationSpace{I<:Sector} <: EuclideanSpace{ℂ} end
+    abstract type GradedSpace{I<:Sector} <: EuclideanSpace{ℂ} end
 
-Complex Euclidean space with a direct sum structure corresponding to different
-superselection sectors of type `I<:Sector`, e.g. the elements or irreps of a compact or
-finite group, or the simple objects of a unitary fusion category. We restrict to complex
-Euclidean space supporting unitary representations.
+A complex Euclidean space with a direct sum structure corresponding to labels in a set `I`,
+the objects of which have the structure of a monoid with respect to a monoidal product `⊗`.
+In practice, we restrict the label set to be a set of superselection sectors of type
+`I<:Sector`, e.g. the set of distinct irreps of a finite or compact group, or the
+isomorphism classes of simple objects of a unitary and pivotal (pre-)fusion category.
 """
-abstract type RepresentationSpace{I<:Sector} <: EuclideanSpace{ℂ} end
-const Rep{I<:Sector} = RepresentationSpace{I}
+abstract type GradedSpace{I<:Sector} <: EuclideanSpace{ℂ} end
+
+# TODO: deprecate
+abstract type RepresentationSpace{I<:Sector} end
+Base.@deprecate(RepresentationSpace(args...), GradedSpace(args...))
+Base.@deprecate(RepresentationSpace{I}(args...) where {I}, GradedSpace{I}(args...))
 
 """
     sectortype(a) -> Type{<:Sector}
@@ -218,7 +223,7 @@ defined. Also works in type domain.
 """
 sectortype(V::VectorSpace) = sectortype(typeof(V))
 sectortype(::Type{<:ElementarySpace}) = Trivial
-sectortype(::Type{<:RepresentationSpace{I}}) where {I} = I
+sectortype(::Type{<:GradedSpace{I}}) where {I} = I
 
 """
     hassector(V::VectorSpace, a::Sector) -> Bool
@@ -369,7 +374,7 @@ have the same value.
 infimum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     infimum(infimum(V1, V2), V3...)
 
-Base.@deprecate(infinum(V1,V2...), infimum(V1,V2...))
+Base.@deprecate(infinum(V1, V2...), infimum(V1, V2...))
 
 """
     supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
@@ -383,5 +388,5 @@ supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     supremum(supremum(V1, V2), V3...)
 
 import Base: min, max
-Base.@deprecate min(V1::ElementarySpace, V2::ElementarySpace) infimum(V1,V2)
-Base.@deprecate max(V1::ElementarySpace, V2::ElementarySpace) supremum(V1,V2)
+Base.@deprecate min(V1::ElementarySpace, V2::ElementarySpace) infimum(V1, V2)
+Base.@deprecate max(V1::ElementarySpace, V2::ElementarySpace) supremum(V1, V2)
