@@ -26,9 +26,9 @@ function get_num_blas_threads()
 end
 
 function _one!(A::DenseMatrix)
-    Threads.@threads for j = 1:size(A,2)
-        @simd for i = 1:size(A,1)
-            @inbounds A[i,j] = i == j
+    Threads.@threads for j = 1:size(A, 2)
+        @simd for i = 1:size(A, 1)
+            @inbounds A[i, j] = i == j
         end
     end
     return A
@@ -72,12 +72,12 @@ Base.adjoint(::QL) = RQ()
 Base.adjoint(::RQpos) = QLpos()
 Base.adjoint(::RQ) = QL()
 
-Base.adjoint(alg::Union{SVD,SDD,Polar}) = alg
+Base.adjoint(alg::Union{SVD, SDD, Polar}) = alg
 
 _safesign(s::Real) = ifelse(s<zero(s), -one(s), +one(s))
 _safesign(s::Complex) = ifelse(iszero(s), one(s), s/abs(s))
 
-function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::Real)
+function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR, QRpos}, atol::Real)
     iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
     k = min(m, n)
@@ -85,7 +85,7 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::R
     Q = similar(A, m, k)
     for j = 1:k
         for i = 1:m
-            Q[i,j] = i == j
+            Q[i, j] = i == j
         end
     end
     Q = LAPACK.gemqrt!('L', 'N', A, T, Q)
@@ -98,8 +98,8 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::R
                 Q[i,j] *= s
             end
         end
-        @inbounds for j = size(R,2):-1:1
-            for i = 1:min(k,j)
+        @inbounds for j = size(R, 2):-1:1
+            for i = 1:min(k, j)
                 R[i,j] = R[i,j]*conj(_safesign(R[i,i]))
             end
         end
@@ -112,17 +112,17 @@ end
 # function _leftorth!(A::StridedMatrix{<:BlasFloat})
 #     m, n = size(A)
 #     A, τ = geqrfp!(A)
-#     Q = LAPACK.ormqr!('L','N', A, τ, eye(eltype(A), m, min(m,n)))
-#     R = triu!(A[1:min(m,n), :])
+#     Q = LAPACK.ormqr!('L', 'N', A, τ, eye(eltype(A), m, min(m, n)))
+#     R = triu!(A[1:min(m, n), :])
 #     return Q, R
 # end
 
-function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL,QLpos}, atol::Real)
+function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL, QLpos}, atol::Real)
     iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
     @assert m >= n
 
-    nhalf = div(n,2)
+    nhalf = div(n, 2)
     #swap columns in A
     @inbounds for j = 1:nhalf, i = 1:m
         A[i,j], A[i,n+1-j] = A[i,n+1-j], A[i,j]
@@ -146,7 +146,7 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL,QLpos}, atol::R
     return Q, R
 end
 
-function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar}, atol::Real)
+function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD, SDD, Polar}, atol::Real)
     U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)
     if isa(alg, Union{SVD, SDD})
         n = count(s-> s .> atol, S)
@@ -159,14 +159,14 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar}, at
         iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
         # TODO: check Lapack to see if we can recycle memory of A
         Q = mul!(A, U, V)
-        Sq = map!(sqrt,S,S)
+        Sq = map!(sqrt, S, S)
         SqV = lmul!(Diagonal(Sq), V)
         R = SqV'*SqV
         return Q, R
     end
 end
 
-function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::Real)
+function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR, QRpos}, atol::Real)
     iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
     m >= n || throw(ArgumentError("no null space if less rows than columns"))
@@ -180,26 +180,26 @@ function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::R
     N = LAPACK.gemqrt!('L', 'N', A, T, N)
 end
 
-function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
-    size(A, 2) == 0 && return _one!(similar(A, (size(A,1), size(A,1))))
+function _leftnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD, SDD}, atol::Real)
+    size(A, 2) == 0 && return _one!(similar(A, (size(A, 1), size(A, 1))))
     U, S, V = alg isa SVD ? LAPACK.gesvd!('A', 'N', A) : LAPACK.gesdd!('A', A)
     indstart = count(>(atol), S) + 1
     return U[:, indstart:end]
 end
 
-function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQpos},
+function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ, LQpos, RQ, RQpos},
                         atol::Real)
     iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     # TODO: geqrfp seems a bit slower than geqrt in the intermediate region around
     # matrix size 100, which is the interesting region. => Investigate and fix
     m, n = size(A)
-    k = min(m,n)
-    At = transpose!(similar(A,n,m), A)
+    k = min(m, n)
+    At = transpose!(similar(A, n, m), A)
 
     if isa(alg, RQ) || isa(alg, RQpos)
         @assert m <= n
 
-        mhalf = div(m,2)
+        mhalf = div(m, 2)
         # swap columns in At
         @inbounds for j = 1:mhalf, i = 1:n
             At[i,j], At[i,m+1-j] = At[i,m+1-j], At[i,j]
@@ -219,22 +219,22 @@ function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos, RQ, RQp
             end
         end
         Q = transpose!(A, Qt)
-        R = transpose!(similar(A, (m,m)), Rt) # TODO: efficient in place
+        R = transpose!(similar(A, (m, m)), Rt) # TODO: efficient in place
         return R, Q
     else
         Qt, Lt = _leftorth!(At, alg', atol)
         if m > n
             L = transpose!(A, Lt)
-            Q = transpose!(similar(A, (n,n)), Qt) # TODO: efficient in place
+            Q = transpose!(similar(A, (n, n)), Qt) # TODO: efficient in place
         else
             Q = transpose!(A, Qt)
-            L = transpose!(similar(A, (m,m)), Lt) # TODO: efficient in place
+            L = transpose!(similar(A, (m, m)), Lt) # TODO: efficient in place
         end
         return L, Q
     end
 end
 
-function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar}, atol::Real)
+function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD, SDD, Polar}, atol::Real)
     U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)
     if isa(alg, Union{SVD, SDD})
         n = count(s-> s .> atol, S)
@@ -253,13 +253,13 @@ function _rightorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD,Polar}, a
     end
 end
 
-function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos}, atol::Real)
+function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ, LQpos}, atol::Real)
     iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
     m, n = size(A)
-    k = min(m,n)
-    At = adjoint!(similar(A,n,m), A)
+    k = min(m, n)
+    At = adjoint!(similar(A, n, m), A)
     At, T = LAPACK.geqrt!(At, min(k, 36))
-    N = similar(A, max(n-m,0), n);
+    N = similar(A, max(n-m, 0), n);
     fill!(N, 0)
     for k = 1:n-m
         N[k,m+k] = 1
@@ -267,14 +267,14 @@ function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{LQ,LQpos}, atol::
     N = LAPACK.gemqrt!('R', eltype(At) <: Real ? 'T' : 'C', At, T, N)
 end
 
-function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Real)
-    size(A, 1) == 0 && return _one!(similar(A, (size(A,2), size(A,2))))
+function _rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD, SDD}, atol::Real)
+    size(A, 1) == 0 && return _one!(similar(A, (size(A, 2), size(A, 2))))
     U, S, V = alg isa SVD ? LAPACK.gesvd!('N', 'A', A) : LAPACK.gesdd!('A', A)
     indstart = count(>(atol), S) + 1
     return V[indstart:end, :]
 end
 
-function _svd!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD})
+function _svd!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD, SDD})
     U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)
     return U, S, V
 end
@@ -311,23 +311,25 @@ end
 # end
 #
 #
-# eigfact!(A::RealHermSymComplexHerm{<:BlasReal,<:StridedMatrix}) = Eigen(LAPACK.syevr!('V', 'A', A.uplo, A.data, 0.0, 0.0, 0, 0, -1.0)...)
+# eigfact!(A::RealHermSymComplexHerm{<:BlasReal, <:StridedMatrix}) = Eigen(LAPACK.syevr!('V', 'A', A.uplo, A.data, 0.0, 0.0, 0, 0, -1.0)...)
 #
 #
 #
 # Modified / missing Lapack wrappers
 #------------------------------------
 # geqrfp!: computes qrpos factorization, missing in Base
-geqrfp!(A::StridedMatrix{<:BlasFloat}) = ((m,n) = size(A); geqrfp!(A, similar(A, min(m, n))))
+geqrfp!(A::StridedMatrix{<:BlasFloat}) =
+    ((m, n) = size(A); geqrfp!(A, similar(A, min(m, n))))
 
 for (geqrfp, elty, relty) in
-    ((:dgeqrfp_,:Float64,:Float64), (:sgeqrfp_,:Float32,:Float32), (:zgeqrfp_,:ComplexF64,:Float64), (:cgeqrfp_,:ComplexF32,:Float32))
+    ((:dgeqrfp_, :Float64, :Float64), (:sgeqrfp_, :Float32, :Float32),
+        (:zgeqrfp_, :ComplexF64, :Float64), (:cgeqrfp_, :ComplexF32, :Float32))
     @eval begin
         function geqrfp!(A::StridedMatrix{$elty}, tau::StridedVector{$elty})
-            chkstride1(A,tau)
+            chkstride1(A, tau)
             m, n  = size(A)
-            if length(tau) != min(m,n)
-                throw(DimensionMismatch("tau has length $(length(tau)), but needs length $(min(m,n))"))
+            if length(tau) != min(m, n)
+                throw(DimensionMismatch("tau has length $(length(tau)), but needs length $(min(m, n))"))
             end
             work  = Vector{$elty}(1)
             lwork = BlasInt(-1)
@@ -336,7 +338,8 @@ for (geqrfp, elty, relty) in
                 ccall((@blasfunc($geqrfp), liblapack), Nothing,
                       (Ptr{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ptr{BlasInt},
                        Ptr{$elty}, Ptr{$elty}, Ptr{BlasInt}, Ptr{BlasInt}),
-                      Ref(m), Ref(n), A, Ref(max(1,stride(A,2))), tau, work, Ref(lwork), info)
+                      Ref(m), Ref(n), A, Ref(max(1, stride(A, 2))),
+                      tau, work, Ref(lwork), info)
                 chklapackerror(info[])
                 if i == 1
                     lwork = BlasInt(real(work[1]))

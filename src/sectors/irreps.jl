@@ -26,25 +26,25 @@ abstract type AbelianIrrep <: Irrep end
 Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
 Base.isreal(::Type{<:AbelianIrrep}) = true
 
-Nsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = c == first(a ⊗ b)
-Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:AbelianIrrep} =
-    Int(Nsymbol(a,b,e)*Nsymbol(e,c,d)*Nsymbol(b,c,f)*Nsymbol(a,f,d))
+Nsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = c == first(a ⊗ b)
+Fsymbol(a::I, b::I, c::I, d::I, e::I, f::I) where {I<:AbelianIrrep} =
+    Int(Nsymbol(a, b, e)*Nsymbol(e, c, d)*Nsymbol(b, c, f)*Nsymbol(a, f, d))
 frobeniusschur(a::AbelianIrrep) = 1
-Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Int(Nsymbol(a, b, c))
-Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Int(Nsymbol(a, b, c))
+Bsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = Int(Nsymbol(a, b, c))
+Rsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = Int(Nsymbol(a, b, c))
 
-fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} =
-    fill(Int(Nsymbol(a,b,c)), (1,1,1))
+fusiontensor(a::I, b::I, c::I, v::Nothing = nothing) where {I<:AbelianIrrep} =
+    fill(Int(Nsymbol(a, b, c)), (1, 1, 1))
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 64?
 """
     struct ZNIrrep{N} <: AbelianIrrep
     ZNIrrep(n::Integer)
 
-Represents irreps of the group ``ℤ_N`` for some value of `N<64`. (We need 2*(N-1) <= 127 
-in order for a ⊗ b to work correctly.) Unicode synonyms are available for the cases 
-`N=2,3,4` as `ℤ₂`, `ℤ₃`, `ℤ₄`. Also the name `Parity` can be used as synonym for `ℤ₂`. 
-An arbitrary `Integer` `n` can be provided to the constructor, but only the value 
+Represents irreps of the group ``ℤ_N`` for some value of `N<64`. (We need 2*(N-1) <= 127
+in order for a ⊗ b to work correctly.) Unicode synonyms are available for the cases
+`N=2, 3, 4` as `ℤ₂`, `ℤ₃`, `ℤ₄`. Also the name `Parity` can be used as synonym for `ℤ₂`.
+An arbitrary `Integer` `n` can be provided to the constructor, but only the value
 `mod(n, N)` is relevant.
 """
 struct ZNIrrep{N} <: AbelianIrrep
@@ -98,7 +98,7 @@ Base.show(io::IO, c::ZNIrrep{N}) where {N} =
 Represents irreps of the group `U₁ == SO₂`, both of which are valid unicode synonyms.
 The irrep is labelled by a charge, which should be an integer for a linear representation.
 However, it is often useful to allow half integers to represent irreps of `U₁` subgroups of
-``SU₂``, such as the Sz of spin-1/2 system. Hence, the charge is stored as a `HalfInt` 
+``SU₂``, such as the Sz of spin-1/2 system. Hence, the charge is stored as a `HalfInt`
 from the package HalfIntegers.jl, but can be entered as arbitrary `Real`.
 The sequence of the charges is: 0, 1/2, -1/2, 1, -1, ...
 """
@@ -124,7 +124,7 @@ Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(c)
 Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
 @inline Base.isless(c1::U1Irrep, c2::U1Irrep) =
     isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
-    
+
 const U₁ = U1Irrep
 const SO₂ = U1Irrep
 Base.show(io::IO, ::Type{U1Irrep}) = print(io, "U₁")
@@ -195,7 +195,7 @@ function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Nothing = nothin
     ja, jb, jc = a.j, b.j, c.j
 
     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
-        C[ka,kb,kc] = WignerSymbols.clebschgordan(ja, ja+1-ka, jb, jb+1-kb, jc, jc+1-kc)
+        C[ka, kb, kc] = WignerSymbols.clebschgordan(ja, ja+1-ka, jb, jb+1-kb, jc, jc+1-kc)
     end
     return C
 end
@@ -269,7 +269,7 @@ Base.isless(c1::CU1Irrep, c2::CU1Irrep) =
 # CU1Irrep(j::Real, s::Int = ifelse(j>0, 2, 0)) = CU1Irrep(convert(HalfInteger, j), s)
 
 Base.convert(::Type{CU1Irrep}, j::Real) = CU1Irrep(j)
-Base.convert(::Type{CU1Irrep}, js::Tuple{Real,Int}) = CU1Irrep(js...)
+Base.convert(::Type{CU1Irrep}, js::Tuple{Real, Int}) = CU1Irrep(js...)
 
 Base.one(::Type{CU1Irrep}) = CU1Irrep(zero(HalfInt), 0)
 Base.conj(c::CU1Irrep) = c
@@ -323,15 +323,15 @@ function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
 end
 function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
         d::CU1Irrep, e::CU1Irrep, f::CU1Irrep)
-    Nabe = convert(Int, Nsymbol(a,b,e))
-    Necd = convert(Int, Nsymbol(e,c,d))
-    Nbcf = convert(Int, Nsymbol(b,c,f))
-    Nafd = convert(Int, Nsymbol(a,f,d))
+    Nabe = convert(Int, Nsymbol(a, b, e))
+    Necd = convert(Int, Nsymbol(e, c, d))
+    Nbcf = convert(Int, Nsymbol(b, c, f))
+    Nafd = convert(Int, Nsymbol(a, f, d))
 
     Nabe*Necd*Nbcf*Nafd == 0 && return 0.
 
-    op = CU1Irrep(0,0)
-    om = CU1Irrep(0,1)
+    op = CU1Irrep(0, 0)
+    om = CU1Irrep(0, 1)
 
     if a == op || b == op || c == op
         return 1.
@@ -352,7 +352,7 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
     if c == om
         return (d.j == a.j - b.j) ? -1. : 1.
     end
-    # from here on, a,b,c are neither 0+ or 0-
+    # from here on, a, b, c are neither 0+ or 0-
     s = sqrt(2)/2
     if a == b == c
         if d == a
@@ -414,34 +414,34 @@ end
 
 function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, ::Nothing = nothing)
     C = fill(0., dim(a), dim(b), dim(c))
-    !Nsymbol(a,b,c) && return C
+    !Nsymbol(a, b, c) && return C
     if c.j == 0
         if a.j == b.j == 0
-            C[1,1,1] = 1.
+            C[1, 1, 1] = 1.
         else
             if c.s == 0
-                C[1,2,1] = 1. / sqrt(2)
-                C[2,1,1] = 1. / sqrt(2)
+                C[1, 2, 1] = 1. / sqrt(2)
+                C[2, 1, 1] = 1. / sqrt(2)
             else
-                C[1,2,1] = 1. / sqrt(2)
-                C[2,1,1] = -1. / sqrt(2)
+                C[1, 2, 1] = 1. / sqrt(2)
+                C[2, 1, 1] = -1. / sqrt(2)
             end
         end
     elseif a.j == 0
-        C[1,1,1] = 1.
-        C[1,2,2] = a.s == 1 ? -1. : 1.
+        C[1, 1, 1] = 1.
+        C[1, 2, 2] = a.s == 1 ? -1. : 1.
     elseif b.j == 0
-        C[1,1,1] = 1.
-        C[2,1,2] = b.s == 1 ? -1. : 1.
+        C[1, 1, 1] = 1.
+        C[2, 1, 2] = b.s == 1 ? -1. : 1.
     elseif c.j == a.j + b.j
-        C[1,1,1] = 1.
-        C[2,2,2] = 1.
+        C[1, 1, 1] = 1.
+        C[2, 2, 2] = 1.
     elseif c.j == a.j - b.j
-        C[1,2,1] = 1.
-        C[2,1,2] = 1.
+        C[1, 2, 1] = 1.
+        C[2, 1, 2] = 1.
     elseif c.j == b.j - a.j
-        C[2,1,1] = 1.
-        C[1,2,2] = 1.
+        C[2, 1, 1] = 1.
+        C[1, 2, 2] = 1.
     end
     return C
 end

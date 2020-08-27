@@ -1,5 +1,5 @@
 """
-    struct HomSpace{S<:ElementarySpace,P1<:CompositeSpace{S},P2<:CompositeSpace{S}}
+    struct HomSpace{S<:ElementarySpace, P1<:CompositeSpace{S}, P2<:CompositeSpace{S}}
         codomain::P1
         domain::P2
     end
@@ -32,9 +32,9 @@ sectortype(L::Type{<:HomSpace}) = sectortype(spacetype(L))
 
 const TensorSpace{S<:ElementarySpace} = Union{S, ProductSpace{S}}
 const TensorMapSpace{S<:ElementarySpace, N₁, N₂} =
-    HomSpace{S, ProductSpace{S,N₁}, ProductSpace{S,N₂}}
+    HomSpace{S, ProductSpace{S, N₁}, ProductSpace{S, N₂}}
 
-Base.getindex(W::TensorMapSpace{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂} =
+Base.getindex(W::TensorMapSpace{<:IndexSpace, N₁, N₂}, i) where {N₁, N₂} =
     i <= N₁ ? codomain(W)[i] : dual(domain(W)[i-N₁])
 
 →(dom::TensorSpace{S}, codom::TensorSpace{S}) where {S<:ElementarySpace} =

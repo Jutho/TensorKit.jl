@@ -1,18 +1,18 @@
-struct TensorKeyIterator{G<:Sector,F₁<:FusionTree{G},F₂<:FusionTree{G}}
-    rowr::SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}
-    colr::SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}
+struct TensorKeyIterator{I<:Sector, F₁<:FusionTree{I}, F₂<:FusionTree{I}}
+    rowr::SectorDict{I, FusionTreeDict{F₁, UnitRange{Int}}}
+    colr::SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}
 end
-struct TensorPairIterator{G<:Sector, F₁<:FusionTree{G}, F₂<:FusionTree{G}, A<:DenseMatrix}
-    rowr::SectorDict{G, FusionTreeDict{F₁, UnitRange{Int}}}
-    colr::SectorDict{G, FusionTreeDict{F₂, UnitRange{Int}}}
-    data::SectorDict{G, A}
+struct TensorPairIterator{I<:Sector, F₁<:FusionTree{I}, F₂<:FusionTree{I}, A<:DenseMatrix}
+    rowr::SectorDict{I, FusionTreeDict{F₁, UnitRange{Int}}}
+    colr::SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}
+    data::SectorDict{I, A}
 end
 
-const TensorIterator{G<:Sector,F₁<:FusionTree{G},F₂<:FusionTree{G}} = Union{TensorKeyIterator{G,F₁,F₂},TensorPairIterator{G,F₁,F₂}}
+const TensorIterator{I<:Sector, F₁<:FusionTree{I}, F₂<:FusionTree{I}} = Union{TensorKeyIterator{I, F₁, F₂}, TensorPairIterator{I, F₁, F₂}}
 
 Base.IteratorSize(::Type{<:TensorIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:TensorIterator}) = Base.HasEltype()
-Base.eltype(T::Type{TensorKeyIterator{G,F₁,F₂}}) where {G,F₁,F₂} = Tuple{F₁,F₂}
+Base.eltype(T::Type{TensorKeyIterator{I, F₁, F₂}}) where {I, F₁, F₂} = Tuple{F₁, F₂}
 
 function Base.length(t::TensorKeyIterator)
     l = 0
@@ -81,26 +81,3 @@ function Base.iterate(it::TensorKeyIterator, state)
 
     return (f1, f2), (f2, i, rowstate, colstate)
 end
-
-# WARNING: This only works if both SectorDict and FusionTreeDict are VectorDict
-# function Base.iterate(it::TensorKeyIterator, s = (1,1,1))
-#     i,j,k = s
-#     length(it.rowr) < i && return nothing
-#     @inbounds begin
-#         f1 = it.rowr.values[i].keys[j]
-#         f2 = it.colr.values[i].keys[k]
-#     end
-#
-#     if j < length(it.rowr.values[i])
-#         j += 1
-#     elseif k < length(it.colr.values[i])
-#         j = 1
-#         k += 1
-#     else
-#         j = 1
-#         k = 1
-#         i += 1
-#     end
-#
-#     return (f1,f2), (i,j,k)
-# end
