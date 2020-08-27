@@ -161,7 +161,7 @@ fuse(V1::VectorSpace, V2::VectorSpace, V3::VectorSpace...) =
 
 Return a single vector space of type `S` that has the same value of [`isdual`](@ref) as
 `dual(V)`, but yet is isomorphic to `V` rather than to `dual(V)`. The spaces `flip(V)` and
-`dual(V)` only differ in the case of [`RepresentationSpace{G}`](@ref).
+`dual(V)` only differ in the case of [`RepresentationSpace{I}`](@ref).
 """
 function flip end
 
@@ -200,15 +200,15 @@ dual(V::EuclideanSpace) = conj(V)
 isdual(V::EuclideanSpace{ℝ}) = false
 
 """
-    abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
+    abstract type RepresentationSpace{I<:Sector} <: EuclideanSpace{ℂ} end
 
 Complex Euclidean space with a direct sum structure corresponding to different
-superselection sectors of type `G<:Sector`, e.g. the elements or irreps of a compact or
+superselection sectors of type `I<:Sector`, e.g. the elements or irreps of a compact or
 finite group, or the simple objects of a unitary fusion category. We restrict to complex
 Euclidean space supporting unitary representations.
 """
-abstract type RepresentationSpace{G<:Sector} <: EuclideanSpace{ℂ} end
-const Rep{G<:Sector} = RepresentationSpace{G}
+abstract type RepresentationSpace{I<:Sector} <: EuclideanSpace{ℂ} end
+const Rep{I<:Sector} = RepresentationSpace{I}
 
 """
     sectortype(a) -> Type{<:Sector}
@@ -218,7 +218,7 @@ defined. Also works in type domain.
 """
 sectortype(V::VectorSpace) = sectortype(typeof(V))
 sectortype(::Type{<:ElementarySpace}) = Trivial
-sectortype(::Type{<:RepresentationSpace{G}}) where {G} = G
+sectortype(::Type{<:RepresentationSpace{I}}) where {I} = I
 
 """
     hassector(V::VectorSpace, a::Sector) -> Bool

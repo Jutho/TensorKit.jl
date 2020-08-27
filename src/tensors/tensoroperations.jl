@@ -1,7 +1,7 @@
 function cached_permute(sym::Symbol, t::TensorMap{S},
-                            p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂}
-    cod = ProductSpace{S,N₁}(map(n->space(t, n), p1))
-    dom = ProductSpace{S,N₂}(map(n->dual(space(t, n)), p2))
+                            p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S, N₁, N₂}
+    cod = ProductSpace{S, N₁}(map(n->space(t, n), p1))
+    dom = ProductSpace{S, N₂}(map(n->dual(space(t, n)), p2))
 
     # share data if possible
     if p1 === codomainind(t) && p2 === domainind(t)
@@ -23,7 +23,7 @@ function cached_permute(sym::Symbol, t::TensorMap{S},
 end
 
 function cached_permute(sym::Symbol, t::AdjointTensorMap{S},
-                            p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S,N₁,N₂}
+                            p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S, N₁, N₂}
 
     p1′ = adjointtensorindices(t, p2)
     p2′ = adjointtensorindices(t, p1)
@@ -32,21 +32,21 @@ end
 
 scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} =
     dim(codomain(t)) == dim(domain(t)) == 1 ?
-        first(blocks(t))[2][1,1] : throw(SpaceMismatch())
+        first(blocks(t))[2][1, 1] : throw(SpaceMismatch())
 
 @propagate_inbounds function add!(α, tsrc::AbstractTensorMap{S},
                                     β, tdst::AbstractTensorMap{S},
                                     p1::IndexTuple, p2::IndexTuple) where {S}
-    G = sectortype(S)
-    if BraidingStyle(G) isa SymmetricBraiding
+    I = sectortype(S)
+    if BraidingStyle(I) isa SymmetricBraiding
         add!(α, tsrc, β, tdst, p1, p2, (codomainind(tsrc)..., domainind(tsrc)...))
     else
         throw(ArgumentError("add! without levels only if `BraidingStyle(sectortype(...)) isa SymmetricBraiding`"))
     end
 end
 
-function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂},
-                p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, levels::IndexTuple) where {S,N₁,N₂}
+function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N₁, N₂},
+                p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, levels::IndexTuple) where {S, N₁, N₂}
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)),
@@ -67,8 +67,8 @@ end
                                     β, tdst::AbstractTensorMap{S},
                                     p1::IndexTuple, p2::IndexTuple,
                                     levels::IndexTuple) where {S}
-    G = sectortype(S)
-    if G === Trivial
+    I = sectortype(S)
+    if I === Trivial
         return quote
             cod = codomain(tsrc)
             dom = domain(tsrc)
@@ -76,7 +76,7 @@ end
             pdata = (p1..., p2...)
             axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
         end
-    elseif FusionStyle(G) isa Abelian && BraidingStyle(G) isa SymmetricBraiding
+    elseif FusionStyle(I) isa Abelian && BraidingStyle(I) isa SymmetricBraiding
         return quote
             _add_abelian_kernel!(α, tsrc, β, tdst, p1, p2)
         end
@@ -85,7 +85,7 @@ end
             cod = codomain(tsrc)
             dom = domain(tsrc)
             n = length(cod)
-            pdata = (p1...,p2...)
+            pdata = (p1..., p2...)
             if iszero(β)
                 fill!(tdst, β)
             elseif β != 1
@@ -93,9 +93,9 @@ end
             end
             levels1 = TupleTools.getindices(levels, codomainind(tsrc))
             levels2 = TupleTools.getindices(levels, domainind(tsrc))
-            for (f1,f2) in fusiontrees(tsrc)
-                for ((f1′,f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
-                    @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
+            for (f1, f2) in fusiontrees(tsrc)
+                for ((f1′, f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
+                    @inbounds axpy!(α*coeff, permutedims(tsrc[f1, f2], pdata), tdst[f1′, f2′])
                 end
             end
         end
@@ -108,12 +108,12 @@ function _add_abelian_kernel!(α, tsrc::AbstractTensorMap,
     if Threads.nthreads() > 1
         nstridedthreads = Strided.get_num_threads()
         Strided.set_num_threads(1)
-        Threads.@sync for (f1,f2) in fusiontrees(tsrc)
+        Threads.@sync for (f1, f2) in fusiontrees(tsrc)
             Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
         end
         Strided.set_num_threads(nstridedthreads)
     else # debugging is easier this way
-        for (f1,f2) in fusiontrees(tsrc)
+        for (f1, f2) in fusiontrees(tsrc)
             _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
         end
     end
@@ -125,14 +125,14 @@ function _addabelianblock!(α, tsrc::AbstractTensorMap,
                             f1::FusionTree, f2::FusionTree)
     cod = codomain(tsrc)
     dom = domain(tsrc)
-    (f1′,f2′), coeff = first(permute(f1, f2, p1, p2))
-    pdata = (p1...,p2...)
-    @inbounds axpby!(α*coeff, permutedims(tsrc[f1,f2], pdata), β, tdst[f1′,f2′])
+    (f1′, f2′), coeff = first(permute(f1, f2, p1, p2))
+    pdata = (p1..., p2...)
+    @inbounds axpby!(α*coeff, permutedims(tsrc[f1, f2], pdata), β, tdst[f1′, f2′])
 end
 
-function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂},
+function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N₁, N₂},
                 p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
-                q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {S,N₁,N₂,N₃}
+                q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {S, N₁, N₂, N₃}
     # TODO: check Frobenius-Schur indicators!, and  add fermions!
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
@@ -146,20 +146,20 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
                     q1 = $(p1), q2 = $(q2)"))
     end
 
-    G = sectortype(S)
-    if G === Trivial
+    I = sectortype(S)
+    if I === Trivial
         cod = codomain(tsrc)
         dom = domain(tsrc)
         n = length(cod)
         pdata = (p1..., p2...)
         TO._trace!(α, tsrc[], β, tdst[], pdata, q1, q2)
-    # elseif FusionStyle(G) isa Abelian
+    # elseif FusionStyle(I) isa Abelian
     # TODO: is it worth multithreading Abelian case for traces?
     else
         cod = codomain(tsrc)
         dom = domain(tsrc)
         n = length(cod)
-        pdata = (p1...,p2...)
+        pdata = (p1..., p2...)
         if iszero(β)
             fill!(tdst, β)
         elseif β != 1
@@ -167,13 +167,13 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
         end
         r1 = (p1..., q1...)
         r2 = (p2..., q2...)
-        for (f1,f2) in fusiontrees(tsrc)
-            for ((f1′,f2′), coeff) in permute(f1, f2, r1, r2)
+        for (f1, f2) in fusiontrees(tsrc)
+            for ((f1′, f2′), coeff) in permute(f1, f2, r1, r2)
                 f1′′, g1 = split(f1′, N₁)
                 f2′′, g2 = split(f2′, N₂)
                 if g1 == g2
                     coeff *= dim(g1.coupled)/dim(g1.uncoupled[1])
-                    TO._trace!(α*coeff, tsrc[f1,f2], true, tdst[f1′′,f2′′], pdata, q1, q2)
+                    TO._trace!(α*coeff, tsrc[f1, f2], true, tdst[f1′′, f2′′], pdata, q1, q2)
                 end
             end
         end
@@ -181,7 +181,7 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
     return tdst
 end
 
-# TODO: contraction with either A or B a rank (1,1) tensor does not require to
+# TODO: contraction with either A or B a rank (1, 1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
 function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
@@ -189,7 +189,7 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     oindA::IndexTuple{N₁}, cindA::IndexTuple,
                     oindB::IndexTuple{N₂}, cindB::IndexTuple,
                     p1::IndexTuple, p2::IndexTuple,
-                    syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
+                    syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S, N₁, N₂}
     # find optimal contraction scheme
     hsp = has_shared_permute
     ipC = TupleTools.invperm((p1..., p2...))
@@ -242,7 +242,7 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     oindA::IndexTuple{N₁}, cindA::IndexTuple,
                     oindB::IndexTuple{N₂}, cindB::IndexTuple,
                     p1::IndexTuple, p2::IndexTuple,
-                    syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
+                    syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S, N₁, N₂}
 
     if syms === nothing
         A′ = permute(A, oindA, cindA)
@@ -276,7 +276,7 @@ end
 # compatibility layer
 function TensorOperations.memsize(t::TensorMap)
     s = 0
-    for (c,b) in blocks(t)
+    for (c, b) in blocks(t)
         s += sizeof(b)
     end
     return s
@@ -315,26 +315,26 @@ function TO.similarstructure_from_indices(T::Type, poA::IndexTuple, poB::IndexTu
 end
 
 function _similarstructure_from_indices(::Type{T}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
-        t::AbstractTensorMap{S}) where {T,S<:IndexSpace,N₁,N₂}
+        t::AbstractTensorMap{S}) where {T, S<:IndexSpace, N₁, N₂}
 
-    cod = ProductSpace{S,N₁}(space.(Ref(t), p1))
-    dom = ProductSpace{S,N₂}(dual.(space.(Ref(t), p2)))
+    cod = ProductSpace{S, N₁}(space.(Ref(t), p1))
+    dom = ProductSpace{S, N₂}(dual.(space.(Ref(t), p2)))
     return dom→cod
 end
 function _similarstructure_from_indices(::Type{T}, oindA::IndexTuple, oindB::IndexTuple,
         p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
-        tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}) where {T, S<:IndexSpace,N₁,N₂}
+        tA::AbstractTensorMap{S}, tB::AbstractTensorMap{S}) where {T, S<:IndexSpace, N₁, N₂}
 
     spaces = (space.(Ref(tA), oindA)..., space.(Ref(tB), oindB)...)
-    cod = ProductSpace{S,N₁}(getindex.(Ref(spaces), p1))
-    dom = ProductSpace{S,N₂}(dual.(getindex.(Ref(spaces), p2)))
+    cod = ProductSpace{S, N₁}(getindex.(Ref(spaces), p1))
+    dom = ProductSpace{S, N₂}(dual.(getindex.(Ref(spaces), p2)))
     return dom→cod
 end
 
 TO.scalar(t::AbstractTensorMap) = scalar(t)
 
 function TO.add!(α, tsrc::AbstractTensorMap{S}, CA::Symbol, β,
-    tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple) where {S,N₁,N₂}
+    tdst::AbstractTensorMap{S, N₁, N₂}, p1::IndexTuple, p2::IndexTuple) where {S, N₁, N₂}
 
     if CA == :N
         p = (p1..., p2...)
@@ -351,8 +351,8 @@ function TO.add!(α, tsrc::AbstractTensorMap{S}, CA::Symbol, β,
 end
 
 function TO.trace!(α, tsrc::AbstractTensorMap{S}, CA::Symbol, β,
-    tdst::AbstractTensorMap{S,N₁,N₂}, p1::IndexTuple, p2::IndexTuple,
-    q1::IndexTuple, q2::IndexTuple) where {S,N₁,N₂}
+    tdst::AbstractTensorMap{S, N₁, N₂}, p1::IndexTuple, p2::IndexTuple,
+    q1::IndexTuple, q2::IndexTuple) where {S, N₁, N₂}
 
     if CA == :N
         p = (p1..., p2...)
@@ -373,11 +373,11 @@ end
 function TO.contract!(α,
     tA::AbstractTensorMap{S}, CA::Symbol,
     tB::AbstractTensorMap{S}, CB::Symbol,
-    β, tC::AbstractTensorMap{S,N₁,N₂},
+    β, tC::AbstractTensorMap{S, N₁, N₂},
     oindA::IndexTuple, cindA::IndexTuple,
     oindB::IndexTuple, cindB::IndexTuple,
     p1::IndexTuple, p2::IndexTuple,
-    syms::Union{Nothing, NTuple{3,Symbol}} = nothing) where {S,N₁,N₂}
+    syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S, N₁, N₂}
 
     p = (p1..., p2...)
     pl = ntuple(n->p[n], N₁)

@@ -3,7 +3,7 @@
 const OFA = OrthogonalFactorizationAlgorithm
 
 import LinearAlgebra: svd!, svd
-const SVDAlg = Union{SVD,SDD}
+const SVDAlg = Union{SVD, SDD}
 
 Base.@deprecate(
     svd(t::AbstractTensorMap, leftind::IndexTuple, rightind::IndexTuple;
@@ -20,11 +20,11 @@ Base.@deprecate(
 
 """
     tsvd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
-        trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD,SDD} = SDD())
+        trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD, SDD} = SDD())
         -> U, S, V, ϵ
 
 Compute the (possibly truncated)) singular value decomposition such that
-`norm(permute(t,leftind,rightind) - U * S *V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
+`norm(permute(t, leftind, rightind) - U * S *V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in
@@ -58,7 +58,7 @@ tsvd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> Q, R
 
 Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
-`permute(t,leftind,rightind) = Q*R`.
+`permute(t, leftind, rightind) = Q*R`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -82,7 +82,7 @@ leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
                 alg::OrthogonalFactorizationAlgorithm = LQpos()) -> L, Q
 
 Create orthonormal basis `Q` for indices in `rightind`, and remainder `L` such that
-`permute(t,leftind,rightind) = L*Q`.
+`permute(t, leftind, rightind) = L*Q`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -240,7 +240,7 @@ LinearAlgebra.isposdef(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) =
     isposdef!(permute(t, p1, p2; copy = true))
 
 tsvd(t::AbstractTensorMap; trunc::TruncationScheme = NoTruncation(),
-                            p::Real = 2, alg::Union{SVD,SDD} = SDD()) =
+                            p::Real = 2, alg::Union{SVD, SDD} = SDD()) =
     tsvd!(copy(t); trunc = trunc, p = p, alg = alg)
 leftorth(t::AbstractTensorMap; alg::OFA = QRpos(), kwargs...) =
     leftorth!(copy(t); alg = alg, kwargs...)
@@ -273,30 +273,30 @@ rightnull!(t::AdjointTensorMap{S}; alg::OFA = LQ(), kwargs...) where {S<:Euclide
 function tsvd!(t::AdjointTensorMap{S};
                 trunc::TruncationScheme = NoTruncation(),
                 p::Real = 2,
-                alg::Union{SVD,SDD} = SDD()) where {S<:EuclideanSpace}
+                alg::Union{SVD, SDD} = SDD()) where {S<:EuclideanSpace}
     u, s, vt, err = tsvd!(adjoint(t); trunc = trunc, p = p, alg = alg)
     return adjoint(vt), adjoint(s), adjoint(u), err
 end
 
 function leftorth!(t::TensorMap{<:EuclideanSpace};
-                    alg::Union{QR,QRpos,QL,QLpos,SVD,SDD,Polar} = QRpos(),
+                    alg::Union{QR, QRpos, QL, QLpos, SVD, SDD, Polar} = QRpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
                     eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    G = sectortype(t)
+    I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
-    Qdata = SectorDict{G, A}()
-    Rdata = SectorDict{G, A}()
-    dims = SectorDict{G, Int}()
-    for (c,b) in blocks(t)
+    Qdata = SectorDict{I, A}()
+    Rdata = SectorDict{I, A}()
+    dims = SectorDict{I, Int}()
+    for (c, b) in blocks(t)
         Q, R = _leftorth!(b, alg, atol)
         Qdata[c] = Q
         Rdata[c] = R
-        dims[c] = size(Q,2)
+        dims[c] = size(Q, 2)
     end
     V = S(dims)
     if alg isa Polar
@@ -313,47 +313,47 @@ function leftorth!(t::TensorMap{<:EuclideanSpace};
 end
 
 function leftnull!(t::TensorMap{<:EuclideanSpace};
-                    alg::Union{QR,QRpos,SVD,SDD} = QRpos(),
+                    alg::Union{QR, QRpos, SVD, SDD} = QRpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
                     eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    G = sectortype(t)
+    I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
     V = codomain(t)
-    Ndata = SectorDict{G, A}()
-    dims = SectorDict{G, Int}()
+    Ndata = SectorDict{I, A}()
+    dims = SectorDict{I, Int}()
     for c in blocksectors(V)
-        N = _leftnull!(block(t,c), alg, atol)
+        N = _leftnull!(block(t, c), alg, atol)
         Ndata[c] = N
-        dims[c] = size(N,2)
+        dims[c] = size(N, 2)
     end
     W = S(dims)
     return TensorMap(Ndata, V←W)
 end
 
 function rightorth!(t::TensorMap{<:EuclideanSpace};
-                    alg::Union{LQ,LQpos,RQ,RQpos,SVD,SDD,Polar} = LQpos(),
+                    alg::Union{LQ, LQpos, RQ, RQpos, SVD, SDD, Polar} = LQpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
                     eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    G = sectortype(t)
+    I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
-    Ldata = SectorDict{G, A}()
-    Qdata = SectorDict{G, A}()
-    dims = SectorDict{G, Int}()
-    for (c,b) in blocks(t)
+    Ldata = SectorDict{I, A}()
+    Qdata = SectorDict{I, A}()
+    dims = SectorDict{I, Int}()
+    for (c, b) in blocks(t)
         L, Q = _rightorth!(b, alg, atol)
         Ldata[c] = L
         Qdata[c] = Q
-        dims[c] = size(Q,1)
+        dims[c] = size(Q, 1)
     end
     V = S(dims)
     if alg isa Polar
@@ -370,23 +370,23 @@ function rightorth!(t::TensorMap{<:EuclideanSpace};
 end
 
 function rightnull!(t::TensorMap{<:EuclideanSpace};
-                    alg::Union{LQ,LQpos,SVD,SDD} = LQpos(),
+                    alg::Union{LQ, LQpos, SVD, SDD} = LQpos(),
                     atol::Real = zero(float(real(eltype(t)))),
                     rtol::Real = (alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
                     eps(real(float(one(eltype(t)))))*iszero(atol))
     if !iszero(rtol)
         atol = max(atol, rtol*norm(t))
     end
-    G = sectortype(t)
+    I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
     V = domain(t)
-    Ndata = SectorDict{G, A}()
-    dims = SectorDict{G, Int}()
+    Ndata = SectorDict{I, A}()
+    dims = SectorDict{I, Int}()
     for c in blocksectors(V)
-        N = _rightnull!(block(t,c), alg, atol)
+        N = _rightnull!(block(t, c), alg, atol)
         Ndata[c] = N
-        dims[c] = size(N,1)
+        dims[c] = size(N, 1)
     end
     W = S(dims)
     return TensorMap(Ndata, W←V)
@@ -395,14 +395,14 @@ end
 function tsvd!(t::TensorMap{<:EuclideanSpace};
                 trunc::TruncationScheme = NoTruncation(),
                 p::Real = 2,
-                alg::Union{SVD,SDD} = SDD())
+                alg::Union{SVD, SDD} = SDD())
     S = spacetype(t)
-    G = sectortype(t)
+    I = sectortype(t)
     A = storagetype(t)
     Ar = similarstoragetype(t, real(eltype(t)))
-    Udata = SectorDict{G,A}()
-    Σmdata = SectorDict{G,Ar}() # this will contain the singular values as matrix
-    Vdata = SectorDict{G,A}()
+    Udata = SectorDict{I, A}()
+    Σmdata = SectorDict{I, Ar}() # this will contain the singular values as matrix
+    Vdata = SectorDict{I, A}()
     dims = SectorDict{sectortype(t), Int}()
     if isempty(blocksectors(t))
         W = S(dims)
@@ -410,7 +410,7 @@ function tsvd!(t::TensorMap{<:EuclideanSpace};
         return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
                     TensorMap(Vdata, W←domain(t)), truncerr
     end
-    for (c,b) in blocks(t)
+    for (c, b) in blocks(t)
         U, Σ, V = _svd!(b, alg)
         Udata[c] = U
         Vdata[c] = V
@@ -423,7 +423,7 @@ function tsvd!(t::TensorMap{<:EuclideanSpace};
     end
     if !isa(trunc, NoTruncation)
         Σdata, truncerr = _truncate!(Σdata, trunc, p)
-        truncdims = SectorDict{G, Int}()
+        truncdims = SectorDict{I, Int}()
         for c in blocksectors(t)
             truncdim = length(Σdata[c])
             if truncdim != 0
@@ -449,7 +449,7 @@ function tsvd!(t::TensorMap{<:EuclideanSpace};
         end
         truncerr = abs(zero(eltype(t)))
     end
-    for (c,Σ) in Σdata
+    for (c, Σ) in Σdata
         Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
     end
     return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
@@ -459,7 +459,7 @@ end
 function LinearAlgebra.ishermitian(t::TensorMap)
     domain(t) == codomain(t) || return false
     spacetype(t) <: EuclideanSpace || return false # hermiticity only defined for euclidean
-    for (c,b) in blocks(t)
+    for (c, b) in blocks(t)
         ishermitian(b) || return false
     end
     return true
@@ -471,16 +471,16 @@ function eigh!(t::TensorMap{<:EuclideanSpace}; kwargs...)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eigh!` requires domain and codomain to be the same"))
     S = spacetype(t)
-    G = sectortype(t)
+    I = sectortype(t)
     A = storagetype(t)
     Ar = similarstoragetype(t, real(eltype(t)))
-    Ddata = SectorDict{G, Ar}()
-    Vdata = SectorDict{G, A}()
-    dims = SectorDict{G, Int}()
-    for (c,b) in blocks(t)
+    Ddata = SectorDict{I, Ar}()
+    Vdata = SectorDict{I, A}()
+    dims = SectorDict{I, Int}()
+    for (c, b) in blocks(t)
         values, vectors = eigen!(Hermitian(b); kwargs...)
         d = length(values)
-        Ddata[c] = copyto!(similar(values, (d,d)), Diagonal(values))
+        Ddata[c] = copyto!(similar(values, (d, d)), Diagonal(values))
         Vdata[c] = vectors
         dims[c] = d
     end
@@ -496,16 +496,16 @@ function eig!(t::TensorMap; kwargs...)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
     S = spacetype(t)
-    G = sectortype(t)
+    I = sectortype(t)
     T = complex(eltype(t))
     Ac = similarstoragetype(t, T)
-    Ddata = SectorDict{G, Ac}()
-    Vdata = SectorDict{G, Ac}()
-    dims = SectorDict{G, Int}()
-    for (c,b) in blocks(t)
+    Ddata = SectorDict{I, Ac}()
+    Vdata = SectorDict{I, Ac}()
+    dims = SectorDict{I, Int}()
+    for (c, b) in blocks(t)
         values, vectors = eigen!(b; kwargs...)
         d = length(values)
-        Ddata[c] = copyto!(similar(values, T, (d,d)), Diagonal(values))
+        Ddata[c] = copyto!(similar(values, T, (d, d)), Diagonal(values))
         if eltype(vectors) == T
             Vdata[c] = vectors
         else
@@ -525,7 +525,7 @@ function LinearAlgebra.isposdef!(t::TensorMap)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`isposdef` requires domain and codomain to be the same"))
     spacetype(t) <: EuclideanSpace || return false
-    for (c,b) in blocks(t)
+    for (c, b) in blocks(t)
         isposdef!(b) || return false
     end
     return true

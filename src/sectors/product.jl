@@ -37,16 +37,16 @@ ProductSector{T}(args...) where {T<:SectorTuple} = ProductSector{T}(args)
 Base.convert(::Type{ProductSector{T}}, t::Tuple) where {T<:SectorTuple} =
     ProductSector{T}(convert(T, t))
 
-Base.one(::Type{ProductSector{T}}) where {G<:Sector, T<:Tuple{G}} = ProductSector((one(G),))
-Base.one(::Type{ProductSector{T}}) where {G<:Sector, T<:Tuple{G,Vararg{Sector}}} =
-    one(G) × one(ProductSector{Base.tuple_type_tail(T)})
+Base.one(::Type{ProductSector{T}}) where {I<:Sector, T<:Tuple{I}} = ProductSector((one(I),))
+Base.one(::Type{ProductSector{T}}) where {I<:Sector, T<:Tuple{I, Vararg{Sector}}} =
+    one(I) × one(ProductSector{Base.tuple_type_tail(T)})
 
 Base.conj(p::ProductSector) = ProductSector(map(conj, p.sectors))
 function ⊗(p1::P, p2::P) where {P<:ProductSector}
     if FusionStyle(P) isa Abelian
         (P(first(product(map(⊗, p1.sectors, p2.sectors)...))),)
     else
-        return SectorSet{P}(product(map(⊗,p1.sectors,p2.sectors)...))
+        return SectorSet{P}(product(map(⊗, p1.sectors, p2.sectors)...))
     end
 end
 
@@ -58,7 +58,7 @@ function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
                                     d.sectors, e.sectors, f.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Fsymbol,(a,b,c,d,e,f)))
+        throw(MethodError(Fsymbol, (a, b, c, d, e, f)))
     end
 end
 function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
@@ -66,7 +66,7 @@ function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
         return prod(map(Rsymbol, a.sectors, b.sectors, c.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Rsymbol,(a,b,c)))
+        throw(MethodError(Rsymbol, (a, b, c)))
     end
 end
 function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
@@ -74,7 +74,7 @@ function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
         return prod(map(Asymbol, a.sectors, b.sectors, c.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Asymbol,(a,b,c)))
+        throw(MethodError(Asymbol, (a, b, c)))
     end
 end
 function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
@@ -82,7 +82,7 @@ function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
         return prod(map(Bsymbol, a.sectors, b.sectors, c.sectors))
     else
         # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Bsymbol,(a,b,c)))
+        throw(MethodError(Bsymbol, (a, b, c)))
     end
 end
 frobeniusschur(p::ProductSector) = prod(map(frobeniusschur, p.sectors))
@@ -122,38 +122,38 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
 ×(P1::ProductSector, P2::ProductSector) =
     ProductSector(tuple(P1.sectors..., P2.sectors...))
 
-×(G1::Type{ProductSector{Tuple{}}},
-                    G2::Type{ProductSector{T}}) where {T<:SectorTuple} = G2
-×(G1::Type{ProductSector{T1}},
-                    G2::Type{ProductSector{T2}}) where {T1<:SectorTuple,T2<:SectorTuple} =
-    tuple_type_head(T1) × (ProductSector{tuple_type_tail(T1)} × G2)
-×(G1::Type{ProductSector{Tuple{}}}, G2::Type{<:Sector}) =
-    ProductSector{Tuple{G2}}
-×(G1::Type{ProductSector{T}}, G2::Type{<:Sector}) where {T<:SectorTuple} =
-    Base.tuple_type_head(T) × (ProductSector{Base.tuple_type_tail(T)} × G2)
-×(G1::Type{<:Sector}, G2::Type{ProductSector{T}}) where {T<:SectorTuple} =
-    ProductSector{Base.tuple_type_cons(G1,T)}
-×(G1::Type{<:Sector}, G2::Type{<:Sector}) = ProductSector{Tuple{G1,G2}}
+×(I1::Type{ProductSector{Tuple{}}},
+                    I2::Type{ProductSector{T}}) where {T<:SectorTuple} = I2
+×(I1::Type{ProductSector{T1}},
+                    I2::Type{ProductSector{T2}}) where {T1<:SectorTuple, T2<:SectorTuple} =
+    tuple_type_head(T1) × (ProductSector{tuple_type_tail(T1)} × I2)
+×(I1::Type{ProductSector{Tuple{}}}, I2::Type{<:Sector}) =
+    ProductSector{Tuple{I2}}
+×(I1::Type{ProductSector{T}}, I2::Type{<:Sector}) where {T<:SectorTuple} =
+    Base.tuple_type_head(T) × (ProductSector{Base.tuple_type_tail(T)} × I2)
+×(I1::Type{<:Sector}, I2::Type{ProductSector{T}}) where {T<:SectorTuple} =
+    ProductSector{Base.tuple_type_cons(I1, T)}
+×(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1, I2}}
 
 function Base.show(io::IO, P::ProductSector)
     sectors = P.sectors
     compact = get(io, :typeinfo, nothing) === typeof(P)
     sep = compact ? ", " : " × "
-    print(io,"(")
+    print(io, "(")
     for i = 1:length(sectors)
         i == 1 || print(io, sep)
         io2 = compact ? IOContext(io, :typeinfo => typeof(sectors[i])) : io
         print(io2, sectors[i])
     end
-    print(io,")")
+    print(io, ")")
 end
 
 function Base.show(io::IO, ::Type{ProductSector{T}}) where {T<:SectorTuple}
     sectors = T.parameters
-    print(io,"(")
+    print(io, "(")
     for i = 1:length(sectors)
         i == 1 || print(io, " × ")
         print(io, sectors[i])
     end
-    print(io,")")
+    print(io, ")")
 end

@@ -102,7 +102,7 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                         Diagonal, Hermitian
 import Base.Meta
 
-const IndexTuple{N} = NTuple{N,Int}
+const IndexTuple{N} = NTuple{N, Int}
 
 # Auxiliary files
 #-----------------
@@ -113,8 +113,8 @@ include("auxiliary/random.jl")
 
 #--------------------------------------------------------------------
 # experiment with different dictionaries
-const SectorDict{K,V} = SortedVectorDict{K,V}
-const FusionTreeDict{K,V} = Dict{K,V}
+const SectorDict{K, V} = SortedVectorDict{K, V}
+const FusionTreeDict{K, V} = Dict{K, V}
 #--------------------------------------------------------------------
 
 # Exception types:
@@ -122,7 +122,7 @@ const FusionTreeDict{K,V} = Dict{K,V}
 abstract type TensorException <: Exception end
 
 # Exception type for all errors related to sector mismatch
-struct SectorMismatch{S<:Union{Nothing,String}} <: TensorException
+struct SectorMismatch{S<:Union{Nothing, String}} <: TensorException
     message::S
 end
 SectorMismatch()=SectorMismatch{Nothing}(nothing)
@@ -130,7 +130,7 @@ Base.show(io::IO, ::SectorMismatch{Nothing}) = print(io, "SectorMismatch()")
 Base.show(io::IO, e::SectorMismatch) = print(io, "SectorMismatch(", e.message, ")")
 
 # Exception type for all errors related to vector space mismatch
-struct SpaceMismatch{S<:Union{Nothing,String}} <: TensorException
+struct SpaceMismatch{S<:Union{Nothing, String}} <: TensorException
     message::S
 end
 SpaceMismatch()=SpaceMismatch{Nothing}(nothing)
@@ -138,7 +138,7 @@ Base.show(io::IO, ::SpaceMismatch{Nothing}) = print(io, "SpaceMismatch()")
 Base.show(io::IO, e::SpaceMismatch) = print(io, "SpaceMismatch(", e.message, ")")
 
 # Exception type for all errors related to invalid tensor index specification.
-struct IndexError{S<:Union{Nothing,String}} <: TensorException
+struct IndexError{S<:Union{Nothing, String}} <: TensorException
     message::S
 end
 IndexError()=IndexError{Nothing}(nothing)

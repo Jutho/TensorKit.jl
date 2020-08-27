@@ -1,7 +1,7 @@
 # FibonacciAnyons
 """
     struct FibonacciAnyon <: Sector
-    FibonacciAnyon(s::Union{Symbol,Integer})
+    FibonacciAnyon(s::Union{Symbol, Integer})
 
 Represents the Fibonacci fusion category. It can take two values, corresponding to the
 trivial sector `FibonacciAnyon(:I) == FibonacciAnyon(0)` and the non-trivial sector
@@ -44,7 +44,7 @@ Base.@pure FusionStyle(::Type{FibonacciAnyon}) = SimpleNonAbelian()
 Base.@pure BraidingStyle(::Type{FibonacciAnyon}) = Anyonic()
 Base.isreal(::Type{FibonacciAnyon}) = false
 
-⊗(a::FibonacciAnyon, b::FibonacciAnyon) = FibonacciIterator(a,b)
+⊗(a::FibonacciAnyon, b::FibonacciAnyon) = FibonacciIterator(a, b)
 
 struct FibonacciIterator
     a::FibonacciAnyon
