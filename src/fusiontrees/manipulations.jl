@@ -422,6 +422,7 @@ end
     inner2ext = N₂ === 0 ? () : (N₂ === 1 ? (one(G),) :
                         (one(G), dual(last(uncoupled)), f2.innerlines...))
     innerext = (inner1ext..., f1.coupled, reverse(inner2ext)...) # length N₁+N₂+1
+    # desigend for constant propagation to work
     f₁′ = _getrepartitionf1(uncoupled, innerext, isdual, N₁′)
     f₂′ = _getrepartitionf2(uncoupled, innerext, isdual, N₁′)
     coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
@@ -473,64 +474,6 @@ end
     vertices2 = ntuple(n->nothing, max(0, N₂′ - 1))
     return FusionTree(uncoupled2, c, isdual2, innerlines2, vertices2)
 end
-
-#     # uncoupled2 = TupleTools.getindices(map(dual,uncoupled), ntuple(n->N₁+N₂+1-n, N₂′))
-#     # isdual1 = TupleTools.getindices(isdual, ntuple(n->n, N₁′))
-#     # isdual2 = TupleTools.getindices(map(!,isdual), ntuple(n->N₁+N₂+1-n, N₂′))
-#     # innerlines1 = TupleTools.getindices(innerext, ntuple(n->n+2, max(0, N₁′ - 2)))
-#     # innerlines2 = TupleTools.getindices(innerext, ntuple(n->N₁+N₂-n, max(0, N₂′ - 2)))
-#     # c = innerext[N+1]
-#     # return uncoupled1
-#
-#     # f1′ = FusionTree{G}(uncoupled1, c, isdual1, innerlines1)
-#     # f2′ = FusionTree{G}(uncoupled2, c, isdual2, innerlines2)
-#
-#
-#
-#
-#     uncoupled1 = ntuple(n->uncoupled[n], N₁′)
-#     isdual1 = ntuple(n->isdual[n], N₁′)
-#     innerlines1 = ntuple(n->innerext[n+2], max(0, N₁′ - 2))
-#     c = innerext[N₁′+1]
-#     vertices = ntuple(n->nothing, max(0, N₁′ - 1))
-#     return uncoupled1, c, isdual1, innerlines1, vertices
-#     # f1′ = FusionTree{G}(uncoupled1, c, isdual1, innerlines1)
-# end
-
-    # coeff = sqrt(dim(one(G)))*Bsymbol(one(G), one(G), one(G))
-    # for n = N₁+1:N
-    #      # map fusion vertex c<-(a,b) to splitting vertex (c,dual(b))<-a
-    #     b = dual(uncoupled[n])
-    #     a = innerext[n+1]
-    #     c = innerext[n]
-    #     coeff *= sqrt(dim(c)/dim(a))*conj(Bsymbol(a,b,c))
-    #     if !isdual[n]
-    #         coeff *= frobeniusschur(dual(b))
-    #     end
-    # end
-    # for n = N₁:-1:N+1
-    #     # map splitting vertex (a,b)<-c to fusion vertex a<-(c,dual(b))
-    #     b = uncoupled[n]
-    #     a = innerext[n]
-    #     c = innerext[n+1]
-    #     coeff *= sqrt(dim(c)/dim(a))*Bsymbol(a,b,c)
-    #     if isdual[n]
-    #         coeff *= conj(frobeniusschur(dual(b)))
-    #     end
-    # end
-    # uncoupled1 = ntuple(n->uncoupled[n], N₁′)
-    # uncoupled2 = TupleTools.getindices(map(dual,uncoupled), ntuple(n->N₁+N₂+1-n, N₂′))
-    # isdual1 = TupleTools.getindices(isdual, ntuple(n->n, N₁′))
-    # isdual2 = TupleTools.getindices(map(!,isdual), ntuple(n->N₁+N₂+1-n, N₂′))
-    # innerlines1 = TupleTools.getindices(innerext, ntuple(n->n+2, max(0, N₁′ - 2)))
-    # innerlines2 = TupleTools.getindices(innerext, ntuple(n->N₁+N₂-n, max(0, N₂′ - 2)))
-    # c = innerext[N+1]
-    # return uncoupled1
-
-    # f1′ = FusionTree{G}(uncoupled1, c, isdual1, innerlines1)
-    # f2′ = FusionTree{G}(uncoupled2, c, isdual2, innerlines2)
-    # return SingletonDict((f1′, f2′)=>coeff)
-# end
 
 # braid double fusion tree
 const braidcache = LRU{Any,Any}(; maxsize = 10^5)
