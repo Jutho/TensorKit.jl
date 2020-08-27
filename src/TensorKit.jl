@@ -16,7 +16,7 @@ export Parity, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
 export FibonacciAnyon
 
 export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
-export ComplexSpace, CartesianSpace, GeneralSpace, RepresentationSpace, ZNSpace, Rep # concrete spaces
+export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace, ZNSpace, Rep # concrete spaces
 export Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree

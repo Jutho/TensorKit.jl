@@ -162,56 +162,56 @@ end
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 
-@testset TimedTestSet "ElementarySpace: RepresentationSpace{$G}" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
+@testset TimedTestSet "ElementarySpace: GradedSpace{$G}" for G in (ℤ₂, ℤ₃, ℤ₄, U₁, CU₁, SU₂, FibonacciAnyon, ℤ₃ × ℤ₄, U₁ × SU₂, SU₂ × SU₂, ℤ₂ × FibonacciAnyon × FibonacciAnyon)
     if Base.IteratorSize(values(G)) === Base.IsInfinite()
         set = unique(vcat(one(G), [randsector(G) for k = 1:10]))
         gen = (c=>2 for c in set)
     else
         gen = (values(G)[k]=>(k+1) for k in 1:length(values(G)))
     end
-    V = RepresentationSpace(gen)
+    V = GradedSpace(gen)
     @test eval(Meta.parse(sprint(show, V))) == V
     @test eval(Meta.parse(sprint(show, V'))) == V'
-    @test V' == RepresentationSpace(gen; dual = true)
-    @test V == @constinferred RepresentationSpace(gen...)
-    @test V' == @constinferred RepresentationSpace(gen...; dual = true)
-    @test V == @constinferred RepresentationSpace(tuple(gen...))
-    @test V' == @constinferred RepresentationSpace(tuple(gen...); dual = true)
-    @test V == @constinferred RepresentationSpace(Dict(gen))
-    @test V' == @constinferred RepresentationSpace(Dict(gen); dual = true)
-    @test V == @inferred RepresentationSpace{G}(gen)
-    @test V' == @constinferred RepresentationSpace{G}(gen; dual = true)
-    @test V == @constinferred RepresentationSpace{G}(gen...)
-    @test V' == @constinferred RepresentationSpace{G}(gen...; dual = true)
-    @test V == @constinferred RepresentationSpace{G}(Dict(gen))
-    @test V' == @constinferred RepresentationSpace{G}(Dict(gen); dual = true)
+    @test V' == GradedSpace(gen; dual = true)
+    @test V == @constinferred GradedSpace(gen...)
+    @test V' == @constinferred GradedSpace(gen...; dual = true)
+    @test V == @constinferred GradedSpace(tuple(gen...))
+    @test V' == @constinferred GradedSpace(tuple(gen...); dual = true)
+    @test V == @constinferred GradedSpace(Dict(gen))
+    @test V' == @constinferred GradedSpace(Dict(gen); dual = true)
+    @test V == @inferred GradedSpace{G}(gen)
+    @test V' == @constinferred GradedSpace{G}(gen; dual = true)
+    @test V == @constinferred GradedSpace{G}(gen...)
+    @test V' == @constinferred GradedSpace{G}(gen...; dual = true)
+    @test V == @constinferred GradedSpace{G}(Dict(gen))
+    @test V' == @constinferred GradedSpace{G}(Dict(gen); dual = true)
     @test V == @constinferred typeof(V)(c=>dim(V,c) for c in sectors(V))
     if G isa ZNIrrep
         @test V == @constinferred typeof(V)(V.dims)
         @test V' == @constinferred typeof(V)(V.dims; dual = true)
     end
     @test @constinferred(hash(V)) == hash(deepcopy(V)) != hash(V')
-    @test V == RepresentationSpace(reverse(collect(gen))...)
+    @test V == GradedSpace(reverse(collect(gen))...)
     @test eval(Meta.parse(sprint(show, V))) == V
     @test eval(Meta.parse(sprint(show, typeof(V)))) == typeof(V)
     # space with no sectors
     @test dim(@constinferred(typeof(V)())) == 0
     # space with a single sector
     W = @constinferred ℂ[one(G)=>1]
-    @test W == RepresentationSpace(one(G)=>1, randsector(G) => 0)
+    @test W == GradedSpace(one(G)=>1, randsector(G) => 0)
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     # randsector never returns trivial sector, so this cannot error
-    @test_throws ArgumentError RepresentationSpace(one(G)=>1, randsector(G) => 0, one(G)=>3)
+    @test_throws ArgumentError GradedSpace(one(G)=>1, randsector(G) => 0, one(G)=>3)
     @test eval(Meta.parse(sprint(show, W))) == W
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
     @test isa(V, InnerProductSpace)
     @test isa(V, EuclideanSpace)
-    @test isa(V, RepresentationSpace)
-    @test isa(V, RepresentationSpace{G})
+    @test isa(V, GradedSpace)
+    @test isa(V, GradedSpace{G})
     @test isa(V, Base.IteratorSize(values(G)) == Base.IsInfinite() ?
-                    TensorKit.GenericRepresentationSpace{G} :
-                    TensorKit.FiniteRepresentationSpace{G})
+                    TensorKit.GenericGradedSpace{G} :
+                    TensorKit.FiniteGradedSpace{G})
     @test @constinferred(dual(V)) == @constinferred(conj(V)) == @constinferred(adjoint(V)) != V
     @test @constinferred(field(V)) == ℂ
     @test @constinferred(sectortype(V)) == G
@@ -222,10 +222,10 @@ end
     if hasfusiontensor(G)
         @test @constinferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     end
-    @test @constinferred(⊕(V,V)) == RepresentationSpace{G}(c=>2dim(V,c) for c in sectors(V))
-    @test @constinferred(⊕(V,V,V,V)) == RepresentationSpace{G}(c=>4dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V)) == GradedSpace{G}(c=>2dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V,V,V)) == GradedSpace{G}(c=>4dim(V,c) for c in sectors(V))
     @test @constinferred(⊕(V,oneunit(V))) ==
-            RepresentationSpace{G}(c=>isone(c)+dim(V,c) for c in sectors(V))
+            GradedSpace{G}(c=>isone(c)+dim(V,c) for c in sectors(V))
     @test @constinferred(fuse(V,oneunit(V))) == V
     d = Dict{G,Int}()
     for a in sectors(V), b in sectors(V)
@@ -233,9 +233,9 @@ end
             d[c] = get(d, c, 0) + dim(V, a)*dim(V, b)*Nsymbol(a,b,c)
         end
     end
-    @test @constinferred(fuse(V,V)) == RepresentationSpace(d)
+    @test @constinferred(fuse(V,V)) == GradedSpace(d)
     @test @constinferred(flip(V)) ==
-            RepresentationSpace{G}(conj(c)=>dim(V,c) for c in sectors(V))'
+            GradedSpace{G}(conj(c)=>dim(V,c) for c in sectors(V))'
     @test flip(V) ≅ V
     @test flip(V) ≾ V
     @test flip(V) ≿ V
@@ -243,7 +243,7 @@ end
     @test V == @constinferred infimum(V, ⊕(V, V))
     @test V ≺ ⊕(V,V)
     @test !(V ≻ ⊕(V,V))
-    @test infimum(V, RepresentationSpace(one(G)=>3)) == RepresentationSpace(one(G)=>2)
+    @test infimum(V, GradedSpace(one(G)=>3)) == GradedSpace(one(G)=>2)
     @test_throws SpaceMismatch (⊕(V, V'))
 end
 
