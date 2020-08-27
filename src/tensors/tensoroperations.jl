@@ -58,45 +58,65 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁
             throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(t)) ← $(domain(t))"))
     end
 
+    _add_kernel!(α, tsrc, β, tdst, p1, p2, levels)
+
+    return tdst
+end
+
+@generated function _add_kernel!(α, tsrc::AbstractTensorMap{S},
+                                    β, tdst::AbstractTensorMap{S},
+                                    p1::IndexTuple, p2::IndexTuple,
+                                    levels::IndexTuple) where {S}
     G = sectortype(S)
     if G === Trivial
-        cod = codomain(tsrc)
-        dom = domain(tsrc)
-        n = length(cod)
-        pdata = (p1..., p2...)
-        axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
+        return quote
+            cod = codomain(tsrc)
+            dom = domain(tsrc)
+            n = length(cod)
+            pdata = (p1..., p2...)
+            axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
+        end
     elseif FusionStyle(G) isa Abelian && BraidingStyle(G) isa SymmetricBraiding
-        if Threads.nthreads() > 1
-            nstridedthreads = Strided.get_num_threads()
-            Strided.set_num_threads(1)
-            Threads.@sync for (f1,f2) in fusiontrees(tsrc)
-                Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
-            end
-            Strided.set_num_threads(nstridedthreads)
-        else # debugging is easier this way
-            for (f1,f2) in fusiontrees(tsrc)
-                _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
-            end
+        return quote
+            _add_abelian_kernel!(α, tsrc, β, tdst, p1, p2)
         end
     else
-        cod = codomain(tsrc)
-        dom = domain(tsrc)
-        n = length(cod)
-        pdata = (p1...,p2...)
-        if iszero(β)
-            fill!(tdst, β)
-        elseif β != 1
-            mul!(tdst, β, tdst)
-        end
-        levels1 = TupleTools.getindices(levels, codomainind(tsrc))
-        levels2 = TupleTools.getindices(levels, domainind(tsrc))
-        for (f1,f2) in fusiontrees(tsrc)
-            for ((f1′,f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
-                @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
+        return quote
+            cod = codomain(tsrc)
+            dom = domain(tsrc)
+            n = length(cod)
+            pdata = (p1...,p2...)
+            if iszero(β)
+                fill!(tdst, β)
+            elseif β != 1
+                mul!(tdst, β, tdst)
+            end
+            levels1 = TupleTools.getindices(levels, codomainind(tsrc))
+            levels2 = TupleTools.getindices(levels, domainind(tsrc))
+            for (f1,f2) in fusiontrees(tsrc)
+                for ((f1′,f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
+                    @inbounds axpy!(α*coeff, permutedims(tsrc[f1,f2], pdata), tdst[f1′,f2′])
+                end
             end
         end
     end
-    return tdst
+end
+
+function _add_abelian_kernel!(α, tsrc::AbstractTensorMap,
+                            β, tdst::AbstractTensorMap,
+                            p1::IndexTuple, p2::IndexTuple)
+    if Threads.nthreads() > 1
+        nstridedthreads = Strided.get_num_threads()
+        Strided.set_num_threads(1)
+        Threads.@sync for (f1,f2) in fusiontrees(tsrc)
+            Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+        end
+        Strided.set_num_threads(nstridedthreads)
+    else # debugging is easier this way
+        for (f1,f2) in fusiontrees(tsrc)
+            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+        end
+    end
 end
 
 function _addabelianblock!(α, tsrc::AbstractTensorMap,
