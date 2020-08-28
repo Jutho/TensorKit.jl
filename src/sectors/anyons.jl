@@ -3,8 +3,9 @@
     struct FibonacciAnyon <: Sector
     FibonacciAnyon(s::Union{Symbol, Integer})
 
-Represents the Fibonacci fusion category. It can take two values, corresponding to the
-trivial sector `FibonacciAnyon(:I) == FibonacciAnyon(0)` and the non-trivial sector
+Represents the anyons (isomorphism classes of simple objects) of the Fibonacci fusion
+category. It can take two values, corresponding to the trivial sector
+`FibonacciAnyon(:I) == FibonacciAnyon(0)` and the non-trivial sector
 `FibonacciAnyon(:τ) = FibonacciAnyon(1)` with fusion rules ``τ ⊗ τ = 1 ⊕ τ``.
 """
 struct FibonacciAnyon <: Sector
@@ -33,7 +34,6 @@ end
 findindex(::SectorValues{FibonacciAnyon}, s::FibonacciAnyon) = 2 - s.isone
 
 Base.convert(::Type{FibonacciAnyon}, s::Symbol) = FibonacciAnyon(s)
-Base.convert(::Type{Symbol}, a::FibonacciAnyon) = a.s ? (:I) : (:τ)
 Base.one(::Type{FibonacciAnyon}) = FibonacciAnyon(:I)
 Base.conj(s::FibonacciAnyon) = s
 

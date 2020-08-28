@@ -1,9 +1,5 @@
 # Index manipulations
 #---------------------
-Base.@deprecate(
-    permuteind(t::TensorMap, p1::IndexTuple, p2::IndexTuple=(); copy::Bool = false),
-    permute(t, p1, p2; copy = copy))
-
 """
     permute(tsrc::AbstractTensorMap{S}, p1::NTuple{N₁, Int}, p2::NTuple{N₂, Int} = ())
         -> tdst::TensorMap{S, N₁, N₂}
