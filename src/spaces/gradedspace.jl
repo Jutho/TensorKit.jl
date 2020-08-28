@@ -147,21 +147,21 @@ ZNSpace{N}(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims
 ZNSpace(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
 ZNSpace(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
 
-const ParitySpace = ZNSpace{2}
-const ℤ₂Space = ZNSpace{2}
-const ℤ₃Space = ZNSpace{3}
-const ℤ₄Space = ZNSpace{4}
-const U₁Space = GenericGradedSpace{U₁}
-const CU₁Space = GenericGradedSpace{CU₁}
-const SU₂Space = GenericGradedSpace{SU₂}
-
-# non-Unicode alternatives
-const Z2Space = ℤ₂Space
-const Z3Space = ℤ₃Space
-const Z4Space = ℤ₄Space
-const U1Space = U₁Space
-const CU1Space = CU₁Space
-const SU2Space = SU₂Space
+# const ParitySpace = ZNSpace{2}
+# const ℤ₂Space = ZNSpace{2}
+# const ℤ₃Space = ZNSpace{3}
+# const ℤ₄Space = ZNSpace{4}
+# const U₁Space = GenericGradedSpace{U₁}
+# const CU₁Space = GenericGradedSpace{CU₁}
+# const SU₂Space = GenericGradedSpace{SU₂}
+#
+# # non-Unicode alternatives
+# const Z2Space = ℤ₂Space
+# const Z3Space = ℤ₃Space
+# const Z4Space = ℤ₄Space
+# const U1Space = U₁Space
+# const CU1Space = CU₁Space
+# const SU2Space = SU₂Space
 
 Base.oneunit(::Type{<:GradedSpace{I}}) where {I<:Sector} =
     GradedSpace{I}(one(I)=>1)
@@ -216,29 +216,29 @@ function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I}
         throw(SpaceMismatch("Supremum of space and dual space does not exist"))
     end
 end
-
-Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
-Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
-Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
-Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
-Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
-Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
-
-function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
-    show(io, typeof(V))
-    print(io, "(")
-    seperator = ""
-    comma = ", "
-    io2 = IOContext(io, :typeinfo => I)
-    for c in sectors(V)
-        if isdual(V)
-            print(io2, seperator, dual(c), "=>", dim(V, c))
-        else
-            print(io2, seperator, c, "=>", dim(V, c))
-        end
-        seperator = comma
-    end
-    print(io, ")")
-    V.dual && print(io, "'")
-    return nothing
-end
+#
+# Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
+# Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
+# Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
+# Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
+# Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
+# Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
+#
+# function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
+#     show(io, typeof(V))
+#     print(io, "(")
+#     seperator = ""
+#     comma = ", "
+#     io2 = IOContext(io, :typeinfo => I)
+#     for c in sectors(V)
+#         if isdual(V)
+#             print(io2, seperator, dual(c), "=>", dim(V, c))
+#         else
+#             print(io2, seperator, c, "=>", dim(V, c))
+#         end
+#         seperator = comma
+#     end
+#     print(io, ")")
+#     V.dual && print(io, "'")
+#     return nothing
+# end
