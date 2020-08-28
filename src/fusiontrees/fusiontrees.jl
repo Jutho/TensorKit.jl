@@ -111,10 +111,6 @@ Base.@pure function fusiontreetype(::Type{I}, N::Int) where {I<:Sector}
     end
 end
 
-# TODO: remove in following version
-Base.@deprecate(fusiontreetype(::Type{I}, ::StaticLength{N}) where {I<:Sector, N},
-    fusiontreetype(I, N))
-
 # converting to actual array
 function Base.convert(::Type{Array}, f::FusionTree{I, 0}) where {I}
     T = eltype(fusiontensor(one(I), one(I), one(I)))

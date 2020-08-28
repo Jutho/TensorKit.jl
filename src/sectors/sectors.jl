@@ -373,6 +373,7 @@ function Base.iterate(s::SectorSet{I}, args...) where {I<:Sector}
 end
 
 # possible sectors
+include("groups.jl")
 include("irreps.jl") # irreps of symmetry groups, with bosonic braiding
 # include("fermions.jl") # irreps with defined fermionparity and fermionic braiding
 include("anyons.jl") # non-group sectors

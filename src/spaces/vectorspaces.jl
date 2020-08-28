@@ -210,11 +210,6 @@ isomorphism classes of simple objects of a unitary and pivotal (pre-)fusion cate
 """
 abstract type GradedSpace{I<:Sector} <: EuclideanSpace{ℂ} end
 
-# TODO: deprecate
-abstract type RepresentationSpace{I<:Sector} end
-Base.@deprecate(RepresentationSpace(args...), GradedSpace(args...))
-Base.@deprecate(RepresentationSpace{I}(args...) where {I}, GradedSpace{I}(args...))
-
 """
     sectortype(a) -> Type{<:Sector}
 
@@ -374,8 +369,6 @@ have the same value.
 infimum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     infimum(infimum(V1, V2), V3...)
 
-Base.@deprecate(infinum(V1, V2...), infimum(V1, V2...))
-
 """
     supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
 
@@ -388,5 +381,3 @@ supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
     supremum(supremum(V1, V2), V3...)
 
 import Base: min, max
-Base.@deprecate min(V1::ElementarySpace, V2::ElementarySpace) infimum(V1, V2)
-Base.@deprecate max(V1::ElementarySpace, V2::ElementarySpace) supremum(V1, V2)
