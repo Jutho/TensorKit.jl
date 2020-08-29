@@ -1,4 +1,4 @@
-# Direct product of different sectors
+# Deligne tensor product of different sectors: ⊠
 #==============================================================================#
 const SectorTuple = Tuple{Vararg{Sector}}
 
@@ -39,7 +39,7 @@ Base.convert(::Type{ProductSector{T}}, t::Tuple) where {T<:SectorTuple} =
 
 Base.one(::Type{ProductSector{T}}) where {I<:Sector, T<:Tuple{I}} = ProductSector((one(I),))
 Base.one(::Type{ProductSector{T}}) where {I<:Sector, T<:Tuple{I, Vararg{Sector}}} =
-    one(I) × one(ProductSector{Base.tuple_type_tail(T)})
+    one(I) ⊠ one(ProductSector{Base.tuple_type_tail(T)})
 
 Base.conj(p::ProductSector) = ProductSector(map(conj, p.sectors))
 function ⊗(p1::P, p2::P) where {P<:ProductSector}
@@ -114,31 +114,31 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
 
 # Default construction from tensor product of sectors
 #-----------------------------------------------------
-×(S1, S2, S3, S4...) = ×(×(S1, S2), S3, S4...)
+⊠(S1, S2, S3, S4...) = ⊠(⊠(S1, S2), S3, S4...)
 
-×(S1::Sector, S2::Sector) = ProductSector((S1, S2))
-×(P1::ProductSector, S2::Sector) = ProductSector(tuple(P1.sectors..., S2))
-×(S1::Sector, P2::ProductSector) = ProductSector(tuple(S1, P2.sectors...))
-×(P1::ProductSector, P2::ProductSector) =
+⊠(S1::Sector, S2::Sector) = ProductSector((S1, S2))
+⊠(P1::ProductSector, S2::Sector) = ProductSector(tuple(P1.sectors..., S2))
+⊠(S1::Sector, P2::ProductSector) = ProductSector(tuple(S1, P2.sectors...))
+⊠(P1::ProductSector, P2::ProductSector) =
     ProductSector(tuple(P1.sectors..., P2.sectors...))
 
-×(I1::Type{ProductSector{Tuple{}}},
+⊠(I1::Type{ProductSector{Tuple{}}},
                     I2::Type{ProductSector{T}}) where {T<:SectorTuple} = I2
-×(I1::Type{ProductSector{T1}},
+⊠(I1::Type{ProductSector{T1}},
                     I2::Type{ProductSector{T2}}) where {T1<:SectorTuple, T2<:SectorTuple} =
-    tuple_type_head(T1) × (ProductSector{tuple_type_tail(T1)} × I2)
-×(I1::Type{ProductSector{Tuple{}}}, I2::Type{<:Sector}) =
+    tuple_type_head(T1) ⊠ (ProductSector{tuple_type_tail(T1)} ⊠ I2)
+⊠(I1::Type{ProductSector{Tuple{}}}, I2::Type{<:Sector}) =
     ProductSector{Tuple{I2}}
-×(I1::Type{ProductSector{T}}, I2::Type{<:Sector}) where {T<:SectorTuple} =
-    Base.tuple_type_head(T) × (ProductSector{Base.tuple_type_tail(T)} × I2)
-×(I1::Type{<:Sector}, I2::Type{ProductSector{T}}) where {T<:SectorTuple} =
+⊠(I1::Type{ProductSector{T}}, I2::Type{<:Sector}) where {T<:SectorTuple} =
+    Base.tuple_type_head(T) ⊠ (ProductSector{Base.tuple_type_tail(T)} ⊠ I2)
+⊠(I1::Type{<:Sector}, I2::Type{ProductSector{T}}) where {T<:SectorTuple} =
     ProductSector{Base.tuple_type_cons(I1, T)}
-×(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1, I2}}
+⊠(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1, I2}}
 
 function Base.show(io::IO, P::ProductSector)
     sectors = P.sectors
     compact = get(io, :typeinfo, nothing) === typeof(P)
-    sep = compact ? ", " : " × "
+    sep = compact ? ", " : " ⊠ "
     print(io, "(")
     for i = 1:length(sectors)
         i == 1 || print(io, sep)
@@ -152,8 +152,30 @@ function Base.show(io::IO, ::Type{ProductSector{T}}) where {T<:SectorTuple}
     sectors = T.parameters
     print(io, "(")
     for i = 1:length(sectors)
-        i == 1 || print(io, " × ")
+        i == 1 || print(io, " ⊠ ")
         print(io, sectors[i])
     end
     print(io, ")")
+end
+
+# TODO: Do we want custom printing for product of Irreps
+# function Base.show(io::IO, ::Type{ProductSector{T}}) where {T<:Tuple{Vararg{Irrep}}}
+#     sectors = T.parameters
+#     print(io, "Irrep[")
+#     for i = 1:length(sectors)
+#         i == 1 || print(io, " × ")
+#         print(io, supertype(sectors[i]).parameters[1])
+#     end
+#     print(io, "]")
+# end
+
+Base.@pure function Base.getindex(::Type{Irrep},
+                                    ::Type{ProductGroup{Gs}}) where {Gs<:GroupTuple}
+    G1 = tuple_type_head(Gs)
+    Grem = tuple_type_tail(Gs)
+    ProductSector{Tuple{Irrep[G1]}} ⊠ Irrep[ProductGroup{tuple_type_tail(Gs)}]
+end
+Base.@pure function Base.getindex(::Type{Irrep},
+                                    ::Type{ProductGroup{Tuple{G}}}) where {G<:Group}
+    ProductSector{Tuple{Irrep[G]}}
 end

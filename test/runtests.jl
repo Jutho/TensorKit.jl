@@ -21,33 +21,37 @@ const TK = TensorKit
 
 Random.seed!(1234)
 
-smallset(::Type{G}) where {G<:Sector} = take(values(G), 5)
-function smallset(::Type{ProductSector{Tuple{G1,G2}}}) where {G1,G2}
-    iter = product(smallset(G1),smallset(G2))
-    s = collect(i × j for (i,j) in iter if dim(i)*dim(j) <= 6)
+smallset(::Type{I}) where {I<:Sector} = take(values(I), 5)
+function smallset(::Type{ProductSector{Tuple{I1,I2}}}) where {I1,I2}
+    iter = product(smallset(I1),smallset(I2))
+    s = collect(i ⊠ j for (i,j) in iter if dim(i)*dim(j) <= 6)
     return length(s) > 6 ? rand(s, 6) : s
 end
-function smallset(::Type{ProductSector{Tuple{G1,G2,G3}}}) where {G1,G2,G3}
-    iter = product(smallset(G1),smallset(G2),smallset(G3))
-    s = collect(i × j × k for (i,j,k) in iter if dim(i)*dim(j)*dim(k) <= 6)
+function smallset(::Type{ProductSector{Tuple{I1,I2,I3}}}) where {I1,I2,I3}
+    iter = product(smallset(I1),smallset(I2),smallset(I3))
+    s = collect(i ⊠ j ⊠ k for (i,j,k) in iter if dim(i)*dim(j)*dim(k) <= 6)
     return length(s) > 6 ? rand(s, 6) : s
 end
-function randsector(::Type{G}) where {G<:Sector}
-    s = collect(smallset(G))
+function randsector(::Type{I}) where {I<:Sector}
+    s = collect(smallset(I))
     a = rand(s)
     while a == one(a) # don't use trivial label
         a = rand(s)
     end
     return a
 end
-function hasfusiontensor(G::Type{<:Sector})
+function hasfusiontensor(I::Type{<:Sector})
     try
-        fusiontensor(one(G), one(G), one(G))
+        fusiontensor(one(I), one(I), one(I))
         return true
     catch
         return false
     end
 end
+
+sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, FibonacciAnyon,
+            Z3Irrep ⊠ Z4Irrep, U1Irrep ⊠ SU2Irrep, SU2Irrep ⊠ SU2Irrep,
+            Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()
 include("sectors.jl")
