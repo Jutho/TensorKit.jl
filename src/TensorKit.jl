@@ -11,7 +11,7 @@ module TensorKit
 export Sector, Irrep, FusionStyle, BraidingStyle
 export Abelian, NonAbelian, SimpleNonAbelian, DegenerateNonAbelian,
         SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
-export Parity, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
+export Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
         #FermionParity, FermionNumber, FermionSpin # specific sectors
 export FibonacciAnyon
 
