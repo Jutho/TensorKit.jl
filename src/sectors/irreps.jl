@@ -9,11 +9,14 @@ Abstract supertype for sectors which corresponds to irreps (irreducible represen
 a group `G`. As we assume unitary representations, these would be finite groups or compact
 Lie groups. Note that this could also include projective rather than linear representations.
 
+Actual concrete implementations of those irreps can be obtained as `Irrep[G]`, or via their
+actual name, which generically takes the form `(asciiG)Irrep`, i.e. the ASCII spelling of
+the group name followed by `Irrep`.
+
 All irreps have [`BraidingStyle`](@ref) equal to `Bosonic()` and thus trivial twists.
 """
 abstract type Irrep{G<:Group} <: Sector end # irreps have integer quantum dimensions
 Base.@pure BraidingStyle(::Type{<:Irrep}) = Bosonic()
-Base.show(io::IO, ::Type{<:Irrep{G}}) where {G<:Group} = print(io, "Irrep{", G, "}")
 
 const AbelianIrrep{G} = Irrep{G} where {G<:AbelianGroup}
 Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
@@ -31,8 +34,8 @@ fusiontensor(a::I, b::I, c::I, v::Nothing = nothing) where {I<:AbelianIrrep} =
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 64?
 """
-    Irrep{ℤ{N}}(n::Integer)
     ZNIrrep{N}(n::Integer)
+    Irrep[ℤ{N}](n::Integer)
 
 Represents irreps of the group ``ℤ_N`` for some value of `N<64`. (We need 2*(N-1) <= 127
 in order for a ⊗ b to work correctly.) For `N` equals `2`, `3` or `4`, `ℤ{N}` can be
@@ -47,10 +50,17 @@ struct ZNIrrep{N} <: Irrep{ℤ{N}}
         new{N}(mod(n, N))
     end
 end
-Irrep{ℤ{N}}(n) where N = ZNIrrep{N}(n)
-const Z2Irrep = Irrep{ℤ₂}
-const Z3Irrep = Irrep{ℤ₃}
-const Z4Irrep = Irrep{ℤ₄}
+const Z2Irrep = ZNIrrep{2}
+const Z3Irrep = ZNIrrep{3}
+const Z4Irrep = ZNIrrep{4}
+
+Base.convert(Z::Type{<:ZNIrrep}, n::Real) = Z(n)
+
+Base.getindex(::Type{Irrep}, ::Type{ℤ{N}}) where {N} = ZNIrrep{N}
+
+Base.one(::Type{ZNIrrep{N}}) where {N} =ZNIrrep{N}(0)
+Base.conj(c::ZNIrrep{N}) where {N} = ZNIrrep{N}(-c.n)
+⊗(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = (ZNIrrep{N}(c1.n+c2.n),)
 
 Base.IteratorSize(::Type{SectorValues{ZNIrrep{N}}}) where N = HasLength()
 Base.length(::SectorValues{ZNIrrep{N}}) where N = N
@@ -60,24 +70,18 @@ Base.getindex(::SectorValues{ZNIrrep{N}}, i::Int) where N =
     1 <= i <= N ? ZNIrrep{N}(i-1) : throw(BoundsError(values(ZNIrrep{N}), i))
 findindex(::SectorValues{ZNIrrep{N}}, c::ZNIrrep{N}) where N = c.n + 1
 
-Base.one(::Type{ZNIrrep{N}}) where {N} =ZNIrrep{N}(0)
-Base.conj(c::ZNIrrep{N}) where {N} = ZNIrrep{N}(-c.n)
-⊗(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = (ZNIrrep{N}(c1.n+c2.n),)
-
-ZNIrrep{N}(n::Real) where {N} = convert(ZNIrrep{N}, n)
-Base.convert(Z::Type{<:ZNIrrep}, n::Real) = Z(convert(Int, n))
-
 Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
 Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
 
+Base.show(io::IO, ::Type{ZNIrrep{N}}) where {N} = print(io, "Irrep[", ℤ{N}, "]")
 Base.show(io::IO, c::ZNIrrep{N}) where {N} =
-    get(io, :typeinfo, nothing) === ZNIrrep{N} ?
+    get(io, :typeinfo, nothing) === typeof(c) ?
             print(io, c.n) : print(io, typeof(c), "(", c.n, ")")
 
 # U1Irrep: irreps of U1 are labelled by integers
 """
     U1Irrep(j::Real)
-    Irrep{U₁}(j::Real)
+    Irrep[U₁](j::Real)
 
 Represents irreps of the group ``U₁```. The irrep is labelled by a charge, which should be
 an integer for a linear representation. However, it is often useful to allow half integers
@@ -88,7 +92,13 @@ entered as arbitrary `Real`. The sequence of the charges is: 0, 1/2, -1/2, 1, -1
 struct U1Irrep <: Irrep{U₁}
     charge::HalfInt
 end
-Irrep{U₁}(c) where N = U1Irrep(c)
+Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(c)
+
+Base.getindex(::Type{Irrep}, ::Type{U₁}) = U1Irrep
+
+Base.one(::Type{U1Irrep}) = U1Irrep(0)
+Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
+⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
 
 Base.IteratorSize(::Type{SectorValues{U1Irrep}}) = IsInfinite()
 Base.iterate(::SectorValues{U1Irrep}, i = 0) =
@@ -99,18 +109,13 @@ function Base.getindex(::SectorValues{U1Irrep}, i::Int)
 end
 findindex(::SectorValues{U1Irrep}, c::U1Irrep) = (n = twice(c.charge); 2*abs(n)+(n<=0))
 
-Base.one(::Type{U1Irrep}) = U1Irrep(0)
-Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
-⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
-
-Base.convert(::Type{U1Irrep}, c::Real) = U1Irrep(c)
-
 Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
 @inline Base.isless(c1::U1Irrep, c2::U1Irrep) =
     isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
 
-Base.show(io::IO, c::Irrep{U₁}) =
-    get(io, :typeinfo, nothing) <: Irrep{U₁} ? print(io, c.charge) :
+Base.show(io::IO, ::Type{U1Irrep}) = print(io, "Irrep[", U₁, "]")
+Base.show(io::IO, c::U1Irrep) =
+    get(io, :typeinfo, nothing) === typeof(c) ? print(io, c.charge) :
         print(io, typeof(c), "(", c.charge, ")")
 
 # Non-abelian groups
@@ -122,7 +127,7 @@ Base.show(io::IO, ::SU2IrrepException) =
 
 """
     SU2Irrep(j::Real)
-    Irrep{SU₂}(j::Real)
+    Irrep[SU₂](j::Real)
 
 Represents irreps of the group ``SU₂``. The irrep is labelled by a half integer `j` which
 can be entered as an abitrary `Real`, but is stored as a `HalfInt` from the HalfIntegers.jl
@@ -135,21 +140,20 @@ struct SU2Irrep <: Irrep{SU{2}}
         new(j)
     end
 end
-Irrep{SU₂}(j) = SU2Irrep(j)
+Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(j)
 
-Base.IteratorSize(::Type{SectorValues{SU2Irrep}}) = IsInfinite()
-Base.iterate(::SectorValues{SU2Irrep}, i = 0) = (SU2Irrep(half(i)), i+1)
-Base.getindex(::SectorValues{SU2Irrep}, i::Int) =
-    1 <= i ? SU2Irrep(half(i-1)) : throw(BoundsError(values(SU2Irrep), i))
-findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j)+1
+Base.getindex(::Type{Irrep}, ::Type{SU₂}) = SU2Irrep
 
 const _su2one = SU2Irrep(zero(HalfInt))
 Base.one(::Type{SU2Irrep}) = _su2one
 Base.conj(s::SU2Irrep) = s
 ⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
 
-# SU2Irrep(j::Real) = convert(SU2Irrep, j)
-Base.convert(::Type{SU2Irrep}, j::Real) = SU2Irrep(j)
+Base.IteratorSize(::Type{SectorValues{SU2Irrep}}) = IsInfinite()
+Base.iterate(::SectorValues{SU2Irrep}, i = 0) = (SU2Irrep(half(i)), i+1)
+Base.getindex(::SectorValues{SU2Irrep}, i::Int) =
+    1 <= i ? SU2Irrep(half(i-1)) : throw(BoundsError(values(SU2Irrep), i))
+findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j)+1
 
 dim(s::SU2Irrep) = twice(s.j)+1
 
@@ -181,8 +185,9 @@ function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Nothing = nothin
     return C
 end
 
+Base.show(io::IO, ::Type{SU2Irrep}) = print(io, "Irrep[", SU₂, "]")
 Base.show(io::IO, s::SU2Irrep) =
-    get(io, :typeinfo, nothing) === SU2Irrep ? print(io, s.j) :
+    get(io, :typeinfo, nothing) === typeof(s) ? print(io, s.j) :
         print(io, typeof(s), "(", s.j, ")")
 
 Base.hash(s::SU2Irrep, h::UInt) = hash(s.j, h)
@@ -191,7 +196,7 @@ Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 # U₁ ⋊ C (U₁ and charge conjugation)
 """
     CU1Irrep(j, s = ifelse(j>zero(j), 2, 0))
-    Irrep{CU₁}(j, s = ifelse(j>zero(j), 2, 0))
+    Irrep[CU₁](j, s = ifelse(j>zero(j), 2, 0))
 
 Represents irreps of the group ``U₁ ⋊ C`` (``U₁`` and charge conjugation or reflection),
 which is also known as just `O₂`. The irrep is labelled by a positive half integer `j` (the
@@ -207,7 +212,7 @@ struct CU1Irrep <: Irrep{CU₁}
     # if j == 0, s = 0 (trivial) or s = 1 (non-trivial),
     # else s = 2 (two-dimensional representation)
     # Let constructor take the actual half integer value j
-    function CU1Irrep(j::Real, s::Int = ifelse(j>zero(j), 2, 0))
+    function CU1Irrep(j::Real, s::Integer = ifelse(j>zero(j), 2, 0))
         if ((j > zero(j) && s == 2) || (j == zero(j) && (s == 0 || s == 1)))
             new(j, s)
         else
@@ -215,7 +220,9 @@ struct CU1Irrep <: Irrep{CU₁}
         end
     end
 end
-Irrep{CU₁}(j, s = ifelse(j>zero(j), 2, 0)) = CU1Irrep(j, s)
+Base.convert(::Type{CU1Irrep}, (j, s)::Tuple{Real,Integer}) = CU1Irrep(j, s)
+
+Base.getindex(::Type{Irrep}, ::Type{CU₁}) = CU1Irrep
 
 Base.IteratorSize(::Type{SectorValues{CU1Irrep}}) = IsInfinite()
 function Base.iterate(::SectorValues{CU1Irrep}, state = (0, 0))
@@ -425,15 +432,16 @@ function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, ::Nothing = nothing
 end
 frobeniusschur(::CU1Irrep) = 1
 
+Base.show(io::IO, ::Type{CU1Irrep}) = print(io, "Irrep[", CU₁, "]")
 function Base.show(io::IO, c::CU1Irrep)
     if c.s == 1
-        if get(io, :typeinfo, nothing) === CU1Irrep
+        if get(io, :typeinfo, nothing) === typeof(c)
             print(io, "(", c.j, ", ", c.s, ")")
         else
             print(io, typeof(c), "(", c.j, ", ", c.s, ")")
         end
     else
-        if get(io, :typeinfo, nothing) === CU1Irrep
+        if get(io, :typeinfo, nothing) === typeof(c)
             print(io, "(", c.j, ")")
         else
             print(io, typeof(c), "(", c.j, ")")
