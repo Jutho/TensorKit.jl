@@ -72,13 +72,10 @@ function FiniteGradedSpace{I, N}(dims; dual::Bool = false) where {I<:Sector, N}
     FiniteGradedSpace{I}(dims; dual = dual)
 end
 
-# Never write GenericGradedSpace, just use GradedSpace
-function GradedSpace{I}(args...; dual::Bool = false) where {I<:Sector}
-    if Base.IteratorSize(values(I)) === IsInfinite()
-        GenericGradedSpace{I}(args...; dual = dual)
-    else
-        FiniteGradedSpace{I}(args...; dual = dual)
-    end
+# TODO: do we also want to support this interface
+function GradedSpace{I}(args...; kwargs...) where {I<:Sector}
+    @warn "Preferred interface is `GradedSpace[$I](args...; kwargs...)`." maxlog=1
+    GradedSpace[I](args..., kwargs...)
 end
 GradedSpace(dims::Tuple{Vararg{Pair{I, Int}}};
                         dual::Bool = false) where {I<:Sector} =
