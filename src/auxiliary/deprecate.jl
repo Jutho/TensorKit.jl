@@ -9,6 +9,8 @@ abstract type RepresentationSpace{I<:Sector} end
 Base.@deprecate(RepresentationSpace(args...), GradedSpace(args...))
 Base.@deprecate(RepresentationSpace{I}(args...) where {I}, GradedSpace{I}(args...))
 
+Base.@deprecate(×(a::Sector, b::Sector), ⊠(a,b))
+
 Base.@deprecate(
     permuteind(t::TensorMap, p1::IndexTuple, p2::IndexTuple=(); copy::Bool = false),
     permute(t, p1, p2; copy = copy))
