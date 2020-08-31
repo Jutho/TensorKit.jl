@@ -116,8 +116,13 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
 #-----------------------------------------------------
 ⊠(S1, S2, S3, S4...) = ⊠(⊠(S1, S2), S3, S4...)
 
+⊠(S1::Trivial, S2::Trivial) = S1
+⊠(S1::Sector, S2::Trivial) = S1
+⊠(S1::Trivial, S2::Sector) = S2
 ⊠(S1::Sector, S2::Sector) = ProductSector((S1, S2))
+⊠(P1::ProductSector, S2::Trivial) = P1
 ⊠(P1::ProductSector, S2::Sector) = ProductSector(tuple(P1.sectors..., S2))
+⊠(S1::Trivial, P2::ProductSector) = P2
 ⊠(S1::Sector, P2::ProductSector) = ProductSector(tuple(S1, P2.sectors...))
 ⊠(P1::ProductSector, P2::ProductSector) =
     ProductSector(tuple(P1.sectors..., P2.sectors...))
@@ -129,10 +134,16 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
     tuple_type_head(T1) ⊠ (ProductSector{tuple_type_tail(T1)} ⊠ I2)
 ⊠(I1::Type{ProductSector{Tuple{}}}, I2::Type{<:Sector}) =
     ProductSector{Tuple{I2}}
+⊠(I1::Type{<:ProductSector}, I2::Type{Trivial}) = I1
 ⊠(I1::Type{ProductSector{T}}, I2::Type{<:Sector}) where {T<:SectorTuple} =
     Base.tuple_type_head(T) ⊠ (ProductSector{Base.tuple_type_tail(T)} ⊠ I2)
+⊠(I1::Type{Trivial}, I2::Type{<:ProductSector}) = I2
 ⊠(I1::Type{<:Sector}, I2::Type{ProductSector{T}}) where {T<:SectorTuple} =
     ProductSector{Base.tuple_type_cons(I1, T)}
+
+⊠(I1::Type{Trivial}, I2::Type{Trivial}) = Trivial
+⊠(I1::Type{Trivial}, I2::Type{<:Sector}) = I2
+⊠(I1::Type{<:Sector}, I2::Type{<:Trivial}) = I1
 ⊠(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1, I2}}
 
 function Base.show(io::IO, P::ProductSector)
