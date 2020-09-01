@@ -67,6 +67,13 @@ end
 Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
 Base.show(io::IO, ::Type{Trivial}) = print(io, "Trivial")
 
+Base.IteratorSize(::Type{SectorValues{Trivial}}) = HasLength()
+Base.length(::SectorValues{Trivial}) = 1
+Base.iterate(::SectorValues{Trivial}, done = false) = return i ? nothing : (Trivial(), true)
+Base.getindex(::SectorValues{Trivial}, i::Int) = i == 1 ? Trivial() :
+    throw(BoundsError(values(Trivial), i))
+findindex(::SectorValues{Trivial}, c::Trivial) = 1
+
 """
     one(::Sector) -> Sector
     one(::Type{<:Sector}) -> Sector

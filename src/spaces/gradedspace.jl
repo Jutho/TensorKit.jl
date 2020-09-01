@@ -8,12 +8,13 @@ struct GenericGradedSpace{I<:Sector} <: GradedSpace{I}
     dual::Bool
 end
 
-function GenericGradedSpace{I}(dims; dual::Bool = false) where {I<:Sector}
-    d = SectorDict{I, Int}()
-    for (c, dc) in dims
-        k = convert(I, c)
-        haskey(d, k) && throw(ArgumentError("Sector $k appears multiple times"))
-        !iszero(dc) && push!(d, k=>dc)
+Base.getindex(::Type{GradedSpace}, ::Type{Trivial}) = ComplexSpace
+function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
+    if Base.IteratorSize(values(I)) isa Union{HasLength, HasShape}
+        N = length(values(I))
+        return GradedSpace{I, NTuple{N, Int}}
+    else
+        return GradedSpace{I, SectorDict{I, Int}}
     end
     return GenericGradedSpace{I}(d, dual)
 end
@@ -205,7 +206,7 @@ function infimum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I}
     end
 end
 
-function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I}
+function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
     if V1.dual == V2.dual
         GradedSpace{I}(c=>max(dim(V1, c), dim(V2, c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
@@ -213,29 +214,53 @@ function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I}
         throw(SpaceMismatch("Supremum of space and dual space does not exist"))
     end
 end
-#
-# Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
-# Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
-# Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
-# Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
-# Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
-# Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
-#
-# function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
-#     show(io, typeof(V))
-#     print(io, "(")
-#     seperator = ""
-#     comma = ", "
-#     io2 = IOContext(io, :typeinfo => I)
-#     for c in sectors(V)
-#         if isdual(V)
-#             print(io2, seperator, dual(c), "=>", dim(V, c))
-#         else
-#             print(io2, seperator, c, "=>", dim(V, c))
-#         end
-#         seperator = comma
-#     end
-#     print(io, ")")
-#     V.dual && print(io, "'")
-#     return nothing
-# end
+
+function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
+    show(io, typeof(V))
+    print(io, "(")
+    seperator = ""
+    comma = ", "
+    io2 = IOContext(io, :typeinfo => I)
+    for c in sectors(V)
+        if isdual(V)
+            print(io2, seperator, dual(c), "=>", dim(V, c))
+        else
+            print(io2, seperator, c, "=>", dim(V, c))
+        end
+        seperator = comma
+    end
+    print(io, ")")
+    V.dual && print(io, "'")
+    return nothing
+end
+
+# Specific constructors for Z_N
+const ZNSpace{N} = GradedSpace{ZNIrrep{N}, NTuple{N,Int}}
+ZNSpace{N}(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
+ZNSpace{N}(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
+ZNSpace(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
+ZNSpace(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
+
+# More type aliases
+const ℤ₂Space = ZNSpace{2}
+const ℤ₃Space = ZNSpace{3}
+const ℤ₄Space = ZNSpace{4}
+const U₁Space = Rep[U₁]
+const CU₁Space = Rep[CU₁]
+const SU₂Space = Rep[SU₂]
+
+Base.show(io::IO, ::Type{GradedSpace{I,D}}) where {I,D} = print(io, "GradedSpace[", I, "]")
+Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
+Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
+Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
+Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
+Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
+Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
+
+# non-Unicode alternatives
+const Z2Space = ℤ₂Space
+const Z3Space = ℤ₃Space
+const Z4Space = ℤ₄Space
+const U1Space = U₁Space
+const CU1Space = CU₁Space
+const SU2Space = SU₂Space

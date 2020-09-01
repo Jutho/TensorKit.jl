@@ -287,9 +287,10 @@ include("gradedspace.jl")
 #-----------------------------------------------
 # a tensor product of N elementary spaces of the same type S
 include("productspace.jl")
+# deligne tensor product
+include("deligne.jl")
 
 # Other examples might include:
-# braidedspace and fermionspace
 # symmetric and antisymmetric subspace of a tensor product of identical vector spaces
 # ...
 
