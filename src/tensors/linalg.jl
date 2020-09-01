@@ -475,3 +475,19 @@ function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where S
     end
     return t
 end
+
+# deligne product of tensors
+function ⊠(t1::AbstractTensorMap{<:EuclideanSpace{ℂ}},
+            t2::AbstractTensorMap{<:EuclideanSpace{ℂ}})
+    S1 = spacetype(t1)
+    I1 = sectortype(S1)
+    S2 = spacetype(t2)
+    I2 = sectortype(S2)
+    codom1 = codomain(t1) ⊠ one(S2)
+    dom1 = domain(t1) ⊠ one(S2)
+    t1′ = TensorMap(SectorDict(c ⊠ one(I2) => b for (c,b) in blocks(t1)), codom1 ← dom1)
+    codom2 = one(S1) ⊠ codomain(t2)
+    dom2 = one(S1) ⊠ domain(t2)
+    t2′ = TensorMap(SectorDict(one(I1) ⊠ c => b for (c,b) in blocks(t2)), codom2 ← dom2)
+    return t1′ ⊗ t2′
+end
