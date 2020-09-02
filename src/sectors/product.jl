@@ -101,7 +101,10 @@ FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
     Base.:&(map(FusionStyle, _sectors(T))...)
 BraidingStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
     Base.:&(map(BraidingStyle, _sectors(T))...)
-Base.isreal(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = all(isreal, _sectors(T))
+Base.isreal(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _isreal(T)
+_isreal(::Type{Tuple{}}) = true
+_isreal(T::Type{<:SectorTuple}) =
+    isreal(Base.tuple_type_head(T)) && _isreal(Base.tuple_type_tail(T))
 
 fermionparity(P::ProductSector) = mapreduce(fermionparity, xor, P.sectors)
 

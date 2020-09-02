@@ -485,9 +485,11 @@ function ⊠(t1::AbstractTensorMap{<:EuclideanSpace{ℂ}},
     I2 = sectortype(S2)
     codom1 = codomain(t1) ⊠ one(S2)
     dom1 = domain(t1) ⊠ one(S2)
-    t1′ = TensorMap(SectorDict(c ⊠ one(I2) => b for (c,b) in blocks(t1)), codom1 ← dom1)
+    data1 = SectorDict{I1 ⊠ I2, storagetype(t1)}(c ⊠ one(I2) => b for (c,b) in blocks(t1))
+    t1′ = TensorMap(data1, codom1, dom1)
     codom2 = one(S1) ⊠ codomain(t2)
     dom2 = one(S1) ⊠ domain(t2)
-    t2′ = TensorMap(SectorDict(one(I1) ⊠ c => b for (c,b) in blocks(t2)), codom2 ← dom2)
+    data2 = SectorDict{I1 ⊠ I2, storagetype(t2)}(one(I1) ⊠ c => b for (c,b) in blocks(t2))
+    t2′ = TensorMap(data2, codom2, dom2)
     return t1′ ⊗ t2′
 end
