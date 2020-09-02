@@ -186,6 +186,15 @@ Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.
 fuse(P::ProductSpace{S, 0}) where {S<:ElementarySpace} = oneunit(S)
 fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 
+"""
+    insertunit(P::ProductSpace, i::Int = length(P)+1; dual = false, conj = false)
+
+For `P::ProductSpace{S,N}`, this adds an extra tensor product factor at position
+`1 <= i <= N+1` (last position by default) which is just a the `S`-equivalent of the
+underlying field of scalars, i.e. `oneunit(S)`. With the keyword arguments, one can choose
+to insert the conjugated or dual space instead, which are all isomorphic to the field of
+scalars.
+"""
 function insertunit(P::ProductSpace, i::Int = length(P)+1; dual = false, conj = false)
     u = oneunit(spacetype(P))
     if dual

@@ -269,30 +269,61 @@ BraidingStyle(::Type{Trivial}) = Bosonic()
 The `Trivial` sector type is special cased in the construction of tensors, so that most of
 these definitions are not actually used.
 
-For all abelian groups, we gather a number of common definitions
+The most important class of sectors are irreducible representations of groups, for which we
+have an abstract supertype `Irrep{G}` that is parameterized on the type of group `G`. While
+the specific implementations of `Irrep{G}` depend on `G`, one can easily obtain the
+concrete type without knowing its name as `Irrep[G]`.
+
+A number of groups have been defined, namely
 ```julia
-abstract type AbelianIrrep <: Sector end
+abstract type Group end
+abstract type AbelianGroup <: Group end
 
-Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
-Base.@pure BraidingStyle(::Type{<:AbelianIrrep}) = Bosonic()
+abstract type ℤ{N} <: AbelianGroup end
+abstract type U₁ <: AbelianGroup end
+abstract type SU{N} <: Group end
+abstract type CU₁ <: Group end
 
-Nsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = c == first(a ⊗ b)
-Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:AbelianIrrep} =
-    Int(Nsymbol(a,b,e)*Nsymbol(e,c,d)*Nsymbol(b,c,f)*Nsymbol(a,f,d))
-frobeniusschur(a::AbelianIrrep) = 1
-Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
-Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
-Base.isreal(::Type{<:AbelianIrrep}) = true
+const ℤ₂ = ℤ{2}
+const ℤ₃ = ℤ{3}
+const ℤ₄ = ℤ{4}
+const SU₂ = SU{2}
 ```
+Groups themselves are abstract types without any functionality (at least for now). We also
+provide a number of convenient Unicode aliases. These group names are probably self-
+explanatory, except for `CU₁` which is explained below.
+
+For all group irreps, the braiding style is bosonic
+```julia
+abstract type Irrep{G<:Group} <: Sector end # irreps have integer quantum dimensions
+Base.@pure BraidingStyle(::Type{<:Irrep}) = Bosonic()
+```
+while we gather some more common functionality for irreps of abelian groups (which exhaust all possibilities of fusion categories with abelian fusion)
+```julia
+const AbelianIrrep{G} = Irrep{G} where {G<:AbelianGroup}
+Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
+Base.isreal(::Type{<:AbelianIrrep}) = true
+
+Nsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = c == first(a ⊗ b)
+Fsymbol(a::I, b::I, c::I, d::I, e::I, f::I) where {I<:AbelianIrrep} =
+    Int(Nsymbol(a, b, e)*Nsymbol(e, c, d)*Nsymbol(b, c, f)*Nsymbol(a, f, d))
+frobeniusschur(a::AbelianIrrep) = 1
+Bsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = Int(Nsymbol(a, b, c))
+Rsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = Int(Nsymbol(a, b, c))
+```
+
 With these common definition, we implement the representation theory of the two most common
 Abelian groups, namely ``ℤ_N``
 ```julia
-struct ZNIrrep{N} <: AbelianIrrep
+struct ZNIrrep{N} <: Irrep{ℤ{N}}
     n::Int8
     function ZNIrrep{N}(n::Integer) where {N}
+        @assert N < 64
         new{N}(mod(n, N))
     end
 end
+Base.getindex(::Type{Irrep}, ::Type{ℤ{N}}) where {N} = ZNIrrep{N}
+
 Base.one(::Type{ZNIrrep{N}}) where {N} =ZNIrrep{N}(0)
 Base.conj(c::ZNIrrep{N}) where {N} = ZNIrrep{N}(-c.n)
 ⊗(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = (ZNIrrep{N}(c1.n+c2.n),)
@@ -307,9 +338,11 @@ findindex(::SectorValues{ZNIrrep{N}}, c::ZNIrrep{N}) where N = c.n + 1
 ```
 and ``\mathsf{U}_1``
 ```julia
-struct U1Irrep <: AbelianIrrep
+struct U1Irrep <: Irrep{U₁}
     charge::HalfInt
 end
+Base.getindex(::Type{Irrep}, ::Type{U₁}) = U1Irrep
+
 Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
 ⊗(c1::U1Irrep, c2::U1Irrep) = (U1Irrep(c1.charge+c2.charge),)
@@ -324,14 +357,9 @@ function Base.getindex(::SectorValues{U1Irrep}, i::Int)
 end
 findindex(::SectorValues{U1Irrep}, c::U1Irrep) = (n = twice(c.charge); 2*abs(n)+(n<=0))
 ```
-We also define some abbreviated Unicode aliases
-```julia
-const ℤ₂ = ZNIrrep{2}
-const ℤ₃ = ZNIrrep{3}
-const ℤ₄ = ZNIrrep{4}
-const U₁ = U1Irrep
-```
-In the definition of `U1Irrep`, `HalfInt<:Number` is a Julia type defined in
+The `getindex` definition just below the type definition provides the mechanism to get the
+concrete type as `Irrep[G]` for a given group `G`. In the definition of `U1Irrep`,
+`HalfInt<:Number` is a Julia type defined in
 [HalfIntegers.jl](https://github.com/sostock/HalfIntegers.jl), which is also used for
 `SU2Irrep` below, that stores integer or half integer numbers using twice their value.
 Strictly speaking, the linear representations of `U₁` can only have integer charges, and
@@ -341,18 +369,27 @@ you should not worry about the details of `HalfInt`, and additional methods for
 automatic conversion and pretty printing are provided, as illustrated by the following
 example
 ```@repl sectors
-U₁(0.5)
-U₁(0.4)
-U₁(1) ⊗ U₁(1//2)
+Irrep[U₁](0.5)
+U1Irrep(0.4)
+U1Irrep(1) ⊗ Irrep[U₁](1//2)
 u = first(U₁(1) ⊗ U₁(1//2))
 Nsymbol(u, conj(u), one(u))
-z = ℤ₃(1)
-z ⊗ z
+```
+For `ZNIrrep{N}`, we use an `Int8` for compact storage, assuming that this type will not be
+used with `N>64` (we need `2*(N-1) <= 127` in order for `a ⊗ b` to work correctly). We also
+define some aliases for the first (and most commonly used `ℤ{N}` irreps)
+```julia
+const Z2Irrep = ZNIrrep{2}
+const Z3Irrep = ZNIrrep{3}
+const Z4Irrep = ZNIrrep{4}
+```
+so that we can do
+```@repl sectors
+z = Z3Irrep(1)
+ZNIrrep{3}(1) ⊗ Irrep[ℤ₃](1)
 conj(z)
 one(z)
 ```
-For `ZNIrrep{N}`, we use an `Int8` for compact storage, assuming that this type will not be
-used with `N>64` (we need `2*(N-1) <= 127` in order for `a ⊗ b` to work correctly).
 
 As a further remark, even in the abelian case where `a ⊗ b` is equivalent to a single new
 label `c`, we return it as an iterable container, in this case a one-element tuple `(c,)`.
@@ -377,9 +414,11 @@ described in the section on [Representation spaces](@ref ss_rep) below.
 The first example of a non-abelian representation category is that of ``\mathsf{SU}_2``, the
 implementation of which is summarized by
 ```julia
-struct SU2Irrep <: Sector
+struct SU2Irrep <: Irrep{SU{2}}
     j::HalfInt
 end
+Base.getindex(::Type{Irrep}, ::Type{SU₂}) = SU2Irrep
+
 Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInt))
 Base.conj(s::SU2Irrep) = s
 ⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
@@ -394,10 +433,7 @@ function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
     Nsymbol(sa, sb, sc) || return 0.
     iseven(convert(Int, sa.j+sb.j-sc.j)) ? 1.0 : -1.0
 end
-Base.hash(s::SU2Irrep, h::UInt) = hash(s.j, h)
-Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
-const SU₂ = SU2Irrep
-const SO₃ = SU2Irrep
+
 Base.IteratorSize(::Type{SectorValues{SU2Irrep}}) = IsInfinite()
 Base.iterate(::SectorValues{SU2Irrep}, i = 0) = (SU2Irrep(half(i)), i+1)
 # unused and not really necessary:
@@ -410,7 +446,7 @@ one can notice, the topological data (i.e. `Nsymbol` and `Fsymbol`) are provided
 package [WignerSymbols.jl](https://github.com/Jutho/WignerSymbols.jl). The iterable `a ⊗ b`
 is a custom type, that the user does not need to care about. Some examples
 ```@repl sectors
-s = SU₂(3//2)
+s = SU2Irrep(3//2)
 conj(s)
 dim(s)
 collect(s ⊗ s)
@@ -431,8 +467,8 @@ symmetry can be realized trivially or non-trivially, resulting in an even and od
 dimensional irrep with ``\mathsf{U})_1`` charge ``0``. Given
 ``\mathsf{U}_1 ≂ \mathsf{SO}_2``, this group is also simply known as ``\mathsf{O}_2``, and
 the two representations with `` n = 0`` are the scalar and pseudo-scalar, respectively.
-However, because we also allow for half integer representations, we refer to it as `CU₁` or
-`CU1Irrep` in full.
+However, because we also allow for half integer representations, we refer to it as
+`Irrep[CU₁]` or `CU1Irrep` in full.
 ```julia
 struct CU1Irrep <: Irrep
     j::HalfInt # value of the U1 charge
@@ -448,42 +484,44 @@ struct CU1Irrep <: Irrep
         end
     end
 end
+Base.getindex(::Type{Irrep}, ::Type{CU₁}) = CU1Irrep
+
 Base.one(::Type{CU1Irrep}) = CU1Irrep(zero(HalfInt), 0)
 Base.conj(c::CU1Irrep) = c
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
+
 Base.@pure FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
 ...
-const CU₁ = CU1Irrep
 ```
 The rest of the implementation can be read in the source code, but is rather long due to all
 the different cases for the arguments of `Fsymbol`.
 
 So far, no sectors have been implemented with `FusionStyle(G) == DegenerateNonAbelian()`,
-though an example would be the representation theory of ``\mathsf{SU}_3``. Such sectors are
-not yet fully supported; certain operations remain to be implemented. Furthermore, the
-topological data of the representation theory of such groups is not readily available and
-needs to be computed.
+though an example would be the representation theory of ``\mathsf{SU}_N``, i.e. represented
+by the group `SU{N}`, for `N>2`. Such sectors are not yet fully supported; certain
+operations remain to be implemented. Furthermore, the topological data of the
+representation theory of such groups is not readily available and needs to be computed.
 
 ### [Combining different sectors](@id sss_productsectors)
 It is also possible to define two or more different types of symmetries, e.g. when the total
 symmetry group is a direct product of individual simple groups. Such sectors are obtained
-using the binary operator `×`, which can be entered as `\times`+TAB. Some examples
+using the binary operator `⊠`, which can be entered as `\boxtimes`+TAB. Some examples
 ```@repl sectors
-a = ℤ₃(1) × U₁(1)
+a = Z3Irrep(1) ⊠ Irrep[U₁](1)
 typeof(a)
 conj(a)
 one(a)
 dim(a)
 collect(a ⊗ a)
 FusionStyle(a)
-b = ℤ₃(1) × SU₂(3//2)
+b = Irrep[ℤ₃](1) ⊠ Irrep[SU₂](3//2)
 typeof(b)
 conj(b)
 one(b)
 dim(b)
 collect(b ⊗ b)
 FusionStyle(b)
-c = SU₂(1) × SU₂(3//2)
+c = Irrep[SU₂](1) ⊠ SU2Irrep(3//2)
 typeof(c)
 conj(c)
 one(c)
@@ -496,34 +534,34 @@ We refer to the source file of [`ProductSector`](@ref) for implementation detail
 ### [Defining a new type of sector](@id sss_newsectors)
 
 By now, it should be clear how to implement a new `Sector` subtype. Ideally, a new
-`G<:Sector` type is a `struct G ... end` (immutable) that has `isbitstype(G) == true` (see
+`I<:Sector` type is a `struct I ... end` (immutable) that has `isbitstype(I) == true` (see
 Julia's manual), and implements the following minimal set of methods
 ```julia
-Base.one(::Type{G}) = G(...)
-Base.conj(a::G) = G(...)
-Base.isreal(::Type{G}) = ... # true or false
-TensorKit.FusionStyle(::Type{G}) = ... # Abelian(), SimpleNonAbelian(), DegenerateNonAbelian()
-TensorKit.BraidingStyle(::Type{G}) = ... # Bosonic(), Fermionic(), Anyonic()
-TensorKit.Nsymbol(a::G, b::G, c::G) = ...
-    # Bool or Integer if FusionStyle(G) == DegenerateNonAbelian()
-Base.:⊗(a::G, b::G) = ... # some iterable object that generates all possible fusion outputs
-TensorKit.Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G)
-TensorKit.Rsymbol(a::G, b::G, c::G)
-Base.hash(a::G, h::UInt)
-Base.isless(a::G, b::G)
-Base.iterate(::TensorKit.SectorValues{G}[, state]) = ...
-Base.IteratorSize(::Type{TensorKit.SectorValues{G}}) = ... # HasLenght() or IsInfinite()
+Base.one(::Type{I}) = I(...)
+Base.conj(a::I) = I(...)
+Base.isreal(::Type{I}) = ... # true or false
+TensorKit.FusionStyle(::Type{I}) = ... # Abelian(), SimpleNonAbelian(), DegenerateNonAbelian()
+TensorKit.BraidingStyle(::Type{I}) = ... # Bosonic(), Fermionic(), Anyonic()
+TensorKit.Nsymbol(a::I, b::I, c::I) = ...
+    # Bool or Integer if FusionStyle(I) == DegenerateNonAbelian()
+Base.:⊗(a::I, b::I) = ... # some iterable object that generates all possible fusion outputs
+TensorKit.Fsymbol(a::I, b::I, c::I, d::I, e::I, f::I)
+TensorKit.Rsymbol(a::I, b::I, c::I)
+Base.hash(a::I, h::UInt)
+Base.isless(a::I, b::I)
+Base.iterate(::TensorKit.SectorValues{I}[, state]) = ...
+Base.IteratorSize(::Type{TensorKit.SectorValues{I}}) = ... # HasLenght() or IsInfinite()
 # if previous function returns HasLength():
-Base.length(::TensorKit.SectorValues{G}) = ...
-Base.getindex(::TensorKit.SectorValues{G}, i::Int) = ...
-TensorKit.findindex(::TensorKit.SectorValues{G}, c::G) = ...
+Base.length(::TensorKit.SectorValues{I}) = ...
+Base.getindex(::TensorKit.SectorValues{I}, i::Int) = ...
+TensorKit.findindex(::TensorKit.SectorValues{I}, c::I) = ...
 ```
 
 Additionally, suitable definitions can be given for
 ```julia
-TensorKit.dim(a::G) = ...
-TensorKit.frobeniusschur(a::G) = ...
-TensorKit.Bsymbol(a::G, b::G, c::G) = ...
+TensorKit.dim(a::I) = ...
+TensorKit.frobeniusschur(a::I) = ...
+TensorKit.Bsymbol(a::I, b::I, c::I) = ...
 ```
 Out of these, we have not yet encountered the Frobenius-Schur indicator and the B-symbol.
 They were both defined in the section on
@@ -532,36 +570,36 @@ by the F-symbol, just like the quantum dimensions. Hence, there is a default imp
 for each of these three functions that just relies on `Fsymbol`, and alternative
 definitions need to be given only if a more efficient version is available.
 
-If `FusionStyle(G) == DegenerateNonAbelian()`, then the multiple outputs `c` in the tensor
+If `FusionStyle(I) == DegenerateNonAbelian()`, then the multiple outputs `c` in the tensor
 product of `a` and `b` will be labeled as `i=1`, `2`, …, `Nsymbol(a,b,c)`. Optionally, a
 different label can be provided by defining
 ```julia
-TensorKit.vertex_ind2label(i::Int, a::G, b::G, c::G) = ...
+TensorKit.vertex_ind2label(i::Int, a::I, b::I, c::I) = ...
 # some label, e.g. a `Char` or `Symbol`
 ```
 The following function will then automatically determine the corresponding label type (which
 should not vary, i.e. `vertex_ind2label` should be type stable)
 ```julia
-Base.@pure vertex_labeltype(G::Type{<:Sector}) =
-    typeof(vertex_ind2label(1, one(G), one(G), one(G)))
+Base.@pure vertex_labeltype(I::Type{<:Sector}) =
+    typeof(vertex_ind2label(1, one(I), one(I), one(I)))
 ```
 
 The following type, which already appeared in the implementation of `SU2Irrep` above, can be
 useful for providing the return type of `a ⊗ b`
 ```julia
-struct SectorSet{G<:Sector,F,S}
+struct SectorSet{I<:Sector,F,S}
     f::F
     set::S
 end
 ...
-function Base.iterate(s::SectorSet{G}, args...) where {G<:Sector}
+function Base.iterate(s::SectorSet{I}, args...) where {I<:Sector}
     next = iterate(s.set, args...)
     next === nothing && return nothing
     val, state = next
-    return convert(G, s.f(val)), state
+    return convert(I, s.f(val)), state
 end
 ```
-That is, `SectorSet(f, set)` behaves as an iterator that applies `x->convert(G, f(x))` on
+That is, `SectorSet(f, set)` behaves as an iterator that applies `x->convert(I, f(x))` on
 the elements of `set`; if `f` is not provided it is just taken as the function `identity`.
 
 ### [Generalizations](@id sss_generalsectors)

@@ -15,9 +15,7 @@ InnerProductSpace
 EuclideanSpace
 CartesianSpace
 ComplexSpace
-RepresentationSpace
-GenericRepresentationSpace
-FiniteRepresentationSpace
+GradedSpace
 CompositeSpace
 ProductSpace
 ```
@@ -44,11 +42,18 @@ conj
 flip
 :⊕
 oneunit
+supremum
+infimum
 ```
-while the following also work on `ProductSpace`
+while the following also work on both `ElementarySpace` and `ProductSpace`
 
 ```@docs
 fuse
 :⊗
+:⊠
 one
+ismonomorphic
+isepimorphic
+isisomorphic
+insertunit
 ```

@@ -117,18 +117,28 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
 
 # Default construction from tensor product of sectors
 #-----------------------------------------------------
-⊠(S1, S2, S3, S4...) = ⊠(⊠(S1, S2), S3, S4...)
+⊠(s1, s2, s3, s4...) = ⊠(⊠(s1, s2), s3, s4...)
 
-⊠(S1::Trivial, S2::Trivial) = S1
-⊠(S1::Sector, S2::Trivial) = S1
-⊠(S1::Trivial, S2::Sector) = S2
-⊠(S1::Sector, S2::Sector) = ProductSector((S1, S2))
-⊠(P1::ProductSector, S2::Trivial) = P1
-⊠(P1::ProductSector, S2::Sector) = ProductSector(tuple(P1.sectors..., S2))
-⊠(S1::Trivial, P2::ProductSector) = P2
-⊠(S1::Sector, P2::ProductSector) = ProductSector(tuple(S1, P2.sectors...))
-⊠(P1::ProductSector, P2::ProductSector) =
-    ProductSector(tuple(P1.sectors..., P2.sectors...))
+"""
+    ⊠(s₁::Sector, s₂::Sector)
+
+Given two sectors `s₁` and `s₂`, which label an isomorphism class of simple objects in a
+fusion category ``C₁`` and ``C₂``, `s1 ⊠ s2` (obtained as `\boxtimes+TAB`) labels the
+isomorphism class of simple objects in the Deligne tensor product category ``C₁ ⊠ C₂``.
+
+The Deligne tensor product also works in the type domain and for spaces and tensors. For
+group representations, we have `Irrep[G₁] ⊠ Irrep[G₂] == Irrep[G₁ × G₂]`.
+"""
+⊠(s1::Sector, s2::Sector) = ProductSector((s1, s2))
+⊠(s1::Trivial, s2::Trivial) = s1
+⊠(s1::Sector, s2::Trivial) = s1
+⊠(s1::Trivial, s2::Sector) = s2
+⊠(p1::ProductSector, s2::Trivial) = p1
+⊠(p1::ProductSector, s2::Sector) = ProductSector(tuple(p1.sectors..., s2))
+⊠(s1::Trivial, p2::ProductSector) = p2
+⊠(s1::Sector, p2::ProductSector) = ProductSector(tuple(s1, p2.sectors...))
+⊠(p1::ProductSector, p2::ProductSector) =
+    ProductSector(tuple(p1.sectors..., p2.sectors...))
 
 # grow types from the left using Base.tuple_type_cons
 ⊠(I1::Type{Trivial}, I2::Type{Trivial}) = Trivial
