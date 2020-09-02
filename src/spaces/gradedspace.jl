@@ -1,12 +1,31 @@
 """
-    struct GenericGradedSpace{I<:Sector} <: GradedSpace{I}
+    struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
+        dims::D
+        dual::Bool
+    end
 
-Generic implementation of a [`GradedSpace`](@ref), which is used when `IteratorSize(values(I)) == IsInfinite()` or `IteratorSize(values(I)) == SizeUnknown()`.
+A complex Euclidean space with a direct sum structure corresponding to labels in a set `I`,
+the objects of which have the structure of a monoid with respect to a monoidal product `⊗`.
+In practice, we restrict the label set to be a set of superselection sectors of type
+`I<:Sector`, e.g. the set of distinct irreps of a finite or compact group, or the
+isomorphism classes of simple objects of a unitary and pivotal (pre-)fusion category.
+
+Here `dims` represents the degeneracy or multiplicity of every sector.
+
+The data structure `D` of `dims` will depend on the result `Base.IteratorElsize(values(I))`;
+if the result is of type `HasLength` or `HasShape`, `dims` will be stored in a
+`NTuple{N,Int}` with `N = length(values(I))`. This requires that a sector `s::I` can be
+transformed into an index via `s == getindex(values(I), i)` and
+`i == findindex(values(I), s)`. If `Base.IteratorElsize(values(I))` results `IsInfinite()`
+or `SizeUnknown()`, a `SectorDict{I,Int}` is used to store the non-zero degeneracy
+dimensions with the corresponding sector as key. The parameter `D` is hidden from the user
+and should typically be of no concern
 """
-struct GenericGradedSpace{I<:Sector} <: GradedSpace{I}
-    dims::SectorDict{I, Int}
+struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
+    dims::D
     dual::Bool
 end
+Base.@pure sectortype(::Type{<:GradedSpace{I}}) where {I<:Sector} = I
 
 Base.getindex(::Type{GradedSpace}, ::Type{Trivial}) = ComplexSpace
 function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
@@ -16,38 +35,12 @@ function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
     else
         return GradedSpace{I, SectorDict{I, Int}}
     end
-    return GenericGradedSpace{I}(d, dual)
-end
-GenericGradedSpace{I}(; dual::Bool = false) where {I<:Sector} =
-    GenericGradedSpace{I}((); dual = dual)
-GenericGradedSpace{I}(d1::Pair; dual::Bool = false) where {I<:Sector} =
-    GenericGradedSpace{I}((d1,); dual = dual)
-GenericGradedSpace{I}(d1::Pair, dims::Vararg{Pair};
-                                dual::Bool = false) where {I<:Sector} =
-    GenericGradedSpace{I}((d1, dims...); dual = dual)
-
-Base.:(==)(V1::GenericGradedSpace, V2::GenericGradedSpace) =
-    keys(V1.dims) == keys(V2.dims) &&
-    values(V1.dims) == values(V2.dims) &&
-    V1.dual == V2.dual
-
-Base.hash(V::GenericGradedSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
-
-"""
-    struct FiniteGradedSpace{I<:Sector, N} <: GradedSpace{I}
-
-Optimized implementation of a [`GradedSpace`](@ref), which is used when `IteratorSize(values(I)) == HasLength()` or `IteratorSize(values(I)) == HasShape()`.
-"""
-struct FiniteGradedSpace{I<:Sector, N} <: GradedSpace{I}
-    dims::NTuple{N, Int}
-    dual::Bool
-    function FiniteGradedSpace{I, N}(dims::Dims{N}, dual::Bool) where {I<:Sector, N}
-        return new{I, N}(dims, dual)
-    end
 end
 
-function FiniteGradedSpace{I}(dims; dual::Bool = false) where {I<:Sector}
-    N = length(values(I))
+const Rep{G} = GradedSpace{Irrep{G}} where {G<:Group}
+Base.getindex(::Type{Rep}, ::Type{G}) where {G<:Group} = GradedSpace[Irrep[G]]
+
+function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
     d = ntuple(n->0, N)
     isset = ntuple(n->false, N)
     for (c, dc) in dims
@@ -56,76 +49,77 @@ function FiniteGradedSpace{I}(dims; dual::Bool = false) where {I<:Sector}
         isset = TupleTools.setindex(isset, true, i)
         d = TupleTools.setindex(d, dc, i)
     end
-    return FiniteGradedSpace{I, N}(d, dual)
+    return GradedSpace{I, NTuple{N, Int}}(d, dual)
 end
-FiniteGradedSpace{I}(; dual::Bool = false) where {I<:Sector} =
-    FiniteGradedSpace{I}((); dual = dual)
-FiniteGradedSpace{I}(d1::Pair; dual::Bool = false) where {I<:Sector} =
-    FiniteGradedSpace{I}((d1,); dual = dual)
-FiniteGradedSpace{I}(d1::Pair, dims::Vararg{Pair};
-                                dual::Bool = false) where {I<:Sector} =
-    FiniteGradedSpace{I}((d1, dims...); dual = dual)
-# get rid of N parameter
-FiniteGradedSpace{I, N}(dims::Pair...; dual::Bool = false) where {I<:Sector, N} =
-    FiniteGradedSpace{I, N}(dims; dual = dual)
-function FiniteGradedSpace{I, N}(dims; dual::Bool = false) where {I<:Sector, N}
-    @assert N == length(values(I))
-    FiniteGradedSpace{I}(dims; dual = dual)
+GradedSpace{I, NTuple{N, Int}}(dims::Pair; dual::Bool = false) where {I, N} =
+    GradedSpace{I, NTuple{N, Int}}((dims,); dual = dual)
+
+function GradedSpace{I, SectorDict{I, Int}}(dims; dual::Bool = false) where {I}
+    d = SectorDict{I, Int}()
+    for (c, dc) in dims
+        k = convert(I, c)
+        haskey(d, k) && throw(ArgumentError("Sector $k appears multiple times"))
+        !iszero(dc) && push!(d, k=>dc)
+    end
+    return GradedSpace{I, SectorDict{I, Int}}(d, dual)
 end
+GradedSpace{I, SectorDict{I, Int}}(dims::Pair; dual::Bool = false) where {I} =
+    GradedSpace{I, SectorDict{I, Int}}((dims,); dual = dual)
+
+GradedSpace{I,D}(; kwargs...) where {I<:Sector,D} = GradedSpace{I,D}((); kwargs...)
+GradedSpace{I,D}(d1::Pair, d2::Pair, dims::Vararg{Pair}; kwargs...) where {I<:Sector,D} =
+    GradedSpace{I,D}((d1, d2, dims...); kwargs...)
 
 # TODO: do we also want to support this interface
 function GradedSpace{I}(args...; kwargs...) where {I<:Sector}
     @warn "Preferred interface is `GradedSpace[$I](args...; kwargs...)`." maxlog=1
     GradedSpace[I](args..., kwargs...)
 end
-GradedSpace(dims::Tuple{Vararg{Pair{I, Int}}};
-                        dual::Bool = false) where {I<:Sector} =
-    GradedSpace{I}(dims; dual = dual)
-GradedSpace(dims::Vararg{Pair{I, Int}}; dual::Bool = false) where {I<:Sector} =
-    GradedSpace{I}(dims; dual = dual)
-GradedSpace(dims::AbstractDict{I, Int}; dual::Bool = false) where {I<:Sector} =
-    GradedSpace{I}(dims; dual = dual)
+
+GradedSpace(dims::Tuple{Vararg{Pair{I, <:Integer}}}; dual::Bool = false) where {I<:Sector} =
+    GradedSpace[I](dims; dual = dual)
+GradedSpace(dims::Vararg{Pair{I, <:Integer}}; dual::Bool = false) where {I<:Sector} =
+    GradedSpace[I](dims; dual = dual)
+GradedSpace(dims::AbstractDict{I, <:Integer}; dual::Bool = false) where {I<:Sector} =
+    GradedSpace[I](dims; dual = dual)
 # not inferrable
 GradedSpace(g::Base.Generator; dual::Bool = false) =
     GradedSpace(g...; dual = dual)
 GradedSpace(g::AbstractDict; dual::Bool = false) =
     GradedSpace(g...; dual = dual)
 
-Base.getindex(::ComplexNumbers, I::Type{<:Sector}) = GradedSpace{I}
+Base.hash(V::GradedSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
+
+Base.getindex(::ComplexNumbers, ::Type{Trivial}) = ComplexSpace
+Base.getindex(::ComplexNumbers, I::Type{<:Sector}) = GradedSpace[I]
 Base.getindex(::ComplexNumbers, d1::Pair{I, Int}, dims::Pair{I, Int}...) where {I<:Sector} =
-    GradedSpace{I}(d1, dims...)
+    ℂ[I](d1, dims...)
 
 # Corresponding methods:
 # properties
-dim(V::GenericGradedSpace) =
-    mapreduce(c->dim(c)*V.dims[c], +, keys(V.dims); init = zero(dim(one(sectortype(V)))))
-dim(V::GenericGradedSpace{I}, c::I) where {I<:Sector} =
-    get(V.dims, isdual(V) ? dual(c) : c, 0)
+dim(V::GradedSpace) =
+    reduce(+, dim(V, c) * dim(c) for c in sectors(V); init = zero(dim(one(sectortype(V)))))
 
-dim(V::FiniteGradedSpace{I}) where {I<:Sector} =
-    reduce(+, dc*dim(c) for (dc, c) in zip(V.dims, values(I));
-            init = zero(dim(one(sectortype(V)))))
-dim(V::FiniteGradedSpace{I}, c::I) where {I<:Sector} =
+dim(V::GradedSpace{I,<:AbstractDict}, c::I) where {I<:Sector} =
+    get(V.dims, isdual(V) ? dual(c) : c, 0)
+dim(V::GradedSpace{I,<:Tuple}, c::I) where {I<:Sector} =
     V.dims[findindex(values(I), isdual(V) ? dual(c) : c)]
 
-sectors(V::GenericGradedSpace{I}) where {I<:Sector} =
+sectors(V::GradedSpace{I,<:AbstractDict}) where {I<:Sector} =
     SectorSet{I}(s->isdual(V) ? dual(s) : s, keys(V.dims))
-sectors(V::FiniteGradedSpace{I, N}) where {I<:Sector, N} =
+sectors(V::GradedSpace{I,NTuple{N,Int}}) where {I<:Sector, N} =
     SectorSet{I}(Iterators.filter(n->V.dims[n]!=0, 1:N)) do n
         isdual(V) ? dual(values(I)[n]) : values(I)[n]
     end
 
 hassector(V::GradedSpace{I}, s::I) where {I<:Sector} = dim(V, s) != 0
 
-Base.conj(V::GenericGradedSpace{I}) where {I<:Sector} =
-    GenericGradedSpace{I}(V.dims, !V.dual)
-Base.conj(V::FiniteGradedSpace{I, N}) where {I<:Sector, N} =
-    FiniteGradedSpace{I, N}(V.dims, !V.dual)
+Base.conj(V::GradedSpace) = typeof(V)(V.dims, !V.dual)
 isdual(V::GradedSpace) = V.dual
 
 # equality / comparison
 Base.:(==)(V1::GradedSpace, V2::GradedSpace) =
-    (V1.dims == V2.dims) && V1.dual == V2.dual
+    sectortype(V1) == sectortype(V2) && (V1.dims == V2.dims) && V1.dual == V2.dual
 
 # axes
 Base.axes(V::GradedSpace) = Base.OneTo(dim(V))
@@ -138,31 +132,8 @@ function Base.axes(V::GradedSpace{I}, c::I) where {I}
     return (offset+1):(offset+dim(c)*dim(V, c))
 end
 
-# Specific constructors for Z_N
-const ZNSpace{N} = FiniteGradedSpace{ZNIrrep{N}, N}
-ZNSpace{N}(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
-ZNSpace{N}(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
-ZNSpace(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
-ZNSpace(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
-
-# const ParitySpace = ZNSpace{2}
-# const ℤ₂Space = ZNSpace{2}
-# const ℤ₃Space = ZNSpace{3}
-# const ℤ₄Space = ZNSpace{4}
-# const U₁Space = GenericGradedSpace{U₁}
-# const CU₁Space = GenericGradedSpace{CU₁}
-# const SU₂Space = GenericGradedSpace{SU₂}
-#
-# # non-Unicode alternatives
-# const Z2Space = ℤ₂Space
-# const Z3Space = ℤ₃Space
-# const Z4Space = ℤ₄Space
-# const U1Space = U₁Space
-# const CU1Space = CU₁Space
-# const SU2Space = SU₂Space
-
 Base.oneunit(::Type{<:GradedSpace{I}}) where {I<:Sector} =
-    GradedSpace{I}(one(I)=>1)
+    GradedSpace[I](one(I)=>1)
 
 # TODO: the following methods can probably be implemented more efficiently for
 # `FiniteGradedSpace`, but we don't expect them to be used often in hot loops, so
@@ -176,14 +147,14 @@ function ⊕(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
         cout = ifelse(dual1, dual(c), c)
         dims[cout] = dim(V1, c) + dim(V2, c)
     end
-    return GradedSpace{I}(dims; dual = dual1)
+    return GradedSpace[I](dims; dual = dual1)
 end
 
 function flip(V::GradedSpace{I}) where {I}
     if isdual(V)
-        GradedSpace{I}(c=>dim(V, c) for c in sectors(V))
+        GradedSpace[I](c=>dim(V, c) for c in sectors(V))
     else
-        GradedSpace{I}(dual(c)=>dim(V, c) for c in sectors(V))'
+        GradedSpace[I](dual(c)=>dim(V, c) for c in sectors(V))'
     end
 end
 
@@ -194,12 +165,12 @@ function fuse(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
             dims[c] = get(dims, c, 0) + Nsymbol(a, b, c)*dim(V1, a)*dim(V2, b)
         end
     end
-    return GradedSpace{I}(dims)
+    return GradedSpace[I](dims)
 end
 
 function infimum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I}
     if V1.dual == V2.dual
-        GradedSpace{I}(c=>min(dim(V1, c), dim(V2, c)) for c in
+        GradedSpace[I](c=>min(dim(V1, c), dim(V2, c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
     else
         throw(SpaceMismatch("Infimum of space and dual space does not exist"))
@@ -208,7 +179,7 @@ end
 
 function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
     if V1.dual == V2.dual
-        GradedSpace{I}(c=>max(dim(V1, c), dim(V2, c)) for c in
+        GradedSpace[I](c=>max(dim(V1, c), dim(V2, c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
     else
         throw(SpaceMismatch("Supremum of space and dual space does not exist"))

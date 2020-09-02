@@ -162,7 +162,7 @@ end
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 
-@testset TimedTestSet "ElementarySpace: GradedSpace{$I}" for I in sectorlist
+@testset TimedTestSet "ElementarySpace: GradedSpace[$I]" for I in sectorlist
     if Base.IteratorSize(values(I)) === Base.IsInfinite()
         set = unique(vcat(one(I), [randsector(I) for k = 1:10]))
         gen = (c=>2 for c in set)
@@ -179,12 +179,12 @@ end
     @test V' == @constinferred GradedSpace(tuple(gen...); dual = true)
     @test V == @constinferred GradedSpace(Dict(gen))
     @test V' == @constinferred GradedSpace(Dict(gen); dual = true)
-    @test V == @inferred GradedSpace{I}(gen)
-    @test V' == @constinferred GradedSpace{I}(gen; dual = true)
-    @test V == @constinferred GradedSpace{I}(gen...)
-    @test V' == @constinferred GradedSpace{I}(gen...; dual = true)
-    @test V == @constinferred GradedSpace{I}(Dict(gen))
-    @test V' == @constinferred GradedSpace{I}(Dict(gen); dual = true)
+    @test V == @inferred GradedSpace[I](gen)
+    @test V' == @constinferred GradedSpace[I](gen; dual = true)
+    @test V == @constinferred GradedSpace[I](gen...)
+    @test V' == @constinferred GradedSpace[I](gen...; dual = true)
+    @test V == @constinferred GradedSpace[I](Dict(gen))
+    @test V' == @constinferred GradedSpace[I](Dict(gen); dual = true)
     @test V == @constinferred typeof(V)(c=>dim(V,c) for c in sectors(V))
     if I isa ZNIrrep
         @test V == @constinferred typeof(V)(V.dims)
@@ -209,9 +209,6 @@ end
     @test isa(V, EuclideanSpace)
     @test isa(V, GradedSpace)
     @test isa(V, GradedSpace{I})
-    @test isa(V, Base.IteratorSize(values(I)) == Base.IsInfinite() ?
-                    TensorKit.GenericGradedSpace{I} :
-                    TensorKit.FiniteGradedSpace{I})
     @test @constinferred(dual(V)) == @constinferred(conj(V)) == @constinferred(adjoint(V)) != V
     @test @constinferred(field(V)) == ℂ
     @test @constinferred(sectortype(V)) == I
@@ -222,10 +219,10 @@ end
     if hasfusiontensor(I)
         @test @constinferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     end
-    @test @constinferred(⊕(V,V)) == GradedSpace{I}(c=>2dim(V,c) for c in sectors(V))
-    @test @constinferred(⊕(V,V,V,V)) == GradedSpace{I}(c=>4dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V)) == GradedSpace[I](c=>2dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V,V,V)) == GradedSpace[I](c=>4dim(V,c) for c in sectors(V))
     @test @constinferred(⊕(V,oneunit(V))) ==
-            GradedSpace{I}(c=>isone(c)+dim(V,c) for c in sectors(V))
+            GradedSpace[I](c=>isone(c)+dim(V,c) for c in sectors(V))
     @test @constinferred(fuse(V,oneunit(V))) == V
     d = Dict{I,Int}()
     for a in sectors(V), b in sectors(V)
@@ -235,7 +232,7 @@ end
     end
     @test @constinferred(fuse(V,V)) == GradedSpace(d)
     @test @constinferred(flip(V)) ==
-            GradedSpace{I}(conj(c)=>dim(V,c) for c in sectors(V))'
+            GradedSpace[I](conj(c)=>dim(V,c) for c in sectors(V))'
     @test flip(V) ≅ V
     @test flip(V) ≾ V
     @test flip(V) ≿ V
@@ -315,7 +312,7 @@ end
     @test isa(P, VectorSpace)
     @test isa(P, CompositeSpace)
     @test spacetype(P) == SU₂Space
-    @test sectortype(P) == SU₂
+    @test sectortype(P) == Irrep[SU₂] == SU2Irrep
     @test @constinferred(hash(P)) == hash(deepcopy(P)) != hash(P')
     @test @constinferred(dual(P)) == P'
     @test @constinferred(field(P)) == ℂ
@@ -353,7 +350,7 @@ end
     @test eval(Meta.parse(sprint(show, W))) == W
     @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
     @test spacetype(W) == SU₂Space
-    @test sectortype(W) == SU₂
+    @test sectortype(W) == Irrep[SU₂]
     @test W[1] == V1
     @test W[2] == V2
     @test W[3] == V3'

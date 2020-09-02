@@ -200,17 +200,6 @@ dual(V::EuclideanSpace) = conj(V)
 isdual(V::EuclideanSpace{ℝ}) = false
 
 """
-    abstract type GradedSpace{I<:Sector} <: EuclideanSpace{ℂ} end
-
-A complex Euclidean space with a direct sum structure corresponding to labels in a set `I`,
-the objects of which have the structure of a monoid with respect to a monoidal product `⊗`.
-In practice, we restrict the label set to be a set of superselection sectors of type
-`I<:Sector`, e.g. the set of distinct irreps of a finite or compact group, or the
-isomorphism classes of simple objects of a unitary and pivotal (pre-)fusion category.
-"""
-abstract type GradedSpace{I<:Sector} <: EuclideanSpace{ℂ} end
-
-"""
     sectortype(a) -> Type{<:Sector}
 
 Return the type of sector over which object `a` (e.g. a representation space or a tensor) is
@@ -218,7 +207,6 @@ defined. Also works in type domain.
 """
 sectortype(V::VectorSpace) = sectortype(typeof(V))
 sectortype(::Type{<:ElementarySpace}) = Trivial
-sectortype(::Type{<:GradedSpace{I}}) where {I} = I
 
 """
     hassector(V::VectorSpace, a::Sector) -> Bool
