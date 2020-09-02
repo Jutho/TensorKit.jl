@@ -65,7 +65,6 @@ Base.values(::Type{I}) where {I<:Sector} = SectorValues{I}()
 struct Trivial <: Sector
 end
 Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
-Base.show(io::IO, ::Type{Trivial}) = print(io, "Trivial")
 
 Base.IteratorSize(::Type{SectorValues{Trivial}}) = HasLength()
 Base.length(::SectorValues{Trivial}) = 1

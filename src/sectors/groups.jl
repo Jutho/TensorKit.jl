@@ -35,12 +35,25 @@ abstract type ProductGroup{T<:GroupTuple} <: Group end
     ProductGroup{Base.tuple_type_cons(G1, T)}
 ×(G1::Type{<:Group}, G2::Type{<:Group}) = ProductGroup{Tuple{G1, G2}}
 
-function Base.show(io::IO, ::Type{ProductGroup{T}}) where {T<:GroupTuple}
-    sectors = T.parameters
-    print(io, "(")
-    for i = 1:length(sectors)
-        i == 1 || print(io, " × ")
-        print(io, sectors[i])
+function Base.show(io::IO, G::Type{<:ProductGroup})
+    if G isa UnionAll
+        print(io, "ProductGroup")
+    else
+        T = G.parameters[1]
+        if T isa Type{<:Tuple}
+            groups = T.parameters
+            if length(groups) == 1
+                print(io, "ProductGroup{Tuple{", groups[1], "}}")
+            else
+                print(io, "(")
+                for i = 1:length(groups)
+                    i == 1 || print(io, " × ")
+                    print(io, groups[i])
+                end
+                print(io, ")")
+            end
+        else
+            print(io, "ProductGroup{", T, "}")
+        end
     end
-    print(io, ")")
 end

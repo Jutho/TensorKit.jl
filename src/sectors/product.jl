@@ -174,20 +174,33 @@ function Base.show(io::IO, P::ProductSector)
     print(io, ")")
 end
 
-function Base.show(io::IO, ::Type{ProductSector{T}}) where {T<:SectorTuple}
-    sectors = T.parameters
-    print(io, "(")
-    for i = 1:length(sectors)
-        i == 1 || print(io, " ⊠ ")
-        print(io, sectors[i])
+function Base.show(io::IO, P::Type{<:ProductSector})
+    if P isa UnionAll
+        print(io, "ProductSector")
+    else
+        T = P.parameters[1]
+        if T isa Type{<:Tuple}
+            sectors = T.parameters
+            if length(sectors) == 1
+                print(io, "ProductSector{Tuple{", sectors[1], "}}")
+            else
+                print(io, "(")
+                for i = 1:length(sectors)
+                    i == 1 || print(io, " ⊠ ")
+                    print(io, sectors[i])
+                end
+                print(io, ")")
+            end
+        else
+            print(io, "ProductSector{", T, "}")
+        end
     end
-    print(io, ")")
 end
 
 # TODO: Do we want custom printing for product of Irreps
 # function Base.show(io::IO, ::Type{ProductSector{T}}) where {T<:Tuple{Vararg{Irrep}}}
 #     sectors = T.parameters
-#     print(io, "Irrep[")
+#     print(io, "Rep[")
 #     for i = 1:length(sectors)
 #         i == 1 || print(io, " × ")
 #         print(io, supertype(sectors[i]).parameters[1])

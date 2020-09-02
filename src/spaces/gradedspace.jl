@@ -54,7 +54,7 @@ end
 GradedSpace{I, NTuple{N, Int}}(dims::Pair; dual::Bool = false) where {I, N} =
     GradedSpace{I, NTuple{N, Int}}((dims,); dual = dual)
 
-function GradedSpace{I, SectorDict{I, Int}}(dims; dual::Bool = false) where {I}
+function GradedSpace{I, SectorDict{I, Int}}(dims; dual::Bool = false) where {I<:Sector}
     d = SectorDict{I, Int}()
     for (c, dc) in dims
         k = convert(I, c)
@@ -63,7 +63,7 @@ function GradedSpace{I, SectorDict{I, Int}}(dims; dual::Bool = false) where {I}
     end
     return GradedSpace{I, SectorDict{I, Int}}(d, dual)
 end
-GradedSpace{I, SectorDict{I, Int}}(dims::Pair; dual::Bool = false) where {I} =
+GradedSpace{I, SectorDict{I, Int}}(dims::Pair; dual::Bool = false) where {I<:Sector} =
     GradedSpace{I, SectorDict{I, Int}}((dims,); dual = dual)
 
 GradedSpace{I,D}(; kwargs...) where {I<:Sector,D} = GradedSpace{I,D}((); kwargs...)
@@ -123,7 +123,7 @@ Base.:(==)(V1::GradedSpace, V2::GradedSpace) =
 
 # axes
 Base.axes(V::GradedSpace) = Base.OneTo(dim(V))
-function Base.axes(V::GradedSpace{I}, c::I) where {I}
+function Base.axes(V::GradedSpace{I}, c::I) where {I<:Sector}
     offset = 0
     for c′ in sectors(V)
         c′ == c && break
@@ -150,7 +150,7 @@ function ⊕(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
     return GradedSpace[I](dims; dual = dual1)
 end
 
-function flip(V::GradedSpace{I}) where {I}
+function flip(V::GradedSpace{I}) where {I<:Sector}
     if isdual(V)
         GradedSpace[I](c=>dim(V, c) for c in sectors(V))
     else
@@ -168,7 +168,7 @@ function fuse(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
     return GradedSpace[I](dims)
 end
 
-function infimum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I}
+function infimum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
     if V1.dual == V2.dual
         GradedSpace[I](c=>min(dim(V1, c), dim(V2, c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
@@ -220,17 +220,21 @@ const U₁Space = Rep[U₁]
 const CU₁Space = Rep[CU₁]
 const SU₂Space = Rep[SU₂]
 
-Base.show(io::IO, ::Type{GradedSpace{I,NTuple{N,Int}}}) where {I<:Sector,N} =
-    print(io, "GradedSpace[", I, "]")
-Base.show(io::IO, ::Type{GradedSpace{I,SectorDict{I,Int}}}) where {I<:Sector} =
-    print(io, "GradedSpace[", I, "]")
-
-Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
-Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
-Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
-Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
-Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
-Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
+function Base.show(io::IO, S::Type{<:GradedSpace})
+    if Base.isconcretetype(S)
+        print(io, "GradedSpace[", S.parameters[1], "]")
+    elseif S isa UnionAll && S.var.name == :D
+        print(io, "GradedSpace{", S.body.parameters[1], "}")
+    else
+        print(io, "GradedSpace")
+    end
+end
+Base.show(io::IO, ::MIME"text/plain", ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
+Base.show(io::IO, ::MIME"text/plain", ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
+Base.show(io::IO, ::MIME"text/plain", ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
+Base.show(io::IO, ::MIME"text/plain", ::Type{U₁Space}) = print(io, "U₁Space")
+Base.show(io::IO, ::MIME"text/plain", ::Type{CU₁Space}) = print(io, "CU₁Space")
+Base.show(io::IO, ::MIME"text/plain", ::Type{SU₂Space}) = print(io, "SU₂Space")
 
 # non-Unicode alternatives
 const Z2Space = ℤ₂Space
