@@ -72,19 +72,51 @@ dim(t::TensorMap) = mapreduce(x->length(x[2]), +, blocks(t); init = 0)
 # General TensorMap constructors
 #--------------------------------
 # with data
-function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {S<:IndexSpace, N₁, N₂}
+function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂};
+            tol = sqrt(eps(real(float(eltype(data)))))) where {S<:IndexSpace, N₁, N₂}
+    (d1, d2) = (dim(codom), dim(dom))
+    if !(length(data) == d1*d2 || size(data) == (d1, d2) ||
+        size(data) == (dims(codom)..., dims(dom)...))
+        throw(DimensionMismatch())
+    end
     if sectortype(S) === Trivial # For now, we can only accept array data for Trivial sectortype
-        (d1, d2) = (dim(codom), dim(dom))
-        if !(length(data) == d1*d2 || size(data) == (d1, d2) ||
-            size(data) == (dims(codom)..., dims(dom)...))
-            throw(DimensionMismatch())
-        end
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data2, codom, dom)
     else
-        # TODO: allow to start from full data (a single DenseArray) and create the dictionary, in the first place for Abelian sectors, or for e.g. SU₂ using Wigner 3j symbols
-        throw(SectorMismatch())
+        t = TensorMap(zeros, eltype(data), codom, dom)
+        ta = convert(Array, t)
+        l = length(ta)
+        basis = zeros(eltype(ta), (l, dim(t)))
+        i = 1
+        for (c,b) in blocks(t)
+            for k = 1:length(b)
+                b[k] = 1
+                copy!(view(basis, :, i), reshape(convert(Array, t), (l,)))
+                b[k] = 0
+                i += 1
+            end
+        end
+        rhs = reshape(data, (l,))
+        q, r = LinearAlgebra.qr(basis)
+        Q = Matrix(q)
+        rhs_projected = Q'*rhs
+        if norm(q*rhs_projected - rhs) > tol
+            throw(ArgumentError("Data has non-zero elements at incompatible positions"))
+        end
+        lhs = Q*(LinearAlgebra.ldiv!(LinearAlgebra.UpperTriangular(r), rhs_projected))
+        if eltype(lhs) != eltype(t)
+            t2 = TensorMap(zeros, promote_type(eltype(lhs), eltype(t)), codom, dom)
+        else
+            t2 = t
+        end
+        i = 1
+        for (c,b) in blocks(t2)
+            for k = 1:length(b)
+                b[k] = lhs[i]
+            end
+        end
+        return t2
     end
 end
 

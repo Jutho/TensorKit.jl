@@ -118,15 +118,19 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
         # TODO: Frobenius-Schur indicators!, and fermions!
         cod = codomain(t)
         dom = domain(t)
-        A = fill(zero(eltype(t)), (dims(cod)..., dims(dom)...))
-        for (f1,f2) in fusiontrees(t)
+        local A
+        for (f1, f2) in fusiontrees(t)
             F1 = convert(Array, f1)
             F2 = convert(Array, f2)
             sz1 = size(F1)
             sz2 = size(F2)
             d1 = TupleTools.front(sz1)
             d2 = TupleTools.front(sz2)
-            F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1...,d2...))
+            F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
+            if !(@isdefined A)
+                T = promote_type(eltype(t), eltype(F))
+                A = fill(zero(T), (dims(cod)..., dims(dom)...))
+            end
             Aslice = StridedView(A)[axes(cod, f1.uncoupled)..., axes(dom, f2.uncoupled)...]
             axpy!(1, StridedView(_kron(convert(Array, t[f1,f2]), F)), Aslice)
         end
