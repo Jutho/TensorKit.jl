@@ -57,4 +57,3 @@ supremum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
     throw(SpaceMismatch("Supremum of space and dual space does not exist"))
 
 Base.show(io::IO, V::ComplexSpace) = print(io, isdual(V) ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")
-Base.show(io::IO, ::Type{ComplexSpace}) = print(io, "ComplexSpace")
