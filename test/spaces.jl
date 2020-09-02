@@ -339,6 +339,42 @@ end
     @test sum(dim(c)*blockdim(P, c) for c in @constinferred(blocksectors(P))) == dim(P)
 end
 
+@testset TimedTestSet "Deligne tensor product of spaces" begin
+    V1 = SU₂Space(0=>3, 1//2=>1)
+    V2 = SU₂Space(0=>2, 1=>1)'
+    V3 = ℤ₃Space(0=>3, 1=>2, 2=>1)
+    V4 = ℂ^3
+
+    for W1 in (V1, V2, V3, V4)
+        for W2 in (V1, V2, V3, V4)
+            for W3 in (V1, V2, V3, V4)
+                for W4 in (V1, V2, V3, V4)
+                    Ws = @constinferred(W1 ⊠ W2 ⊠ W3 ⊠ W4)
+                    @test Ws == @constinferred((W1 ⊠ W2) ⊠ (W3 ⊠ W4)) ==
+                                @constinferred(((W1 ⊠ W2) ⊠ W3) ⊠ W4) ==
+                                @constinferred((W1 ⊠ (W2 ⊠ W3)) ⊠ W4) ==
+                                @constinferred(W1 ⊠ ((W2 ⊠ W3)) ⊠ W4) ==
+                                @constinferred(W1 ⊠ (W2 ⊠ (W3 ⊠ W4)))
+                    I1, I2, I3, I4 = map(sectortype, (W1, W2, W3, W4))
+                    I = sectortype(Ws)
+                    @test I == @constinferred((I1 ⊠ I2) ⊠ (I3 ⊠ I4)) ==
+                                @constinferred(((I1 ⊠ I2) ⊠ I3) ⊠ I4) ==
+                                @constinferred((I1 ⊠ (I2 ⊠ I3)) ⊠ I4) ==
+                                @constinferred(I1 ⊠ ((I2 ⊠ I3)) ⊠ I4) ==
+                                @constinferred(I1 ⊠ (I2 ⊠ (I3 ⊠ I4)))
+                    @test dim(Ws) == dim(W1) * dim(W2) * dim(W3) * dim(W4)
+                end
+            end
+        end
+    end
+    @test sectortype(@constinferred((V1 ⊗ V2) ⊠ V3)) == @constinferred(Irrep[SU₂ × ℤ₃])
+    @test dim((V1 ⊗ V2) ⊠ V3) == dim(V1) * dim(V2) * dim(V3)
+    @test sectortype((V1 ⊗ V2) ⊠ V3 ⊠ V4) == Irrep[SU₂ × ℤ₃]
+    @test dim((V1 ⊗ V2) ⊠ V3 ⊠ V4) == dim(V1) * dim(V2) * dim(V3) * dim(V4)
+    @test fuse(V2 ⊠ V4) == fuse(V4 ⊠ V2) == SU₂Space(0=>6, 1=>3)
+    @test fuse(V3 ⊠ V4) == fuse(V4 ⊠ V3) == ℤ₃Space(0=>9, 1=>6, 2=>3)
+end
+
 @testset TimedTestSet "HomSpace" begin
     V1, V2, V3, V4, V5 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1),
                             SU₂Space(1//2=>1, 1=>1)', SU₂Space(0=>2, 1//2=>2),

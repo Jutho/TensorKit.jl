@@ -127,24 +127,26 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
 ⊠(P1::ProductSector, P2::ProductSector) =
     ProductSector(tuple(P1.sectors..., P2.sectors...))
 
-⊠(I1::Type{ProductSector{Tuple{}}},
-                    I2::Type{ProductSector{T}}) where {T<:SectorTuple} = I2
-⊠(I1::Type{ProductSector{T1}},
-                    I2::Type{ProductSector{T2}}) where {T1<:SectorTuple, T2<:SectorTuple} =
-    tuple_type_head(T1) ⊠ (ProductSector{tuple_type_tail(T1)} ⊠ I2)
-⊠(I1::Type{ProductSector{Tuple{}}}, I2::Type{<:Sector}) =
-    ProductSector{Tuple{I2}}
-⊠(I1::Type{<:ProductSector}, I2::Type{Trivial}) = I1
-⊠(I1::Type{ProductSector{T}}, I2::Type{<:Sector}) where {T<:SectorTuple} =
-    Base.tuple_type_head(T) ⊠ (ProductSector{Base.tuple_type_tail(T)} ⊠ I2)
-⊠(I1::Type{Trivial}, I2::Type{<:ProductSector}) = I2
-⊠(I1::Type{<:Sector}, I2::Type{ProductSector{T}}) where {T<:SectorTuple} =
-    ProductSector{Base.tuple_type_cons(I1, T)}
-
+# grow types from the left using Base.tuple_type_cons
 ⊠(I1::Type{Trivial}, I2::Type{Trivial}) = Trivial
 ⊠(I1::Type{Trivial}, I2::Type{<:Sector}) = I2
 ⊠(I1::Type{<:Sector}, I2::Type{<:Trivial}) = I1
 ⊠(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1, I2}}
+
+⊠(I1::Type{<:ProductSector}, I2::Type{Trivial}) = I1
+⊠(I1::Type{<:ProductSector}, I2::Type{<:Sector}) = I1 ⊠ ProductSector{Tuple{I2}}
+
+⊠(::Type{Trivial}, P::Type{ProductSector{T}}) where {T<:SectorTuple} = P
+⊠(I::Type{<:Sector}, ::Type{ProductSector{T}}) where {T<:SectorTuple} =
+    ProductSector{Base.tuple_type_cons(I, T)}
+
+⊠(::Type{ProductSector{Tuple{I}}},
+    ::Type{ProductSector{T}}) where {I<:Sector, T<:SectorTuple} =
+    ProductSector{Base.tuple_type_cons(I, T)}
+
+⊠(::Type{ProductSector{T1}},
+        I2::Type{ProductSector{T2}}) where {T1<:SectorTuple, T2<:SectorTuple} =
+    Base.tuple_type_head(T1) ⊠ (ProductSector{Base.tuple_type_tail(T1)} ⊠ I2)
 
 function Base.show(io::IO, P::ProductSector)
     sectors = P.sectors
