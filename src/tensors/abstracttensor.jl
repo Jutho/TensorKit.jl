@@ -128,7 +128,13 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
             d2 = TupleTools.front(sz2)
             F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
             if !(@isdefined A)
-                T = promote_type(eltype(t), eltype(F))
+                if eltype(F) <: Complex
+                    T = complex(float(eltype(t)))
+                elseif eltype(F) <: Integer
+                    T = eltype(t)
+                else
+                    T = float(eltype(t))
+                end
                 A = fill(zero(T), (dims(cod)..., dims(dom)...))
             end
             Aslice = StridedView(A)[axes(cod, f1.uncoupled)..., axes(dom, f2.uncoupled)...]

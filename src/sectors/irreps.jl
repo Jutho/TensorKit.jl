@@ -30,11 +30,11 @@ Nsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = c == first(a ⊗ b)
 Fsymbol(a::G, b::G, c::G, d::G, e::G, f::G) where {G<:AbelianIrrep} =
     Int(Nsymbol(a,b,e)*Nsymbol(e,c,d)*Nsymbol(b,c,f)*Nsymbol(a,f,d))
 frobeniusschur(a::AbelianIrrep) = 1
-Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
-Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Float64(Nsymbol(a, b, c))
+Bsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Int(Nsymbol(a, b, c))
+Rsymbol(a::G, b::G, c::G) where {G<:AbelianIrrep} = Int(Nsymbol(a, b, c))
 
 fusiontensor(a::G, b::G, c::G, v::Nothing = nothing) where {G<:AbelianIrrep} =
-    fill(Float64(Nsymbol(a,b,c)), (1,1,1))
+    fill(Int(Nsymbol(a,b,c)), (1,1,1))
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 64?
 """
