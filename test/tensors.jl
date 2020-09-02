@@ -483,3 +483,23 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                 " seconds."; bold = true, color = Base.info_color())
     println()
 end
+
+@testset TimedTestSet "Deligne tensor product: test via conversion" begin
+    @testset for Vlist1 in (Vtr, VSU₂), Vlist2 in (Vtr, Vℤ₂)
+        V1, V2, V3, V4, V5 = Vlist1
+        W1, W2, W3, W4, W5 = Vlist2
+        for T in (Float32, ComplexF64)
+            t1 = TensorMap(rand, T, V1 ⊗ V2, V3' ⊗ V4)
+            t2 = TensorMap(rand, T, W2, W1 ⊗ W1')
+            t = @constinferred (t1 ⊠ t2)
+            d1 = dim(codomain(t1))
+            d2 = dim(codomain(t2))
+            d3 = dim(domain(t1))
+            d4 = dim(domain(t2))
+            At = convert(Array, t)
+            @test reshape(At, (d1, d2, d3, d4)) ≈
+                    reshape(convert(Array, t1), (d1, 1, d3, 1)) .*
+                    reshape(convert(Array, t2), (1, d2, 1, d4))
+        end
+    end
+end
