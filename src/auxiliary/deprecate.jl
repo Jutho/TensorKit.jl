@@ -51,3 +51,6 @@ end
     Base.depwarn("`SU₂(args...)` is deprecated, use `SU2Irrep(args...)` or ``Irrep[SU₂](args...)` instead.", ((Base.Core).Typeof(SU₂)).name.mt.name)
     Irrep[SU₂](args...)
 end
+
+Base.@deprecate(permuteind!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, p1, p2),
+                permute!(tdst, tsrc, p1, p2))

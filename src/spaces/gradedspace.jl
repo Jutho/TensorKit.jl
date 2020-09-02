@@ -220,7 +220,11 @@ const U₁Space = Rep[U₁]
 const CU₁Space = Rep[CU₁]
 const SU₂Space = Rep[SU₂]
 
-Base.show(io::IO, ::Type{GradedSpace{I,D}}) where {I,D} = print(io, "GradedSpace[", I, "]")
+Base.show(io::IO, ::Type{GradedSpace{I,NTuple{N,Int}}}) where {I<:Sector,N} =
+    print(io, "GradedSpace[", I, "]")
+Base.show(io::IO, ::Type{GradedSpace{I,SectorDict{I,Int}}}) where {I<:Sector} =
+    print(io, "GradedSpace[", I, "]")
+
 Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
 Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
 Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")

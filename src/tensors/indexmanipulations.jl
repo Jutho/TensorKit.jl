@@ -57,10 +57,6 @@ function has_shared_permute(t::AdjointTensorMap, p1, p2)
     return has_shared_permute(t', p1′, p2′)
 end
 
-
-Base.@deprecate(permuteind!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, p1, p2),
-                permute!(tdst, tsrc, p1, p2))
-
 """
     permute(tsrc::AbstractTensorMap{S}, p1::NTuple{N₁, Int}, p2::NTuple{N₂, Int} = ())
         -> tdst::TensorMap{S, N₁, N₂}

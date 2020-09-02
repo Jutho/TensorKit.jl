@@ -11,7 +11,6 @@ SectorValues
 FusionStyle
 BraidingStyle
 Irrep
-AbelianIrrep
 ZNIrrep
 U1Irrep
 SU2Irrep
@@ -20,7 +19,7 @@ FibonacciAnyon
 FusionTree
 ```
 
-## Methods for characterizing `Sector` subtypes
+## Methods for defining and characterizing `Sector` subtypes
 ```@docs
 Base.one(::Sector)
 dual(::Sector)
@@ -34,6 +33,7 @@ twist
 Base.isreal(::Type{<:Sector})
 TensorKit.vertex_labeltype
 TensorKit.vertex_ind2label
+⊠(::Sector, ::Sector)
 ```
 
 ## Methods for manipulating fusion trees or pairs of fusion-splitting trees

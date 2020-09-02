@@ -22,6 +22,21 @@ unitary
 isometry
 ```
 
+## `TensorMap` operations
+
+```@docs
+permute(t::TensorMap{S}, p1::IndexTuple, p2::IndexTuple) where {S}
+permute!
+braid
+braid!
+twist
+twist!
+add!
+trace!
+contract!
+```
+
+
 ## `TensorMap` factorizations
 
 ```@docs
