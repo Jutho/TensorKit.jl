@@ -691,9 +691,9 @@ As mentioned, the convenience mehtod `GradedSpace[I]` will return the concrete t
 concern. In fact, for consistency, `GradedSpace[Trivial]` will just return `ComplexSpace`,
 which is not even a specific type of `GradedSpace`. There is also the Unicode alias `ℂ[I]`,
 and for the specific case of group irreps as sectors, one can use `Rep[G]` with `G` the
-group, as inspired by the categorical name ``Rep_G``. Here, `Rep` is a `UnionAll` type that
-for `GradedSpace{I}` where `I` is either the `Irrep` of some group, or a `ProductSector` of
-`Irrep`s. Some illustrations:
+group, as inspired by the categorical name ``\mathbf{Rep}_{\mathsf{G}}``. Here, `Rep` is a
+`UnionAll` type that for `GradedSpace{I}` where `I` is either the `Irrep` of some group, or
+a `ProductSector` of `Irrep`s. Some illustrations:
 ```@repl sectors
 ℂ[]
 ℂ[Trivial]

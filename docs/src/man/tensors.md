@@ -66,16 +66,16 @@ below, can act directly on this matrix representation.
     properties and would thus not constitute the matrix representation of the tensor in a
     compatible basis.
 
-Now consider the case where `sectortype(S) == G` for some `G` which has
-`FusionStyle(G) == Abelian()`, i.e. the representations of an Abelian group, e.g. `G == ℤ₂`
-or `G == U₁`. In this case, the tensor data is associated with sectors
-`(a1, a2, …, aN₁) ∈ sectors(V1 ⊗ V2 ⊗ … ⊗ VN₁)` and `(b1, …, bN₂) ∈ sectors(W1 ⊗ … ⊗ WN₂)`
-such that they fuse to a same common charge, i.e.
+Now consider the case where `sectortype(S) == I` for some `I` which has
+`FusionStyle(I) == Abelian()`, i.e. the representations of an Abelian group, e.g.
+`I == Irrep[ℤ₂]` or `I == Irrep[U₁]`. In this case, the tensor data is associated with
+sectors `(a1, a2, …, aN₁) ∈ sectors(V1 ⊗ V2 ⊗ … ⊗ VN₁)` and
+`(b1, …, bN₂) ∈ sectors(W1 ⊗ … ⊗ WN₂)` such that they fuse to a same common charge, i.e.
 `(c = first(⊗(a1, …, aN₁))) == first(⊗(b1, …, bN₂))`. The data associated with this takes
 the form of a multidimensional array with size
-`(dim(V1, a1), …, dim(VN₁, aN₁), dim(W1, b1), …, dim(WN₂, bN₂))`, or equivalently, a
-matrix of with row size `dim(V1, a1)*…*dim(VN₁, aN₁) == dim(codomain, (a1, …, aN₁))` and
-column size `dim(W1, b1)*…*dim(WN₂, aN₂) == dim(domain, (b1, …, bN₂))`.
+`(dim(V1, a1), …, dim(VN₁, aN₁), dim(W1, b1), …, dim(WN₂, bN₂))`, or equivalently, a matrix
+of with row size `dim(V1, a1)*…*dim(VN₁, aN₁) == dim(codomain, (a1, …, aN₁))` and column
+size `dim(W1, b1)*…*dim(WN₂, aN₂) == dim(domain, (b1, …, bN₂))`.
 
 However, there are multiple combinations of `(a1, …, aN₁)` giving rise to the same `c`, and
 so there is data associated with all of these, as well as all possible combinations of
@@ -114,7 +114,7 @@ the data in this `view` is not contiguous, because the stride between the differ
 is larger than the length of the columns. Nonetheless, this does not pose a problem and even
 as multidimensional array there is still a definite stride associated with each dimension.
 
-When `FusionStyle(G) isa NonAbelian`, things become slightly more complicated. Not only do
+When `FusionStyle(I) isa NonAbelian`, things become slightly more complicated. Not only do
 `(a1, …, aN₁)` give rise to different coupled sectors `c`, there can be multiply ways in
 which they fuse to `c`. These different possibilities are enumerated by the iterator
 `fusiontrees((a1, …, aN₁), c)` and `fusiontrees((b1, …, bN₂), c)`, and with each of those,
@@ -137,7 +137,7 @@ unitary basis transform which makes this matrix representation block diagonal, m
 specifically, of the form ``⨁_{c} B_c ⊗ 𝟙_{c}``, where ``B_c`` denotes `block(t,c)` and
 ``𝟙_{c}`` is an identity matrix of size `(dim(c), dim(c))`. The reason for this extra
 identity is that the group representation is recoupled to act as ``⨁_{c} 𝟙 ⊗ u_c(g)`` for
-all ``g ∈ \mathsf{G}``, with ``u_c(g)`` the matrix representation of group element ``g``
+all ``g ∈ \mathsf{I}``, with ``u_c(g)`` the matrix representation of group element ``g``
 according to the irrep ``c``. In the abelian case, `dim(c) == 1`, i.e. all irreducible
 representations are one-dimensional and Schur's lemma only dictates that all off-diagonal
 blocks are zero. However, in this case the basis transform to the block diagonal
@@ -302,7 +302,7 @@ without and with symmetry. In the former case, one can pass a `DenseArray`, eith
 rank `N₁+N₂` and with matching size `(dims(codomain)..., dims(domain)...)`, or just as a
 `DenseMatrix` with size `(dim(codomain), dim(domain))`. In the case of symmetry, `data`
 needs to be specified as a dictionary (some subtype of `AbstractDict`) with the
-blocksectors `c::G <: Sector` as keys and the corresponding matrix blocks as value, i.e.
+blocksectors `c::I <: Sector` as keys and the corresponding matrix blocks as value, i.e.
 `data[c]` is some `DenseMatrix` of size `(blockdim(codomain, c), blockdim(domain, c))`.
 
 ```@repl tensors
@@ -310,7 +310,7 @@ data = randn(3,3,3)
 t = TensorMap(data, ℂ^3 ⊗ ℂ^3, ℂ^3)
 t ≈ TensorMap(reshape(data, (9, 3)), ℂ^3 ⊗ ℂ^3, ℂ^3)
 V = ℤ₂Space(0=>2, 1=>2)
-data = Dict(ℤ₂(0)=>randn(8,2), ℤ₂(1)=>randn(8,2))
+data = Dict(Z2Irrep(0)=>randn(8,2), Z2Irrep(1)=>randn(8,2))
 t2 = TensorMap(data, V*V, V)
 for (c,b) in blocks(t2)
     println("Data for block $c :")
@@ -373,8 +373,8 @@ V2 = ℤ₂Space(0=>2,1=>1)
 m = TensorMap(randn, V1, V2)
 convert(Array, m) |> disp
 # compare with:
-block(m, ℤ₂(0)) |> disp
-block(m, ℤ₂(1)) |> disp
+block(m, Irrep[ℤ₂](0)) |> disp
+block(m, Irrep[ℤ₂](1)) |> disp
 # Now a `TensorMap{ℤ₂Space, 2, 2}`
 t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
 (array = convert(Array, t)) |> disp
@@ -386,8 +386,8 @@ d2 = dim(domain(t))
 u'*u ≈ I ≈ v'*v
 (u'*matrix*v) |> disp
 # compare with:
-block(t, ℤ₂(0)) |> disp
-block(t, ℤ₂(1)) |> disp
+block(t, Z2Irrep(0)) |> disp
+block(t, Z2Irrep(1)) |> disp
 ```
 Here, we illustrated some additional concepts. Firstly, note that we convert a `TensorMap`
 to an `Array`. This only works when `sectortype(t)` supports `fusiontensor`, and in
@@ -402,11 +402,11 @@ and `N₂`. Here, we use the operation `fuse(V)`, which creates an `ElementarySp
 isomorphic to a given space `V` (of type `ProductSpace` or `ElementarySpace`). The specific
 map between those two spaces constructed using the specific method `unitary` implements
 precisely the basis change from the product basis to the coupled basis. In this case, for a
-group `G` with `FusionStyle(G) isa Abelian`, it is a permutation matrix. Specifically
+group `G` with `FusionStyle(Irrep[G]) isa Abelian`, it is a permutation matrix. Specifically
 choosing `V` equal to the codomain and domain of `t`, we can construct the explicit basis
 transforms that bring `t` into block diagonal form.
 
-Let's repeat the same exercise for `G = SU₂`, which has `FusionStyle(G) isa NonAbelian`.
+Let's repeat the same exercise for `I = Irrep[SU₂]`, which has `FusionStyle(I) isa NonAbelian`.
 ```@repl tensors
 V1 = SU₂Space(0=>2,1=>1)
 V2 = SU₂Space(0=>1,1=>1)
@@ -414,8 +414,8 @@ V2 = SU₂Space(0=>1,1=>1)
 m = TensorMap(randn, V1, V2)
 convert(Array, m) |> disp
 # compare with:
-block(m, SU₂(0)) |> disp
-block(m, SU₂(1)) |> disp
+block(m, Irrep[SU₂](0)) |> disp
+block(m, Irrep[SU₂](1)) |> disp
 # Now a `TensorMap{SU₂Space, 2, 2}`
 t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
 (array = convert(Array, t)) |> disp
@@ -427,14 +427,15 @@ d2 = dim(domain(t))
 u'*u ≈ I ≈ v'*v
 (u'*matrix*v) |> disp
 # compare with:
-block(t, SU₂(0)) |> disp
-block(t, SU₂(1)) |> disp
-block(t, SU₂(2)) |> disp
+block(t, SU2Irrep(0)) |> disp
+block(t, SU2Irrep(1)) |> disp
+block(t, SU2Irrep(2)) |> disp
 ```
 Note that the basis transforms `u` and `v` are no longer permutation matrices, but are
 still unitary. Furthermore, note that they render the tensor block diagonal, but that now
 every element of the diagonal blocks labeled by `c` comes itself in a tensor product with
-an identity matrix of size `dim(c)`, i.e. `dim(SU₂(1)) = 3` and `dim(SU₂(2)) = 5`.
+an identity matrix of size `dim(c)`, i.e. `dim(SU2Irrep(1)) = 3` and
+`dim(SU2Irrep(2)) = 5`.
 
 ## [Tensor properties](@id ss_tensor_properties)
 
@@ -701,7 +702,7 @@ indices simultaneously can be obtained by using the defining property
 
 but is currently not implemented explicitly.
 
-For all sector types `G` with `BraidingStyle(G) == Bosonic()`, all twists are `1` and thus
+For all sector types `I` with `BraidingStyle(I) == Bosonic()`, all twists are `1` and thus
 have no effect. Let us start with some examples, in which we illustrate that, albeit
 `permute` might act highly non-trivial on the fusion trees and on the corresponding data,
 after conversion to a regular `Array` (when possible), it just acts like `permutedims`
@@ -736,8 +737,8 @@ product. This might be very confusing, and as such we leave tensor conjugation u
 However, note that we have a conjugation syntax within the context of
 [tensor contractions](@ref ss_tensor_contraction).
 
-To show the effect of `twist`, we now consider a type of sector `G` for which
-`BraidingStyle{G} != Bosonic()`. In particular, we use `FibonacciAnyon`. We cannot convert
+To show the effect of `twist`, we now consider a type of sector `I` for which
+`BraidingStyle{I} != Bosonic()`. In particular, we use `FibonacciAnyon`. We cannot convert
 the resulting `TensorMap` to an `Array`, so we have to rely on indirect tests to verify our
 results.
 
@@ -990,7 +991,7 @@ R ≈ W'*S*W
 U2, S2, W2, ε = tsvd(t; trunc = truncspace(V1));
 W2*W2' ≈ id(codomain(W2))
 S2
-ε ≈ norm(block(S, SU₂(1)))*sqrt(dim(SU₂(1)))
+ε ≈ norm(block(S, Irrep[SU₂](1)))*sqrt(dim(Irrep[SU₂](1)))
 
 L, Q = rightorth(t, (1,), (2,3));
 codomain(L), domain(L), domain(Q)
@@ -1020,7 +1021,7 @@ two-dimensional diagram cannot easily be encoded in a single line of code.
 
 However, things simplify when the braiding is symmetric (such that over- and under-
 crossings become equivalent, i.e. just crossings), and when twists, i.e. self-crossings in
-this case, are trivial. This amounts to `BraidingStyle(G) == Bosonic()` in the language of
+this case, are trivial. This amounts to `BraidingStyle(I) == Bosonic()` in the language of
 TensorKit.jl, and is true for any subcategory of ``\mathbf{Vect}``, i.e. ordinary tensors,
 possibly with some symmetry constraint. The case of ``\mathbf{SVect}`` and its
 subcategories, and more general categories, are discussed below.
@@ -1044,7 +1045,7 @@ Hence, we can now specify such a tensor diagram, henceforth called a tensor cont
 also tensor network, using a one-dimensional syntax that mimicks
 [abstract index notation](https://en.wikipedia.org/wiki/Abstract_index_notation)
 and specifies which indices are connected by the evaluation map using Einstein's summation
-conventation. Indeed, for `BraidingStyle(G) == Bosonic()`, such a tensor contraction can
+conventation. Indeed, for `BraidingStyle(I) == Bosonic()`, such a tensor contraction can
 take the same format as if all tensors were just multi-dimensional arrays. For this, we
 rely on the interface provided by the package
 [TensorOperations.jl](https://github.com/Jutho/TensorOperations.jl).
