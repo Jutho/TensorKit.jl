@@ -297,22 +297,37 @@ Furthermore, there could be specific implementations for tensors whose blocks ar
 
 To create a `TensorMap` with existing data, one can use the aforementioned form but with
 the function `f` replaced with the actual data, i.e. `TensorMap(data, codomain, domain)` or
-any of its equivalents. For the specific form of `data`, we distinguish between the case
-without and with symmetry. In the former case, one can pass a `DenseArray`, either of
-rank `N₁+N₂` and with matching size `(dims(codomain)..., dims(domain)...)`, or just as a
-`DenseMatrix` with size `(dim(codomain), dim(domain))`. In the case of symmetry, `data`
-needs to be specified as a dictionary (some subtype of `AbstractDict`) with the
-blocksectors `c::I <: Sector` as keys and the corresponding matrix blocks as value, i.e.
-`data[c]` is some `DenseMatrix` of size `(blockdim(codomain, c), blockdim(domain, c))`.
+any of its equivalents.
 
+Here, `data` can be of two types. It can be a dictionary (any `Associative` subtype) which
+has blocksectors `c` of type `sectortype(codomain)` as keys, and the corresponding matrix
+blocks as value, i.e. `data[c]` is some `DenseMatrix` of size `(blockdim(codomain, c),
+blockdim(domain, c))`. This is the form of how the data is stored within the `TensorMap`
+objects.
+
+For those space types for which a `TensorMap` can be converted to a plain multidimensional
+array, the `data` can also be a general `DenseArray`, either of rank `N₁+N₂` and with
+matching size `(dims(codomain)..., dims(domain)...)`, or just as a `DenseMatrix` with size
+`(dim(codomain), dim(domain))`. This is true in particular if the sector type is `Trivial`,
+e.g. for `CartesianSpace` or `ComplexSpace`. Then the `data` array is just reshaped into
+matrix form and referred to as such in the resulting `TensorMap` instance. When `spacetype`
+is `GradedSpace`, the `TensorMap` constructor will try to reconstruct the tensor data such
+that the resulting tensor `t` satisfies `data == convert(Array, t)`. This might not be
+possible, if the data does not respect the symmetry structure. Let's sketch this with a
+simple example
 ```@repl tensors
-data = randn(3,3,3)
-t = TensorMap(data, ℂ^3 ⊗ ℂ^3, ℂ^3)
-t ≈ TensorMap(reshape(data, (9, 3)), ℂ^3 ⊗ ℂ^3, ℂ^3)
-V = ℤ₂Space(0=>2, 1=>2)
-data = Dict(Z2Irrep(0)=>randn(8,2), Z2Irrep(1)=>randn(8,2))
-t2 = TensorMap(data, V*V, V)
-for (c,b) in blocks(t2)
+data = zeros(2,2,2,2)
+# encode the operator (σ_x * σ_x + σ_y * σ_y + σ_z * σ_z)/2
+# that is, the swap gate, which maps the last two indices on the first two in reversed order
+# also known as Heisenberg interaction between two spin 1/2 particles
+data[1,1,1,1] = data[2,2,2,2] = data[1,2,2,1] = data[2,1,1,2] = 1
+V1 = ℂ^2 # generic qubit hilbert space
+t1 = TensorMap(data, V1 ⊗ V1, V1 ⊗ V1)
+V2 = SU2Space(1/2=>1) # hilbert space of an actual spin-1/2 particle, respecting symmetry
+t2 = TensorMap(data, V2 ⊗ V2, V2 ⊗ V2)
+V3 = U1Space(1/2=>1,-1/2=>1) # restricted space that only uses the `σ_z` rotation symmetry
+t3 = TensorMap(data, V3 ⊗ V3, V3 ⊗ V3)
+for (c,b) in blocks(t3)
     println("Data for block $c :")
     b |> disp
     println()

@@ -14,7 +14,6 @@ The most important objects in TensorKit.jl are tensors, which we now create with
 (normally distributed) entries in the following manner
 ```@repl tutorial
 A = Tensor(randn, ℝ^3 ⊗ ℝ^2 ⊗ ℝ^4)
-space(A)
 ```
 Note that we entered the tensor size not as plain dimensions, by specifying the vector
 space associated with these tensor indices, in this case `ℝ^n`, which can be obtained by
@@ -140,6 +139,7 @@ Another example involves checking that `U` from the singular value decomposition
 ```@repl tutorial
 codomain(U)
 domain(U)
+space(U)
 U'*U # should be the identity on the corresponding domain = codomain
 U'*U ≈ one(U'*U)
 P = U*U' # should be a projector
