@@ -2,7 +2,7 @@
 
 ```@setup sectors
 using TensorKit
-using LinearAlgebra
+import LinearAlgebra
 ```
 
 Symmetries in a physical system often result in tensors which are invariant under the action
@@ -669,7 +669,7 @@ specific sector type `I`, more specifically on the `IteratorSize` of `values(I)`
 `IteratorSize(values(I)) isa Union{IsInfinite, SizeUnknown}`, the different sectors ``a``
 and their corresponding degeneracy ``n_a`` are stored as key value pairs in an
 `Associative` array, i.e. a dictionary `dims::SectorDict`. As the total number of sectors
-in `values(I)` can be infinite, only sectors ``a`` for which ``n_a`` are storted. Here,
+in `values(I)` can be infinite, only sectors ``a`` for which ``n_a`` are stored. Here,
 `SectorDict` is a constant type alias for a specific dictionary implementation, which
 currently resorts to `SortedVectorDict` implemented in TensorKit.jl. Hence, the sectors and
 their corresponding dimensions are stored as two matching lists (`Vector` instances), which
@@ -680,7 +680,7 @@ match.
 
 If `IteratorSize(values(I)) isa Union{HasLength, HasShape}`, the degeneracy dimensions
 `n_a` are stored for all sectors `a ∈ values(I)` (also if `n_a == 0`) in a tuple, more
-specifically a `NTuple{N, I}` with `N = length(values(I))`. The methods
+specifically a `NTuple{N, Int}` with `N = length(values(I))`. The methods
 `getindex(values(I), i)` and `findindex(values(I), a)` are used to map between a sector
 `a ∈ values(I)` and a corresponding index `i ∈ 1:N`. As `N` is a compile time constant,
 these types can be created in a type stable manner.
@@ -729,12 +729,11 @@ To create specific instances of those types, one can e.g. just use
 `V = GradedSpace(a=>n_a, b=>n_b, c=>n_c)` or `V = GradedSpace(iterator)` where `iterator`
 is any iterator (e.g. a dictionary or a generator) that yields `Pair{I,Int}` instances.
 With those constructions, `I` is inferred from the type of sectors. However, it is often
-more convenient to specify the sector type explicitly (in particular using one of the many
-alias provided), since then the sectors are automatically converted to the correct type,
-i.e. compare
+more convenient to specify the sector type explicitly (using one of the many alias
+provided), since then the sectors are automatically converted to the correct type; compare
 ```@repl sectors
-GradedSpace[U1Irrep](0=>3, 1=>2, -1=>1) ==
-    GradedSpace[U1Irrep(0)=>3, U1Irrep(1)=>2, U1Irrep(-1)=>1] == U1Space(0=>3, 1=>2, -1=>1)
+GradedSpace[Irrep[U₁]](0=>3, 1=>2, -1=>1) ==
+    ℂ[U1Irrep(0)=>3, U1Irrep(1)=>2, U1Irrep(-1)=>1] == U1Space(0=>3, 1=>2, -1=>1)
 ```
 The fact that `Rep[G]` also works with product groups makes it easy to specify e.g.
 ```@repl sectors
@@ -956,7 +955,7 @@ number of possible fusion trees without iterating over all of them explicitly. T
 illustrated with some examples
 
 ```@repl sectors
-s = SU₂(1/2)
+s = Irrep[SU₂](1/2)
 collect(fusiontrees((s,s,s,s)))
 collect(fusiontrees((s,s,s,s,s), s, (true, false, false, true, false)))
 iter = fusiontrees(ntuple(n->s, 16))
@@ -964,16 +963,17 @@ sum(n->1, iter)
 length(iter)
 @elapsed sum(n->1, iter)
 @elapsed length(iter)
-s2 = s × s
+s2 = s ⊠ s
 collect(fusiontrees((s2,s2,s2,s2)))
 ```
 Note that `FusionTree` instances are shown (printed) in a way that is valid code to
 reproduce them, a property which also holds for both instances of `Sector` and instances of
 `VectorSpace`. All of those should be displayed in a way that can be copy pasted as valid
 code. Furthermore, we use contact to determine how to print e.g. a sector. In isolation,
-`s2` is printed as `(SU₂(1/2) × SU₂(1/2))`, however, within the fusion tree, it is simply
-printed as `(1/2, 1/2)`, because it will be converted back into a `ProductSector`, namely
-`SU₂ × SU₂` by the constructor of `FusionTree{SU₂ × SU₂}`.
+`s2` is printed as `(Irrep[SU₂](1/2) ⊠ Irrep[SU₂](1/2))`, however, within the fusion tree,
+it is simply printed as `(1/2, 1/2)`, because it will be converted back into a
+`ProductSector`, namely `Irrep[SU₂] ⊠ Irrep[SU₂]` by the constructor of
+`FusionTree{Irrep[SU₂] ⊠ Irrep[SU₂]}`.
 
 ### Manipulations on a fusion tree
 
@@ -1211,17 +1211,18 @@ groups, as in the case of abelian groups, all irreps are one-dimensional.
 
 Some examples:
 ```@repl sectors
-iter = fusiontrees((SU₂(1/2),SU₂(1/2),SU₂(1/2),SU₂(1/2)), SU₂(1))
+s = Irrep[SU₂](1/2)
+iter = fusiontrees((s, s, s, s), SU2Irrep(1))
 f = first(iter)
 convert(Array, f)
 
 I ≈ convert(Array, FusionTree((SU₂(1/2),), SU₂(1/2), (false,), ()))
-Z = adjoint(convert(Array, FusionTree((SU₂(1/2),), SU₂(1/2), (true,), ())))
-transpose(Z) ≈ frobeniusschur(SU₂(1/2)) * Z
+Z = adjoint(convert(Array, FusionTree((SU2Irrep(1/2),), SU2Irrep(1/2), (true,), ())))
+transpose(Z) ≈ frobeniusschur(SU2Irrep(1/2)) * Z
 
-I ≈ convert(Array, FusionTree((SU₂(1),), SU₂(1), (false,), ()))
-Z = adjoint(convert(Array, FusionTree((SU₂(1),), SU₂(1), (true,), ())))
-transpose(Z) ≈ frobeniusschur(SU₂(1)) * Z
+I ≈ convert(Array, FusionTree((Irrep[SU₂](1),), Irrep[SU₂](1), (false,), ()))
+Z = adjoint(convert(Array, FusionTree((Irrep[SU₂](1),), Irrep[SU₂](1), (true,), ())))
+transpose(Z) ≈ frobeniusschur(Irrep[SU₂](1)) * Z
 
 #check orthogonality
 for f1 in iter
