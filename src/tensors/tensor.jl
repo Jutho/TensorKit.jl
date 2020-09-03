@@ -93,7 +93,8 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
         for (c,b) in blocks(t)
             for k = 1:length(b)
                 b[k] = 1
-                copy!(view(basis, :, i), reshape(convert(Array, t), (l,)))
+                copyto!(view(basis, :, i), reshape(convert(Array, t), (l,)))
+                # TODO: change this to `copy!` once we drop support for Julia 1.4
                 qdims[i] = dim(c)
                 b[k] = 0
                 i += 1

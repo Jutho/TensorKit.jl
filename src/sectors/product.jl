@@ -175,25 +175,24 @@ function Base.show(io::IO, P::ProductSector)
 end
 
 function Base.show(io::IO, P::Type{<:ProductSector})
-    if P isa UnionAll
-        print(io, "ProductSector")
-    else
-        T = P.parameters[1]
-        if T isa Type{<:Tuple}
-            sectors = T.parameters
-            if length(sectors) == 1
-                print(io, "ProductSector{Tuple{", sectors[1], "}}")
-            else
-                print(io, "(")
-                for i = 1:length(sectors)
-                    i == 1 || print(io, " ⊠ ")
-                    print(io, sectors[i])
-                end
-                print(io, ")")
-            end
+    if Base.isconcretetype(P)
+        sectors = P.parameters[1].parameters
+        if length(sectors) == 1
+            print(io, "ProductSector{Tuple{", sectors[1], "}}")
         else
-            print(io, "ProductSector{", T, "}")
+            print(io, "(")
+            for i = 1:length(sectors)
+                i == 1 || print(io, " ⊠ ")
+                print(io, sectors[i])
+            end
+            print(io, ")")
         end
+    elseif !(P isa UnionAll)
+        print(io, "ProductSector{", P.parameters[1], "}")
+    elseif P.var.ub != SectorTuple
+        print(io, "ProductSector{<:", P.var.ub, "}")
+    else
+        print(io, "ProductSector")
     end
 end
 

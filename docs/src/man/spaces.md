@@ -152,9 +152,9 @@ spacetype(ℝ[])
 ```
 Note that `ℝ[]` and `ℂ[]` are synonyms for `CartesianSpace` and `ComplexSpace` respectively,
 such that yet another syntax is e.g. `ℂ[](d)`. This is not very useful in itself, and is
-motivated by its generalization to `RepresentationSpace`. We refer to the subsection on
-[representation spaces](@ref s_rep) on the [next page](@ref s_sectorsrepfusion) for further
-information about `RepresentationSpace`, which is another subtype of `EuclideanSpace{ℂ}`
+motivated by its generalization to `GradedSpace`. We refer to the subsection on
+[graded spaces](@ref s_rep) on the [next page](@ref s_sectorsrepfusion) for further
+information about `GradedSpace`, which is another subtype of `EuclideanSpace{ℂ}`
 with an inner structure corresponding to the irreducible representations of a group, or more
 generally, the simple objects of a fusion category.
 
@@ -294,7 +294,7 @@ There are also a number of convenience functions to create isomorphic spaces. Th
 to `V1 ⊗ V2 ⊗ ...`. The function `flip(V::ElementarySpace)` returns a space that is
 isomorphic to `V` but has `isdual(flip(V)) == isdual(V')`, i.e. if `V` is a normal space
 than `flip(V)` is a dual space. `flip(V)` is different from `dual(V)` in the case of
-[`RepresentationSpace`](@ref). It is useful to flip a tensor index from a ket to a bra (or
+[`GradedSpace`](@ref). It is useful to flip a tensor index from a ket to a bra (or
 vice versa), by contracting that index with a unitary map from `V1` to `flip(V1)`. We refer
 to [Index operations](@ref) for further information. Some examples:
 ```@repl tensorkit
@@ -325,18 +325,18 @@ oneunit((ℂ^3)')
 (ℂ^5)' ⊕ oneunit((ℂ^5)')
 ```
 
-Finally, while spaces have a partial order, there is no unique infinum or supremum of a two
+Finally, while spaces have a partial order, there is no unique infimum or supremum of a two
 or more spaces. However, if `V1` and `V2` are two `ElementarySpace` instances with
-`isdual(V1) == isdual(V2)`, then we can define a unique infinum `V::ElementarySpace` with
+`isdual(V1) == isdual(V2)`, then we can define a unique infimum `V::ElementarySpace` with
 the same value of `isdual` that satisfies `V ≾ V1` and `V ≾ V2`, as well as a unique
 supremum `W::ElementarySpace` with the same value of `isdual` that satisfies `W ≿ V1`
 and `W ≿ V2`. For `CartesianSpace` and `ComplexSpace`, this simply amounts to the
 space with minimal or maximal dimension, i.e.
 ```@repl tensorkit
-infinum(ℝ^5, ℝ^3)
+infimum(ℝ^5, ℝ^3)
 supremum(ℂ^5, ℂ^3)
 supremum(ℂ^5, (ℂ^3)')
 ```
-The names `infinum` and `supremum` are especially suited in the case of
-[`RepresentationSpace`](@ref), as the infinum of two spaces might be different from either
+The names `infimum` and `supremum` are especially suited in the case of
+[`GradedSpace`](@ref), as the infimum of two spaces might be different from either
 of those two spaces, and similar for the supremum.

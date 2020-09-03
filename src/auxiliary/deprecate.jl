@@ -7,7 +7,7 @@ Base.@deprecate(fusiontreetype(::Type{I}, ::StaticLength{N}) where {I<:Sector, N
 
 abstract type RepresentationSpace{I<:Sector} end
 Base.@deprecate(RepresentationSpace(args...), GradedSpace(args...))
-Base.@deprecate(RepresentationSpace{I}(args...) where {I}, GradedSpace{I}(args...))
+Base.@deprecate(RepresentationSpace{I}(args...) where {I}, GradedSpace[I](args...))
 
 Base.@deprecate(×(a::Sector, b::Sector), ⊠(a,b))
 

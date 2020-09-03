@@ -37,7 +37,7 @@ function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
     end
 end
 
-const Rep{G} = GradedSpace{Irrep{G}} where {G<:Group}
+const Rep{G} = GradedSpace{<:Union{Irrep,ProductSector{<:Tuple{Vararg{Irrep}}}}}
 Base.getindex(::Type{Rep}, ::Type{G}) where {G<:Group} = GradedSpace[Irrep[G]]
 
 function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
@@ -212,19 +212,30 @@ ZNSpace{N}(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims
 ZNSpace(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
 ZNSpace(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
 
-# More type aliases
-const ℤ₂Space = ZNSpace{2}
-const ℤ₃Space = ZNSpace{3}
-const ℤ₄Space = ZNSpace{4}
-const U₁Space = Rep[U₁]
-const CU₁Space = Rep[CU₁]
-const SU₂Space = Rep[SU₂]
+# ASCII type aliases
+const ZNSpace{N} = GradedSpace{ZNIrrep{N}, NTuple{N,Int}}
+const Z2Space = ZNSpace{2}
+const Z3Space = ZNSpace{3}
+const Z4Space = ZNSpace{4}
+const U1Space = Rep[U₁]
+const CU1Space = Rep[CU₁]
+const SU2Space = Rep[SU₂]
+
+# Unicode alternatives
+const ℤ₂Space = Z2Space
+const ℤ₃Space = Z3Space
+const ℤ₄Space = Z4Space
+const U₁Space = U1Space
+const CU₁Space = CU1Space
+const SU₂Space = SU2Space
 
 function Base.show(io::IO, S::Type{<:GradedSpace})
     if Base.isconcretetype(S)
         print(io, "GradedSpace[", S.parameters[1], "]")
     elseif S isa UnionAll && S.var.name == :D
         print(io, "GradedSpace{", S.body.parameters[1], "}")
+    elseif S isa UnionAll && S.var.ub != Sector
+        print(io, "GradedSpace{<:", S.var.ub, "}")
     else
         print(io, "GradedSpace")
     end
@@ -242,11 +253,3 @@ Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
 Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
 Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
 Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
-
-# non-Unicode alternatives
-const Z2Space = ℤ₂Space
-const Z3Space = ℤ₃Space
-const Z4Space = ℤ₄Space
-const U1Space = U₁Space
-const CU1Space = CU₁Space
-const SU2Space = SU₂Space

@@ -73,7 +73,18 @@ findindex(::SectorValues{ZNIrrep{N}}, c::ZNIrrep{N}) where N = c.n + 1
 Base.hash(c::ZNIrrep{N}, h::UInt) where {N} = hash(c.n, h)
 Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
 
-Base.show(io::IO, ::Type{ZNIrrep{N}}) where {N} = print(io, "Irrep[", ℤ{N}, "]")
+function Base.show(io::IO, Z::Type{<:ZNIrrep})
+    if Z isa UnionAll
+        print(io, "ZNIrrep")
+    else
+        N = Z.parameters[1]
+        if N isa Integer
+            print(io, "Irrep[", ℤ{N}, "]")
+        else
+            print(io, "Irrep[ℤ{", N, "}]")
+        end
+    end
+end
 Base.show(io::IO, c::ZNIrrep{N}) where {N} =
     get(io, :typeinfo, nothing) === typeof(c) ?
             print(io, c.n) : print(io, typeof(c), "(", c.n, ")")
