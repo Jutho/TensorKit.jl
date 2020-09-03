@@ -88,23 +88,26 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
         ta = convert(Array, t)
         l = length(ta)
         basis = zeros(eltype(ta), (l, dim(t)))
+        qdims = zeros(real(eltype(ta)), (dim(t),))
         i = 1
         for (c,b) in blocks(t)
             for k = 1:length(b)
                 b[k] = 1
                 copy!(view(basis, :, i), reshape(convert(Array, t), (l,)))
+                qdims[i] = dim(c)
                 b[k] = 0
                 i += 1
             end
         end
         rhs = reshape(data, (l,))
-        q, r = LinearAlgebra.qr(basis)
-        Q = Matrix(q)
-        rhs_projected = Q'*rhs
-        if norm(q*rhs_projected - rhs) > tol
+        if FusionStyle(sectortype(t)) isa Abelian
+            lhs = basis'*rhs
+        else
+            lhs = Diagonal(qdims) \ (basis'*rhs)
+        end
+        if norm(basis*lhs - rhs) > tol
             throw(ArgumentError("Data has non-zero elements at incompatible positions"))
         end
-        lhs = Q*(LinearAlgebra.ldiv!(LinearAlgebra.UpperTriangular(r), rhs_projected))
         if eltype(lhs) != eltype(t)
             t2 = TensorMap(zeros, promote_type(eltype(lhs), eltype(t)), codom, dom)
         else
@@ -114,6 +117,7 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
         for (c,b) in blocks(t2)
             for k = 1:length(b)
                 b[k] = lhs[i]
+                i += 1
             end
         end
         return t2

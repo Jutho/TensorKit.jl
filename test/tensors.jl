@@ -49,11 +49,23 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         end
     end
     @testset TimedTestSet "Tensor Dict conversion" begin
-    W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+        W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
         for T in (Int, Float32, ComplexF64)
             t = TensorMap(rand, T, W)
             d = convert(Dict, t)
             @test t == convert(TensorMap, d)
+        end
+    end
+    @testset TimedTestSet "Tensor Array conversion" begin
+        W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+        for T in (Int, Float32, ComplexF64)
+            if T == Int
+                t = TensorMap(sz->rand(-20:20, sz), W)
+            else
+                t = TensorMap(randn, T, W)
+            end
+            a = @constinferred convert(Array, t)
+            @test t ≈ @constinferred TensorMap(a, W)
         end
     end
     @testset TimedTestSet "Basic linear algebra" begin

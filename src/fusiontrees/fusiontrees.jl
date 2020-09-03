@@ -120,7 +120,12 @@ function Base.convert(::Type{Array}, f::FusionTree{I, 1}) where {I}
     c = f.coupled
     dc = dim(c)
     if f.isdual[1]
-        Zcbartranspose = sqrt(dc)*reshape(fusiontensor(conj(c), c, one(c)), (dc, dc))
+        if FusionStyle(I) isa Abelian # for type stability
+            sqrtdc = 1
+        else
+            sqrtdc = sqrt(dc)
+        end
+        Zcbartranspose = sqrtdc*reshape(fusiontensor(conj(c), c, one(c)), (dc, dc))
         return convert(Array, conj(Zcbartranspose))
     else
         convert(Array, reshape(fusiontensor(c, one(c), c), (dc, dc)))

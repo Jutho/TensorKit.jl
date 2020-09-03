@@ -236,6 +236,13 @@ Base.show(io::IO, ::MIME"text/plain", ::Type{U₁Space}) = print(io, "U₁Space"
 Base.show(io::IO, ::MIME"text/plain", ::Type{CU₁Space}) = print(io, "CU₁Space")
 Base.show(io::IO, ::MIME"text/plain", ::Type{SU₂Space}) = print(io, "SU₂Space")
 
+Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
+Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
+Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
+Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
+Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
+Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")
+
 # non-Unicode alternatives
 const Z2Space = ℤ₂Space
 const Z3Space = ℤ₃Space
