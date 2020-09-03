@@ -333,16 +333,23 @@ for (c,b) in blocks(t3)
     println()
 end
 ```
-To construct the proper `data`, one has to know where to find each sector in the range
-`1:dim(V)` of every index `i` with associated space `V`, as well as the internal structure
-of the representation space when the corresponding sector `c` has `dim(c)>1`, i.e. in the
-case of `FusionStyle(c) isa NonAbelian`. Currently, the only non-abelian sectors are
-`Irrep[SU₂]` and `Irrep[CU₁]`, for which the internal structure is the natural one.
+Hence, we recognize that the Heisenberg interaction has eigenvalue ``-1`` in the coupled
+spin zero sector (`SUIrrep(0)`), and eigenvalue ``+1`` in the coupled spin 1 sector
+(`SU2Irrep(1)`). Using `Irrep[U₁]` instead, we observe that both coupled charge
+`U1Irrep(+1)` and `U1Irrep(-1)` have eigenvalue ``+1``. The coupled charge `U1Irrep(0)`
+sector is two-dimensional, and has an eigenvalue ``+1`` and an eigenvalue ``-1``.
+
+To construct the proper `data` in more complicated cases, one has to know where to find
+each sector in the range `1:dim(V)` of every index `i` with associated space `V`, as well
+as the internal structure of the representation space when the corresponding sector `c` has
+`dim(c)>1`, i.e. in the case of `FusionStyle(c) isa NonAbelian`. Currently, the only non-
+abelian sectors are `Irrep[SU₂]` and `Irrep[CU₁]`, for which the internal structure is the
+natural one.
 
 There are some tools available to facilate finding the proper range of sector `c` in space
 `V`, namely `axes(V, c)`. This also works on a `ProductSpace`, with a tuple of sectors. An
 example
-```julia
+```@repl tensors
 V = SU2Space(0=>3, 1=>2, 2=>1)
 P = V ⊗ V ⊗ V
 axes(P, (SU2Irrep(1), SU2Irrep(0), SU2Irrep(2)))
