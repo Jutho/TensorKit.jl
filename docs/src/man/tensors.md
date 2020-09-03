@@ -396,7 +396,7 @@ one specific isometric embedding, such that `adjoint(w)*w == id(V2)` and `w*adjo
 some hermitian idempotent (a.k.a. orthogonal projector) acting on `V1`. An error will be
 thrown if such a map cannot be constructed for the given domain and codomain.
 
-Let's conclude this section with some examples with `RepresentationSpace`.
+Let's conclude this section with some examples with `GradedSpace`.
 ```@repl tensors
 V1 = ℤ₂Space(0=>3,1=>2)
 V2 = ℤ₂Space(0=>2,1=>1)
@@ -483,8 +483,8 @@ and `N₂ == numin(t)`, the number of outgoing and incoming indices. There are a
 unexported methods `TensorKit.codomainind(t)` and `TensorKit.domainind(t)` which return the
 tuples `(1, 2, …, N₁)` and `(N₁+1, …, N₁+N₂)`, and are useful for internal purposes. The
 type parameter `S<:ElementarySpace` can be obtained as `spacetype(t)`; the corresponding
-sector can directly obtained as `sectortype(t)` and is `Trivial` when `S !=
-RepresentationSpace`. The underlying field scalars of `S` can also directly be obtained as
+sector can directly obtained as `sectortype(t)` and is `Trivial` when
+`S != GradedSpace`. The underlying field scalars of `S` can also directly be obtained as
 `field(t)`. This is different from `eltype(t)`, which returns the type of `Number` in the
 tensor data, i.e. the type parameter `T` in the (subtype of) `DenseMatrix{T}` in which the
 matrix blocks are stored. Note that during construction, a (one-time) warning is printed if
@@ -588,7 +588,7 @@ Furthermore, there is `normalize(t)` and `normalize!(t)` to return a scaled vers
 with unit norm. These operations should also exist for `S<:InnerProductSpace`, but requires
 an interface for defining a custom inner product in these spaces. Currently, there is no
 concrete subtype of `InnerProductSpace` that is not a subtype of `EuclideanSpace`. In
-particular, `CartesianSpace`, `ComplexSpace` and `RepresentationSpace` are all subtypes
+particular, `CartesianSpace`, `ComplexSpace` and `GradedSpace` are all subtypes
 of `EuclideanSpace`.
 
 With instances `t::AbstractEuclideanTensorMap` there is associated an adjoint operation,
@@ -774,8 +774,8 @@ the resulting `TensorMap` to an `Array`, so we have to rely on indirect tests to
 results.
 
 ```@repl tensors
-V1 = RepresentationSpace{FibonacciAnyon}(:I=>3,:τ=>2)
-V2 = RepresentationSpace{FibonacciAnyon}(:I=>2,:τ=>1)
+V1 = GradedSpace{FibonacciAnyon}(:I=>3,:τ=>2)
+V2 = GradedSpace{FibonacciAnyon}(:I=>2,:τ=>1)
 m = TensorMap(randn, Float32, V1, V2)
 transpose(m)
 twist(braid(m, (1,2), (2,), (1,)), 1)

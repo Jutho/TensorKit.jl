@@ -248,10 +248,10 @@ is some symmetry action defined on every vector space associated with each of th
 of a `TensorMap`, and the `TensorMap` is then required to be equivariant, i.e. it acts as
 an intertwiner between the tensor product representation on the domain and that on the
 codomain. By Schur's lemma, this means that the tensor is block diagonal in some basis
-corresponding to the so-called irreducible representations that can be coupled to by
-combining the different representations on the different spaces in the domain or codomain.
-For Abelian symmetries, this does not require a basis change and it just imposes that the
-tensor has some block sparsity. Let's clarify all of this with some examples.
+corresponding to the irreducible representations that can be coupled to by combining the
+different representations on the different spaces in the domain or codomain. For Abelian
+symmetries, this does not require a basis change and it just imposes that the tensor has
+some block sparsity. Let's clarify all of this with some examples.
 
 We start with a simple ``ℤ₂`` symmetry:
 ```@repl tutorial
@@ -290,7 +290,7 @@ A = TensorMap(randn, V*V, V)
 dim(A)
 convert(Array, A)
 
-V = RepresentationSpace{U₁×ℤ₂}((0,0)=>2,(1,1)=>1,(-1,0)=>1)
+V = GradedSpace[Irrep[U₁×ℤ₂]]((0,0)=>2,(1,1)=>1,(-1,0)=>1)
 dim(V)
 A = TensorMap(randn, V*V, V)
 dim(A)
@@ -299,38 +299,42 @@ convert(Array, A)
 Here, the `dim` of a `TensorMap` returns the number of linearly independent components,
 i.e. the number of non-zero entries in the case of an abelian symmetry. Also note that we
 can use `×` (obtained as `\times+TAB`) to combine different symmetries. The general space
-associated with symmetries is a `RepresentationSpace`. Although this is actually an
+associated with symmetries is a `GradedSpace`. Although this is actually an
 abstract type, it is the access point for users to construct spaces with arbitrary
 symmetries, and `ℤ₂Space` (also `Z2Space` as non-Unicode alternative) and `U₁Space` (or
 `U1Space`) are just convenient synonyms, e.g.
 ```@repl tutorial
-RepresentationSpace{U₁}(0=>3,1=>2,-1=>1) == U1Space(-1=>1,1=>2,0=>3)
+GradedSpace[Irrep[U₁]](0=>3,1=>2,-1=>1) == U1Space(-1=>1,1=>2,0=>3)
 V = U₁Space(1=>2,0=>3,-1=>1)
 for s in sectors(V)
   @show s, dim(V, s)
 end
-U₁Space(-1=>1,0=>3,1=>2) == RepresentationSpace(U₁(1)=>2, U₁(0)=>3, U₁(-1)=>1)
-supertype(RepresentationSpace)
+U₁Space(-1=>1,0=>3,1=>2) == GradedSpace(Irrep[U₁](1)=>2, Irrep[U₁](0)=>3, Irrep[U₁](-1)=>1)
+supertype(GradedSpace)
 ```
-Note also that the order in which the charges and their corresponding subspace
+Note that `GradedSpace` is not immediately parameterized by some group `G`, but actually by
+the set of irreducible representations of `G`, denoted as `Irrep[G]`. Indeed, `GradedSpace`
+also supports a grading that is derived from the fusion ring of a (unitary) pre-fusion
+category. Also note that the order in which the charges and their corresponding subspace
 dimensionality are specified is irrelevant, and that the charges, henceforth called sectors
 (which is a more general name for charges or quantum numbers) are of a specific type, in
-this case `U₁`. However, the `RepresentationSpace{G}` constructor automatically converts
-the keys in the list of `Pair`s it receives to the correct type. Alternatively, we can
-directly create the sectors of the correct type and use the generic `RepresentationSpace`
+this case `Irrep[U₁] == U1Irrep`. However, the `GradedSpace[I]` constructor automatically
+converts the keys in the list of `Pair`s it receives to the correct type. Alternatively, we
+can directly create the sectors of the correct type and use the generic `GradedSpace`
+
 constructor. We can probe the subspace dimension of a certain sector `s` in a space `V`
-with `dim(V, s)`. Finally, note that `RepresentationSpace` is also a subtype of
+with `dim(V, s)`. Finally, note that `GradedSpace` is also a subtype of
 `EuclideanSpace{ℂ}`, which implies that it still has the standard Euclidean inner product
 and we assume all representations to be unitary.
 
 TensorKit.jl also allows for non-abelian symmetries such as `SU₂`. In this case, the vector
 space is characterized via the spin quantum number (i.e. the irrep label of `SU₂`) for each
 of its subspaces, and is created using `SU₂Space` (or `SU2Space` or
-`RepresentationSpace{SU₂}`)
+`GradedSpace[Irrep[SU₂]]`)
 ```@repl tutorial
 V = SU₂Space(0=>2,1/2=>1,1=>1)
 dim(V)
-V == RepresentationSpace{SU₂}(0=>2, 1=>1, 1//2=>1)
+V == GradedSpace[Irrep[SU₂]](0=>2, 1=>1, 1//2=>1)
 ```
 Note that now `V` has a two-dimensional subspace with spin zero, and two one-dimensional
 subspaces with spin 1/2 and spin 1. However, a subspace with spin `j` has an additional
