@@ -28,8 +28,14 @@ VSU₂ = (ℂ[SU2Irrep](0=>3, 1//2=>1),
         ℂ[SU2Irrep](1//2=>1, 1=>1)',
         ℂ[SU2Irrep](0=>2, 1//2=>2),
         ℂ[SU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
+VNSU₂ = (ℂ[NewSU2Irrep](0=>3, 1//2=>1),
+        ℂ[NewSU2Irrep](0=>2, 1=>1),
+        ℂ[NewSU2Irrep](1//2=>1, 1=>1)',
+        ℂ[NewSU2Irrep](0=>2, 1//2=>2),
+        ℂ[NewSU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
 
-for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁), (CU₁, VCU₁), (SU₂, VSU₂))
+for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃), (Irrep[U₁], VU₁),
+                (Irrep[CU₁], VCU₁), (Irrep[SU₂], VSU₂), (NewSU2Irrep, VNSU₂))
     println("------------------------------------")
     println("Tensors with symmetry: $I")
     println("------------------------------------")
@@ -56,16 +62,18 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test t == convert(TensorMap, d)
         end
     end
-    @testset TimedTestSet "Tensor Array conversion" begin
-        W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
-        for T in (Int, Float32, ComplexF64)
-            if T == Int
-                t = TensorMap(sz->rand(-20:20, sz), W)
-            else
-                t = TensorMap(randn, T, W)
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Tensor Array conversion" begin
+            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+            for T in (Int, Float32, ComplexF64)
+                if T == Int
+                    t = TensorMap(sz->rand(-20:20, sz), W)
+                else
+                    t = TensorMap(randn, T, W)
+                end
+                a = @constinferred convert(Array, t)
+                @test t ≈ @constinferred TensorMap(a, W)
             end
-            a = @constinferred convert(Array, t)
-            @test t ≈ @constinferred TensorMap(a, W)
         end
     end
     @testset TimedTestSet "Basic linear algebra" begin
@@ -108,27 +116,29 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test w*w' == (w*w')^2
         end
     end
-    @testset TimedTestSet "Basic linear algebra: test via conversion" begin
-        W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
-        for T in (Float32, ComplexF64)
-            t = TensorMap(rand, T, W)
-            t2 = TensorMap(rand, T, W)
-            @test norm(t, 2) ≈ norm(convert(Array,t), 2)
-            @test dot(t2,t) ≈ dot(convert(Array,t2), convert(Array, t))
-            α = rand(T)
-            @test convert(Array, α*t) ≈ α*convert(Array,t)
-            @test convert(Array, t+t) ≈ 2*convert(Array,t)
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Basic linear algebra: test via conversion" begin
+            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+            for T in (Float32, ComplexF64)
+                t = TensorMap(rand, T, W)
+                t2 = TensorMap(rand, T, W)
+                @test norm(t, 2) ≈ norm(convert(Array,t), 2)
+                @test dot(t2,t) ≈ dot(convert(Array,t2), convert(Array, t))
+                α = rand(T)
+                @test convert(Array, α*t) ≈ α*convert(Array,t)
+                @test convert(Array, t+t) ≈ 2*convert(Array,t)
+            end
+        end
+        @testset TimedTestSet "Real and imaginary parts" begin
+            W = V1 ⊗ V2
+            for T in (Float64, ComplexF64, ComplexF32)
+                t = TensorMap(randn, T, W, W)
+                @test real(convert(Array, t)) == convert(Array, @constinferred real(t))
+                @test imag(convert(Array, t)) == convert(Array, @constinferred imag(t))
+            end
         end
     end
-    @testset TimedTestSet "Real and imaginary parts" begin
-        W = V1 ⊗ V2
-        for T in (Float64, ComplexF64, ComplexF32)
-            t = TensorMap(randn, T, W, W)
-            @test real(convert(Array, t)) == convert(Array, @constinferred real(t))
-            @test imag(convert(Array, t)) == convert(Array, @constinferred imag(t))
-        end
-    end
-    @testset TimedTestSet "Tensor conversation" begin
+    @testset TimedTestSet "Tensor conversion" begin
         W = V1 ⊗ V2
         t = TensorMap(randn, Float64, W, W)
         @test typeof(convert(TensorMap, t')) == typeof(t)
@@ -152,17 +162,19 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset TimedTestSet "Permutations: test via conversion" begin
-        W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        t = Tensor(rand, ComplexF64, W);
-        for k = 0:5
-            for p in permutations(1:5)
-                p1 = ntuple(n->p[n], StaticLength(k))
-                p2 = ntuple(n->p[k+n], StaticLength(5-k))
-                t2 = permute(t, p1, p2)
-                a2 = convert(Array, t2)
-                @test a2 ≈ permutedims(convert(Array, t), (p1...,p2...))
-                @test convert(Array, transpose(t2)) ≈ permutedims(a2, (5,4,3,2,1))
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Permutations: test via conversion" begin
+            W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
+            t = Tensor(rand, ComplexF64, W);
+            for k = 0:5
+                for p in permutations(1:5)
+                    p1 = ntuple(n->p[n], StaticLength(k))
+                    p2 = ntuple(n->p[k+n], StaticLength(5-k))
+                    t2 = permute(t, p1, p2)
+                    a2 = convert(Array, t2)
+                    @test a2 ≈ permutedims(convert(Array, t), (p1...,p2...))
+                    @test convert(Array, transpose(t2)) ≈ permutedims(a2, (5,4,3,2,1))
+                end
             end
         end
     end
@@ -184,11 +196,13 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         @tensor t5[a,b] := t4[a,b,c,c]
         @test t2 ≈ t5
     end
-    @testset TimedTestSet "Trace: test via conversion" begin
-        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
-        @tensor t2[a,b] := t[c,d,b,d,c,a]
-        @tensor t3[a,b] := convert(Array, t)[c,d,b,d,c,a]
-        @test t3 ≈ convert(Array, t2)
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Trace: test via conversion" begin
+            t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
+            @tensor t2[a,b] := t[c,d,b,d,c,a]
+            @tensor t3[a,b] := convert(Array, t)[c,d,b,d,c,a]
+            @test t3 ≈ convert(Array, t2)
+        end
     end
     @testset TimedTestSet "Trace and contraction" begin
         t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3);
@@ -198,22 +212,24 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
         @tensor tb[a,b] := t3[x,y,a,y,b,x]
         @test ta ≈ tb
     end
-    @testset TimedTestSet "Tensor contraction: test via conversion" begin
-        A1 = TensorMap(randn, ComplexF64, V1'*V2', V3')
-        A2 = TensorMap(randn, ComplexF64, V3*V4, V5)
-        rhoL = TensorMap(randn, ComplexF64, V1, V1)
-        rhoR = TensorMap(randn, ComplexF64, V5, V5)' # test adjoint tensor
-        H = TensorMap(randn, ComplexF64, V2*V4, V2*V4)
-        @tensor HrA12[a, s1, s2, c] := rhoL[a, a'] * conj(A1[a', t1, b]) *
-            A2[b, t2, c'] * rhoR[c', c] * H[s1, s2, t1, t2]
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Tensor contraction: test via conversion" begin
+            A1 = TensorMap(randn, ComplexF64, V1'*V2', V3')
+            A2 = TensorMap(randn, ComplexF64, V3*V4, V5)
+            rhoL = TensorMap(randn, ComplexF64, V1, V1)
+            rhoR = TensorMap(randn, ComplexF64, V5, V5)' # test adjoint tensor
+            H = TensorMap(randn, ComplexF64, V2*V4, V2*V4)
+            @tensor HrA12[a, s1, s2, c] := rhoL[a, a'] * conj(A1[a', t1, b]) *
+                A2[b, t2, c'] * rhoR[c', c] * H[s1, s2, t1, t2]
 
-        @tensor HrA12array[a, s1, s2, c] := convert(Array, rhoL)[a, a'] *
-            conj(convert(Array, A1)[a', t1, b]) *
-            convert(Array, A2)[b, t2, c'] *
-            convert(Array, rhoR)[c', c] *
-            convert(Array, H)[s1, s2, t1, t2]
+            @tensor HrA12array[a, s1, s2, c] := convert(Array, rhoL)[a, a'] *
+                conj(convert(Array, A1)[a', t1, b]) *
+                convert(Array, A2)[b, t2, c'] *
+                convert(Array, rhoR)[c', c] *
+                convert(Array, H)[s1, s2, t1, t2]
 
-        @test HrA12array ≈ convert(Array, HrA12)
+            @test HrA12array ≈ convert(Array, HrA12)
+        end
     end
     @testset TimedTestSet "Multiplication and inverse: test compatibility" begin
         W1 = V1 ⊗ V2 ⊗ V3
@@ -233,39 +249,41 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test tp ≈ tp*tp
         end
     end
-    @testset TimedTestSet "Multiplication and inverse: test via conversion" begin
-        W1 = V1 ⊗ V2 ⊗ V3
-        W2 = V4 ⊗ V5
-        for T in (Float32, Float64, ComplexF32, ComplexF64)
-            t1 = TensorMap(rand, T, W1, W1)
-            t2 = TensorMap(rand, T, W2, W2)
-            t = TensorMap(rand, T, W1, W2)
-            d1 = dim(W1)
-            d2 = dim(W2)
-            At1 = reshape(convert(Array, t1), d1, d1)
-            At2 = reshape(convert(Array, t2), d2, d2)
-            At = reshape(convert(Array, t), d1, d2)
-            @test reshape(convert(Array, t1*t), d1, d2) ≈ At1*At
-            @test reshape(convert(Array, t1'*t), d1, d2) ≈ At1'*At
-            @test reshape(convert(Array, t2*t'), d2, d1) ≈ At2*At'
-            @test reshape(convert(Array, t2'*t'), d2, d1) ≈ At2'*At'
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Multiplication and inverse: test via conversion" begin
+            W1 = V1 ⊗ V2 ⊗ V3
+            W2 = V4 ⊗ V5
+            for T in (Float32, Float64, ComplexF32, ComplexF64)
+                t1 = TensorMap(rand, T, W1, W1)
+                t2 = TensorMap(rand, T, W2, W2)
+                t = TensorMap(rand, T, W1, W2)
+                d1 = dim(W1)
+                d2 = dim(W2)
+                At1 = reshape(convert(Array, t1), d1, d1)
+                At2 = reshape(convert(Array, t2), d2, d2)
+                At = reshape(convert(Array, t), d1, d2)
+                @test reshape(convert(Array, t1*t), d1, d2) ≈ At1*At
+                @test reshape(convert(Array, t1'*t), d1, d2) ≈ At1'*At
+                @test reshape(convert(Array, t2*t'), d2, d1) ≈ At2*At'
+                @test reshape(convert(Array, t2'*t'), d2, d1) ≈ At2'*At'
 
-            @test reshape(convert(Array, inv(t1)), d1, d1) ≈ inv(At1)
-            @test reshape(convert(Array, pinv(t)), d2, d1) ≈ pinv(At)
+                @test reshape(convert(Array, inv(t1)), d1, d1) ≈ inv(At1)
+                @test reshape(convert(Array, pinv(t)), d2, d1) ≈ pinv(At)
 
-            if T == Float32 || T == ComplexF32
-                continue
+                if T == Float32 || T == ComplexF32
+                    continue
+                end
+
+                @test reshape(convert(Array, t1\t), d1, d2) ≈ At1\At
+                @test reshape(convert(Array, t1'\t), d1, d2) ≈ At1'\At
+                @test reshape(convert(Array, t2\t'), d2, d1) ≈ At2\At'
+                @test reshape(convert(Array, t2'\t'), d2, d1) ≈ At2'\At'
+
+                @test reshape(convert(Array, t2/t), d2, d1) ≈ At2/At
+                @test reshape(convert(Array, t2'/t), d2, d1) ≈ At2'/At
+                @test reshape(convert(Array, t1/t'), d1, d2) ≈ At1/At'
+                @test reshape(convert(Array, t1'/t'), d1, d2) ≈ At1'/At'
             end
-
-            @test reshape(convert(Array, t1\t), d1, d2) ≈ At1\At
-            @test reshape(convert(Array, t1'\t), d1, d2) ≈ At1'\At
-            @test reshape(convert(Array, t2\t'), d2, d1) ≈ At2\At'
-            @test reshape(convert(Array, t2'\t'), d2, d1) ≈ At2'\At'
-
-            @test reshape(convert(Array, t2/t), d2, d1) ≈ At2/At
-            @test reshape(convert(Array, t2'/t), d2, d1) ≈ At2'/At
-            @test reshape(convert(Array, t1/t'), d1, d2) ≈ At1/At'
-            @test reshape(convert(Array, t1'/t'), d1, d2) ≈ At1'/At'
         end
     end
     @testset TimedTestSet "Factorization" begin
@@ -385,7 +403,7 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
                     # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
                     U′, S′, V′, ϵ′ = tsvd(t; trunc = truncerr(nextfloat(ϵ)), p = p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                    U′, S′, V′, ϵ′ = tsvd(t; trunc = truncdim(dim(domain(S))), p = p)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc = truncdim(ceil(Int, dim(domain(S)))), p = p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                     U′, S′, V′, ϵ′ = tsvd(t; trunc = truncspace(space(S,1)), p = p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
@@ -400,46 +418,48 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             end
         end
     end
-    @testset TimedTestSet "Tensor functions" begin
-        W = V1 ⊗ V2
-        for T in (Float64, ComplexF64)
-            t = TensorMap(randn, T, W, W)
-            s = dim(W)
-            expt = @constinferred exp(t)
-            @test reshape(convert(Array, expt), (s,s)) ≈
-                    exp(reshape(convert(Array, t), (s,s)))
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Tensor functions" begin
+            W = V1 ⊗ V2
+            for T in (Float64, ComplexF64)
+                t = TensorMap(randn, T, W, W)
+                s = dim(W)
+                expt = @constinferred exp(t)
+                @test reshape(convert(Array, expt), (s,s)) ≈
+                        exp(reshape(convert(Array, t), (s,s)))
 
-            @test (@constinferred sqrt(t))^2 ≈ t
-            @test reshape(convert(Array, sqrt(t^2)), (s,s)) ≈
-                    sqrt(reshape(convert(Array, t^2), (s,s)))
+                @test (@constinferred sqrt(t))^2 ≈ t
+                @test reshape(convert(Array, sqrt(t^2)), (s,s)) ≈
+                        sqrt(reshape(convert(Array, t^2), (s,s)))
 
-            @test exp(@constinferred log(expt)) ≈ expt
-            @test reshape(convert(Array, log(expt)), (s,s)) ≈
-                    log(reshape(convert(Array, expt), (s,s)))
+                @test exp(@constinferred log(expt)) ≈ expt
+                @test reshape(convert(Array, log(expt)), (s,s)) ≈
+                        log(reshape(convert(Array, expt), (s,s)))
 
-            @test (@constinferred cos(t))^2 + (@constinferred sin(t))^2 ≈ id(W)
-            @test (@constinferred tan(t)) ≈ sin(t)/cos(t)
-            @test (@constinferred cot(t)) ≈ cos(t)/sin(t)
-            @test (@constinferred cosh(t))^2 - (@constinferred sinh(t))^2 ≈ id(W)
-            @test (@constinferred tanh(t)) ≈ sinh(t)/cosh(t)
-            @test (@constinferred coth(t)) ≈ cosh(t)/sinh(t)
+                @test (@constinferred cos(t))^2 + (@constinferred sin(t))^2 ≈ id(W)
+                @test (@constinferred tan(t)) ≈ sin(t)/cos(t)
+                @test (@constinferred cot(t)) ≈ cos(t)/sin(t)
+                @test (@constinferred cosh(t))^2 - (@constinferred sinh(t))^2 ≈ id(W)
+                @test (@constinferred tanh(t)) ≈ sinh(t)/cosh(t)
+                @test (@constinferred coth(t)) ≈ cosh(t)/sinh(t)
 
-            t1 = sin(t)
-            @test sin(@constinferred asin(t1)) ≈ t1
-            t2 = cos(t)
-            @test cos(@constinferred acos(t2)) ≈ t2
-            t3 = sinh(t)
-            @test sinh(@constinferred asinh(t3)) ≈ t3
-            t4 = cosh(t)
-            @test cosh(@constinferred acosh(t4)) ≈ t4
-            t5 = tan(t)
-            @test tan(@constinferred atan(t5)) ≈ t5
-            t6 = cot(t)
-            @test cot(@constinferred acot(t6)) ≈ t6
-            t7 = tanh(t)
-            @test tanh(@constinferred atanh(t7)) ≈ t7
-            t8 = coth(t)
-            @test coth(@constinferred acoth(t8)) ≈ t8
+                t1 = sin(t)
+                @test sin(@constinferred asin(t1)) ≈ t1
+                t2 = cos(t)
+                @test cos(@constinferred acos(t2)) ≈ t2
+                t3 = sinh(t)
+                @test sinh(@constinferred asinh(t3)) ≈ t3
+                t4 = cosh(t)
+                @test cosh(@constinferred acosh(t4)) ≈ t4
+                t5 = tan(t)
+                @test tan(@constinferred atan(t5)) ≈ t5
+                t6 = cot(t)
+                @test cot(@constinferred acot(t6)) ≈ t6
+                t7 = tanh(t)
+                @test tanh(@constinferred atanh(t7)) ≈ t7
+                t8 = coth(t)
+                @test coth(@constinferred acoth(t8)) ≈ t8
+            end
         end
     end
     @testset TimedTestSet "Sylvester equation" begin
@@ -453,8 +473,10 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test codomain(t) == V1 ⊗ V3
             @test domain(t) == V2 ⊗ V4
             # @test norm(tA*t + t*tB + tC) < (norm(tA)+norm(tB)+norm(tC))*eps(real(T))
-            matrix(x) = reshape(convert(Array, x), dim(codomain(x)), dim(domain(x)))
-            @test matrix(t) ≈ sylvester(matrix(tA), matrix(tB), matrix(tC))
+            if hasfusiontensor(I)
+                matrix(x) = reshape(convert(Array, x), dim(codomain(x)), dim(domain(x)))
+                @test matrix(t) ≈ sylvester(matrix(tA), matrix(tB), matrix(tC))
+            end
         end
     end
     @testset TimedTestSet "Tensor product: test via norm preservation" begin
@@ -465,19 +487,21 @@ for (I,V) in ((Trivial, Vtr), (ℤ₂, Vℤ₂), (ℤ₃, Vℤ₃), (U₁, VU₁
             @test norm(t) ≈ norm(t1) * norm(t2)
         end
     end
-    @testset TimedTestSet "Tensor product: test via conversion" begin
-        for T in (Float32, ComplexF64)
-            t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
-            t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
-            t = @constinferred (t1 ⊗ t2)
-            d1 = dim(codomain(t1))
-            d2 = dim(codomain(t2))
-            d3 = dim(domain(t1))
-            d4 = dim(domain(t2))
-            At = convert(Array, t)
-            @test reshape(At, (d1, d2, d3, d4)) ≈
-                    reshape(convert(Array, t1), (d1, 1, d3, 1)) .*
-                    reshape(convert(Array, t2), (1, d2, 1, d4))
+    if hasfusiontensor(I)
+        @testset TimedTestSet "Tensor product: test via conversion" begin
+            for T in (Float32, ComplexF64)
+                t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
+                t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
+                t = @constinferred (t1 ⊗ t2)
+                d1 = dim(codomain(t1))
+                d2 = dim(codomain(t2))
+                d3 = dim(domain(t1))
+                d4 = dim(domain(t2))
+                At = convert(Array, t)
+                @test reshape(At, (d1, d2, d3, d4)) ≈
+                        reshape(convert(Array, t1), (d1, 1, d3, 1)) .*
+                        reshape(convert(Array, t2), (1, d2, 1, d4))
+            end
         end
     end
     @testset TimedTestSet "Tensor product: test via tensor contraction" begin

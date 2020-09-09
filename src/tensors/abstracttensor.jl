@@ -108,8 +108,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S, N₁, N₂}) where 
     I = sectortype(t)
     if I === Trivial
         convert(Array, t[])
-    elseif FusionStyle(I) isa Abelian || FusionStyle(I) isa SimpleNonAbelian
-        # TODO: Frobenius-Schur indicators!, and fermions!
+    else
         cod = codomain(t)
         dom = domain(t)
         local A
@@ -135,9 +134,5 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S, N₁, N₂}) where 
             axpy!(1, StridedView(_kron(convert(Array, t[f1, f2]), F)), Aslice)
         end
         return A
-    else
-        # TODO: implement DegenerateNonAbelian case
-        throw(MethodError(convert, (Array, t)))
     end
 end
-# TODO: Reverse conversion

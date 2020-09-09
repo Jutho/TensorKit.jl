@@ -206,10 +206,11 @@ end
 function LinearAlgebra.dot(t1::AbstractEuclideanTensorMap, t2::AbstractEuclideanTensorMap)
     space(t1) == space(t2) || throw(SpaceMismatch())
     iter = blocksectors(t1)
+    T = promote_type(eltype(t1), eltype(t2))
     if isempty(iter)
-        return zero(eltype(t1))*zero(eltype(t2))
+        return zero(T)
     else
-        return sum(dim(c)*dot(block(t1, c), block(t2, c)) for c in blocksectors(t1))
+        return sum(convert(T, dim(c))*dot(block(t1, c), block(t2, c)) for c in blocksectors(t1))
     end
 end
 

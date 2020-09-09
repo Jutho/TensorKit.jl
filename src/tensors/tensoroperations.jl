@@ -58,53 +58,28 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N�
             throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(t)) ← $(domain(t))"))
     end
 
+    # do some kind of dispatch which is compiled away if S is known at compile time,
+    # and makes the compiler give up quickly if S is unknown
+    I = sectortype(S)
+    i = I === Trivial ? 1 : (FusionStyle(I) isa Abelian ? 2 : 3)
+    _add_kernel! = _add_kernels[i]
     _add_kernel!(α, tsrc, β, tdst, p1, p2, levels)
 
     return tdst
 end
 
-@generated function _add_kernel!(α, tsrc::AbstractTensorMap{S},
-                                    β, tdst::AbstractTensorMap{S},
-                                    p1::IndexTuple, p2::IndexTuple,
-                                    levels::IndexTuple) where {S}
-    I = sectortype(S)
-    if I === Trivial
-        return quote
-            cod = codomain(tsrc)
-            dom = domain(tsrc)
-            n = length(cod)
-            pdata = (p1..., p2...)
-            axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
-        end
-    elseif FusionStyle(I) isa Abelian && BraidingStyle(I) isa SymmetricBraiding
-        return quote
-            _add_abelian_kernel!(α, tsrc, β, tdst, p1, p2)
-        end
-    else
-        return quote
-            cod = codomain(tsrc)
-            dom = domain(tsrc)
-            n = length(cod)
-            pdata = (p1..., p2...)
-            if iszero(β)
-                fill!(tdst, β)
-            elseif β != 1
-                mul!(tdst, β, tdst)
-            end
-            levels1 = TupleTools.getindices(levels, codomainind(tsrc))
-            levels2 = TupleTools.getindices(levels, domainind(tsrc))
-            for (f1, f2) in fusiontrees(tsrc)
-                for ((f1′, f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
-                    @inbounds axpy!(α*coeff, permutedims(tsrc[f1, f2], pdata), tdst[f1′, f2′])
-                end
-            end
-        end
-    end
+function _add_trivial_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTensorMap,
+                                p1::IndexTuple, p2::IndexTuple, levels::IndexTuple)
+    cod = codomain(tsrc)
+    dom = domain(tsrc)
+    n = length(cod)
+    pdata = (p1..., p2...)
+    axpby!(α, permutedims(tsrc[], pdata), β, tdst[])
+    return nothing
 end
 
-function _add_abelian_kernel!(α, tsrc::AbstractTensorMap,
-                            β, tdst::AbstractTensorMap,
-                            p1::IndexTuple, p2::IndexTuple)
+function _add_abelian_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTensorMap,
+                                p1::IndexTuple, p2::IndexTuple, levels::IndexTuple)
     if Threads.nthreads() > 1
         nstridedthreads = Strided.get_num_threads()
         Strided.set_num_threads(1)
@@ -117,6 +92,7 @@ function _add_abelian_kernel!(α, tsrc::AbstractTensorMap,
             _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
         end
     end
+    return nothing
 end
 
 function _addabelianblock!(α, tsrc::AbstractTensorMap,
@@ -129,6 +105,29 @@ function _addabelianblock!(α, tsrc::AbstractTensorMap,
     pdata = (p1..., p2...)
     @inbounds axpby!(α*coeff, permutedims(tsrc[f1, f2], pdata), β, tdst[f1′, f2′])
 end
+
+function _add_general_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTensorMap,
+                                p1::IndexTuple, p2::IndexTuple, levels::IndexTuple)
+    cod = codomain(tsrc)
+    dom = domain(tsrc)
+    n = length(cod)
+    pdata = (p1..., p2...)
+    if iszero(β)
+        fill!(tdst, β)
+    elseif β != 1
+        mul!(tdst, β, tdst)
+    end
+    levels1 = TupleTools.getindices(levels, codomainind(tsrc))
+    levels2 = TupleTools.getindices(levels, domainind(tsrc))
+    for (f1, f2) in fusiontrees(tsrc)
+        for ((f1′, f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
+            @inbounds axpy!(α*coeff, permutedims(tsrc[f1, f2], pdata), tdst[f1′, f2′])
+        end
+    end
+    return nothing
+end
+
+const _add_kernels = (_add_trivial_kernel!, _add_abelian_kernel!, _add_general_kernel!)
 
 function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N₁, N₂},
                 p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
