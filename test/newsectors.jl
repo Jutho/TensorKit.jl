@@ -52,16 +52,15 @@ function TensorKit.Rsymbol(sa::NewSU2Irrep, sb::NewSU2Irrep, sc::NewSU2Irrep)
     return fill(iseven(convert(Int, sa.j+sb.j-sc.j)) ? 1.0 : -1.0, (1, 1))
 end
 
-# function TensorKit.fusiontensor(a::NewSU2Irrep, b::NewSU2Irrep, c::NewSU2Irrep, v::Int)
-#     @assert ν == 1
-#     C = Array{Float64}(undef, dim(a), dim(b), dim(c))
-#     ja, jb, jc = a.j, b.j, c.j
-#
-#     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
-#         C[ka, kb, kc] = WignerSymbols.clebschgordan(ja, ja+1-ka, jb, jb+1-kb, jc, jc+1-kc)
-#     end
-#     return C
-# end
+function TensorKit.fusiontensor(a::NewSU2Irrep, b::NewSU2Irrep, c::NewSU2Irrep)
+    C = Array{Float64}(undef, round(Int, dim(a)), round(Int, dim(b)), round(Int, dim(c)), 1)
+    ja, jb, jc = a.j, b.j, c.j
+
+    for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
+        C[ka,kb,kc,1] = WignerSymbols.clebschgordan(ja, ja+1-ka, jb, jb+1-kb, jc, jc+1-kc)
+    end
+    return C
+end
 
 Base.hash(s::NewSU2Irrep, h::UInt) = hash(s.j, h)
 Base.isless(s1::NewSU2Irrep, s2::NewSU2Irrep) = isless(s1.j, s2.j)

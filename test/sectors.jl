@@ -103,8 +103,6 @@ ti = time()
             for f in ⊗(a,b), h in ⊗(c,d)
                 for g in ⊗(f,c), i in ⊗(b,h)
                     for e in intersect(⊗(g,d), ⊗(a,i))
-                        ft1 = Fsymbol(f,c,d,e,g,h)
-                        ft2 = Fsymbol(a,b,h,e,f,i)
                         if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
                             p1 = Fsymbol(f,c,d,e,g,h) * Fsymbol(a,b,h,e,f,i)
                             p2 = zero(p1)
@@ -115,13 +113,13 @@ ti = time()
                             end
                             @test isapprox(p1, p2; atol=10*eps())
                         else
-                            @tensor p1[l,m,n,k,p,q] := Fsymbol(f,c,d,e,g,h)[l,m,n,o]*
-                                                        Fsymbol(a,b,h,e,f,i)[k,o,p,q]
+                            @tensor p1[λ,μ,ν,κ,ρ,σ] := Fsymbol(f,c,d,e,g,h)[λ,μ,ν,τ]*
+                                                        Fsymbol(a,b,h,e,f,i)[κ,τ,ρ,σ]
                             p2 = zero(p1)
                             for j in ⊗(b,c)
-                                @tensor p2[l,m,n,k,p,q]  += Fsymbol(a,b,c,g,f,j)[k,l,r,s]*
-                                                            Fsymbol(a,j,d,e,g,i)[s,m,t,q]*
-                                                            Fsymbol(b,c,d,i,j,h)[r,t,n,p]
+                                @tensor p2[λ,μ,ν,κ,ρ,σ]  += Fsymbol(a,b,c,g,f,j)[κ,λ,α,β]*
+                                                            Fsymbol(a,j,d,e,g,i)[β,μ,τ,σ]*
+                                                            Fsymbol(b,c,d,i,j,h)[α,τ,ν,ρ]
                             end
                             @test isapprox(p1, p2; atol=10*eps())
                         end
@@ -130,20 +128,33 @@ ti = time()
             end
         end
     end
-    # @testset "Sector $I: Hexagon equation" begin
-    #     for a in smallset(I), b in smallset(I), c in smallset(I)
-    #         for e in ⊗(a,b), f in ⊗(b,c)
-    #             for d in intersect(⊗(e,c), ⊗(a,f))
-    #                 p1 = Rsymbol(a,b,e)*Fsymbol(b,a,c,d,e,f)*Rsymbol(a,c,f)
-    #                 p2 = zero(p1)
-    #                 for h in ⊗(b,c)
-    #                     p2 += Fsymbol(a,b,c,d,e,h)*Rsymbol(a,h,d)*Fsymbol(b,c,a,d,h,f)
-    #                 end
-    #                 @test isapprox(p1, p2; atol=10*eps())
-    #             end
-    #         end
-    #     end
-    # end
+    @testset "Sector $I: Hexagon equation" begin
+        for a in smallset(I), b in smallset(I), c in smallset(I)
+            for e in ⊗(c,a), g in ⊗(c,b)
+                for d in intersect(⊗(e,b), ⊗(a,g))
+                    if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
+                        p1 = Rsymbol(c,a,e)*Fsymbol(a,c,b,d,e,g)*Rsymbol(b,c,g)
+                        p2 = zero(p1)
+                        for f in ⊗(a,b)
+                            p2 += Fsymbol(c,a,b,d,e,f)*Rsymbol(c,f,d)*Fsymbol(a,b,c,d,f,g)
+                        end
+                        @test isapprox(p1, p2; atol=10*eps())
+                    else
+                        @tensor p1[α,β,μ,ν] := Rsymbol(c,a,e)[α,λ]*
+                                                Fsymbol(a,c,b,d,e,g)[λ,β,γ,ν]*
+                                                Rsymbol(b,c,g)[γ,μ]
+                        p2 = zero(p1)
+                        for f in ⊗(a,b)
+                            @tensor p2[α,β,μ,ν] += Fsymbol(c,a,b,d,e,f)[α,β,δ,σ]*
+                                                    Rsymbol(c,f,d)[σ,ψ]*
+                                                    Fsymbol(a,b,c,d,f,g)[δ,ψ,μ,ν]
+                        end
+                        @test isapprox(p1, p2; atol=10*eps())
+                    end
+                end
+            end
+        end
+    end
 end
 tf = time()
 printstyled("Finished sector tests in ",
