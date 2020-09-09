@@ -26,6 +26,7 @@ function permutation2swaps(perm)
     return swaps
 end
 
+_kron(A, B, C, D...) = _kron(_kron(A, B), C, D...)
 function _kron(A, B)
     sA = size(A)
     sB = size(B)

@@ -11,11 +11,14 @@ using TupleTools: StaticLength
 using Base.Iterators: take, product
 import LinearAlgebra
 
+include("newsectors.jl")
 include("timedtest.jl")
 include("constinferred.jl")
 
+using .NewSectors
 using .TimedTests
 using .ConstInferred
+# ConstInferred.disable_inferred()
 
 const TK = TensorKit
 
@@ -23,12 +26,12 @@ Random.seed!(1234)
 
 smallset(::Type{I}) where {I<:Sector} = take(values(I), 5)
 function smallset(::Type{ProductSector{Tuple{I1,I2}}}) where {I1,I2}
-    iter = product(smallset(I1),smallset(I2))
+    iter = product(smallset(I1), smallset(I2))
     s = collect(i ⊠ j for (i,j) in iter if dim(i)*dim(j) <= 6)
     return length(s) > 6 ? rand(s, 6) : s
 end
 function smallset(::Type{ProductSector{Tuple{I1,I2,I3}}}) where {I1,I2,I3}
-    iter = product(smallset(I1),smallset(I2),smallset(I3))
+    iter = product(smallset(I1), smallset(I2), smallset(I3))
     s = collect(i ⊠ j ⊠ k for (i,j,k) in iter if dim(i)*dim(j)*dim(k) <= 6)
     return length(s) > 6 ? rand(s, 6) : s
 end
@@ -49,8 +52,9 @@ function hasfusiontensor(I::Type{<:Sector})
     end
 end
 
-sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, FibonacciAnyon,
-            Z3Irrep ⊠ Z4Irrep, U1Irrep ⊠ SU2Irrep, SU2Irrep ⊠ SU2Irrep,
+sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep,
+            FibonacciAnyon, Z3Irrep ⊠ Z4Irrep, U1Irrep ⊠ SU2Irrep, SU2Irrep ⊠ SU2Irrep,
+            NewSU2Irrep ⊠ NewSU2Irrep, NewSU2Irrep ⊠ SU2Irrep, SU2Irrep ⊠ NewSU2Irrep,
             Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()

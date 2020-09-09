@@ -96,11 +96,11 @@ Base.conj(::Trivial) = Trivial()
 Return whether the topological data (Fsymbol, Rsymbol) of the sector is real or not (in
 which case it is complex).
 """
-Base.@pure function Base.isreal(I::Type{<:Sector})
+function Base.isreal(I::Type{<:Sector})
     u = one(I)
     return (eltype(Fsymbol(u, u, u, u, u, u))<:Real) && (eltype(Rsymbol(u, u, u))<:Real)
 end
-Base.@pure Base.isreal(::Type{Trivial}) = true
+Base.isreal(::Type{Trivial}) = true
 
 Base.isless(::Trivial, ::Trivial) = false
 

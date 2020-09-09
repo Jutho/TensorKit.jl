@@ -40,8 +40,8 @@ Base.conj(s::FibonacciAnyon) = s
 const _goldenratio = (1 + sqrt(5)) / 2
 dim(a::FibonacciAnyon) = isone(a) ? one(_goldenratio) : _goldenratio
 
-Base.@pure FusionStyle(::Type{FibonacciAnyon}) = SimpleNonAbelian()
-Base.@pure BraidingStyle(::Type{FibonacciAnyon}) = Anyonic()
+FusionStyle(::Type{FibonacciAnyon}) = SimpleNonAbelian()
+BraidingStyle(::Type{FibonacciAnyon}) = Anyonic()
 Base.isreal(::Type{FibonacciAnyon}) = false
 
 ⊗(a::FibonacciAnyon, b::FibonacciAnyon) = FibonacciIterator(a, b)

@@ -20,19 +20,21 @@ ti = time()
     end
     @testset "Fusion tree $I: braiding" begin
         for in = ⊗(out...)
-            for f in fusiontrees(out, in, isdual)
-                d1 = @constinferred TK.artin_braid(f, 2)
-                d2 = empty(d1)
-                for (f1, coeff1) in d1
-                    for (f2,coeff2) in TK.artin_braid(f1, 2; inv = true)
-                        d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
+            for i = 1:N-1
+                for f in fusiontrees(out, in, isdual)
+                    d1 = @constinferred TK.artin_braid(f, i)
+                    d2 = empty(d1)
+                    for (f1, coeff1) in d1
+                        for (f2,coeff2) in TK.artin_braid(f1, i; inv = true)
+                            d2[f2] = get(d2, f2, zero(coeff1)) + coeff2*coeff1
+                        end
                     end
-                end
-                for (f2, coeff2) in d2
-                    if f2 == f
-                        @test coeff2 ≈ 1
-                    else
-                        @test isapprox(coeff2, 0; atol = 10*eps())
+                    for (f2, coeff2) in d2
+                        if f2 == f
+                            @test coeff2 ≈ 1
+                        else
+                            @test isapprox(coeff2, 0; atol = 10*eps())
+                        end
                     end
                 end
             end
@@ -161,12 +163,14 @@ ti = time()
         out2 = ntuple(n->randsector(I), N)
         in2 = rand(collect(⊗(out2...)))
         f2 = rand(collect(fusiontrees(out2, in2)))
-        trees1 = @constinferred TK.merge(f1, f2, first(f1.coupled ⊗ f2.coupled))
+        μ = FusionStyle(I) isa DegenerateNonAbelian ? 1 : nothing
+        trees1 = @constinferred TK.merge(f1, f2, first(f1.coupled ⊗ f2.coupled), μ)
         @test sum(abs2(coeff)*dim(c) for c in f1.coupled ⊗ f2.coupled
-                    for (f,coeff) in TK.merge(f1, f2, c)) ≈ dim(f1.coupled)*dim(f2.coupled)
+                    for (f,coeff) in TK.merge(f1, f2, c, μ)) ≈
+                    dim(f1.coupled)*dim(f2.coupled)
 
         # test merge and braid interplay
-        trees2 = TK.merge(f2, f1, first(f1.coupled ⊗ f2.coupled))
+        trees2 = TK.merge(f2, f1, first(f1.coupled ⊗ f2.coupled), μ)
         perm = ( (N.+(1:N))... , (1:N)...)
         levels = ntuple(identity, 2*N)
         trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()

@@ -16,10 +16,10 @@ the group name followed by `Irrep`.
 All irreps have [`BraidingStyle`](@ref) equal to `Bosonic()` and thus trivial twists.
 """
 abstract type Irrep{G<:Group} <: Sector end # irreps have integer quantum dimensions
-Base.@pure BraidingStyle(::Type{<:Irrep}) = Bosonic()
+BraidingStyle(::Type{<:Irrep}) = Bosonic()
 
 const AbelianIrrep{G} = Irrep{G} where {G<:AbelianGroup}
-Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
+FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
 Base.isreal(::Type{<:AbelianIrrep}) = true
 
 Nsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = c == first(a ⊗ b)
@@ -29,8 +29,8 @@ frobeniusschur(a::AbelianIrrep) = 1
 Bsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = Int(Nsymbol(a, b, c))
 Rsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = Int(Nsymbol(a, b, c))
 
-fusiontensor(a::I, b::I, c::I, v::Nothing = nothing) where {I<:AbelianIrrep} =
-    fill(Int(Nsymbol(a, b, c)), (1, 1, 1))
+fusiontensor(a::I, b::I, c::I) where {I<:AbelianIrrep} =
+    fill(Int(Nsymbol(a, b, c)), (1, 1, 1, 1))
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 64?
 """
@@ -168,7 +168,7 @@ findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j)+1
 
 dim(s::SU2Irrep) = twice(s.j)+1
 
-Base.@pure FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
+FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
 Base.isreal(::Type{SU2Irrep}) = true
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
@@ -186,12 +186,12 @@ function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
     iseven(convert(Int, sa.j+sb.j-sc.j)) ? 1.0 : -1.0
 end
 
-function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep, v::Nothing = nothing)
-    C = Array{Float64}(undef, dim(a), dim(b), dim(c))
+function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep)
+    C = Array{Float64}(undef, dim(a), dim(b), dim(c), 1)
     ja, jb, jc = a.j, b.j, c.j
 
     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)
-        C[ka, kb, kc] = WignerSymbols.clebschgordan(ja, ja+1-ka, jb, jb+1-kb, jc, jc+1-kc)
+        C[ka,kb,kc,1] = WignerSymbols.clebschgordan(ja, ja+1-ka, jb, jb+1-kb, jc, jc+1-kc)
     end
     return C
 end
@@ -309,7 +309,7 @@ end
 
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
 
-Base.@pure FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
+FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
 Base.isreal(::Type{CU1Irrep}) = true
 
 function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
@@ -408,36 +408,36 @@ function Rsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
     return c.s == 1 && a.j > 0 ? -R : R
 end
 
-function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep, ::Nothing = nothing)
-    C = fill(0., dim(a), dim(b), dim(c))
+function fusiontensor(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
+    C = fill(0., dim(a), dim(b), dim(c), 1)
     !Nsymbol(a, b, c) && return C
     if c.j == 0
         if a.j == b.j == 0
-            C[1, 1, 1] = 1.
+            C[1, 1, 1, 1] = 1.
         else
             if c.s == 0
-                C[1, 2, 1] = 1. / sqrt(2)
-                C[2, 1, 1] = 1. / sqrt(2)
+                C[1, 2, 1, 1] = 1. / sqrt(2)
+                C[2, 1, 1, 1] = 1. / sqrt(2)
             else
-                C[1, 2, 1] = 1. / sqrt(2)
-                C[2, 1, 1] = -1. / sqrt(2)
+                C[1, 2, 1, 1] = 1. / sqrt(2)
+                C[2, 1, 1, 1] = -1. / sqrt(2)
             end
         end
     elseif a.j == 0
-        C[1, 1, 1] = 1.
-        C[1, 2, 2] = a.s == 1 ? -1. : 1.
+        C[1, 1, 1, 1] = 1.
+        C[1, 2, 2, 1] = a.s == 1 ? -1. : 1.
     elseif b.j == 0
-        C[1, 1, 1] = 1.
-        C[2, 1, 2] = b.s == 1 ? -1. : 1.
+        C[1, 1, 1, 1] = 1.
+        C[2, 1, 2, 1] = b.s == 1 ? -1. : 1.
     elseif c.j == a.j + b.j
-        C[1, 1, 1] = 1.
-        C[2, 2, 2] = 1.
+        C[1, 1, 1, 1] = 1.
+        C[2, 2, 2, 1] = 1.
     elseif c.j == a.j - b.j
-        C[1, 2, 1] = 1.
-        C[2, 1, 2] = 1.
+        C[1, 2, 1, 1] = 1.
+        C[2, 1, 2, 1] = 1.
     elseif c.j == b.j - a.j
-        C[2, 1, 1] = 1.
-        C[1, 2, 2] = 1.
+        C[2, 1, 1, 1] = 1.
+        C[1, 2, 2, 1] = 1.
     end
     return C
 end

@@ -52,50 +52,75 @@ end
 
 Nsymbol(a::P, b::P, c::P) where {P<:ProductSector} =
     prod(map(Nsymbol, a.sectors, b.sectors, c.sectors))
+
+_firstsector(x::ProductSector) = x.sectors[1]
+_tailsector(x::ProductSector) = ProductSector(tail(x.sectors))
+
 function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
-    if FusionStyle(P) isa Abelian || FusionStyle(P) isa SimpleNonAbelian
-        return prod(map(Fsymbol, a.sectors, b.sectors, c.sectors,
-                                    d.sectors, e.sectors, f.sectors))
+    heads = map(_firstsector, (a, b, c, d, e, f))
+    tails = map(_tailsector, (a, b, c, d, e, f))
+    f1 = Fsymbol(heads...)
+    f2 = Fsymbol(tails...)
+    if f1 isa Number || f2 isa Number
+        f1 * f2
     else
-        # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Fsymbol, (a, b, c, d, e, f)))
+        _kron(f1, f2)
     end
 end
+Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector{<:Tuple{Sector}}} =
+    Fsymbol(map(_firstsector, (a, b, c, d, e, f))...)
+
 function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
-    if FusionStyle(P) isa Abelian || FusionStyle(P) isa SimpleNonAbelian
-        return prod(map(Rsymbol, a.sectors, b.sectors, c.sectors))
+    heads = map(_firstsector, (a, b, c))
+    tails = map(_tailsector, (a, b, c))
+    r1 = Rsymbol(heads...)
+    r2 = Rsymbol(tails...)
+    if r1 isa Number || r2 isa Number
+        r1 * r2
     else
-        # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Rsymbol, (a, b, c)))
+        _kron(r1, r2)
     end
 end
-function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
-    if FusionStyle(P) isa Abelian || FusionStyle(P) isa SimpleNonAbelian
-        return prod(map(Asymbol, a.sectors, b.sectors, c.sectors))
-    else
-        # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Asymbol, (a, b, c)))
-    end
-end
+Rsymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
+    Rsymbol(map(_firstsector, (a, b, c))...)
+
 function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
-    if FusionStyle(P) isa Abelian || FusionStyle(P) isa SimpleNonAbelian
-        return prod(map(Bsymbol, a.sectors, b.sectors, c.sectors))
+    heads = map(_firstsector, (a, b, c))
+    tails = map(_tailsector, (a, b, c))
+    b1 = Bsymbol(heads...)
+    b2 = Bsymbol(tails...)
+    if b1 isa Number || b2 isa Number
+        b1 * b2
     else
-        # TODO: DegenerateNonAbelian case, use kron ?
-        throw(MethodError(Bsymbol, (a, b, c)))
+        _kron(b1, b2)
     end
 end
+Bsymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
+    Bsymbol(map(_firstsector, (a, b, c))...)
+
+function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
+    heads = map(_firstsector, (a, b, c))
+    tails = map(_tailsector, (a, b, c))
+    a1 = Asymbol(heads...)
+    a2 = Asymbol(tails...)
+    if a1 isa Number || a2 isa Number
+        a1 * a2
+    else
+        _kron(a1, a2)
+    end
+end
+Asymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
+    Asymbol(map(_firstsector, (a, b, c))...)
+
 frobeniusschur(p::ProductSector) = prod(map(frobeniusschur, p.sectors))
 
-fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T},
-                v::Nothing = nothing) where {T<:SectorTuple} =
-    _kron(fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1]),
-            fusiontensor(ProductSector(tail(a.sectors)), ProductSector(tail(b.sectors)),
-                            ProductSector(tail(c.sectors))))
+function fusiontensor(a::P, b::P, c::P) where {P<:ProductSector}
+    return _kron(fusiontensor(map(_firstsector, (a,b,c))...),
+                    fusiontensor(map(_tailsector, (a,b,c))...))
+end
 
-fusiontensor(a::ProductSector{T}, b::ProductSector{T}, c::ProductSector{T},
-                v::Nothing = nothing) where {T<:Tuple{<:Sector}} =
-    fusiontensor(a.sectors[1], b.sectors[1], c.sectors[1])
+fusiontensor(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
+    fusiontensor(map(_firstsector, (a,b,c))...)
 
 FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
     Base.:&(map(FusionStyle, _sectors(T))...)

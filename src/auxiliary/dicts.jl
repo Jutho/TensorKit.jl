@@ -1,8 +1,9 @@
 struct SingletonDict{K, V} <: AbstractDict{K, V}
     key::K
     value::V
+    SingletonDict{K, V}(p::Pair{K, V}) where {K, V} = new{K, V}(p.first, p.second)
 end
-SingletonDict(p::Pair{K, V}) where {K, V} = SingletonDict{K, V}(p.first, p.second)
+SingletonDict(p::Pair{K, V}) where {K, V} = SingletonDict{K, V}(p)
 
 Base.length(::SingletonDict) = 1
 Base.keys(d::SingletonDict) = (d.key,)

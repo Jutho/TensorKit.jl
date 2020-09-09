@@ -7,6 +7,10 @@ module ConstInferred
     using Test
     using Test: Returned, Threw
 
+    _enabled = Ref(true)
+    enable_inferred() = (_enabled[] = true; return nothing)
+    disable_inferred() = (_enabled[] = false; return nothing)
+
     _args_and_call(args...; kwargs...) =
         (args[1:end-1], kwargs, args[end](args[1:end-1]...; kwargs...))
     _materialize_broadcasted(f, args...) =
@@ -116,13 +120,15 @@ module ConstInferred
         end
         orig_ex = Expr(:inert, Expr(:macrocall, Symbol("@constinferred"), nothing, ex))
         post = quote
-            if length($(esc(inftypes))) > 1
-                testresult = Threw(ArgumentError("more than one inferred type"), Base.catch_stack(), $(QuoteNode(src)))
-            else
-                v = $(esc(rettype)) <: $(esc(allow)) || $(esc(rettype)) == Core.Compiler.typesubtract($(esc(inftypes))[1], $(esc(allow)))
-                testresult = Returned(v, Expr(:call, :!=, $(esc(rettype)), $(esc(inftypes))[1]), $(QuoteNode(src)))
+            if $(_enabled[])
+                if length($(esc(inftypes))) > 1
+                    testresult = Threw(ArgumentError("more than one inferred type"), Base.catch_stack(), $(QuoteNode(src)))
+                else
+                    v = $(esc(rettype)) <: $(esc(allow)) || $(esc(rettype)) == Core.Compiler.typesubtract($(esc(inftypes))[1], $(esc(allow)))
+                    testresult = Returned(v, Expr(:call, :!=, $(esc(rettype)), $(esc(inftypes))[1]), $(QuoteNode(src)))
+                end
+                Test.do_test(testresult, $orig_ex)
             end
-            Test.do_test(testresult, $orig_ex)
             $result
         end
         finalex = Base.remove_linenums!(quote

@@ -71,7 +71,7 @@ Base.length(f::FusionTree) = length(typeof(f))
 # Hashing, important for using fusion trees as key in a dictionary
 function Base.hash(f::FusionTree{I}, h::UInt) where {I}
     h = hash(f.isdual, hash(f.coupled, hash(f.uncoupled, h)))
-    if FusionStyle(I) isa SimpleNonAbelian
+    if FusionStyle(I) isa NonAbelian
         h = hash(f.innerlines, h)
     end
     if FusionStyle(I) isa DegenerateNonAbelian
@@ -85,7 +85,7 @@ function Base.isequal(f1::FusionTree{I, N}, f2::FusionTree{I, N}) where {I<:Sect
         f1.uncoupled[i] == f2.uncoupled[i] || return false
         f1.isdual[i] == f2.isdual[i] || return false
     end
-    if FusionStyle(I) isa SimpleNonAbelian
+    if FusionStyle(I) isa NonAbelian
         @inbounds for i=1:N-2
             f1.innerlines[i] == f2.innerlines[i] || return false
         end
@@ -137,8 +137,12 @@ function Base.convert(::Type{Array}, f::FusionTree{I, 2}) where {I}
     isduala, isdualb = f.isdual
     c = f.coupled
     da, db, dc = dim.((a, b, c))
-    μ = f.vertices[1]
-    X = reshape(fusiontensor(a, b, c, μ), da*db, dc)
+    if FusionStyle(I) isa DegenerateNonAbelian
+        μ = f.vertices[1]
+        X = reshape(view(fusiontensor(a, b, c), :, :, :, μ), da*db, dc)
+    else
+        X = reshape(view(fusiontensor(a, b, c), :, :, :, 1), da*db, dc)
+    end
     Za = convert(Array, FusionTree((a,), a, (isduala,), ()))
     Zb = convert(Array, FusionTree((b,), b, (isdualb,), ()))
     return convert(Array, reshape(kron(Zb, Za)*X, (da, db, dc)))

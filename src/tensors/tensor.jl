@@ -341,10 +341,17 @@ function Base.convert(::Type{Dict}, t::AbstractTensorMap)
     return d
 end
 function Base.convert(::Type{TensorMap}, d::Dict{Symbol,Any})
-    codomain = eval(Meta.parse(d[:codomain]))
-    domain = eval(Meta.parse(d[:domain]))
-    data = SectorDict(eval(Meta.parse(c))=>b for (c,b) in d[:data])
-    return TensorMap(data, codomain, domain)
+    try
+        codomain = eval(Meta.parse(d[:codomain]))
+        domain = eval(Meta.parse(d[:domain]))
+        data = SectorDict(eval(Meta.parse(c))=>b for (c,b) in d[:data])
+        return TensorMap(data, codomain, domain)
+    catch e # sector unknown in TensorKit.jl; user-defined, hopefully accessible in Main
+        codomain = Base.eval(Main, Meta.parse(d[:codomain]))
+        domain = Base.eval(Main, Meta.parse(d[:domain]))
+        data = SectorDict(Base.eval(Main, Meta.parse(c))=>b for (c,b) in d[:data])
+        return TensorMap(data, codomain, domain)
+    end
 end
 
 # Getting and setting the data
