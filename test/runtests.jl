@@ -47,8 +47,12 @@ function hasfusiontensor(I::Type{<:Sector})
     try
         fusiontensor(one(I), one(I), one(I))
         return true
-    catch
-        return false
+    catch e
+        if e isa MethodError
+            return false
+        else
+            rethrow(e)
+        end
     end
 end
 

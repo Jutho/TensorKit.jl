@@ -50,7 +50,7 @@ ti = time()
                 for c in ⊗(a,b)
                     X1 = permutedims(fusiontensor(a, b, c), (2, 1, 3, 4))
                     X2 = fusiontensor(b, a, c)
-                    l = dim(a)*dim(b)*dim(c)
+                    l =dim(a)*dim(b)*dim(c)
                     R = LinearAlgebra.transpose(Rsymbol(a, b, c))
                     sz = (l, convert(Int, Nsymbol(a, b, c)))
                     @test reshape(X1, sz) ≈ reshape(X2, sz) * R
@@ -68,7 +68,7 @@ ti = time()
                         if FusionStyle(I) isa Union{Abelian,SimpleNonAbelian}
                             f2 = fill(Fsymbol(a,b,c,d,e,f)*dim(d), (1,1,1,1))
                         else
-                            Fsymbol(a,b,c,d,e,f)*dim(d)
+                            f2 = Fsymbol(a,b,c,d,e,f)*dim(d)
                         end
                         @test f1≈f2 atol=1e-12
                     end

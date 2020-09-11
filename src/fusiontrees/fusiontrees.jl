@@ -27,21 +27,43 @@ struct FusionTree{I<:Sector, N, M, L, T}
         new{I, N, M, L, T}(uncoupled, coupled, isdual, innerlines, vertices)
     end
 end
-FusionTree{I}(uncoupled::NTuple{N, Any},
-                coupled,
-                isdual::NTuple{N, Bool},
-                innerlines,
-                vertices = ntuple(n->nothing, max(0, N-1))
-                ) where {I<:Sector, N} =
-    fusiontreetype(I, N)(map(s->convert(I, s), uncoupled),
-        convert(I, coupled), isdual, map(s->convert(I, s), innerlines), vertices)
-FusionTree(uncoupled::NTuple{N, I},
-            coupled::I,
-            isdual::NTuple{N, Bool},
-            innerlines,
-            vertices = ntuple(n->nothing, N-1)
-            ) where {I<:Sector, N} =
-    fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices)
+function FusionTree{I}(uncoupled::NTuple{N, Any},
+                        coupled,
+                        isdual::NTuple{N, Bool},
+                        innerlines,
+                        vertices = ntuple(n->nothing, max(0, N-1))
+                        ) where {I<:Sector, N}
+    if FusionStyle(I) isa DegenerateNonAbelian
+        fusiontreetype(I, N)(map(s->convert(I, s), uncoupled),
+            convert(I, coupled), isdual, map(s->convert(I, s), innerlines), vertices)
+    else
+        vertices′ = ntuple(n->nothing, max(0, N-1))
+        if vertices == vertices′ || all(isone, vertices)
+            fusiontreetype(I, N)(map(s->convert(I, s), uncoupled),
+                convert(I, coupled), isdual, map(s->convert(I, s), innerlines), vertices)
+        else
+            throw(ArgumentError("Incorrect fusion vertices"))
+        end
+    end
+end
+function FusionTree(uncoupled::NTuple{N, I},
+                        coupled::I,
+                        isdual::NTuple{N, Bool},
+                        innerlines,
+                        vertices = ntuple(n->nothing, max(0, N-1))
+                        ) where {I<:Sector, N}
+    if FusionStyle(I) isa DegenerateNonAbelian
+        fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices)
+    else
+        vertices′ = ntuple(n->nothing, max(0, N-1))
+        if vertices == vertices′ || all(isone, vertices)
+            fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices′)
+        else
+            throw(ArgumentError("Incorrect fusion vertices"))
+        end
+    end
+end
+
 
 function FusionTree{I}(uncoupled::NTuple{N}, coupled = one(I),
                         isdual = ntuple(n->false, N)) where {I<:Sector, N}

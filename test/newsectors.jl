@@ -51,9 +51,11 @@ function TensorKit.Rsymbol(sa::NewSU2Irrep, sb::NewSU2Irrep, sc::NewSU2Irrep)
     Nsymbol(sa, sb, sc) > 0 || return fill(0., (0,0))
     return fill(iseven(convert(Int, sa.j+sb.j-sc.j)) ? 1.0 : -1.0, (1, 1))
 end
+TensorKit.dim(s::NewSU2Irrep) = twice(s.j) + 1
+
 
 function TensorKit.fusiontensor(a::NewSU2Irrep, b::NewSU2Irrep, c::NewSU2Irrep)
-    C = Array{Float64}(undef, round(Int, dim(a)), round(Int, dim(b)), round(Int, dim(c)), 1)
+    C = Array{Float64}(undef, dim(a), dim(b), dim(c), 1)
     ja, jb, jc = a.j, b.j, c.j
 
     for kc = 1:dim(c), kb = 1:dim(b), ka = 1:dim(a)

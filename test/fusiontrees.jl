@@ -157,48 +157,63 @@ ti = time()
     end
     @testset "Fusion tree $I: merging" begin
         N = 3
-        out1 = ntuple(n->randsector(I), N-1)
+        out1 = ntuple(n->randsector(I), N)
         in1 = rand(collect(⊗(out1...)))
-        f1 = rand(collect(fusiontrees((out1..., dual(in1)), one(in1))))
+        f1 = rand(collect(fusiontrees(out1, in1)))
         out2 = ntuple(n->randsector(I), N)
         in2 = rand(collect(⊗(out2...)))
         f2 = rand(collect(fusiontrees(out2, in2)))
-        μ = FusionStyle(I) isa DegenerateNonAbelian ? 1 : nothing
-        trees1 = @constinferred TK.merge(f1, f2, first(f1.coupled ⊗ f2.coupled), μ)
-        @test sum(abs2(coeff)*dim(c) for c in f1.coupled ⊗ f2.coupled
-                    for (f,coeff) in TK.merge(f1, f2, c, μ)) ≈
-                    dim(f1.coupled)*dim(f2.coupled)
 
-        # test merge and braid interplay
-        trees2 = TK.merge(f2, f1, first(f1.coupled ⊗ f2.coupled), μ)
-        perm = ( (N.+(1:N))... , (1:N)...)
-        levels = ntuple(identity, 2*N)
-        trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()
-        for (t, coeff) in trees1
-            for (t′, coeff′) in TK.braid(t, levels, perm)
-                trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
-            end
+        @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), 1)
+        if !(FusionStyle(I) isa DegenerateNonAbelian)
+            @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), nothing)
+            @constinferred TK.merge(f1, f2, first(in1 ⊗ in2))
         end
-        for (t, coeff) in trees3
-            @test isapprox(coeff, get(trees2, t, zero(coeff)); atol = 10*eps())
-        end
+        @test dim(in1)*dim(in2) ≈ sum(abs2(coeff)*dim(c) for c in in1 ⊗ in2
+                                                    for μ in 1:Nsymbol(in1, in2, c)
+                                                    for (f,coeff) in TK.merge(f1, f2, c, μ))
 
-        if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
-            Af1 = convert(Array, f1)
-            Af2 = convert(Array, f2)
-            for c in f1.coupled ⊗ f2.coupled
-                Af0 = convert(Array, FusionTree((f1.coupled, f2.coupled), c, (false, false), ()))
-                _Af = TensorOperations.tensorcontract(Af1, [1:N;-1],
-                                                        Af0, [-1;N+1;N+2], 1:N+2)
-                Af = TensorOperations.tensorcontract(Af2, [N .+ (1:N); -1],
-                                                        _Af, [1:N; -1; 2N+1], 1:2N+1)
-                Af′ = zero(Af)
-                for (f, coeff) in trees1
-                    if f.coupled == c
-                        Af′ .+= coeff .* convert(Array, f)
+        for c in in1 ⊗ in2
+            R = Rsymbol(in1, in2, c)
+            for μ = 1:Nsymbol(in1, in2, c)
+                μ′ = FusionStyle(I) isa DegenerateNonAbelian ? μ : nothing
+                trees1 = TK.merge(f1, f2, c, μ′)
+
+                # test merge and braid interplay
+                trees2 = Dict{keytype(trees1), complex(valtype(trees1))}()
+                trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()
+                for ν = 1:Nsymbol(in2, in1, c)
+                    ν′ = FusionStyle(I) isa DegenerateNonAbelian ? ν : nothing
+                    for (t, coeff) in TK.merge(f2, f1, c, ν′)
+                        trees2[t] = get(trees2, t, zero(valtype(trees2))) + coeff*R[μ,ν]
                     end
                 end
-                @test Af ≈ Af′
+                perm = ( (N.+(1:N))... , (1:N)...)
+                levels = ntuple(identity, 2*N)
+                for (t, coeff) in trees1
+                    for (t′, coeff′) in TK.braid(t, levels, perm)
+                        trees3[t′] = get(trees3, t′, zero(valtype(trees3))) + coeff*coeff′
+                    end
+                end
+                for (t, coeff) in trees3
+                    @test isapprox(coeff, get(trees2, t, zero(coeff)); atol = 10*eps())
+                end
+
+                # test via conversion
+                if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
+                    Af1 = convert(Array, f1)
+                    Af2 = convert(Array, f2)
+                    Af0 = convert(Array, FusionTree((f1.coupled, f2.coupled), c, (false, false), (), (μ,)))
+                    _Af = TensorOperations.tensorcontract(Af1, [1:N;-1],
+                                                            Af0, [-1;N+1;N+2], 1:N+2)
+                    Af = TensorOperations.tensorcontract(Af2, [N .+ (1:N); -1],
+                                                            _Af, [1:N; -1; 2N+1], 1:2N+1)
+                    Af′ = zero(Af)
+                    for (f, coeff) in trees1
+                        Af′ .+= coeff .* convert(Array, f)
+                    end
+                    @test Af ≈ Af′
+                end
             end
         end
     end
