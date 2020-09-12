@@ -81,8 +81,8 @@ ti = time()
             for d in ⊗(a,b,c)
                 es = collect(intersect(⊗(a,b), map(dual, ⊗(c,dual(d)))))
                 fs = collect(intersect(⊗(b,c), map(dual, ⊗(dual(d),a))))
-                @test length(es) == length(fs)
                 if FusionStyle(I) isa Union{Abelian,SimpleNonAbelian}
+                    @test length(es) == length(fs)
                     F = [Fsymbol(a,b,c,d,e,f) for e in es, f in fs]
                 else
                     Fblocks = Vector{Any}()
