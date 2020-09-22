@@ -43,6 +43,7 @@ export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps
 export domain, codomain, numind, numout, numin, spacetype, storagetype, eltype
+export domainind, codomainind, allind
 export tensormaptype
 export blocksectors, blockdim, block, blocks
 
