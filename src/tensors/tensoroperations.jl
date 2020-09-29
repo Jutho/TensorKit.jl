@@ -41,8 +41,98 @@ scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} =
     if BraidingStyle(I) isa SymmetricBraiding
         add!(α, tsrc, β, tdst, p1, p2, (codomainind(tsrc)..., domainind(tsrc)...))
     else
-        throw(ArgumentError("add! without levels only if `BraidingStyle(sectortype(...)) isa SymmetricBraiding`"))
+        # If BraidingStyle is non-trivial, then check if the given permutation can be done
+        # without braiding.
+        N1 = numout(tsrc)
+        N2 = numin(tsrc)
+        p = (p1..., reverse(p2)...)
+        N = N1 + N2
+        nop = (1:N1..., reverse(N1+1:N)...)  # The noop permutation.
+        firstind_p = findfirst(x -> x == 1, p)
+        firstind_nop = findfirst(x -> x == 1, nop)
+        # Check that p and nop are related to each other rotations by, i.e. taking indices
+        # from the end putting them in the beginning, or vice versa.
+        isplanar = all(p[mod1(firstind_p + i - 1, N)] == nop[mod1(firstind_nop + i - 1, N)]
+                       for i in 1:N)
+        if !isplanar
+            msg = "add! without levels only if `BraidingStyle(sectortype(...)) isa SymmetricBraiding`, or the permutation does not require braiding. Here codomainind = $(codomainind(tsrc)), domainind = $(domainind(tsrc)), but p1 = $p1, p2 = $p2."
+            throw(ArgumentError(msg))
+        end
+
+        # If no actual braiding is required, do the permutation in two steps: first bend
+        # legs between the domain and codomain at the left end of the tensor, as necessary.
+        # This needs to be done one index at a time, to avoid spurious braids.
+        p_first = p[1]
+        # TODO This copy if wasteful, but necessary with the current implementation because
+        # bend_first_up and bend_first_down are inplace. Rethink once the structure is more
+        # settled, i.e. maybe this whole bit is going to be moved to a different function.
+        tsrc = deepcopy(tsrc)
+        while p_first != 1
+            if p_first <= N1
+                tsrc = bend_first_up(tsrc)
+                p1 = bend_first_up(p1, N1)
+                p2 = bend_first_up(p2, N1)
+                N1 -= 1
+            else
+                tsrc = bend_first_down(tsrc)
+                p1 = bend_first_down(p1, N1)
+                p2 = bend_first_down(p2, N1)
+                N1 += 1
+            end
+            p_first = length(p1) > 0 ? p1[1] : p2[end]
+        end
+
+        # Second, bend legs over the right end.
+        levels = (1:N...,)
+        return add!(α, tsrc, β, tdst, p1, p2, levels)
     end
+end
+
+"""
+    bend_first_up(t::AbstractTensorMap; copy::Bool=false)
+
+Take the first index of the codomain of `t`, and bend it up over the "left" end of the
+tensor, i.e. permute it to become the first index of the domain without any braiding or
+twists.
+"""
+function bend_first_up(t::AbstractTensorMap; copy::Bool=false)
+    N1 = numout(t)
+    N = numind(t)
+    p1 = (2:N1...,)
+    p2 = (1, N1+1:N...)
+    levels = (1:N...,)
+    # The `braid` function braids bends the leg over the right end of the tensor, which
+    # introduces a twist. We cancel that twist.
+    t = braid(t, levels, p1, p2; copy = copy)
+    return twist!(t, N1; inv = false)
+end
+
+"""
+    bend_first_down(t::AbstractTensorMap; copy::Bool=false)
+
+Take the first index of the domain of `t`, and bend it down over the "left" end of the
+tensor, i.e. permute it to become the first index of the codomain without any braiding or
+twists.
+"""
+function bend_first_down(t::AbstractTensorMap; copy::Bool=false)
+    N1 = numout(t)
+    N2 = numin(t)
+    N = numind(t)
+    p1 = (N1+1, 1:N1...)
+    p2 = (N1+2:N...,)
+    levels = (N2+1:N..., 1:N2...)
+    # The `braid` function braids bends the leg over the right end of the tensor, which
+    # introduces a twist. We cancel that twist.
+    t = braid(t, levels, p1, p2; copy = copy)
+    return twist!(t, 1; inv = true)
+end
+
+function bend_first_up(p::IndexTuple, N1::Int)
+    return map(i -> ifelse(i == 1, N1, ifelse(i <= N1, i-1, i)), p)
+end
+
+function bend_first_down(p::IndexTuple, N1::Int)
+    return map(i -> ifelse(i == N1+1, 1, ifelse(i <= N1, i+1, i)), p)
 end
 
 function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N₁, N₂},
