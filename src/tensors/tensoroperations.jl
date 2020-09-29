@@ -189,6 +189,11 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     oindB::IndexTuple{N₂}, cindB::IndexTuple,
                     p1::IndexTuple, p2::IndexTuple,
                     syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S, N₁, N₂}
+    if BraidingStyle(sectortype(S)) == Anyonic()
+        # We shouldn't touch the ordering of the tensors or indices, since braiding is
+        # non-trivial.
+        return _contract!(α, A, B, β, C, oindA, cindA, oindB, cindB, p1, p2, syms)
+    end
     # find optimal contraction scheme
     hsp = has_shared_permute
     ipC = TupleTools.invperm((p1..., p2...))
