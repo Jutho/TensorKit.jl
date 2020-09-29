@@ -205,13 +205,12 @@ end
 # inner product and norm only valid for spaces with Euclidean inner product
 function LinearAlgebra.dot(t1::AbstractEuclideanTensorMap, t2::AbstractEuclideanTensorMap)
     space(t1) == space(t2) || throw(SpaceMismatch())
-    iter = blocksectors(t1)
     T = promote_type(eltype(t1), eltype(t2))
-    if isempty(iter)
-        return zero(T)
-    else
-        return sum(convert(T, dim(c))*dot(block(t1, c), block(t2, c)) for c in blocksectors(t1))
+    s = zero(T)
+    for c in blocksectors(t1)
+        s += convert(T, dim(c)) * dot(block(t1, c), block(t2, c))
     end
+    return s
 end
 
 LinearAlgebra.norm(t::AbstractEuclideanTensorMap, p::Real = 2) =
