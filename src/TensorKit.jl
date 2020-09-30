@@ -14,6 +14,7 @@ export Abelian, NonAbelian, SimpleNonAbelian, DegenerateNonAbelian,
 export Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
         #FermionParity, FermionNumber, FermionSpin # specific sectors
 export FibonacciAnyon
+export IsingAnyon
 
 export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
 export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace, ZNSpace, Rep # concrete spaces

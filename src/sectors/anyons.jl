@@ -110,3 +110,149 @@ end
 
 Base.hash(a::FibonacciAnyon, h::UInt) = hash(a.isone, h)
 Base.isless(a::FibonacciAnyon, b::FibonacciAnyon) = isless(!a.isone, !b.isone)
+
+# IsingAnyons
+"""
+    struct IsingAnyon <: Sector
+    IsingAnyon(s::Symbol)
+
+Represents the anyons (isomorphism classes of simple objects) of the Ising fusion category.
+It can take three values, corresponding to the trivial sector `IsingAnyon(:I)` and the
+non-trivial sectors `IsingAnyon(:σ)` and `IsingAnyon(:ψ)`, with fusion rules
+``ψ ⊗ ψ = 1``, ``σ ⊗ ψ = σ``, and ``σ ⊗ σ = 1 ⊕ ψ``.
+"""
+struct IsingAnyon <: Sector
+    s::Symbol
+    function IsingAnyon(s::Symbol)
+        s == :sigma && (s = :σ)
+        s == :psi && (s = :ψ)
+        if !(s in (:I, :σ, :ψ))
+            throw(ValueError("Unknown IsingAnyon $s."))
+        end
+        new(s)
+    end
+end
+
+const all_isinganyons = (IsingAnyon(:I), IsingAnyon(:σ), IsingAnyon(:ψ))
+
+Base.IteratorSize(::Type{SectorValues{IsingAnyon}}) = HasLength()
+Base.length(::SectorValues{IsingAnyon}) = length(all_isinganyons)
+Base.iterate(::SectorValues{IsingAnyon}, i = 1) = iterate(all_isinganyons, i)
+Base.getindex(S::SectorValues{IsingAnyon}, i) = getindex(all_isinganyons, i)
+
+function findindex(::SectorValues{IsingAnyon}, a::IsingAnyon)
+    a == all_isinganyons[1] && return 1
+    a == all_isinganyons[2] && return 2
+    return 3
+end
+
+Base.convert(::Type{IsingAnyon}, s::Symbol) = IsingAnyon(s)
+Base.one(::Type{IsingAnyon}) = IsingAnyon(:I)
+Base.conj(s::IsingAnyon) = s
+
+dim(a::IsingAnyon) = a.s == :σ ? sqrt(2) : 1.0
+
+FusionStyle(::Type{IsingAnyon}) = SimpleNonAbelian()
+BraidingStyle(::Type{IsingAnyon}) = Anyonic()
+Base.isreal(::Type{IsingAnyon}) = false
+
+⊗(a::IsingAnyon, b::IsingAnyon) = IsingIterator(a, b)
+
+struct IsingIterator
+    a::IsingAnyon
+    b::IsingAnyon
+end
+
+Base.IteratorSize(::Type{IsingIterator}) = Base.HasLength()
+Base.IteratorEltype(::Type{IsingIterator}) = Base.HasEltype()
+Base.eltype(::Type{IsingIterator}) = IsingAnyon
+
+function Base.length(iter::IsingIterator)
+    σ = IsingAnyon(:σ)
+    return (iter.a == σ && iter.b == σ) ? 2 : 1
+end
+
+function Base.iterate(iter::IsingIterator, state = 1)
+    I, σ, ψ = all_isinganyons
+    if state == 1 # first iteration
+        iter.a == I && return (iter.b, 2)
+        iter.b == I && return (iter.a, 2)
+        iter.a == σ && iter.b == ψ && return (σ, 2)
+        iter.a == ψ && iter.b == σ && return (σ, 2)
+        return (I, 2)
+    elseif state == 2
+        (iter.a == iter.b == σ) && return (ψ, 3)
+        return nothing
+    else
+        return nothing
+    end
+end
+
+function Nsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon)
+    I, σ, ψ = all_isinganyons
+    return ((a == I && b == c)
+            || (b == I && a == c)
+            || (c == I && a == b)
+            || (a == σ && b == σ && c == ψ)
+            || (a == σ && b == ψ && c == σ)
+            || (a == ψ && b == σ && c == σ)
+           )
+end
+
+function Fsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon,
+                 d::IsingAnyon, e::IsingAnyon, f::IsingAnyon)
+    Nsymbol(a, b, e) || return 0.0
+    Nsymbol(e, c, d) || return 0.0
+    Nsymbol(b, c, f) || return 0.0
+    Nsymbol(a, f, d) || return 0.0
+    I, σ, ψ = all_isinganyons
+    if a == b == c == d == σ
+        if e == f == ψ
+            return -1.0/sqrt(2.0)
+        else
+            return 1.0/sqrt(2.0)
+        end
+    end
+    if e == f == σ
+        if a == c == σ && b == d == ψ
+            return -1.0
+        elseif a == c == ψ && b == d == σ
+            return -1.0
+        end
+    end
+    return 1.0
+end
+
+function Rsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon)
+    Nsymbol(a, b, c) || return complex(0.0)
+    I, σ, ψ = all_isinganyons
+    if c == I
+        if b == a == σ
+            return cis(-π/8)
+        elseif b == a == ψ
+            return complex(-1.0)
+        end
+    elseif c == σ && (a == σ && b == ψ || a == ψ && b == σ)
+        return -1.0im
+    elseif c == ψ && a == b == σ
+        return cis(3π/8)
+    end
+    return complex(1.0)
+end
+
+Base.show(io::IO, ::Type{IsingAnyon}) = print(io, "IsingAnyon")
+
+function Base.show(io::IO, a::IsingAnyon)
+    if get(io, :typeinfo, nothing) === IsingAnyon
+        return print(io, ":$(a.s)")
+    else
+        return print(io, "IsingAnyon(:$(a.s))")
+    end
+end
+
+Base.hash(s::IsingAnyon, h::UInt) = hash(s.s, h)
+
+function Base.isless(a::IsingAnyon, b::IsingAnyon)
+    vals = SectorValues{IsingAnyon}()
+    return isless(findindex(vals, a), findindex(vals, b))
+end
