@@ -99,7 +99,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
 
             t2 = TensorMap(rand, T, W)
             β = rand(T)
-            @test dot(β*t2,α*t) ≈ conj(β)*α*conj(dot(t,t2))
+            @test @constinferred(dot(β*t2,α*t)) ≈ conj(β)*α*conj(dot(t,t2))
             @test dot(t2,t) ≈ conj(dot(t, t2))
             @test dot(t2,t) ≈ conj(dot(t2', t'))
             @test dot(t2,t) ≈ dot(t', t2')
