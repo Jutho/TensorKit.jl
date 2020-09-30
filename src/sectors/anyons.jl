@@ -1,22 +1,20 @@
 # FibonacciAnyons
 """
     struct FibonacciAnyon <: Sector
-    FibonacciAnyon(s::Union{Symbol, Integer})
+    FibonacciAnyon(s::Symbol)
 
 Represents the anyons (isomorphism classes of simple objects) of the Fibonacci fusion
 category. It can take two values, corresponding to the trivial sector
-`FibonacciAnyon(:I) == FibonacciAnyon(0)` and the non-trivial sector
-`FibonacciAnyon(:τ) = FibonacciAnyon(1)` with fusion rules ``τ ⊗ τ = 1 ⊕ τ``.
+`FibonacciAnyon(:I)` and the non-trivial sector `FibonacciAnyon(:τ)` with fusion rules
+``τ ⊗ τ = 1 ⊕ τ``.
 """
 struct FibonacciAnyon <: Sector
     isone::Bool
     function FibonacciAnyon(s::Symbol)
-        s == :I || s == :τ || throw(ArgumentError("Unknown FibonacciAnyon $s."))
+        s in (:I, :τ, :tau) || throw(ArgumentError("Unknown FibonacciAnyon $s."))
         new(s === :I)
     end
 end
-Fibonacci(i::Integer) = iszero(i) ? Fibonacci(:I) :
-                            (isone(i) ? Fibonacci(:τ) : error("unkown Fibonacci anyon"))
 
 Base.IteratorSize(::Type{SectorValues{FibonacciAnyon}}) = HasLength()
 Base.length(::SectorValues{FibonacciAnyon}) = 2
@@ -37,7 +35,7 @@ Base.convert(::Type{FibonacciAnyon}, s::Symbol) = FibonacciAnyon(s)
 Base.one(::Type{FibonacciAnyon}) = FibonacciAnyon(:I)
 Base.conj(s::FibonacciAnyon) = s
 
-const _goldenratio = (1 + sqrt(5)) / 2
+const _goldenratio = Float64(MathConstants.golden)
 dim(a::FibonacciAnyon) = isone(a) ? one(_goldenratio) : _goldenratio
 
 FusionStyle(::Type{FibonacciAnyon}) = SimpleNonAbelian()
@@ -95,11 +93,11 @@ function Fsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon,
 end
 
 function Rsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon)
-    Nsymbol(a, b, c) || return 0*exp((0π/1)*im)
+    Nsymbol(a, b, c) || return 0*cis(0π/1)
     if isone(a) || isone(b)
-        return exp((0π/1)*im)
+        return cis(0π/1)
     else
-        return isone(c) ? exp(+(4π/5)*im) : exp(-(3π/5)*im)
+        return isone(c) ? cis(4π/5) : cis(-3π/5)
     end
 end
 
