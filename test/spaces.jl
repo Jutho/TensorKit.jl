@@ -2,7 +2,7 @@ println("------------------------------------")
 println("|     Fields and vector spaces     |")
 println("------------------------------------")
 ti = time()
-@testset TimedTestSet "Fields" begin
+@timedtestset "Fields" begin
     @test isa(ℝ, Field)
     @test isa(ℂ, Field)
     @test eval(Meta.parse(sprint(show, ℝ))) == ℝ
@@ -44,7 +44,7 @@ ti = time()
     end
 end
 
-@testset TimedTestSet "ElementarySpace: CartesianSpace" begin
+@timedtestset "ElementarySpace: CartesianSpace" begin
     d = 2
     V = ℝ^d
     @test eval(Meta.parse(sprint(show, V))) == V
@@ -86,7 +86,7 @@ end
     @test @constinferred(supremum(V', ℝ^3)) == ℝ^3
 end
 
-@testset TimedTestSet "ElementarySpace: ComplexSpace" begin
+@timedtestset "ElementarySpace: ComplexSpace" begin
     d = 2
     V = ℂ^d
     @test eval(Meta.parse(sprint(show, V))) == V
@@ -134,7 +134,7 @@ end
     @test @constinferred(supremum(V', ℂ[3]')) == ℂ[3]'
 end
 
-@testset TimedTestSet "ElementarySpace: GeneralSpace" begin
+@timedtestset "ElementarySpace: GeneralSpace" begin
     d = 2
     V = GeneralSpace{ℂ}(d)
     @test eval(Meta.parse(sprint(show, V))) == V
@@ -162,7 +162,7 @@ end
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 
-@testset TimedTestSet "ElementarySpace: GradedSpace[$I]" for I in sectorlist
+@timedtestset "ElementarySpace: GradedSpace[$I]" for I in sectorlist
     if Base.IteratorSize(values(I)) === Base.IsInfinite()
         set = unique(vcat(one(I), [randsector(I) for k = 1:10]))
         gen = (c=>2 for c in set)
@@ -244,7 +244,7 @@ end
     @test_throws SpaceMismatch (⊕(V, V'))
 end
 
-@testset TimedTestSet "ProductSpace{ℂ}" begin
+@timedtestset "ProductSpace{ℂ}" begin
     V1, V2, V3, V4 = ℂ[1], ℂ[2], ℂ[3], ℂ[4]
     P = @constinferred ProductSpace(V1, V2, V3, V4)
     @test eval(Meta.parse(sprint(show, P))) == P
@@ -304,7 +304,7 @@ end
     @test collect(P) == [V1, V2, V3, V4]
 end
 
-@testset TimedTestSet "ProductSpace{SU₂Space}" begin
+@timedtestset "ProductSpace{SU₂Space}" begin
     V1, V2, V3 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1), SU₂Space(1//2=>1, 1=>1)'
     P = @constinferred ProductSpace(V1, V2, V3)
     @test eval(Meta.parse(sprint(show, P))) == P
@@ -339,7 +339,7 @@ end
     @test sum(dim(c)*blockdim(P, c) for c in @constinferred(blocksectors(P))) == dim(P)
 end
 
-@testset TimedTestSet "Deligne tensor product of spaces" begin
+@timedtestset "Deligne tensor product of spaces" begin
     V1 = SU₂Space(0=>3, 1//2=>1)
     V2 = SU₂Space(0=>2, 1=>1)'
     V3 = ℤ₃Space(0=>3, 1=>2, 2=>1)
@@ -375,7 +375,7 @@ end
     @test fuse(V3 ⊠ V4) == fuse(V4 ⊠ V3) == ℤ₃Space(0=>9, 1=>6, 2=>3)
 end
 
-@testset TimedTestSet "HomSpace" begin
+@timedtestset "HomSpace" begin
     V1, V2, V3, V4, V5 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1),
                             SU₂Space(1//2=>1, 1=>1)', SU₂Space(0=>2, 1//2=>2),
                             SU₂Space(0=>1, 1//2=>1, 3//2=>1)'

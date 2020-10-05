@@ -2,7 +2,7 @@ println("------------------------------------")
 println("Fusion Trees")
 println("------------------------------------")
 ti = time()
-@testset TimedTestSet "Fusion trees for sector $I" for I in sectorlist
+@timedtestset "Fusion trees for sector $I" for I in sectorlist
     N = 5
     out = ntuple(n->randsector(I), N)
     isdual = ntuple(n->rand(Bool), N)

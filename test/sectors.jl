@@ -2,7 +2,7 @@ println("------------------------------------")
 println("Sectors")
 println("------------------------------------")
 ti = time()
-@testset TimedTestSet "Properties of sector $I" for I in sectorlist
+@timedtestset "Properties of sector $I" for I in sectorlist
     @testset "Sector $I: Basic properties" begin
         s = (randsector(I), randsector(I), randsector(I))
         @test eval(Meta.parse(sprint(show,I))) == I

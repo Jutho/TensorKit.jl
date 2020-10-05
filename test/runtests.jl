@@ -1,4 +1,5 @@
 using Test
+using TestExtras
 using Random
 using TensorKit
 using Combinatorics
@@ -12,13 +13,7 @@ using Base.Iterators: take, product
 import LinearAlgebra
 
 include("newsectors.jl")
-include("timedtest.jl")
-include("constinferred.jl")
-
 using .NewSectors
-using .TimedTests
-using .ConstInferred
-# ConstInferred.disable_inferred()
 
 const TK = TensorKit
 
