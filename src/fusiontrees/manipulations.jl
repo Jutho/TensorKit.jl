@@ -86,7 +86,7 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
         newtrees = FusionTreeDict{typeof(f), typeof(oneT)}()
         for c′ in a ⊗ d
             Rmat1 = inv ? Rsymbol(d, c, e)' : Rsymbol(c, d, e)
-            Rmat2 = inv ? Rsymbol(a, d, c′)' : Rsymbol(d, a, c′)
+            Rmat2 = inv ? Rsymbol(a, d, c′) : Rsymbol(d, a, c′)'
             Fmat = Fsymbol(d, a, b, e, c′, c)
             μ = vertices[i-1]
             ν = vertices[i]
