@@ -134,11 +134,11 @@ Base.@pure function fusiontreetype(::Type{I}, N::Int) where {I<:Sector}
 end
 
 # converting to actual array
-function Base.convert(::Type{Array}, f::FusionTree{I, 0}) where {I}
-    T = eltype(fusiontensor(one(I), one(I), one(I)))
-    return fill(one(T), 1)
+function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 0}) where {I}
+    X = convert(A, fusiontensor(one(I), one(I), one(I)))[1, 1, :]
+    return X
 end
-function Base.convert(::Type{Array}, f::FusionTree{I, 1}) where {I}
+function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 1}) where {I}
     c = f.coupled
     dc = dim(c)
     if f.isdual[1]
@@ -147,43 +147,53 @@ function Base.convert(::Type{Array}, f::FusionTree{I, 1}) where {I}
         else
             sqrtdc = sqrt(dc)
         end
-        Zcbartranspose = sqrtdc*reshape(fusiontensor(conj(c), c, one(c)), (dc, dc))
-        return convert(Array, conj(Zcbartranspose))
+        Zcbartranspose = sqrtdc * convert(A, fusiontensor(conj(c), c, one(c)))[:, :, 1, 1]
+        X = conj!(Zcbartranspose) # we want Zcbar^†
     else
-        convert(Array, reshape(fusiontensor(c, one(c), c), (dc, dc)))
+        X = convert(A, fusiontensor(c, one(c), c))[:, 1, :, 1]
     end
+    return X
 end
 
-function Base.convert(::Type{Array}, f::FusionTree{I, 2}) where {I}
+function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 2}) where {I}
     a, b = f.uncoupled
     isduala, isdualb = f.isdual
     c = f.coupled
     da, db, dc = dim.((a, b, c))
-    if FusionStyle(I) isa DegenerateNonAbelian
-        μ = f.vertices[1]
-        X = reshape(view(fusiontensor(a, b, c), :, :, :, μ), da*db, dc)
-    else
-        X = reshape(view(fusiontensor(a, b, c), :, :, :, 1), da*db, dc)
+    μ = (FusionStyle(I) isa DegenerateNonAbelian) ? f.vertices[1] : 1
+    C = convert(A, fusiontensor(a, b, c))[:, :, :, μ]
+    X = C
+    if isduala
+        Xtemp = X
+        X = similar(Xtemp)
+        Za = convert(A, FusionTree((a,), a, (isduala,), ()))
+        TO.contract!(1, Za, :N, Xtemp, :N, 0, X, (1,), (2,), (2, 3), (1,), (1,2,3))
     end
-    Za = convert(Array, FusionTree((a,), a, (isduala,), ()))
-    Zb = convert(Array, FusionTree((b,), b, (isdualb,), ()))
-    return convert(Array, reshape(kron(Zb, Za)*X, (da, db, dc)))
+    if isdualb
+        Xtemp = X
+        X = similar(Xtemp)
+        Zb = convert(A, FusionTree((b,), b, (isdualb,), ()))
+        TO.contract!(1, Zb, :N, Xtemp, :N, 0, X, (1,), (2,), (1, 3), (2,), (2,1,3))
+    end
+    return X
 end
 
-function Base.convert(::Type{Array}, f::FusionTree{I}) where {I}
+function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I,N}) where {I,N}
     tailout = (f.innerlines[1], TupleTools.tail2(f.uncoupled)...)
     isdualout = (false, TupleTools.tail2(f.isdual)...)
     ftail = FusionTree(tailout, f.coupled, isdualout,
                         Base.tail(f.innerlines), Base.tail(f.vertices))
-    Ctail = convert(Array, ftail)
+    Ctail = convert(A, ftail)
     f1 = FusionTree((f.uncoupled[1], f.uncoupled[2]), f.innerlines[1],
                     (f.isdual[1], f.isdual[2]), (), (f.vertices[1],))
-    C1 = convert(Array, f1)
+    C1 = convert(A, f1)
     dtail = size(Ctail)
     d1 = size(C1)
-    C = reshape(C1, d1[1]*d1[2], d1[3]) *
-            reshape(Ctail, dtail[1], prod(Base.tail(dtail)))
-    return reshape(C, (d1[1], d1[2], Base.tail(dtail)...))
+    X = similar(C1, (d1[1], d1[2], Base.tail(dtail)...))
+    trivialtuple = ntuple(identity, Val(N))
+    TO.contract!(1, C1, :N, Ctail, :N, 0, X,
+                    (1,2), (3,), Base.tail(trivialtuple), (1,), (trivialtuple..., N+1))
+    return X
 end
 
 # Show methods
