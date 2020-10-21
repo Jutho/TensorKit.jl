@@ -150,7 +150,7 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 1}) where {I}
         Zcbartranspose = sqrtdc * convert(A, fusiontensor(conj(c), c, one(c)))[:, :, 1, 1]
         X = conj!(Zcbartranspose) # we want Zcbar^†
     else
-        X = convert(A, fusiontensor(c, one(c), c))[:, 1, :, 1]
+        X = convert(A, fusiontensor(c, one(c), c))[:, 1, :, 1, 1]
     end
     return X
 end
