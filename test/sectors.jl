@@ -92,7 +92,7 @@ ti = time()
                             push!(Fblocks, reshape(Fs, (size(Fs, 1)*size(Fs, 2), size(Fs, 3)*size(Fs, 4))))
                         end
                     end
-                    F = hvcat(length(es), Fblocks...)
+                    F = hvcat(length(fs), Fblocks...)
                 end
                 @test F'*F ≈ one(F)
             end

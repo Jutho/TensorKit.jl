@@ -14,6 +14,7 @@ ti = time()
         numtrees = count(n->true, fusiontrees(out, in, isdual))
     end
     it = @constinferred fusiontrees(out, in, isdual)
+    @constinferred Nothing iterate(it)
     f = @constinferred first(it)
     @testset "Fusion tree $I: printing" begin
         @test eval(Meta.parse(sprint(show,f))) == f
@@ -23,6 +24,7 @@ ti = time()
             for i = 1:N-1
                 for f in fusiontrees(out, in, isdual)
                     d1 = @constinferred TK.artin_braid(f, i)
+                    @test norm(values(d1)) ≈ 1
                     d2 = empty(d1)
                     for (f1, coeff1) in d1
                         for (f2,coeff2) in TK.artin_braid(f1, i; inv = true)
