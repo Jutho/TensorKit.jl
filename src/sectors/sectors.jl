@@ -272,17 +272,7 @@ end
 
 Return the twist of a sector `a`
 """
-function twist(a::Sector)
-    if FusionStyle(a) isa Abelian || FusionStyle(a) isa SimpleNonAbelian
-        θ = sum(dim(b)/dim(a)*Rsymbol(a, a, b) for b in a ⊗ a)
-    else
-        # TODO: is this correct?
-        # θ = sum(dim(b)/dim(a)*tr(Rsymbol(a,a,b)) for b in a ⊗ a)
-        throw(MethodError(twist, (a,)))
-    end
-    return θ
-end
-
+twist(a::Sector) = sum(dim(b)/dim(a)*tr(Rsymbol(a,a,b)) for b in a ⊗ a)
 
 """
     Bsymbol(a::I, b::I, c::I) where {I<:Sector}
