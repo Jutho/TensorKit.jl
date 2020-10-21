@@ -35,7 +35,7 @@ end
 const Tensor{S<:IndexSpace, N, I<:Sector, A, F₁, F₂} = TensorMap{S, N, 0, I, A, F₁, F₂}
 const TrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} = TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}
 
-Base.@pure function tensormaptype(::Type{S}, N₁::Int, N₂::Int, ::Type{T}) where {S,T}
+function tensormaptype(::Type{S}, N₁::Int, N₂::Int, ::Type{T}) where {S,T}
     I = sectortype(S)
     if T <: DenseMatrix
         M = T
@@ -62,9 +62,9 @@ domain(t::TensorMap) = t.dom
 blocksectors(t::TrivialTensorMap) = TrivialOrEmptyIterator(dim(t) == 0)
 blocksectors(t::TensorMap) = keys(t.data)
 
-Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where
+storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where
     {N₁,N₂,A<:DenseMatrix} = A
-Base.@pure storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,I,<:SectorDict{I,A}}}) where
+storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,I,<:SectorDict{I,A}}}) where
     {N₁,N₂,I<:Sector,A<:DenseMatrix} = A
 
 dim(t::TensorMap) = mapreduce(x->length(x[2]), +, blocks(t); init = 0)
