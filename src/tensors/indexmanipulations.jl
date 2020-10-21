@@ -119,6 +119,7 @@ LinearAlgebra.transpose(t::AbstractTensorMap) =
 twist(t::AbstractTensorMap, i::Int; inv::Bool = false) = twist!(copy(t), i; inv = inv)
 
 function twist!(t::AbstractTensorMap, i::Int; inv::Bool = false)
+    BraidingStyle(sectortype(t)) == Bosonic() && return t
     N₁ = numout(t)
     for (f1, f2) in fusiontrees(t)
         θ = i <= N₁ ? twist(f1.uncoupled[i]) : twist(f2.uncoupled[i-N₁])
