@@ -2,10 +2,12 @@ println("------------------------------------")
 println("Sectors")
 println("------------------------------------")
 ti = time()
-@timedtestset "Properties of sector $I" for I in sectorlist
-    @testset "Sector $I: Basic properties" begin
+@timedtestset "Sector properties of $(TensorKit.type_repr(I))" for I in sectorlist
+    Istr = TensorKit.type_repr(I)
+    @testset "Sector $Istr: Basic properties" begin
         s = (randsector(I), randsector(I), randsector(I))
-        @test eval(Meta.parse(sprint(show,I))) == I
+        @test eval(Meta.parse(sprint(show, I))) == I
+        @test eval(Meta.parse(TensorKit.type_repr(I))) == I
         @test eval(Meta.parse(sprint(show,s[1]))) == s[1]
         @test @constinferred(hash(s[1])) == hash(deepcopy(s[1]))
         @test @constinferred(one(s[1])) == @constinferred(one(I))
@@ -19,7 +21,7 @@ ti = time()
         it = @constinferred s[1] ⊗ s[2]
         @constinferred ⊗(s..., s...)
     end
-    @testset "Sector $I: Value iterator" begin
+    @testset "Sector $Istr: Value iterator" begin
         @test eltype(values(I)) == I
         sprev = one(I)
         for (i, s) in enumerate(values(I))
@@ -76,7 +78,7 @@ ti = time()
             end
         end
     end
-    @testset "Sector $I: Unitarity of F-move" begin
+    @testset "Sector $Istr: Unitarity of F-move" begin
         for a in smallset(I), b in smallset(I), c in smallset(I)
             for d in ⊗(a,b,c)
                 es = collect(intersect(⊗(a,b), map(dual, ⊗(c,dual(d)))))
@@ -98,7 +100,7 @@ ti = time()
             end
         end
     end
-    @testset "Sector $I: Pentagon equation" begin
+    @testset "Sector $Istr: Pentagon equation" begin
         for a in smallset(I), b in smallset(I), c in smallset(I), d in smallset(I)
             for f in ⊗(a,b), h in ⊗(c,d)
                 for g in ⊗(f,c), i in ⊗(b,h)
@@ -128,7 +130,7 @@ ti = time()
             end
         end
     end
-    @testset "Sector $I: Hexagon equation" begin
+    @testset "Sector $Istr: Hexagon equation" begin
         for a in smallset(I), b in smallset(I), c in smallset(I)
             for e in ⊗(c,a), g in ⊗(c,b)
                 for d in intersect(⊗(e,b), ⊗(a,g))

@@ -22,13 +22,13 @@ Base.in(::Any, ::Field) = false
 Base.in(::Real, ::RealNumbers) = true
 Base.in(::Number, ::ComplexNumbers) = true
 
-Base.@pure Base.issubset(::Type, ::Field) = false
-Base.@pure Base.issubset(::Type{<:Real}, ::RealNumbers) = true
-Base.@pure Base.issubset(::Type{<:Number}, ::ComplexNumbers) = true
-Base.@pure Base.issubset(::RealNumbers, ::RealNumbers) = true
-Base.@pure Base.issubset(::RealNumbers, ::ComplexNumbers) = true
-Base.@pure Base.issubset(::ComplexNumbers, ::RealNumbers) = false
-Base.@pure Base.issubset(::ComplexNumbers, ::ComplexNumbers) = true
+Base.issubset(::Type, ::Field) = false
+Base.issubset(::Type{<:Real}, ::RealNumbers) = true
+Base.issubset(::Type{<:Number}, ::ComplexNumbers) = true
+Base.issubset(::RealNumbers, ::RealNumbers) = true
+Base.issubset(::RealNumbers, ::ComplexNumbers) = true
+Base.issubset(::ComplexNumbers, ::RealNumbers) = false
+Base.issubset(::ComplexNumbers, ::ComplexNumbers) = true
 
 # VECTOR SPACES:
 #==============================================================================#

@@ -112,7 +112,7 @@ end
     @test dim(@constinferred(typeof(V)())) == 0
     @test (sectors(typeof(V)())...,) == ()
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
-    @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
+    @test V == Vect[Trivial](d) == Vect[Trivial](Trivial()=>d) == ℂ[d] == ℂ[](d) == typeof(V)(d)
     W = @constinferred ℂ[1]
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     @test @constinferred(⊕(V, V)) == ℂ^(2d)
@@ -162,7 +162,7 @@ end
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 
-@timedtestset "ElementarySpace: GradedSpace[$I]" for I in sectorlist
+@timedtestset "ElementarySpace: Vect[$(TensorKit.type_repr(I))]" for I in sectorlist
     if Base.IteratorSize(values(I)) === Base.IsInfinite()
         set = unique(vcat(one(I), [randsector(I) for k = 1:10]))
         gen = (c=>2 for c in set)
@@ -179,12 +179,12 @@ end
     @test V' == @constinferred GradedSpace(tuple(gen...); dual = true)
     @test V == @constinferred GradedSpace(Dict(gen))
     @test V' == @constinferred GradedSpace(Dict(gen); dual = true)
-    @test V == @inferred GradedSpace[I](gen)
-    @test V' == @constinferred GradedSpace[I](gen; dual = true)
-    @test V == @constinferred GradedSpace[I](gen...)
-    @test V' == @constinferred GradedSpace[I](gen...; dual = true)
-    @test V == @constinferred GradedSpace[I](Dict(gen))
-    @test V' == @constinferred GradedSpace[I](Dict(gen); dual = true)
+    @test V == @inferred Vect[I](gen)
+    @test V' == @constinferred Vect[I](gen; dual = true)
+    @test V == @constinferred Vect[I](gen...)
+    @test V' == @constinferred Vect[I](gen...; dual = true)
+    @test V == @constinferred Vect[I](Dict(gen))
+    @test V' == @constinferred Vect[I](Dict(gen); dual = true)
     @test V == @constinferred typeof(V)(c=>dim(V,c) for c in sectors(V))
     if I isa ZNIrrep
         @test V == @constinferred typeof(V)(V.dims)
@@ -245,7 +245,7 @@ end
 end
 
 @timedtestset "ProductSpace{ℂ}" begin
-    V1, V2, V3, V4 = ℂ[1], ℂ[2], ℂ[3], ℂ[4]
+    V1, V2, V3, V4 = ℂ^1, ℂ^2, ℂ^3, ℂ^4
     P = @constinferred ProductSpace(V1, V2, V3, V4)
     @test eval(Meta.parse(sprint(show, P))) == P
     @test eval(Meta.parse(sprint(show, typeof(P)))) == typeof(P)

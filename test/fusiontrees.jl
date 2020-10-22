@@ -2,7 +2,8 @@ println("------------------------------------")
 println("Fusion Trees")
 println("------------------------------------")
 ti = time()
-@timedtestset "Fusion trees for sector $I" for I in sectorlist
+@timedtestset "Fusion trees for $(TensorKit.type_repr(I))" for I in sectorlist
+    Istr = TensorKit.type_repr(I)
     N = 5
     out = ntuple(n->randsector(I), N)
     isdual = ntuple(n->rand(Bool), N)
@@ -19,7 +20,7 @@ ti = time()
     @testset "Fusion tree $I: printing" begin
         @test eval(Meta.parse(sprint(show,f))) == f
     end
-    @testset "Fusion tree $I: braiding" begin
+    @testset "Fusion tree $Istr: braiding" begin
         for in = ⊗(out...)
             for i = 1:N-1
                 for f in fusiontrees(out, in, isdual)
@@ -73,7 +74,7 @@ ti = time()
             end
         end
     end
-    @testset "Fusion tree $I: braiding and permuting" begin
+    @testset "Fusion tree $Istr: braiding and permuting" begin
         p = tuple(randperm(N)...,)
         ip = invperm(p)
 
@@ -104,7 +105,7 @@ ti = time()
             @test Afp ≈ Afp2
         end
     end
-    @testset "Fusion tree $I: insertat" begin
+    @testset "Fusion tree $Istr: insertat" begin
         N = 4
         out2 = ntuple(n->randsector(I), N)
         in2 = rand(collect(⊗(out2...)))
@@ -157,7 +158,7 @@ ti = time()
             end
         end
     end
-    @testset "Fusion tree $I: merging" begin
+    @testset "Fusion tree $Istr: merging" begin
         N = 3
         out1 = ntuple(n->randsector(I), N)
         in1 = rand(collect(⊗(out1...)))
@@ -235,7 +236,7 @@ ti = time()
     f1 = rand(collect(fusiontrees(out, incoming, ntuple(n->rand(Bool), N))))
     f2 = rand(collect(fusiontrees(out[randperm(N)], incoming, ntuple(n->rand(Bool), N))))
 
-    @testset "Double fusion tree $I: repartioning" begin
+    @testset "Double fusion tree $Istr: repartioning" begin
         for n = 0:2*N
             d = @constinferred TK.repartition(f1, f2, $n)
             @test dim(incoming) ≈ sum(abs2(coef)*dim(f1.coupled) for ((f1,f2), coef) in d)
@@ -281,7 +282,7 @@ ti = time()
             end
         end
     end
-    @testset "Double fusion tree $I: permutation" begin
+    @testset "Double fusion tree $Istr: permutation" begin
         if BraidingStyle(I) isa SymmetricBraiding
             for n = 0:2N
                 p = (randperm(2*N)...,)

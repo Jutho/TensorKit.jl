@@ -198,11 +198,11 @@ end
 
 # Show methods
 function Base.show(io::IO, t::FusionTree{I, N, M, K, Nothing}) where {I<:Sector, N, M, K}
-    print(IOContext(io, :typeinfo => I), "FusionTree{", I, "}(",
+    print(IOContext(io, :typeinfo => I), "FusionTree{", type_repr(I), "}(",
         t.uncoupled, ", ", t.coupled, ", ", t.isdual, ", ", t.innerlines, ")")
 end
 function Base.show(io::IO, t::FusionTree{I}) where {I<:Sector}
-    print(IOContext(io, :typeinfo => I), "FusionTree{", I, "}(",
+    print(IOContext(io, :typeinfo => I), "FusionTree{", type_repr(I), "}(",
         t.uncoupled, ", ", t.coupled, ", ", t.isdual, ",",
         t.innerlines, ", ", t.vertices, ")")
 end
