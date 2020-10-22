@@ -295,12 +295,12 @@ explanatory, except for `CU₁` which is explained below.
 
 For all group irreps, the braiding style is bosonic
 ```julia
-abstract type Irrep{G<:Group} <: Sector end # irreps have integer quantum dimensions
-Base.@pure BraidingStyle(::Type{<:Irrep}) = Bosonic()
+abstract type AbstractIrrep{G<:Group} <: Sector end # irreps have integer quantum dimensions
+Base.@pure BraidingStyle(::Type{<:AbstractIrrep}) = Bosonic()
 ```
 while we gather some more common functionality for irreps of abelian groups (which exhaust all possibilities of fusion categories with abelian fusion)
 ```julia
-const AbelianIrrep{G} = Irrep{G} where {G<:AbelianGroup}
+const AbelianIrrep{G} = AbstractIrrep{G} where {G<:AbelianGroup}
 Base.@pure FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
 Base.isreal(::Type{<:AbelianIrrep}) = true
 
@@ -315,14 +315,13 @@ Rsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = Int(Nsymbol(a, b, c))
 With these common definition, we implement the representation theory of the two most common
 Abelian groups, namely ``ℤ_N``
 ```julia
-struct ZNIrrep{N} <: Irrep{ℤ{N}}
+struct ZNIrrep{N} <: AbstractIrrep{ℤ{N}}
     n::Int8
     function ZNIrrep{N}(n::Integer) where {N}
         @assert N < 64
         new{N}(mod(n, N))
     end
 end
-Base.getindex(::Type{Irrep}, ::Type{ℤ{N}}) where {N} = ZNIrrep{N}
 
 Base.one(::Type{ZNIrrep{N}}) where {N} =ZNIrrep{N}(0)
 Base.conj(c::ZNIrrep{N}) where {N} = ZNIrrep{N}(-c.n)
@@ -338,10 +337,9 @@ findindex(::SectorValues{ZNIrrep{N}}, c::ZNIrrep{N}) where N = c.n + 1
 ```
 and ``\mathsf{U}_1``
 ```julia
-struct U1Irrep <: Irrep{U₁}
+struct U1Irrep <: AbstractIrrep{U₁}
     charge::HalfInt
 end
-Base.getindex(::Type{Irrep}, ::Type{U₁}) = U1Irrep
 
 Base.one(::Type{U1Irrep}) = U1Irrep(0)
 Base.conj(c::U1Irrep) = U1Irrep(-c.charge)
@@ -414,10 +412,9 @@ described in the section on [Graded spaces](@ref ss_rep) below.
 The first example of a non-abelian representation category is that of ``\mathsf{SU}_2``, the
 implementation of which is summarized by
 ```julia
-struct SU2Irrep <: Irrep{SU{2}}
+struct SU2Irrep <: AbstractIrrep{SU{2}}
     j::HalfInt
 end
-Base.getindex(::Type{Irrep}, ::Type{SU₂}) = SU2Irrep
 
 Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInt))
 Base.conj(s::SU2Irrep) = s
@@ -470,7 +467,7 @@ the two representations with `` n = 0`` are the scalar and pseudo-scalar, respec
 However, because we also allow for half integer representations, we refer to it as
 `Irrep[CU₁]` or `CU1Irrep` in full.
 ```julia
-struct CU1Irrep <: Irrep
+struct CU1Irrep <: AbstractIrrep{CU₁}
     j::HalfInt # value of the U1 charge
     s::Int # rep of charge conjugation:
     # if j == 0, s = 0 (trivial) or s = 1 (non-trivial),
@@ -484,7 +481,6 @@ struct CU1Irrep <: Irrep
         end
     end
 end
-Base.getindex(::Type{Irrep}, ::Type{CU₁}) = CU1Irrep
 
 Base.one(::Type{CU1Irrep}) = CU1Irrep(zero(HalfInt), 0)
 Base.conj(c::CU1Irrep) = c
@@ -543,7 +539,7 @@ giving a number of arguments, where the first argument is used to construct the 
 sector, and so forth. Furthermore, for representations of groups, we also enabled the
 notation `Irrep[ℤ₃ × CU₁]`, with `×` obtained using `\times+TAB`. However, this is merely
 for convience; as `Irrep[ℤ₃] ⊠ Irrep[CU₁]` is not a subtype of the abstract type
-`Irrep{ℤ₃ × CU₁}`. That behavior cannot be obtained with the Julia's type system. Some more examples:
+`AbstractIrrep{ℤ₃ × CU₁}`. That behavior cannot be obtained with the Julia's type system. Some more examples:
 ```@repl sectors
 a = Z3Irrep(1) ⊠ Irrep[CU₁](1.5)
 a isa Irrep[ℤ₃] ⊠ CU1Irrep
@@ -650,9 +646,8 @@ struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
 end
 ```
 Here, `D` is a type parameter to denote the data structure used to store the degeneracy or
-multiplicity dimensions ``n_a`` of the different sectors. For conviency, `GradedSpace[I]`
-will return the fully concrete type with `D` specified, though it is hidden from the user
-using a custom `Base.show` method.
+multiplicity dimensions ``n_a`` of the different sectors. For conviency, `Vect[I]`
+will return the fully concrete type with `D` specified.
 
 Note that, conventionally, a graded vector space is a space that has a natural direct sum
 decomposition over some set of labels, i.e. ``V = ⨁_{a ∈ I} V_a`` where the label set ``I``
@@ -686,9 +681,9 @@ specifically a `NTuple{N, Int}` with `N = length(values(I))`. The methods
 these types can be created in a type stable manner.
 
 ### Constructing instances
-As mentioned, the convenience mehtod `GradedSpace[I]` will return the concrete type
+As mentioned, the convenience mehtod `Vect[I]` will return the concrete type
 `GradedSpace{I,D}` with the matching value of `D`, so that should never be a user's
-concern. In fact, for consistency, `GradedSpace[Trivial]` will just return `ComplexSpace`,
+concern. In fact, for consistency, `Vect[Trivial]` will just return `ComplexSpace`,
 which is not even a specific type of `GradedSpace`. There is also the Unicode alias `ℂ[I]`,
 and for the specific case of group irreps as sectors, one can use `Rep[G]` with `G` the
 group, as inspired by the categorical name ``\mathbf{Rep}_{\mathsf{G}}``. Here, `Rep` is a
@@ -697,12 +692,12 @@ a `ProductSector` of `Irrep`s. Some illustrations:
 ```@repl sectors
 ℂ[]
 ℂ[Trivial]
-GradedSpace[Trivial]
-GradedSpace[U1Irrep]
+Vect[Trivial]
+Vect[U1Irrep]
 ℂ[Irrep[U₁]]
 Rep[U₁]
 Rep[ℤ₂ × SU₂]
-GradedSpace[Irrep[ℤ₂ × SU₂]]
+Vect[Irrep[ℤ₂ × SU₂]]
 ```
 Note that we also have the specific alias `U₁Space`. In fact, for all the common groups we
 have a number of alias, both in ASCII and using Unicode:
@@ -732,7 +727,7 @@ With those constructions, `I` is inferred from the type of sectors. However, it 
 more convenient to specify the sector type explicitly (using one of the many alias
 provided), since then the sectors are automatically converted to the correct type; compare
 ```@repl sectors
-GradedSpace[Irrep[U₁]](0=>3, 1=>2, -1=>1) ==
+Vect[Irrep[U₁]](0=>3, 1=>2, -1=>1) ==
     ℂ[U1Irrep(0)=>3, U1Irrep(1)=>2, U1Irrep(-1)=>1] == U1Space(0=>3, 1=>2, -1=>1)
 ```
 The fact that `Rep[G]` also works with product groups makes it easy to specify e.g.
@@ -775,7 +770,7 @@ Furthermore, for two spaces `V1 = GradedSpace(a=>n1_a, ...)` and
 Therefore, it can be that the return value of `infimum(V1,V2)` or `supremum(V1,V2)` is
 neither equal to `V1` or `V2`.
 
-For `W` a `ProductSpace{GradedSpace[I], N}`, [`sectors(W)`](@ref) returns an
+For `W` a `ProductSpace{Vect[I], N}`, [`sectors(W)`](@ref) returns an
 iterator that generates all possible combinations of sectors `as` represented as
 `NTuple{I,N}`. The function [`dims(W, as)`](@ref) returns the corresponding tuple with
 degeneracy dimensions, while [`dim(W, as)`](@ref) returns the product of these dimensions.

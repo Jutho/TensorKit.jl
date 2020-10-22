@@ -19,7 +19,10 @@ transformed into an index via `s == getindex(values(I), i)` and
 `i == findindex(values(I), s)`. If `Base.IteratorElsize(values(I))` results `IsInfinite()`
 or `SizeUnknown()`, a `SectorDict{I,Int}` is used to store the non-zero degeneracy
 dimensions with the corresponding sector as key. The parameter `D` is hidden from the user
-and should typically be of no concern
+and should typically be of no concern.
+
+The concrete type `GradedSpace{I,D}` with correct `D` can be obtained as `Vect[I]`, or if
+`I == Irrep[G]` for some `G<:Group`, as `Rep[G]`.
 """
 struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
     dims::D
@@ -191,6 +194,13 @@ function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
 end
 
 struct SpaceTable end
+"""
+    const Vect
+
+A constant of a singleton type used as `Vect[I]` with `I<:Sector` a type of sector, to
+construct or obtain the concrete type `GradedSpace{I,D}` instances without having to
+specify `D`.
+"""
 const Vect = SpaceTable()
 Base.getindex(::SpaceTable) = ComplexSpace
 Base.getindex(::SpaceTable, ::Type{Trivial}) = ComplexSpace
@@ -208,6 +218,15 @@ Base.getindex(::ComplexNumbers, d1::Pair{I, Int}, dims::Pair{I, Int}...) where {
     Vect[I](d1, dims...)
 
 struct RepTable end
+"""
+    const Rep
+
+A constant of a singleton type used as `Rep[G]` with `G<:Group` a type of group, to
+construct or obtain the concrete type `GradedSpace{Irrep[G],D}` instances without having to
+specify `D`. Note that `Rep[G] == Vect[Irrep[G]]`.
+
+See also [`Irrep`](@ref) and [`Vect`](@ref).
+"""
 const Rep = RepTable()
 Base.getindex(::RepTable, G::Type{<:Group}) = Vect[Irrep[G]]
 
