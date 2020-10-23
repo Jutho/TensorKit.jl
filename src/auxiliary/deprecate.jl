@@ -7,7 +7,7 @@ Base.@deprecate(fusiontreetype(::Type{I}, ::StaticLength{N}) where {I<:Sector, N
 
 abstract type RepresentationSpace{I<:Sector} end
 Base.@deprecate(RepresentationSpace(args...), GradedSpace(args...))
-Base.@deprecate(RepresentationSpace{I}(args...) where {I}, GradedSpace[I](args...))
+Base.@deprecate(RepresentationSpace{I}(args...) where {I}, Vect[I](args...))
 
 Base.@deprecate(×(a::Sector, b::Sector), ⊠(a,b))
 
@@ -54,3 +54,8 @@ end
 
 Base.@deprecate(permuteind!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, p1, p2),
                 permute!(tdst, tsrc, p1, p2))
+
+function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
+    @warn "`getindex(::Type{GradedSpace}, I::Type{<:Sector})` is deprecated, use `ℂ[I]`, `Vect[I]`, or, if `I == Irrep[G]`, `Rep[G]` instead." maxlog = 1
+    return Vect[I]
+end

@@ -11,9 +11,9 @@ _sectors(::Type{T}) where {T<:SectorTuple} =
 
 Base.IteratorSize(::Type{SectorValues{ProductSector{T}}}) where {T<:SectorTuple} =
     Base.IteratorSize(Base.Iterators.product(map(values, _sectors(T))...))
-Base.@pure Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple} =
+Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple} =
     map(s->length(values(s)), _sectors(T))
-Base.@pure Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
+Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
 
 function Base.iterate(::SectorValues{ProductSector{T}}, args...) where {T<:SectorTuple}
     next = iterate(product(values.(_sectors(T))...), args...)

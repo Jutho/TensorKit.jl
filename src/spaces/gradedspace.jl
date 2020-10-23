@@ -188,11 +188,6 @@ function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
     return nothing
 end
 
-function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
-    @warn "`getindex(::Type{GradedSpace}, I::Type{<:Sector})` is deprecated, use `ℂ[I]`, `Vect[I]`, or, if `I == Irrep[G]`, `Rep[G]` instead." maxlog = 1
-    return Vect[I]
-end
-
 struct SpaceTable end
 """
     const Vect

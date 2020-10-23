@@ -127,7 +127,7 @@ end
 
 SortedVectorDict(kv::Pair{K, V}...) where {K, V} = SortedVectorDict{K, V}(kv)
 
-Base.@pure _getKV(::Type{Pair{K, V}}) where {K, V} = (K, V)
+_getKV(::Type{Pair{K, V}}) where {K, V} = (K, V)
 function SortedVectorDict(kv)
     if Base.IteratorEltype(kv) === Base.HasEltype()
         P = eltype(kv)

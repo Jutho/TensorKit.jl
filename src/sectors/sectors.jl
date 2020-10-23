@@ -226,8 +226,7 @@ _ind2label(::DegenerateNonAbelian, k, a, b, c) = k
 
 Return the type of labels for the fusion vertices of sectors of type `I`.
 """
-Base.@pure vertex_labeltype(I::Type{<:Sector}) =
-    typeof(vertex_ind2label(1, one(I), one(I), one(I)))
+vertex_labeltype(I::Type{<:Sector}) = typeof(vertex_ind2label(1, one(I), one(I), one(I)))
 
 # combine fusion properties of tensor products of sectors
 Base.:&(f::F, ::F) where {F<:FusionStyle} = f
