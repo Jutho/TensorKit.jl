@@ -60,11 +60,7 @@ GradedSpace{I,D}(; kwargs...) where {I<:Sector,D} = GradedSpace{I,D}((); kwargs.
 GradedSpace{I,D}(d1::Pair, d2::Pair, dims::Vararg{Pair}; kwargs...) where {I<:Sector,D} =
     GradedSpace{I,D}((d1, d2, dims...); kwargs...)
 
-# TODO: do we also want to support this interface
-function GradedSpace{I}(args...; kwargs...) where {I<:Sector}
-    @warn "Preferred interface is `Vect[$I](args...; kwargs...)`." maxlog=1
-    Vect[I](args..., kwargs...)
-end
+GradedSpace{I}(args...; kwargs...) where {I<:Sector} = Vect[I](args..., kwargs...)
 
 GradedSpace(dims::Tuple{Vararg{Pair{I, <:Integer}}}; dual::Bool = false) where {I<:Sector} =
     Vect[I](dims; dual = dual)
@@ -209,9 +205,6 @@ function Base.getindex(::SpaceTable, I::Type{<:Sector})
 end
 
 Base.getindex(::ComplexNumbers, I::Type{<:Sector}) = Vect[I]
-Base.getindex(::ComplexNumbers, d1::Pair{I, Int}, dims::Pair{I, Int}...) where {I<:Sector} =
-    Vect[I](d1, dims...)
-
 struct RepTable end
 """
     const Rep

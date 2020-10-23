@@ -219,7 +219,7 @@ function type_repr(P::Type{<:ProductSector})
 end
 
 # TODO: Do we want custom printing for product of Irreps
-function type_repr(io::IO, ::Type{ProductSector{T}}) where {T<:Tuple{Vararg{AbstractIrrep}}}
+function type_repr(::Type{ProductSector{T}}) where {T<:Tuple{Vararg{AbstractIrrep}}}
     sectors = T.parameters
     s = "Irrep["
     for i in 1:length(sectors)

@@ -59,3 +59,18 @@ function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
     @warn "`getindex(::Type{GradedSpace}, I::Type{<:Sector})` is deprecated, use `ℂ[I]`, `Vect[I]`, or, if `I == Irrep[G]`, `Rep[G]` instead." maxlog = 1
     return Vect[I]
 end
+
+function Base.getindex(::ComplexNumbers, d1::Pair{I, Int}, dims::Pair{I, Int}...) where {I<:Sector}
+    @warn "`ℂ[s1=>n1, s2=>n2, ...]` is deprecated, use `ℂ[I](s1=>n1, s2=>n2, ...)`, `Vect[I](s1=>n1, s2=>n2, ...)` instead with `I = typeof(s1)`." maxlog = 1
+    return Vect[I](d1, dims...)
+end
+
+function Base.getindex(::RealNumbers, d::Int)
+    @warn "`ℝ[d]` is deprecated, use `ℝ^d` or `CartesianSpace(d)`." maxlog = 1
+    return ℝ^d
+end
+
+function Base.getindex(::ComplexNumbers, d::Int)
+    @warn "`ℂ[d]` is deprecated, use `ℂ^d` or `ComplexSpace(d)`." maxlog = 1
+    return ℂ^d
+end

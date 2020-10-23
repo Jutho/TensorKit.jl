@@ -68,8 +68,8 @@ end
     @test dim(@constinferred(typeof(V)())) == 0
     @test (sectors(typeof(V)())...,) == ()
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
-    @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
-    W = @constinferred ℝ[1]
+    @test ℝ^d == ℝ[](d) == CartesianSpace(d) == typeof(V)(d)
+    W = @constinferred ℝ^1
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     @test @constinferred(⊕(V,V)) == ℝ^(2d)
     @test @constinferred(⊕(V,oneunit(V))) == ℝ^(d+1)
@@ -112,8 +112,8 @@ end
     @test dim(@constinferred(typeof(V)())) == 0
     @test (sectors(typeof(V)())...,) == ()
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
-    @test V == Vect[Trivial](d) == Vect[Trivial](Trivial()=>d) == ℂ[d] == ℂ[](d) == typeof(V)(d)
-    W = @constinferred ℂ[1]
+    @test ℂ^d == Vect[Trivial](d) == Vect[](Trivial()=>d) == ℂ[](d) == typeof(V)(d)
+    W = @constinferred ℂ^1
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     @test @constinferred(⊕(V, V)) == ℂ^(2d)
     @test_throws SpaceMismatch (⊕(V, V'))
@@ -131,7 +131,7 @@ end
     @test V ≺ ⊕(V,V)
     @test !(V ≻ ⊕(V,V))
     @test @constinferred(infimum(V, ℂ^3)) == V
-    @test @constinferred(supremum(V', ℂ[3]')) == ℂ[3]'
+    @test @constinferred(supremum(V', (ℂ^3)')) == dual(ℂ^3) == conj(ℂ^3)
 end
 
 @timedtestset "ElementarySpace: GeneralSpace" begin
@@ -162,7 +162,7 @@ end
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 
-@timedtestset "ElementarySpace: Vect[$(TensorKit.type_repr(I))]" for I in sectorlist
+@timedtestset "ElementarySpace: $(TensorKit.type_repr(Vect[I]))" for I in sectorlist
     if Base.IteratorSize(values(I)) === Base.IsInfinite()
         set = unique(vcat(one(I), [randsector(I) for k = 1:10]))
         gen = (c=>2 for c in set)
@@ -170,6 +170,7 @@ end
         gen = (values(I)[k]=>(k+1) for k in 1:length(values(I)))
     end
     V = GradedSpace(gen)
+    @test eval(Meta.parse(TensorKit.type_repr(typeof(V)))) == typeof(V)
     @test eval(Meta.parse(sprint(show, V))) == V
     @test eval(Meta.parse(sprint(show, V'))) == V'
     @test V' == GradedSpace(gen; dual = true)
@@ -197,7 +198,7 @@ end
     # space with no sectors
     @test dim(@constinferred(typeof(V)())) == 0
     # space with a single sector
-    W = @constinferred ℂ[one(I)=>1]
+    W = @constinferred GradedSpace(one(I)=>1)
     @test W == GradedSpace(one(I)=>1, randsector(I) => 0)
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     # randsector never returns trivial sector, so this cannot error
@@ -219,10 +220,10 @@ end
     if hasfusiontensor(I)
         @test @constinferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     end
-    @test @constinferred(⊕(V,V)) == GradedSpace[I](c=>2dim(V,c) for c in sectors(V))
-    @test @constinferred(⊕(V,V,V,V)) == GradedSpace[I](c=>4dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V)) == Vect[I](c=>2dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V,V,V)) == Vect[I](c=>4dim(V,c) for c in sectors(V))
     @test @constinferred(⊕(V,oneunit(V))) ==
-            GradedSpace[I](c=>isone(c)+dim(V,c) for c in sectors(V))
+            Vect[I](c=>isone(c)+dim(V,c) for c in sectors(V))
     @test @constinferred(fuse(V,oneunit(V))) == V
     d = Dict{I,Int}()
     for a in sectors(V), b in sectors(V)
@@ -232,7 +233,7 @@ end
     end
     @test @constinferred(fuse(V,V)) == GradedSpace(d)
     @test @constinferred(flip(V)) ==
-            GradedSpace[I](conj(c)=>dim(V,c) for c in sectors(V))'
+            Vect[I](conj(c)=>dim(V,c) for c in sectors(V))'
     @test flip(V) ≅ V
     @test flip(V) ≾ V
     @test flip(V) ≿ V
@@ -293,7 +294,7 @@ end
     @test P^2 == P ⊗ P
     @test @constinferred(dims(P, first(sectors(P)))) == dims(P)
     @test ((@constinferred blocksectors(P))...,) == (Trivial(),)
-    @test (blocksectors(P ⊗ ℂ[0])...,) == ()
+    @test (blocksectors(P ⊗ ℂ^0)...,) == ()
     @test @constinferred(blockdim(P, first(blocksectors(P)))) == dim(P)
     @test Base.IteratorEltype(P) == Base.IteratorEltype(typeof(P)) ==
                                     Base.IteratorEltype(P.spaces)
