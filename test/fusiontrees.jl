@@ -294,7 +294,6 @@ ti = time()
 
                 d = @constinferred TensorKit.permute(f1, f2, p1, p2)
                 @test dim(incoming) ≈ sum(abs2(coef)*dim(f1.coupled) for ((f1,f2), coef) in d)
-                @test norm(values(d)) ≈ 1
                 d2 = Dict{typeof((f1,f2)), valtype(d)}()
                 for ((f1′,f2′), coeff) in d
                     d′ = TensorKit.permute(f1′,f2′, ip1, ip2)
