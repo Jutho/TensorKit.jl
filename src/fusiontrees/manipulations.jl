@@ -699,7 +699,8 @@ function _braid((f1, f2, l1, l2, p1, p2)::BraidKey{I, N₁, N₂}) where {I<:Sec
             for (f′, coeff2) in braid(f, levels, p)
                 for ((f1′, f2′), coeff3) in repartition(f′, f0, N₁)
                     if @isdefined newtrees
-                        push!(newtrees, (f1′, f2′) => coeff1*coeff2*coeff3 )
+                        newtrees[(f1′, f2′)] = get(newtrees, (f1′, f2′), zero(coeff3)) +
+                            coeff1*coeff2*coeff3
                     else
                         newtrees = FusionTreeDict( (f1′, f2′) => coeff1*coeff2*coeff3 )
                     end

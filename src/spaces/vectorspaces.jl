@@ -331,7 +331,7 @@ right inverses.
 """
 function isepimorphic(V1::VectorSpace, V2::VectorSpace)
     spacetype(V1) == spacetype(V2) || return false
-    for c in blocksectors(V1)
+    for c in blocksectors(V2)
         if blockdim(V1, c) < blockdim(V2, c)
             return false
         end

@@ -33,12 +33,23 @@ VNSU₂ = (ℂ[NewSU2Irrep](0=>3, 1//2=>1),
         ℂ[NewSU2Irrep](1//2=>1, 1=>1)',
         ℂ[NewSU2Irrep](0=>2, 1//2=>2),
         ℂ[NewSU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
+# VSU₃ = (ℂ[SU3Irrep]((0,0,0)=>3, (1,0,0)=>1),
+#                ℂ[SU3Irrep]((0,0,0)=>3, (2,0,0)=>1)',
+#                ℂ[SU3Irrep]((1,1,0)=>1, (2,1,0)=>1),
+#                ℂ[SU3Irrep]((1,0,0)=>1, (2,0,0)=>1),
+#                ℂ[SU3Irrep]((0,0,0)=>1, (1,0,0)=>1, (1,1,0)=>1)')
 
-for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃), (Irrep[U₁], VU₁),
-                (Irrep[CU₁], VCU₁), (Irrep[SU₂], VSU₂), (NewSU2Irrep, VNSU₂))
-    println("------------------------------------")
-    println("Tensors with symmetry: $I")
-    println("------------------------------------")
+for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂, VNSU₂)#, VSU₃)
+    V1, V2, V3, V4, V5 = V
+    @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
+    @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
+end
+
+for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂, VNSU₂)#, VSU₃)
+    I = sectortype(first(V))
+    println("---------------------------------------")
+    println("Tensors with symmetry: $(TensorKit.type_repr(I))")
+    println("---------------------------------------")
     global ti = time()
     V1, V2, V3, V4, V5 = V
     @timedtestset "Basic tensor properties" begin
@@ -149,12 +160,12 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
     end
     @timedtestset "Permutations: test via inner product invariance" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        t = Tensor(rand, ComplexF64, W);
-        t′ = Tensor(rand, ComplexF64, W);
+        t = Tensor(rand, ComplexF64, W)
+        t′ = Tensor(rand, ComplexF64, W)
         for k = 0:5
             for p in permutations(1:5)
-                p1 = ntuple(n->p[n], StaticLength(k))
-                p2 = ntuple(n->p[k+n], StaticLength(5-k))
+                p1 = ntuple(n->p[n], k)
+                p2 = ntuple(n->p[k+n], 5-k)
                 t2 = @constinferred permute(t, p1, p2)
                 @test norm(t2) ≈ norm(t)
                 t2′= permute(t′, p1, p2)
@@ -165,11 +176,11 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
     if hasfusiontensor(I)
         @timedtestset "Permutations: test via conversion" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-            t = Tensor(rand, ComplexF64, W);
+            t = Tensor(rand, ComplexF64, W)
             for k = 0:5
                 for p in permutations(1:5)
-                    p1 = ntuple(n->p[n], StaticLength(k))
-                    p2 = ntuple(n->p[k+n], StaticLength(5-k))
+                    p1 = ntuple(n->p[n], k)
+                    p2 = ntuple(n->p[k+n], 5-k)
                     t2 = permute(t, p1, p2)
                     a2 = convert(Array, t2)
                     @test a2 ≈ permutedims(convert(Array, t), (p1...,p2...))
@@ -179,7 +190,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     @timedtestset "Full trace: test self-consistency" begin
-        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1');
+        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1')
         t2 = permute(t, (1,2), (4,3))
         s = @constinferred tr(t2)
         @test conj(s) ≈ tr(t2')
@@ -190,7 +201,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         @test s ≈ s3
     end
     @timedtestset "Partial trace: test self-consistency" begin
-        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
+        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
         @tensor t2[a,b] := t[c,d,b,d,c,a]
         @tensor t4[a,b,c,d] := t[d,e,b,e,c,a]
         @tensor t5[a,b] := t4[a,b,c,c]
@@ -198,15 +209,15 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
     end
     if hasfusiontensor(I)
         @timedtestset "Trace: test via conversion" begin
-            t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
+            t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
             @tensor t2[a,b] := t[c,d,b,d,c,a]
             @tensor t3[a,b] := convert(Array, t)[c,d,b,d,c,a]
             @test t3 ≈ convert(Array, t2)
         end
     end
     @timedtestset "Trace and contraction" begin
-        t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3);
-        t2 = Tensor(rand, ComplexF64, V2' ⊗ V4 ⊗ V1');
+        t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3)
+        t2 = Tensor(rand, ComplexF64, V2' ⊗ V4 ⊗ V1')
         t3 = t1 ⊗ t2
         @tensor ta[a,b] := t1[x,y,a]*t2[y,b,x]
         @tensor tb[a,b] := t3[x,y,a,y,b,x]
@@ -293,10 +304,10 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             ts = (Tensor(rand, T, W), Tensor(rand, T, W)')
             for t in ts
                 @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                    Q, R = @constinferred leftorth(t, (3,4,2),(1,5); alg = alg)
+                    Q, R = @constinferred leftorth(t, (3,4,2), (1,5); alg = alg)
                     QdQ = Q'*Q
                     @test QdQ ≈ one(QdQ)
-                    @test Q*R ≈ permute(t, (3,4,2),(1,5))
+                    @test Q*R ≈ permute(t, (3,4,2), (1,5))
                     if alg isa Polar
                         @test isposdef(R)
                         @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'

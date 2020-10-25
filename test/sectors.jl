@@ -72,7 +72,7 @@ ti = time()
                         else
                             f2 = Fsymbol(a,b,c,d,e,f)*dim(d)
                         end
-                        @test f1≈f2 atol=1e-12
+                        @test isapprox(f1, f2; atol = 1e-12, rtol = 1e-12)
                     end
                 end
             end
@@ -96,7 +96,7 @@ ti = time()
                     end
                     F = hvcat(length(fs), Fblocks...)
                 end
-                @test F'*F ≈ one(F)
+                @test isapprox(F'*F, one(F); atol = 1e-12, rtol = 1e-12)
             end
         end
     end
@@ -113,7 +113,7 @@ ti = time()
                                         Fsymbol(a,j,d,e,g,i) *
                                         Fsymbol(b,c,d,i,j,h)
                             end
-                            @test isapprox(p1, p2; atol=10*eps())
+                            @test isapprox(p1, p2; atol = 1e-12, rtol = 1e-12)
                         else
                             @tensor p1[λ,μ,ν,κ,ρ,σ] := Fsymbol(f,c,d,e,g,h)[λ,μ,ν,τ]*
                                                         Fsymbol(a,b,h,e,f,i)[κ,τ,ρ,σ]
@@ -123,7 +123,7 @@ ti = time()
                                                             Fsymbol(a,j,d,e,g,i)[β,μ,τ,σ]*
                                                             Fsymbol(b,c,d,i,j,h)[α,τ,ν,ρ]
                             end
-                            @test isapprox(p1, p2; atol=10*eps())
+                            @test isapprox(p1, p2; atol = 1e-12, rtol = 1e-12)
                         end
                     end
                 end
@@ -140,7 +140,7 @@ ti = time()
                         for f in ⊗(a,b)
                             p2 += Fsymbol(c,a,b,d,e,f)*Rsymbol(c,f,d)*Fsymbol(a,b,c,d,f,g)
                         end
-                        @test isapprox(p1, p2; atol=10*eps())
+                        @test isapprox(p1, p2; atol = 1e-12, rtol = 1e-12)
                     else
                         @tensor p1[α,β,μ,ν] := Rsymbol(c,a,e)[α,λ]*
                                                 Fsymbol(a,c,b,d,e,g)[λ,β,γ,ν]*
@@ -151,7 +151,7 @@ ti = time()
                                                     Rsymbol(c,f,d)[σ,ψ]*
                                                     Fsymbol(a,b,c,d,f,g)[δ,ψ,μ,ν]
                         end
-                        @test isapprox(p1, p2; atol=10*eps())
+                        @test isapprox(p1, p2; atol = 1e-12, rtol = 1e-12)
                     end
                 end
             end

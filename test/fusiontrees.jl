@@ -36,7 +36,7 @@ ti = time()
                         if f2 == f
                             @test coeff2 ≈ 1
                         else
-                            @test isapprox(coeff2, 0; atol = 10*eps())
+                            @test isapprox(coeff2, 0; atol = 1e-12, rtol = 1e-12)
                         end
                     end
                 end
@@ -70,7 +70,7 @@ ti = time()
             if f1 == f
                 @test coeff1 ≈ 1
             else
-                @test isapprox(coeff1, 0; atol = 10*eps())
+                @test isapprox(coeff1, 0; atol = 1e-12, rtol = 1e-12)
             end
         end
     end
@@ -91,7 +91,7 @@ ti = time()
             if f1 == f
                 @test coeff2 ≈ 1
             else
-                @test isapprox(coeff2, 0; atol = 10*eps())
+                @test isapprox(coeff2, 0; atol = 1e-12, rtol = 1e-12)
             end
         end
 
@@ -142,7 +142,8 @@ ti = time()
                 end
             end
             for (t, coeff) in trees3
-                @test get(trees, t, zero(coeff)) ≈ coeff atol = 1e-12
+                coeff′ = get(trees, t, zero(coeff))
+                @test isapprox(coeff′, coeff; atol = 1e-12, rtol = 1e-12)
             end
 
             if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
@@ -154,7 +155,7 @@ ti = time()
                 for (f, coeff) in trees
                     Af′ .+= coeff .* convert(Array, f)
                 end
-                @test Af ≈ Af′
+                @test isapprox(Af, Af′; atol = 1e-12, rtol = 1e-12)
             end
         end
     end
@@ -199,7 +200,8 @@ ti = time()
                     end
                 end
                 for (t, coeff) in trees3
-                    @test isapprox(coeff, get(trees2, t, zero(coeff)); atol = 10*eps())
+                    coeff′ = get(trees2, t, zero(coeff))
+                    @test isapprox(coeff, coeff′; atol = 1e-12, rtol = 1e-12)
                 end
 
                 # test via conversion
@@ -253,7 +255,7 @@ ti = time()
                         @show f1, f2, n
                     end
                 else
-                    @test isapprox(coeff2, 0; atol = 10*eps())
+                    @test isapprox(coeff2, 0; atol = 1e-12, rtol = 1e-12)
                 end
             end
             if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
@@ -292,6 +294,7 @@ ti = time()
 
                 d = @constinferred TensorKit.permute(f1, f2, p1, p2)
                 @test dim(incoming) ≈ sum(abs2(coef)*dim(f1.coupled) for ((f1,f2), coef) in d)
+                @test norm(values(d)) ≈ 1
                 d2 = Dict{typeof((f1,f2)), valtype(d)}()
                 for ((f1′,f2′), coeff) in d
                     d′ = TensorKit.permute(f1′,f2′, ip1, ip2)
@@ -306,7 +309,7 @@ ti = time()
                             @show f1, f2, p
                         end
                     else
-                        @test abs(coeff2) < 10*eps()
+                        @test abs(coeff2) < 1e-12
                     end
                 end
                 if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
