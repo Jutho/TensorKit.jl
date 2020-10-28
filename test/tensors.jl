@@ -28,27 +28,23 @@ VSU₂ = (ℂ[SU2Irrep](0=>3, 1//2=>1),
         ℂ[SU2Irrep](1//2=>1, 1=>1)',
         ℂ[SU2Irrep](0=>2, 1//2=>2),
         ℂ[SU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
-VNSU₂ = (ℂ[NewSU2Irrep](0=>3, 1//2=>1),
-        ℂ[NewSU2Irrep](0=>2, 1=>1),
-        ℂ[NewSU2Irrep](1//2=>1, 1=>1)',
-        ℂ[NewSU2Irrep](0=>2, 1//2=>2),
-        ℂ[NewSU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
 # VSU₃ = (ℂ[SU3Irrep]((0,0,0)=>3, (1,0,0)=>1),
 #                ℂ[SU3Irrep]((0,0,0)=>3, (2,0,0)=>1)',
 #                ℂ[SU3Irrep]((1,1,0)=>1, (2,1,0)=>1),
 #                ℂ[SU3Irrep]((1,0,0)=>1, (2,0,0)=>1),
 #                ℂ[SU3Irrep]((0,0,0)=>1, (1,0,0)=>1, (1,1,0)=>1)')
 
-for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂, VNSU₂)#, VSU₃)
+for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂)#, VSU₃)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
 end
 
-for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂, VNSU₂)#, VSU₃)
+for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂)#, VSU₃)
     I = sectortype(first(V))
+    Istr = TensorKit.type_repr(I)
     println("---------------------------------------")
-    println("Tensors with symmetry: $(TensorKit.type_repr(I))")
+    println("Tensors with symmetry: $Istr")
     println("---------------------------------------")
     global ti = time()
     V1, V2, V3, V4, V5 = V
@@ -525,7 +521,7 @@ for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂, VNSU₂)#, VSU₃)
         end
     end
     global tf = time()
-    printstyled("Finished tensor tests with symmetry $I in ",
+    printstyled("Finished tensor tests with symmetry $Istr in ",
                 string(round(tf-ti; sigdigits=3)),
                 " seconds."; bold = true, color = Base.info_color())
     println()
