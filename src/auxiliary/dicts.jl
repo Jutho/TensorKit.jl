@@ -4,6 +4,13 @@ struct SingletonDict{K, V} <: AbstractDict{K, V}
     SingletonDict{K, V}(p::Pair{K, V}) where {K, V} = new{K, V}(p.first, p.second)
 end
 SingletonDict(p::Pair{K, V}) where {K, V} = SingletonDict{K, V}(p)
+function SingletonDict(g::Base.Generator)
+    s = iterate(g)
+    @assert s !== nothing
+    first, state = s
+    @assert iterate(g, state) === nothing
+    return SingletonDict(first)
+end
 
 Base.length(::SingletonDict) = 1
 Base.keys(d::SingletonDict) = (d.key,)
