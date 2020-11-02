@@ -644,7 +644,6 @@ function permute(f1::FusionTree{I}, f2::FusionTree{I},
     return braid(f1, f2, levels1, levels2, p1, p2)
 end
 
-
 """
     transpose(f1::FusionTree{I}, f2::FusionTree{I},
             p1::NTuple{N₁, Int}, p2::NTuple{N₂, Int}) where {I, N₁, N₂}

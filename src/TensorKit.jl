@@ -69,7 +69,7 @@ export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQ
         SVD, SDD, Polar
 
 # tensor operations
-export @tensor, @tensoropt, @ncon, ncon
+export @tensor, @tensoropt, @ncon, ncon, @planar
 export scalar, add!, contract!
 
 # truncation schemes
@@ -175,6 +175,7 @@ include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
+include("tensors/planar.jl")
 
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")
