@@ -668,10 +668,10 @@ function Base.transpose(f1::FusionTree{I}, f2::FusionTree{I},
     @assert iscyclicpermutation(p)
     if usetransposecache[]
         u = one(I)
-        T = typeof(sqrt(dim(u))*one(eltype(Fsymbol(u, u, u, u, u, u))))
+        T = eltype(Fsymbol(u, u, u, u, u, u))
         F₁ = fusiontreetype(I, N₁)
         F₂ = fusiontreetype(I, N₂)
-        D = FusionTreeDict{Tuple{F₁, F₂}, T}
+        D = fusiontreedict(I){Tuple{F₁, F₂}, T}
         return _get_transpose(D, (f1, f2, p1, p2))
     else
         return _transpose((f1, f2, p1, p2))
