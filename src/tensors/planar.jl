@@ -131,37 +131,32 @@ function _analyze_planar_pairwise_contraction(a1, a2)
         # TODO: deal with disconnected parts
         @assert "disconnected not yet implemented"
     else
+        j2 = findfirst(==(ind1[j1]), ind2)
         jmax1 = j1
-        while jmax1 < N1 && ind1[jmax1+1] ∈ ind2
+        jmin2 = j2
+        while jmax1 < N1 && ind1[jmax1+1] == ind2[mod1(jmin2-1, N2)]
             jmax1 += 1
+            jmin2 -= 1
         end
         jmin1 = j1
+        jmax2 = j2
         if j1 == 1 && jmax1 < N1
-            while ind1[mod1(jmin1-1, N1)] ∈ ind2
+            while ind1[mod1(jmin1-1, N1)] == ind2[mod1(jmax2 + 1, N2)]
                 jmin1 -= 1
+                jmax2 += 1
             end
         end
-        ifirst = ind1[mod1(jmin1, N1)]
-        jmax2 = findfirst(==(ifirst), ind2)
-        @assert jmax2 !== nothing
-        jmin2 = jmax2 - jmax1 + jmin1
-        k = 1
-        while jmin1+k <= jmax1
-            ind1[mod1(jmin1+k, N1)] == ind2[mod1(jmax2-k, N2)] ||
-                throw(ArgumentError("not a planar contraction"))
-            k += 1
+        if jmax2 > N2
+            jmax2 -= N2
+            jmin2 -= N2
         end
         indo1 = jmin1 < 1 ? ind1[(jmax1+1):mod1(jmin1-1, N1)] :
                     vcat(ind1[(jmax1+1):N1], ind1[1:(jmin1-1)])
         indo2 = jmin2 < 1 ? ind2[(jmax2+1):mod1(jmin2-1, N2)] :
                     vcat(ind2[(jmax2+1):N2], ind2[1:(jmin2-1)])
-        isempty(intersect(indo1, indo2)) ||
+        isempty(intersect(indo1, ind2)) ||
             throw(ArgumentError("not a planar contraction"))
         s = gensym()
-        cind = jmin1 >= 1 ? ind1[jmin1:jmax1] :
-                    vcat(ind1[mod1(jmin1, N1):N1], ind1[1:jmax1])
-        @show a1, indo1, reverse(cind)
-        @show a2, reverse(cind), reverse(indo2)
         if jmin2 > length(l2) && jmax1 <= length(l1)
             lhs = Expr(:typed_vcat, s, Expr(:tuple, indo2...), Expr(:tuple, reverse(indo1)...))
             rhs = Expr(:call, :*, a2, a1)
@@ -283,8 +278,6 @@ function reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1,
     end
     cindA2 = reverse(TensorOperations.tsetdiff(indA, oindA2))
     cindB2 = TensorOperations.tsetdiff(indB, reverse(oindB2))
-    @show codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2
-    @show oindA2, oindB2, cindA, cindB, cindA2, cindB2
     @assert TupleTools.sort(cindA) == TupleTools.sort(cindA2)
     @assert TupleTools.sort(tuple.(cindA2, cindB2)) == TupleTools.sort(tuple.(cindA, cindB))
     return oindA2, cindA2, oindB2, cindB2

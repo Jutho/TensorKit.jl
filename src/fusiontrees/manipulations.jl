@@ -644,6 +644,10 @@ function permute(f1::FusionTree{I}, f2::FusionTree{I},
     return braid(f1, f2, levels1, levels2, p1, p2)
 end
 
+# transpose double fusion tree
+const transposecache = LRU{Any, Any}(; maxsize = 10^5)
+const usetransposecache = Ref{Bool}(true)
+
 """
     transpose(f1::FusionTree{I}, f2::FusionTree{I},
             p1::NTuple{N₁, Int}, p2::NTuple{N₂, Int}) where {I, N₁, N₂}
@@ -662,7 +666,31 @@ function Base.transpose(f1::FusionTree{I}, f2::FusionTree{I},
     @assert length(f1) + length(f2) == N
     p = linearizepermutation(p1, p2, length(f1), length(f2))
     @assert iscyclicpermutation(p)
+    if usetransposecache[]
+        u = one(I)
+        T = typeof(sqrt(dim(u))*one(eltype(Fsymbol(u, u, u, u, u, u))))
+        F₁ = fusiontreetype(I, N₁)
+        F₂ = fusiontreetype(I, N₂)
+        D = FusionTreeDict{Tuple{F₁, F₂}, T}
+        return _get_transpose(D, (f1, f2, p1, p2))
+    else
+        return _transpose((f1, f2, p1, p2))
+    end
+end
 
+@noinline function _get_transpose(::Type{D}, @nospecialize(key)) where D
+    d::D = get!(transposecache, key) do
+        _transpose(key)
+    end
+    return d
+end
+
+const TransposeKey{I<:Sector, N₁, N₂} = Tuple{<:FusionTree{I}, <:FusionTree{I},
+                                                IndexTuple{N₁}, IndexTuple{N₂}}
+
+function _transpose((f1, f2, p1, p2)::TransposeKey{I,N₁,N₂}) where {I<:Sector, N₁, N₂}
+    N = N₁ + N₂
+    p = linearizepermutation(p1, p2, length(f1), length(f2))
     i1 = findfirst(==(1), p)
     @assert i1 !== nothing
     newtrees = repartition(f1, f2, N₁)
