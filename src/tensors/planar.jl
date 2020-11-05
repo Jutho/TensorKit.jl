@@ -290,11 +290,6 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                             p1::IndexTuple, p2::IndexTuple,
                             syms::Union{Nothing, NTuple{3, Symbol}}) where {S, N₁, N₂}
 
-    # if braiding is bosonic, use contract!, which is probably more optimized
-    if BraidingStyle(sectortype(S)) isa Bosonic
-        return contract!(α, A, B, β, C, oindA, cindA, oindB, cindB, p1, p2, syms)
-    end
-
     codA = codomainind(A)
     domA = domainind(A)
     codB = codomainind(B)
