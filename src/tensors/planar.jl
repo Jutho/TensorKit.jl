@@ -219,7 +219,7 @@ function _add_modules(ex::Expr)
                         (ex.args[i] for i in argind)...)
     elseif ex.head == :call && ex.args[1] == :trace!
         @assert ex.args[4] == :(:N)
-        argind = [2,3,4,5,6,7,8,9,10]
+        argind = [2,3,5,6,7,8,9,10]
         return Expr(ex.head, GlobalRef(TensorKit, Symbol(:planar_trace!)),
                         (ex.args[i] for i in argind)...)
     elseif ex.head == :call && ex.args[1] == :contract!
@@ -323,34 +323,14 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     return C
 end
 
-function planar_trace!(α, tsrc::AbstractTensorMap{S}, CA::Symbol,
+function planar_trace!(α, tsrc::AbstractTensorMap{S},
                        β, tdst::AbstractTensorMap{S, N₁, N₂},
                        p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
                        q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {S, N₁, N₂, N₃}
     if BraidingStyle(sectortype(S)) == Bosonic()
-        return TO.trace!(α, tsrc, CA, β, tdst, p1, p2, q1, q2)
+        return trace!(α, tsrc, β, tdst, p1, p2, q1, q2)
     end
 
-    if CA == :N
-        p = (p1..., p2...)
-        pl = TupleTools.getindices(p, codomainind(tdst))
-        pr = TupleTools.getindices(p, domainind(tdst))
-        _planar_trace!(α, tsrc, β, tdst, pl, pr, q1, q2)
-    else
-        p = adjointtensorindices(tsrc, (p1..., p2...))
-        pl = TupleTools.getindices(p, codomainind(tdst))
-        pr = TupleTools.getindices(p, domainind(tdst))
-        q1 = adjointtensorindices(tsrc, q1)
-        q2 = adjointtensorindices(tsrc, q2)
-        _planar_trace!(α, adjoint(tsrc), β, tdst, pl, pr, q1, q2)
-    end
-end
-
-# planar_trace! but with possible conjugation already done and non-bosonicity guaranteed.
-function _planar_trace!(α, tsrc::AbstractTensorMap{S},
-                        β, tdst::AbstractTensorMap{S, N₁, N₂},
-                        p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
-                        q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {S, N₁, N₂, N₃}
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
