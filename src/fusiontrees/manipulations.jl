@@ -1,3 +1,5 @@
+fusiontreedict(I) = FusionStyle(I) isa Abelian ? SingletonDict : FusionTreeDict
+
 """
     artin_braid(f::FusionTree, i; inv::Bool = false) -> <:AbstractDict{typeof(t), <:Number}
 
@@ -27,24 +29,24 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
         c = N > 2 ? inner[1] : coupled′
         uncoupled′ = TupleTools.setindex(uncoupled, b, 1)
         uncoupled′ = TupleTools.setindex(uncoupled′, a, 2)
-        if FusionStyle(I) isa Abelian
+        if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
             R = oftype(oneT, (inv ? conj(Rsymbol(b, a, c)) : Rsymbol(a, b, c)))
             f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner, vertices)
-            return SingletonDict(f′ => R)
-        elseif FusionStyle(I) isa SimpleNonAbelian
-            R = oftype(oneT, inv ? conj(Rsymbol(b, a, c)) : Rsymbol(a, b, c))
-            f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner, vertices)
-            return FusionTreeDict(f′ => R)
+            return fusiontreedict(I)(f′ => R)
         else # DegenerateNonAbelian
             μ = vertices[1]
-            newtrees = FusionTreeDict{typeof(f), typeof(oneT)}()
             Rmat = inv ? Rsymbol(b, a, c)' : Rsymbol(a, b, c)
+            local newtrees
             for ν = 1:size(Rmat, 2)
                 R = oftype(oneT, Rmat[μ,ν])
                 iszero(R) && continue
                 vertices′ = TupleTools.setindex(vertices, ν, 1)
                 f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner, vertices′)
-                push!(newtrees, f′ => R)
+                if (@isdefined newtrees)
+                    push!(newtrees, f′ => R)
+                else
+                    newtrees = fusiontreedict(I)(f′ => R)
+                end
             end
             return newtrees
         end
@@ -61,16 +63,11 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
         inner′ = TupleTools.setindex(inner, first(a ⊗ d), i-1)
         bd = first(b ⊗ d)
         R = oftype(oneT, inv ? conj(Rsymbol(d, b, bd)) : Rsymbol(b, d, bd))
-        return SingletonDict(FusionTree{I}(uncoupled′, coupled′, isdual′, inner′) => R)
+        f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner′)
+        return fusiontreedict(I)(f′ => R)
     elseif FusionStyle(I) isa SimpleNonAbelian
-        newtrees = FusionTreeDict{typeof(f), typeof(oneT)}()
-        for c′ in a ⊗ d
-            # coeff = oftype(oneT, if inv
-            #         Rsymbol(a, b, c)*Fsymbol(b, a, d, e, c, c′)*conj(Rsymbol(c′, b, e))
-            #     else
-            #         conj(Rsymbol(b, a, c))*Fsymbol(b, a, d, e, c, c′)*Rsymbol(b, c′, e)
-            #     end)
-            # TODO: remove above; is also correct but below is the version from the docs
+        local newtrees
+        for c′ in intersect(a ⊗ d, e ⊗ conj(b))
             coeff = oftype(oneT, if inv
                     conj(Rsymbol(d, c, e)*Fsymbol(d, a, b, e, c′, c))*Rsymbol(a, d, c′)
                 else
@@ -79,14 +76,18 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
             iszero(coeff) && continue
             inner′ = TupleTools.setindex(inner, c′, i-1)
             f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner′)
-            push!(newtrees, f′ => coeff)
+            if (@isdefined newtrees)
+                push!(newtrees, f′ => coeff)
+            else
+                newtrees = fusiontreedict(I)(f′ => coeff)
+            end
         end
         return newtrees
     else # DegenerateNonAbelian
-        newtrees = FusionTreeDict{typeof(f), typeof(oneT)}()
-        for c′ in a ⊗ d
+        local newtrees
+        for c′ in intersect(a ⊗ d, e ⊗ conj(b))
             Rmat1 = inv ? Rsymbol(d, c, e)' : Rsymbol(c, d, e)
-            Rmat2 = inv ? Rsymbol(a, d, c′)' : Rsymbol(d, a, c′)
+            Rmat2 = inv ? Rsymbol(a, d, c′) : Rsymbol(d, a, c′)'
             Fmat = Fsymbol(d, a, b, e, c′, c)
             μ = vertices[i-1]
             ν = vertices[i]
@@ -101,7 +102,11 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
                     vertices′ = TupleTools.setindex(vertices′, λ, i)
                     inner′ = TupleTools.setindex(inner, c′, i-1)
                     f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner′, vertices′)
-                    newtrees[f′] = coeff
+                    if (@isdefined newtrees)
+                        push!(newtrees, f′ => coeff)
+                    else
+                        newtrees = fusiontreedict(I)(f′ => coeff)
+                    end
                 end
             end
         end
@@ -143,10 +148,10 @@ function braid(f::FusionTree{I, N},
         coupled′ = f.coupled
         isdual′ = TupleTools._permute(f.isdual, p)
         f′ = FusionTree{I}(uncoupled′, coupled′, isdual′)
-        return SingletonDict(f′=>coeff)
+        return fusiontreedict(I)(f′ => coeff)
     else
         coeff = Rsymbol(one(I), one(I), one(I))[1,1]
-        trees = FusionTreeDict(f=>coeff)
+        trees = FusionTreeDict(f => coeff)
         newtrees = empty(trees)
         for s in permutation2swaps(p)
             inv = levels[s] > levels[s+1]
@@ -257,7 +262,7 @@ end
 function merge(f1::FusionTree{I, 0}, f2::FusionTree{I, 0}, c::I, μ =nothing) where {I}
     c == one(I) ||
         throw(SectorMismatch("cannot fuse sectors $(f1.coupled) and $(f2.coupled) to $c"))
-    return SingletonDict(f1=>Fsymbol(c, c, c, c, c, c))
+    return fusiontreedict(I)(f1=>Fsymbol(c, c, c, c, c, c))
 end
 
 """
@@ -277,14 +282,18 @@ function insertat(f1::FusionTree{I}, i::Int, f2::FusionTree{I, 0}) where {I}
     uncoupled = TupleTools.deleteat(f1.uncoupled, i)
     coupled = f1.coupled
     isdual = TupleTools.deleteat(f1.isdual, i)
-    inner = TupleTools.deleteat(f1.innerlines, max(1, i-2))
-    vertices = TupleTools.deleteat(t1.vertices, max(1, i-1))
-    f = FusionTree(uncoupled, coupled, isdual, inner, vertices)
-    if FusionStyle(I) isa Abelian
-        return SingletonDict(f => coeff)
-    else # NonAbelian
-        return FusionTreeDict(f => coeff)
+    if length(uncoupled) <= 2
+        inner = ()
+    else
+        inner = TupleTools.deleteat(f1.innerlines, max(1, i-2))
     end
+    if length(uncoupled) <= 1
+        vertices = ()
+    else
+        vertices = TupleTools.deleteat(f1.vertices, max(1, i-1))
+    end
+    f = FusionTree(uncoupled, coupled, isdual, inner, vertices)
+    return fusiontreedict(I)(f => coeff)
 end
 function insertat(f1::FusionTree{I}, i, f2::FusionTree{I, 1}) where {I}
     # identity operation
@@ -293,11 +302,7 @@ function insertat(f1::FusionTree{I}, i, f2::FusionTree{I, 1}) where {I}
     coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1,1,1]
     isdual′ = TupleTools.setindex(f1.isdual, f2.isdual[1], i)
     f = FusionTree{I}(f1.uncoupled, f1.coupled, isdual′, f1.innerlines, f1.vertices)
-    if FusionStyle(I) isa Abelian
-        return SingletonDict(f => coeff)
-    else # NonAbelian
-        return FusionTreeDict(f => coeff)
-    end
+    return fusiontreedict(I)(f => coeff)
 end
 function insertat(f1::FusionTree{I}, i, f2::FusionTree{I, 2}) where {I}
     # elementary building block,
@@ -316,35 +321,24 @@ function insertat(f1::FusionTree{I}, i, f2::FusionTree{I, 2}) where {I}
         vertices′ = (f2.vertices..., f1.vertices...)
         coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1,1,1]
         f′ = FusionTree(uncoupled′, coupled, isdual′, inner′, vertices′)
-        if FusionStyle(I) isa Abelian
-            return SingletonDict(f′ => coeff)
-        else # NonAbelian
-            return FusionTreeDict(f′ => coeff)
-        end
+        return fusiontreedict(I)(f′ => coeff)
     end
     uncoupled′ = TupleTools.insertafter(TupleTools.setindex(uncoupled, b, i), i, (c,))
     isdual′ = TupleTools.insertafter(TupleTools.setindex(isdual, isdualb, i), i, (isdualc,))
     a = i == 2 ? uncoupled[1] : inner[i-2]
     d = i == length(f1) ? coupled : inner[i-1]
     e′ = uncoupled[i]
-    if FusionStyle(I) isa Abelian
-        e = first(a ⊗ b)
-        inner′ = TupleTools.insertafter(inner, i-2, (e,))
-        f′ = FusionTree(uncoupled′, coupled, isdual′, inner′)
-        coeff = conj(Fsymbol(a, b, c, d, e, e′))
-        return SingletonDict(f′ => coeff)
-    elseif FusionStyle(I) isa SimpleNonAbelian
+    if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
         local newtrees
         for e in a ⊗ b
+            coeff = conj(Fsymbol(a, b, c, d, e, e′))
+            iszero(coeff) && continue
             inner′ = TupleTools.insertafter(inner, i-2, (e,))
             f′ = FusionTree(uncoupled′, coupled, isdual′, inner′)
-            coeff = conj(Fsymbol(a, b, c, d, e, e′))
-            if coeff != zero(coeff)
-                if @isdefined newtrees
-                    push!(newtrees, f′=> coeff)
-                else
-                    newtrees = FusionTreeDict(f′ => coeff)
-                end
+            if @isdefined newtrees
+                push!(newtrees, f′=> coeff)
+            else
+                newtrees = fusiontreedict(I)(f′ => coeff)
             end
         end
         return newtrees
@@ -364,23 +358,21 @@ function insertat(f1::FusionTree{I}, i, f2::FusionTree{I, 2}) where {I}
                 if @isdefined newtrees
                     push!(newtrees, f′=> coeff)
                 else
-                    newtrees = FusionTreeDict(f′ => coeff)
+                    newtrees = fusiontreedict(I)(f′ => coeff)
                 end
             end
         end
         return newtrees
     end
 end
-function insertat(f1::FusionTree{I}, i, f2::FusionTree{I}) where {I}
+function insertat(f1::FusionTree{I,N₁}, i, f2::FusionTree{I,N₂}) where {I,N₁,N₂}
+    F = fusiontreetype(I, N₁ + N₂ - 1)
     (f1.uncoupled[i] == f2.coupled && !f1.isdual[i]) ||
         throw(SectorMismatch("cannot connect $(f2.uncoupled) to $(f1.uncoupled[i])"))
+    coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1]
+    T = typeof(coeff)
     if length(f1) == 1
-        coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1]
-        if FusionStyle(I) isa Abelian
-            return SingletonDict(f2 => coeff)
-        else # NonAbelian
-            return FusionTreeDict(f2 => coeff)
-        end
+        return fusiontreedict(I){F,T}(f2 => coeff)
     end
     if i == 1
         uncoupled = (f2.uncoupled..., tail(f1.uncoupled)...)
@@ -389,36 +381,22 @@ function insertat(f1::FusionTree{I}, i, f2::FusionTree{I}) where {I}
         vertices = (f2.vertices..., f1.vertices...)
         coupled = f1.coupled
         f′ = FusionTree(uncoupled, coupled, isdual, inner, vertices)
-        coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1]
-        if FusionStyle(I) isa Abelian
-            return SingletonDict(f′ => coeff)
-        else # NonAbelian
-            return FusionTreeDict(f′ => coeff)
-        end
+        return fusiontreedict(I){F,T}(f′ => coeff)
     else # recursive definition
         N2 = length(f2)
         f2′, f2′′ = split(f2, N2 - 1)
-        f2′.vertices, f2′′.vertices
-        if FusionStyle(I) isa Abelian
-            f, coeff = first(insertat(f1, i, f2′′))
-            f′, coeff′ = first(insertat(f, i, f2′))
-            return SingletonDict(f′=>coeff*coeff′)
-        else
-            local newtrees
-            for (f, coeff) in insertat(f1, i, f2′′)
+        local newtrees::fusiontreedict(I){F,T}
+        for (f, coeff) in insertat(f1, i, f2′′)
+            for (f′, coeff′) in insertat(f, i, f2′)
                 if @isdefined newtrees
-                    for (f′, coeff′) in insertat(f, i, f2′)
-                        newtrees[f′] = get(newtrees, f′, zero(coeff′)) + coeff*coeff′
-                    end
+                    coeff′′ = coeff*coeff′
+                    newtrees[f′] = get(newtrees, f′, zero(coeff′′)) + coeff′′
                 else
-                    newtrees = insertat(f, i, f2′)
-                    for (f′, coeff′) in newtrees
-                        newtrees[f′] = coeff*coeff′
-                    end
+                    newtrees = fusiontreedict(I)(f′ => coeff*coeff′)
                 end
             end
-            return newtrees
         end
+        return newtrees
     end
 end
 
@@ -450,35 +428,62 @@ function _recursive_repartition(f1::FusionTree{I, N₁},
     # precompute the parameters of the return type
     F1 = fusiontreetype(I, N)
     F2 = fusiontreetype(I, N₁ + N₂ - N)
-    T = eltype(Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I)))
-    if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
-        if N == N₁
-            coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))
-            return SingletonDict{Tuple{F1,F2},T}( (f1, f2) => coeff)
-        else
-            (f1′, f2′), coeff1 = first(N < N₁ ? _bendright(f1, f2) : _bendleft(f1, f2))
-            (f1′′, f2′′), coeff2 = first(_recursive_repartition(f1′, f2′, Val(N)))
-            return SingletonDict{Tuple{F1,F2},T}( (f1′′, f2′′) => coeff1*coeff2)
-        end
+    coeff = @inbounds Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1,1,1]
+    T = typeof(coeff)
+    if N == N₁
+        return fusiontreedict(I){Tuple{F1, F2}, T}( (f1, f2) => coeff)
     else
-        if N == N₁
-            coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1,1,1]
-            return FusionTreeDict{Tuple{F1,F2},T}( (f1, f2) => coeff)
-        else
-            newtrees = FusionTreeDict{Tuple{F1,F2},T}()
-            for ((f1′, f2′), coeff1) in (N < N₁ ? _bendright(f1, f2) : _bendleft(f1, f2))
-                for ((f1′′, f2′′), coeff2) in _recursive_repartition(f1′, f2′, Val(N))
+        local newtrees
+        for ((f1′, f2′), coeff1) in (N < N₁ ? _bendright(f1, f2) : _bendleft(f1, f2))
+            for ((f1′′, f2′′), coeff2) in _recursive_repartition(f1′, f2′, Val(N))
+                if (@isdefined newtrees)
                     push!(newtrees, (f1′′, f2′′) => coeff1*coeff2)
+                else
+                    newtrees =
+                        fusiontreedict(I){Tuple{F1, F2}, T}((f1′′, f2′′) => coeff1*coeff2)
                 end
             end
-            return newtrees
         end
+        return newtrees
     end
 end
 
+# function _recursive_repartition(f1::FusionTree{I, N₁},
+#                                 f2::FusionTree{I, N₂},
+#                                 ::Val{N}) where {I<:Sector, N₁, N₂, N}
+#     # recursive definition is only way to get correct number of loops for
+#     # DegenerateNonAbelian, but is too complex for type inference to handle, so we
+#     # precompute the parameters of the return type
+#     F1 = fusiontreetype(I, N)
+#     F2 = fusiontreetype(I, N₁ + N₂ - N)
+#     coeff = @inbounds Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1,1,1]
+#     T = typeof(coeff)
+#     if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
+#         if N == N₁
+#             return SingletonDict{Tuple{F1,F2},T}( (f1, f2) => coeff)
+#         else
+#             (f1′, f2′), coeff1 = first(N < N₁ ? _bendright(f1, f2) : _bendleft(f1, f2))
+#             (f1′′, f2′′), coeff2 = first(_recursive_repartition(f1′, f2′, Val(N)))
+#             return SingletonDict{Tuple{F1,F2},T}( (f1′′, f2′′) => coeff1*coeff2)
+#         end
+#     else
+#         if N == N₁
+#             return FusionTreeDict{Tuple{F1,F2},T}( (f1, f2) => coeff)
+#         else
+#             newtrees = FusionTreeDict{Tuple{F1,F2},T}()
+#             for ((f1′, f2′), coeff1) in (N < N₁ ? _bendright(f1, f2) : _bendleft(f1, f2))
+#                 for ((f1′′, f2′′), coeff2) in _recursive_repartition(f1′, f2′, Val(N))
+#                     push!(newtrees, (f1′′, f2′′) => coeff1*coeff2)
+#                 end
+#             end
+#             return newtrees
+#         end
+#     end
+# end
+
 # change to N₁ - 1, N₂ + 1
 function _bendright(f1::FusionTree{I, N₁}, f2::FusionTree{I, N₂}) where {I<:Sector, N₁, N₂}
-    # map splitting vertex (a, b)<-c to fusion vertex a<-(c, dual(b))
+    # map final splitting vertex (a, b)<-c to fusion vertex a<-(c, dual(b))
     @assert N₁ > 0
     c = f1.coupled
     a = N₁ == 1 ? one(I) : (N₁ == 2 ? f1.uncoupled[1] : f1.innerlines[end])
@@ -530,83 +535,10 @@ function _bendright(f1::FusionTree{I, N₁}, f2::FusionTree{I, N₂}) where {I<:
 end
 # change to N₁ + 1, N₂ - 1
 function _bendleft(f1::FusionTree{I}, f2::FusionTree{I}) where I
-    # map fusion vertex c<-(a, b) to splitting vertex (c, dual(b))<-a
-    if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
-        (f2′, f1′), coeff = first(_bendright(f2, f1))
-        return SingletonDict( (f1′, f2′) => conj(coeff) )
-    else
-        return FusionTreeDict((f1′, f2′) => conj(coeff) for
+    # map final fusion vertex c<-(a, b) to splitting vertex (c, dual(b))<-a
+    return fusiontreedict(I)((f1′, f2′) => conj(coeff) for
                                 ((f2′, f1′), coeff) in _bendright(f2, f1))
-    end
 end
-
-
-#
-# @inline function _repartitionsingleton(f1::FusionTree{I, N₁},
-#                         f2::FusionTree{I, N₂},
-#                         N::Int) where {I<:Sector, N₁, N₂}
-#     N₁′ = N
-#     N₂′ = N₁ + N₂ - N
-#
-#     uncoupled = (f1.uncoupled..., map(dual, reverse(f2.uncoupled))...)
-#     isdual = (f1.isdual..., map(!, reverse(f2.isdual))...)
-#     inner1ext = N₁ === 0 ? () : (N₁ === 1 ? (one(I),) :
-#                         (one(I), first(uncoupled), f1.innerlines...))
-#     inner2ext = N₂ === 0 ? () : (N₂ === 1 ? (one(I),) :
-#                         (one(I), dual(last(uncoupled)), f2.innerlines...))
-#     innerext = (inner1ext..., f1.coupled, reverse(inner2ext)...) # length N₁+N₂+1
-#     # desigend for constant propagation to work
-#     f₁′ = _getrepartitionf1(uncoupled, innerext, isdual, N₁′)
-#     f₂′ = _getrepartitionf2(uncoupled, innerext, isdual, N₁′)
-#     coeff = sqrt(dim(one(I)))*Bsymbol(one(I), one(I), one(I))
-#     coeff = _getrepartitioncoeff(coeff, uncoupled, innerext, isdual, N₁, N₁′)
-#     fpair = (f₁′, f₂′)
-#     return SingletonDict{typeof(fpair), typeof(coeff)}(fpair, coeff)
-# end
-#
-# function _getrepartitioncoeff(coeff, uncoupled, innerext, isdual, N₁::Int, N₁′::Int)
-#     for n = N₁+1:N₁′
-#          # map fusion vertex c<-(a, b) to splitting vertex (c, dual(b))<-a
-#         b = dual(uncoupled[n])
-#         a = innerext[n+1]
-#         c = innerext[n]
-#         coeff *= sqrt(dim(c)/dim(a))*conj(Bsymbol(a, b, c))
-#         if !isdual[n]
-#             coeff *= frobeniusschur(dual(b))
-#         end
-#     end
-#     for n = N₁:-1:N₁′+1
-#         # map splitting vertex (a, b)<-c to fusion vertex a<-(c, dual(b))
-#         b = uncoupled[n]
-#         a = innerext[n]
-#         c = innerext[n+1]
-#         coeff *= sqrt(dim(c)/dim(a))*Bsymbol(a, b, c)
-#         if isdual[n]
-#             coeff *= conj(frobeniusschur(dual(b)))
-#         end
-#     end
-#     return coeff
-# end
-#
-# @inline function _getrepartitionf1(uncoupled, innerext, isdual, N₁′::Int)
-#     uncoupled1 = ntuple(n->uncoupled[n], N₁′)
-#     isdual1 = ntuple(n->isdual[n], N₁′)
-#     innerlines1 = ntuple(n->innerext[n+2], max(0, N₁′ - 2))
-#     c = innerext[N₁′+1]
-#     vertices1 = ntuple(n->nothing, max(0, N₁′ - 1))
-#     return FusionTree(uncoupled1, c, isdual1, innerlines1, vertices1)
-# end
-# @inline function _getrepartitionf2(uncoupled, innerext, isdual, N₁′::Int)
-#     # uncoupled1 = ntuple(n->uncoupled[n], N₁′)
-#     Ntot = length(uncoupled)
-#     N₂′ = Ntot - N₁′
-#     uncoupled2 = ntuple(n->dual(uncoupled[Ntot + 1 - n]), N₂′)
-#     isdual2 = ntuple(n->!(isdual[Ntot + 1 - n]), N₂′)
-#     innerlines2 = ntuple(n->innerext[Ntot - n], max(0, N₂′ - 2))
-#     c = innerext[N₁′+1]
-#     vertices2 = ntuple(n->nothing, max(0, N₂′ - 1))
-#     return FusionTree(uncoupled2, c, isdual2, innerlines2, vertices2)
-# end
 
 # braid double fusion tree
 const braidcache = LRU{Any, Any}(; maxsize = 10^5)
@@ -677,38 +609,20 @@ const BraidKey{I<:Sector, N₁, N₂} = Tuple{<:FusionTree{I}, <:FusionTree{I},
 function _braid((f1, f2, l1, l2, p1, p2)::BraidKey{I, N₁, N₂}) where {I<:Sector, N₁, N₂}
     p = linearizepermutation(p1, p2, length(f1), length(f2))
     levels = (l1..., reverse(l2)...)
-    if FusionStyle(f1) isa Abelian
-        (f, f0), coeff1 = first(repartition(f1, f2, N₁ + N₂))
-        f′, coeff2 = first(braid(f, levels, p))
-        (f1′, f2′), coeff3 = first(repartition(f′, f0, N₁))
-        return SingletonDict( (f1′, f2′) => coeff1*coeff2*coeff3 )
-    # elseif FusionStyle(f1) isa SimpleNonAbelian
-    #     local newtrees
-    #     (f, f0), coeff1 = first(repartition(f1, f2, N₁ + N₂))
-    #     for (f′, coeff2) in braid(f, levels, p)
-    #         (f1′, f2′), coeff3 = first(repartition(f′, f0, N₁))
-    #         if @isdefined newtrees
-    #             push!(newtrees, (f1′, f2′)=>coeff1*coeff2*coeff3 )
-    #         else
-    #             newtrees = FusionTreeDict( (f1′, f2′)=>coeff1*coeff2*coeff3 )
-    #         end
-    #     end
-    #     return newtrees
-    else # NonAbelian
-        local newtrees
-        for ((f, f0), coeff1) in repartition(f1, f2, N₁ + N₂)
-            for (f′, coeff2) in braid(f, levels, p)
-                for ((f1′, f2′), coeff3) in repartition(f′, f0, N₁)
-                    if @isdefined newtrees
-                        push!(newtrees, (f1′, f2′) => coeff1*coeff2*coeff3 )
-                    else
-                        newtrees = FusionTreeDict( (f1′, f2′) => coeff1*coeff2*coeff3 )
-                    end
+    local newtrees
+    for ((f, f0), coeff1) in repartition(f1, f2, N₁ + N₂)
+        for (f′, coeff2) in braid(f, levels, p)
+            for ((f1′, f2′), coeff3) in repartition(f′, f0, N₁)
+                if @isdefined newtrees
+                    newtrees[(f1′, f2′)] = get(newtrees, (f1′, f2′), zero(coeff3)) +
+                        coeff1*coeff2*coeff3
+                else
+                    newtrees = fusiontreedict(I)( (f1′, f2′) => coeff1*coeff2*coeff3 )
                 end
             end
         end
-        return newtrees
     end
+    return newtrees
 end
 
 """
@@ -729,4 +643,215 @@ function permute(f1::FusionTree{I}, f2::FusionTree{I},
     levels1 = ntuple(identity, length(f1))
     levels2 = length(f1) .+ ntuple(identity, length(f2))
     return braid(f1, f2, levels1, levels2, p1, p2)
+end
+
+# transpose double fusion tree
+const transposecache = LRU{Any, Any}(; maxsize = 10^5)
+const usetransposecache = Ref{Bool}(true)
+
+"""
+    transpose(f1::FusionTree{I}, f2::FusionTree{I},
+            p1::NTuple{N₁, Int}, p2::NTuple{N₂, Int}) where {I, N₁, N₂}
+    -> <:AbstractDict{Tuple{FusionTree{I, N₁}, FusionTree{I, N₂}}, <:Number}
+
+Input is a double fusion tree that describes the fusion of a set of incoming uncoupled
+sectors to a set of outgoing uncoupled sectors, represented using the individual trees of
+outgoing (`t1`) and incoming sectors (`t2`) respectively (with identical coupled sector
+`t1.coupled == t2.coupled`). Computes new trees and corresponding coefficients obtained from
+repartitioning and permuting the tree such that sectors `p1` become outgoing and sectors
+`p2` become incoming.
+"""
+function Base.transpose(f1::FusionTree{I}, f2::FusionTree{I},
+                    p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {I<:Sector, N₁, N₂}
+    N = N₁ + N₂
+    @assert length(f1) + length(f2) == N
+    p = linearizepermutation(p1, p2, length(f1), length(f2))
+    @assert iscyclicpermutation(p)
+    if usetransposecache[]
+        u = one(I)
+        T = eltype(Fsymbol(u, u, u, u, u, u))
+        F₁ = fusiontreetype(I, N₁)
+        F₂ = fusiontreetype(I, N₂)
+        D = fusiontreedict(I){Tuple{F₁, F₂}, T}
+        return _get_transpose(D, (f1, f2, p1, p2))
+    else
+        return _transpose((f1, f2, p1, p2))
+    end
+end
+
+@noinline function _get_transpose(::Type{D}, @nospecialize(key)) where D
+    d::D = get!(transposecache, key) do
+        _transpose(key)
+    end
+    return d
+end
+
+const TransposeKey{I<:Sector, N₁, N₂} = Tuple{<:FusionTree{I}, <:FusionTree{I},
+                                                IndexTuple{N₁}, IndexTuple{N₂}}
+
+function _transpose((f1, f2, p1, p2)::TransposeKey{I,N₁,N₂}) where {I<:Sector, N₁, N₂}
+    N = N₁ + N₂
+    p = linearizepermutation(p1, p2, length(f1), length(f2))
+    i1 = findfirst(==(1), p)
+    @assert i1 !== nothing
+    newtrees = repartition(f1, f2, N₁)
+    Nhalf = N >> 1
+    while 1 < i1 <= Nhalf
+        local newtrees′
+        for ((f1a, f2a), coeffa) in newtrees
+            for ((f1b, f2b), coeffb) in _cycleanticlockwise(f1a, f2a)
+                coeff = coeffa * coeffb
+                if (@isdefined newtrees′)
+                    newtrees′[(f1b, f2b)] = get(newtrees′, (f1b, f2b), zero(coeff)) + coeff
+                else
+                    newtrees′ = fusiontreedict(I)((f1b, f2b) => coeff)
+                end
+            end
+        end
+        newtrees = newtrees′
+        i1 -= 1
+    end
+    while Nhalf < i1
+        local newtrees′
+        for ((f1a, f2a), coeffa) in newtrees
+            for ((f1b, f2b), coeffb) in _cycleclockwise(f1a, f2a)
+                coeff = coeffa * coeffb
+                if (@isdefined newtrees′)
+                    newtrees′[(f1b, f2b)] = get(newtrees′, (f1b, f2b), zero(coeff)) + coeff
+                else
+                    newtrees′ = fusiontreedict(I)((f1b, f2b) => coeff)
+                end
+            end
+        end
+        newtrees = newtrees′
+        i1 = mod1(i1 + 1, N)
+    end
+    return newtrees
+end
+
+function iscyclicpermutation(p)
+    N = length(p)
+    @inbounds for i = 1:N
+        p[mod1(i+1, N)] == mod1(p[i] + 1, N) || return false
+    end
+    return true
+end
+
+# change to N₁ - 1, N₂ + 1
+function _foldright(f1::FusionTree{I, N₁}, f2::FusionTree{I, N₂}) where {I<:Sector, N₁, N₂}
+    # map first splitting vertex (a, b)<-c to fusion vertex b<-(dual(a), c)
+    @assert N₁ > 0
+    if FusionStyle(I) isa Abelian
+        a = f1.uncoupled[1]
+        isduala = f1.isdual[1]
+        sqrtda = sqrt(dim(a))
+        factor = frobeniusschur(a)
+        if isduala
+            factor = one(factor)
+        end
+        c1 = dual(a)
+        c2 = f1.coupled
+        c = first(c1 ⊗ c2)
+        fl = FusionTree{I}(Base.tail(f1.uncoupled), c, Base.tail(f1.isdual))
+        fr = FusionTree{I}((c1, f2.uncoupled...), c, (!f1.isdual[1], f2.isdual...))
+        return fusiontreedict(I)((fl,fr)=>1)
+    else
+        a = f1.uncoupled[1]
+        isduala = f1.isdual[1]
+        sqrtda = sqrt(dim(a))
+        factor = frobeniusschur(a)
+        if isduala
+            factor = one(factor)
+        end
+        c1 = dual(a)
+        c2 = f1.coupled
+        hasdegeneracies = FusionStyle(a) isa DegenerateNonAbelian
+        local newtrees
+        for c in c1 ⊗ c2
+            N₁ == 1 && c != one(c) && continue
+            for μ in (hasdegeneracies ? (1:Nsymbol(c1, c2, c)) : (nothing,))
+                fc = FusionTree((c1, c2), c, (!isduala, false), (), (μ,))
+                for (fl′, coeff1) in insertat(fc, 2, f1)
+                    N₁ > 1 && fl′.innerlines[1] != one(I) && continue
+                    coupled = fl′.coupled
+                    uncoupled = Base.tail(Base.tail(fl′.uncoupled))
+                    isdual = Base.tail(Base.tail(fl′.isdual))
+                    inner = N₁ <= 3 ? () : Base.tail(Base.tail(fl′.innerlines))
+                    vertices = N₁ <= 2 ? () : Base.tail(Base.tail(fl′.vertices))
+                    fl = FusionTree{I}(uncoupled, coupled, isdual, inner, vertices)
+                    for (fr, coeff2) in insertat(fc, 2, f2)
+                        coeff = factor * sqrtda * coeff1 * coeff2
+                        if (@isdefined newtrees)
+                            newtrees[(fl,fr)] = get(newtrees, (fl, fr), zero(coeff)) + coeff
+                        else
+                            newtrees = fusiontreedict(I)((fl,fr)=>coeff)
+                        end
+                    end
+                end
+            end
+        end
+        return newtrees
+    end
+end
+# change to N₁ + 1, N₂ - 1
+function _foldleft(f1::FusionTree{I}, f2::FusionTree{I}) where I
+    # map first fusion vertex c<-(a, b) to splitting vertex (dual(a), c)<-b
+    return fusiontreedict(I)((f1′, f2′) => conj(coeff) for
+                                    ((f2′, f1′), coeff) in _foldright(f2, f1))
+end
+
+function _cycleclockwise(f1::FusionTree{I}, f2::FusionTree{I}) where {I<:Sector}
+    local newtrees
+    if length(f1) > 0
+        for ((f1a, f2a), coeffa) in _foldright(f1, f2)
+            for ((f1b, f2b), coeffb) in _bendleft(f1a, f2a)
+                coeff = coeffa * coeffb
+                if (@isdefined newtrees)
+                    newtrees[(f1b,f2b)] = get(newtrees, (f1b, f2b), zero(coeff)) + coeff
+                else
+                    newtrees = fusiontreedict(I)((f1b,f2b)=>coeff)
+                end
+            end
+        end
+    else
+        for ((f1a, f2a), coeffa) in _bendleft(f1, f2)
+            for ((f1b, f2b), coeffb) in _foldright(f1a, f2a)
+                coeff = coeffa * coeffb
+                if (@isdefined newtrees)
+                    newtrees[(f1b,f2b)] = get(newtrees, (f1b, f2b), zero(coeff)) + coeff
+                else
+                    newtrees = fusiontreedict(I)((f1b,f2b)=>coeff)
+                end
+            end
+        end
+    end
+    return newtrees
+end
+
+function _cycleanticlockwise(f1::FusionTree{I}, f2::FusionTree{I}) where {I<:Sector}
+    local newtrees
+    if length(f2) > 0
+        for ((f1a, f2a), coeffa) in _foldleft(f1, f2)
+            for ((f1b, f2b), coeffb) in _bendright(f1a, f2a)
+                coeff = coeffa * coeffb
+                if (@isdefined newtrees)
+                    newtrees[(f1b,f2b)] = get(newtrees, (f1b, f2b), zero(coeff)) + coeff
+                else
+                    newtrees = fusiontreedict(I)((f1b,f2b)=>coeff)
+                end
+            end
+        end
+    else
+        for ((f1a, f2a), coeffa) in _bendright(f1, f2)
+            for ((f1b, f2b), coeffb) in _foldleft(f1a, f2a)
+                coeff = coeffa * coeffb
+                if (@isdefined newtrees)
+                    newtrees[(f1b,f2b)] = get(newtrees, (f1b, f2b), zero(coeff)) + coeff
+                else
+                    newtrees = fusiontreedict(I)((f1b,f2b)=>coeff)
+                end
+            end
+        end
+    end
+    return newtrees
 end

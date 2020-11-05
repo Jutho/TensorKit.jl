@@ -19,26 +19,16 @@ transformed into an index via `s == getindex(values(I), i)` and
 `i == findindex(values(I), s)`. If `Base.IteratorElsize(values(I))` results `IsInfinite()`
 or `SizeUnknown()`, a `SectorDict{I,Int}` is used to store the non-zero degeneracy
 dimensions with the corresponding sector as key. The parameter `D` is hidden from the user
-and should typically be of no concern
+and should typically be of no concern.
+
+The concrete type `GradedSpace{I,D}` with correct `D` can be obtained as `Vect[I]`, or if
+`I == Irrep[G]` for some `G<:Group`, as `Rep[G]`.
 """
 struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
     dims::D
     dual::Bool
 end
-Base.@pure sectortype(::Type{<:GradedSpace{I}}) where {I<:Sector} = I
-
-Base.getindex(::Type{GradedSpace}, ::Type{Trivial}) = ComplexSpace
-function Base.getindex(::Type{GradedSpace}, ::Type{I}) where {I<:Sector}
-    if Base.IteratorSize(values(I)) isa Union{HasLength, HasShape}
-        N = length(values(I))
-        return GradedSpace{I, NTuple{N, Int}}
-    else
-        return GradedSpace{I, SectorDict{I, Int}}
-    end
-end
-
-const Rep{G} = GradedSpace{<:Union{Irrep,ProductSector{<:Tuple{Vararg{Irrep}}}}}
-Base.getindex(::Type{Rep}, ::Type{G}) where {G<:Group} = GradedSpace[Irrep[G]]
+sectortype(::Type{<:GradedSpace{I}}) where {I<:Sector} = I
 
 function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
     d = ntuple(n->0, N)
@@ -70,18 +60,14 @@ GradedSpace{I,D}(; kwargs...) where {I<:Sector,D} = GradedSpace{I,D}((); kwargs.
 GradedSpace{I,D}(d1::Pair, d2::Pair, dims::Vararg{Pair}; kwargs...) where {I<:Sector,D} =
     GradedSpace{I,D}((d1, d2, dims...); kwargs...)
 
-# TODO: do we also want to support this interface
-function GradedSpace{I}(args...; kwargs...) where {I<:Sector}
-    @warn "Preferred interface is `GradedSpace[$I](args...; kwargs...)`." maxlog=1
-    GradedSpace[I](args..., kwargs...)
-end
+GradedSpace{I}(args...; kwargs...) where {I<:Sector} = Vect[I](args..., kwargs...)
 
 GradedSpace(dims::Tuple{Vararg{Pair{I, <:Integer}}}; dual::Bool = false) where {I<:Sector} =
-    GradedSpace[I](dims; dual = dual)
+    Vect[I](dims; dual = dual)
 GradedSpace(dims::Vararg{Pair{I, <:Integer}}; dual::Bool = false) where {I<:Sector} =
-    GradedSpace[I](dims; dual = dual)
+    Vect[I](dims; dual = dual)
 GradedSpace(dims::AbstractDict{I, <:Integer}; dual::Bool = false) where {I<:Sector} =
-    GradedSpace[I](dims; dual = dual)
+    Vect[I](dims; dual = dual)
 # not inferrable
 GradedSpace(g::Base.Generator; dual::Bool = false) =
     GradedSpace(g...; dual = dual)
@@ -89,11 +75,6 @@ GradedSpace(g::AbstractDict; dual::Bool = false) =
     GradedSpace(g...; dual = dual)
 
 Base.hash(V::GradedSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
-
-Base.getindex(::ComplexNumbers, ::Type{Trivial}) = ComplexSpace
-Base.getindex(::ComplexNumbers, I::Type{<:Sector}) = GradedSpace[I]
-Base.getindex(::ComplexNumbers, d1::Pair{I, Int}, dims::Pair{I, Int}...) where {I<:Sector} =
-    ℂ[I](d1, dims...)
 
 # Corresponding methods:
 # properties
@@ -132,8 +113,7 @@ function Base.axes(V::GradedSpace{I}, c::I) where {I<:Sector}
     return (offset+1):(offset+dim(c)*dim(V, c))
 end
 
-Base.oneunit(::Type{<:GradedSpace{I}}) where {I<:Sector} =
-    GradedSpace[I](one(I)=>1)
+Base.oneunit(S::Type{<:GradedSpace{I}}) where {I<:Sector} = S(one(I)=>1)
 
 # TODO: the following methods can probably be implemented more efficiently for
 # `FiniteGradedSpace`, but we don't expect them to be used often in hot loops, so
@@ -147,14 +127,14 @@ function ⊕(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
         cout = ifelse(dual1, dual(c), c)
         dims[cout] = dim(V1, c) + dim(V2, c)
     end
-    return GradedSpace[I](dims; dual = dual1)
+    return typeof(V1)(dims; dual = dual1)
 end
 
 function flip(V::GradedSpace{I}) where {I<:Sector}
     if isdual(V)
-        GradedSpace[I](c=>dim(V, c) for c in sectors(V))
+        typeof(V)(c=>dim(V, c) for c in sectors(V))
     else
-        GradedSpace[I](dual(c)=>dim(V, c) for c in sectors(V))'
+        typeof(V)(dual(c)=>dim(V, c) for c in sectors(V))'
     end
 end
 
@@ -165,12 +145,12 @@ function fuse(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
             dims[c] = get(dims, c, 0) + Nsymbol(a, b, c)*dim(V1, a)*dim(V2, b)
         end
     end
-    return GradedSpace[I](dims)
+    return typeof(V1)(dims)
 end
 
 function infimum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
     if V1.dual == V2.dual
-        GradedSpace[I](c=>min(dim(V1, c), dim(V2, c)) for c in
+        typeof(V1)(c=>min(dim(V1, c), dim(V2, c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
     else
         throw(SpaceMismatch("Infimum of space and dual space does not exist"))
@@ -179,7 +159,7 @@ end
 
 function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
     if V1.dual == V2.dual
-        GradedSpace[I](c=>max(dim(V1, c), dim(V2, c)) for c in
+        typeof(V1)(c=>max(dim(V1, c), dim(V2, c)) for c in
             union(sectors(V1), sectors(V2)), dual = V1.dual)
     else
         throw(SpaceMismatch("Supremum of space and dual space does not exist"))
@@ -187,8 +167,7 @@ function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
 end
 
 function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
-    show(io, typeof(V))
-    print(io, "(")
+    print(io, type_repr(typeof(V)), "(")
     seperator = ""
     comma = ", "
     io2 = IOContext(io, :typeinfo => I)
@@ -205,6 +184,58 @@ function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
     return nothing
 end
 
+struct SpaceTable end
+"""
+    const Vect
+
+A constant of a singleton type used as `Vect[I]` with `I<:Sector` a type of sector, to
+construct or obtain the concrete type `GradedSpace{I,D}` instances without having to
+specify `D`.
+"""
+const Vect = SpaceTable()
+Base.getindex(::SpaceTable) = ComplexSpace
+Base.getindex(::SpaceTable, ::Type{Trivial}) = ComplexSpace
+function Base.getindex(::SpaceTable, I::Type{<:Sector})
+    if Base.IteratorSize(values(I)) isa Union{HasLength, HasShape}
+        N = length(values(I))
+        return GradedSpace{I, NTuple{N, Int}}
+    else
+        return GradedSpace{I, SectorDict{I, Int}}
+    end
+end
+
+Base.getindex(::ComplexNumbers, I::Type{<:Sector}) = Vect[I]
+struct RepTable end
+"""
+    const Rep
+
+A constant of a singleton type used as `Rep[G]` with `G<:Group` a type of group, to
+construct or obtain the concrete type `GradedSpace{Irrep[G],D}` instances without having to
+specify `D`. Note that `Rep[G] == Vect[Irrep[G]]`.
+
+See also [`Irrep`](@ref) and [`Vect`](@ref).
+"""
+const Rep = RepTable()
+Base.getindex(::RepTable, G::Type{<:Group}) = Vect[Irrep[G]]
+
+type_repr(::Type{<:GradedSpace{I}}) where {I<:Sector} =
+    "Vect[" * type_repr(I) * "]"
+type_repr(::Type{<:GradedSpace{<:AbstractIrrep{G}}}) where {G<:Group} =
+    "Rep[" * type_repr(G) * "]"
+function type_repr(::Type{<:GradedSpace{ProductSector{T}}}) where
+                                                        {T<:Tuple{Vararg{AbstractIrrep}}}
+    sectors = T.parameters
+    s = "Rep["
+    for i in 1:length(sectors)
+        if i != 1
+            s *= " × "
+        end
+        s *= type_repr(supertype(sectors[i]).parameters[1])
+    end
+    s *= "]"
+    return s
+end
+
 # Specific constructors for Z_N
 const ZNSpace{N} = GradedSpace{ZNIrrep{N}, NTuple{N,Int}}
 ZNSpace{N}(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
@@ -212,6 +243,7 @@ ZNSpace{N}(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims
 ZNSpace(dims::NTuple{N, Int}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
 ZNSpace(dims::Vararg{Int, N}; dual::Bool = false) where {N} = ZNSpace{N}(dims, dual)
 
+# TODO: Do we still need all of those
 # ASCII type aliases
 const ZNSpace{N} = GradedSpace{ZNIrrep{N}, NTuple{N,Int}}
 const Z2Space = ZNSpace{2}
@@ -228,28 +260,3 @@ const ℤ₄Space = Z4Space
 const U₁Space = U1Space
 const CU₁Space = CU1Space
 const SU₂Space = SU2Space
-
-function Base.show(io::IO, S::Type{<:GradedSpace})
-    if Base.isconcretetype(S)
-        print(io, "GradedSpace[", S.parameters[1], "]")
-    elseif S isa UnionAll && S.var.name == :D
-        print(io, "GradedSpace{", S.body.parameters[1], "}")
-    elseif S isa UnionAll && S.var.ub != Sector
-        print(io, "GradedSpace{<:", S.var.ub, "}")
-    else
-        print(io, "GradedSpace")
-    end
-end
-Base.show(io::IO, ::MIME"text/plain", ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
-Base.show(io::IO, ::MIME"text/plain", ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
-Base.show(io::IO, ::MIME"text/plain", ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
-Base.show(io::IO, ::MIME"text/plain", ::Type{U₁Space}) = print(io, "U₁Space")
-Base.show(io::IO, ::MIME"text/plain", ::Type{CU₁Space}) = print(io, "CU₁Space")
-Base.show(io::IO, ::MIME"text/plain", ::Type{SU₂Space}) = print(io, "SU₂Space")
-
-Base.show(io::IO, ::Type{ℤ₂Space}) = print(io, "ℤ₂Space")
-Base.show(io::IO, ::Type{ℤ₃Space}) = print(io, "ℤ₃Space")
-Base.show(io::IO, ::Type{ℤ₄Space}) = print(io, "ℤ₄Space")
-Base.show(io::IO, ::Type{U₁Space}) = print(io, "U₁Space")
-Base.show(io::IO, ::Type{CU₁Space}) = print(io, "CU₁Space")
-Base.show(io::IO, ::Type{SU₂Space}) = print(io, "SU₂Space")

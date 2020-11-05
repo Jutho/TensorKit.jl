@@ -30,8 +30,8 @@ function permute(t::TensorMap{S},
     end
 end
 
-function permute(t::AdjointTensorMap{S}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}=();
-                    copy::Bool = false) where {S, N₁, N₂}
+function permute(t::AdjointTensorMap{S}, p1::IndexTuple, p2::IndexTuple=();
+                    copy::Bool = false) where {S}
     p1′ = map(n->adjointtensorindex(t, n), p2)
     p2′ = map(n->adjointtensorindex(t, n), p1)
     adjoint(permute(adjoint(t), p1′, p2′; copy = copy))
@@ -72,7 +72,7 @@ For more details see [`add!`](@ref), of which this is a special case.
                                     tsrc::AbstractTensorMap{S},
                                     p1::IndexTuple{N₁},
                                     p2::IndexTuple{N₂}=()) where {S, N₁, N₂} =
-    add!(true, tsrc, false, tdst, p1, p2)
+    add_permute!(true, tsrc, false, tdst, p1, p2)
 
 # Braid
 function braid(t::TensorMap{S}, levels::IndexTuple,
@@ -89,7 +89,7 @@ function braid(t::TensorMap{S}, levels::IndexTuple,
     cod = ProductSpace{S}(map(n->space(t, n), p1))
     dom = ProductSpace{S}(map(n->dual(space(t, n)), p2))
     @inbounds begin
-        return add!(true, t, false, similar(t, cod←dom), p1, p2, levels)
+        return add_braid!(true, t, false, similar(t, cod←dom), p1, p2, levels)
     end
 end
 @propagate_inbounds braid!(tdst::AbstractTensorMap{S, N₁, N₂},
@@ -100,21 +100,36 @@ end
     add!(true, tsrc, false, tdst, p1, p2, levels)
 
 # Transpose
-function LinearAlgebra.transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
-    codomain(tdst) == domain(tsrc)' && domain(tdst) == codomain(tsrc)' ||
-        throw(SpaceMismatch())
-    levels = (codomainind(tsrc)..., domainind(tsrc)...)
-    braid!(tdst, tsrc, levels, reverse(domainind(tsrc)), reverse(codomainind(tsrc)))
-    if BraidingStyle(sectortype(tdst)) != Bosonic()
-        for (c, b) in blocks(tdst)
-            rmul!(b, twist(c))
-        end
+LinearAlgebra.transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap,
+                                    p1::IndexTuple, p2::IndexTuple) =
+    add_transpose!(true, tsrc, false, tdst, p1, p2)
+
+function LinearAlgebra.transpose(t::TensorMap{S},
+                                    p1::IndexTuple = reverse(domainind(t)),
+                                    p2::IndexTuple = reverse(codomainind(t));
+                                    copy::Bool = false) where {S}
+    if sectortype(S) === Trivial
+        return permute(t, p1, p2; copy = copy)
     end
-    return tdst
+    if !copy && p1 == codomainind(t) && p2 == domainind(t)
+        return t
+    end
+    # general case
+    cod = ProductSpace{S}(map(n->space(t, n), p1))
+    dom = ProductSpace{S}(map(n->dual(space(t, n)), p2))
+    @inbounds begin
+        return add_transpose!(true, t, false, similar(t, cod←dom), p1, p2)
+    end
 end
 
-LinearAlgebra.transpose(t::AbstractTensorMap) =
-    transpose!(similar(t, domain(t)', codomain(t)'), t)
+function LinearAlgebra.transpose(t::AdjointTensorMap{S},
+                                    p1::IndexTuple = reverse(domainind(t)),
+                                    p2::IndexTuple = reverse(codomainind(t));
+                                    copy::Bool = false) where {S}
+    p1′ = map(n->adjointtensorindex(t, n), p2)
+    p2′ = map(n->adjointtensorindex(t, n), p1)
+    adjoint(transpose(adjoint(t), p1′, p2′; copy = copy))
+end
 
 # Twist
 twist(t::AbstractTensorMap, i::Int; inv::Bool = false) = twist!(copy(t), i; inv = inv)

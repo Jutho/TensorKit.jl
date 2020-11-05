@@ -23,8 +23,8 @@ i.e. a tensor map with only a non-trivial output space.
 const AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
 
 # tensor characteristics
-Base.@pure Base.eltype(T::Type{<:AbstractTensorMap}) = eltype(storagetype(T))
-Base.@pure similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T} =
+Base.eltype(T::Type{<:AbstractTensorMap}) = eltype(storagetype(T))
+similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T} =
     Core.Compiler.return_type(similar, Tuple{storagetype(TT), Type{T}})
 
 storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
@@ -37,12 +37,12 @@ numout(t::AbstractTensorMap) = numout(typeof(t))
 numin(t::AbstractTensorMap) = numin(typeof(t))
 numind(t::AbstractTensorMap) = numind(typeof(t))
 
-Base.@pure spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
-Base.@pure sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
-Base.@pure field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
-Base.@pure numout(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₁
-Base.@pure numin(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₂
-Base.@pure numind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₁ + N₂
+spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
+sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
+field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
+numout(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₁
+numin(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₂
+numind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₁ + N₂
 
 const order = numind
 
@@ -56,11 +56,11 @@ space(t::AbstractTensorMap, i::Int) = space(t)[i]
 dim(t::AbstractTensorMap) = dim(space(t))
 
 # some index manipulation utilities
-Base.@pure codomainind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
+codomainind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
     ntuple(n->n, N₁)
-Base.@pure domainind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
+domainind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
     ntuple(n-> N₁+n, N₂)
-Base.@pure allind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
+allind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
     ntuple(n->n, N₁+N₂)
 
 codomainind(t::AbstractTensorMap) = codomainind(typeof(t))

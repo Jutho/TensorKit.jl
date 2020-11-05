@@ -8,17 +8,18 @@ module TensorKit
 # Exports
 #---------
 # Types:
-export Sector, Irrep, FusionStyle, BraidingStyle
-export Abelian, NonAbelian, SimpleNonAbelian, DegenerateNonAbelian,
-        SymmetricBraiding, Bosonic, Fermionic, Anyonic # sector properties
+export Sector, AbstractIrrep, Irrep
+export FusionStyle, Abelian, NonAbelian, SimpleNonAbelian, DegenerateNonAbelian
+export BraidingStyle, SymmetricBraiding, Bosonic, Fermionic, Anyonic
 export Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
         #FermionParity, FermionNumber, FermionSpin # specific sectors
 export FibonacciAnyon
 export IsingAnyon
 
 export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
-export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace, ZNSpace, Rep # concrete spaces
-export Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
+export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace # concrete spaces
+export ZNSpace, Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
+export Vect, Rep # space constructors
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
 export IndexSpace, TensorSpace, AbstractTensorMap, AbstractTensor, TensorMap, Tensor # tensors and tensor properties
@@ -68,7 +69,7 @@ export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQ
         SVD, SDD, Polar
 
 # tensor operations
-export @tensor, @tensoropt, @ncon, ncon
+export @tensor, @tensoropt, @ncon, ncon, @planar
 export scalar, add!, contract!
 
 # truncation schemes
@@ -147,6 +148,9 @@ IndexError()=IndexError{Nothing}(nothing)
 Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
 Base.show(io::IO, e::IndexError) = print(io, "IndexError(", e.message, ")")
 
+# typerepr
+type_repr(T::Type) = repr(T)
+
 # Definitions and methods for superselection sectors (quantum numbers)
 #----------------------------------------------------------------------
 include("sectors/sectors.jl")
@@ -171,6 +175,7 @@ include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
+include("tensors/planar.jl")
 
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")

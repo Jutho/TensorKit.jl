@@ -24,8 +24,8 @@ domain(t::AdjointTensorMap) = codomain(t.parent)
 
 blocksectors(t::AdjointTensorMap) = blocksectors(t.parent)
 
-Base.@pure storagetype(::Type{<:AdjointTensorMap{<:IndexSpace, N₁, N₂, Trivial, A}}) where {N₁, N₂, A<:DenseMatrix} = A
-Base.@pure storagetype(::Type{<:AdjointTensorMap{<:IndexSpace, N₁, N₂, I, <:SectorDict{I, A}}}) where {N₁, N₂, I<:Sector, A<:DenseMatrix} = A
+storagetype(::Type{<:AdjointTensorMap{<:IndexSpace, N₁, N₂, Trivial, A}}) where {N₁, N₂, A<:DenseMatrix} = A
+storagetype(::Type{<:AdjointTensorMap{<:IndexSpace, N₁, N₂, I, <:SectorDict{I, A}}}) where {N₁, N₂, I<:Sector, A<:DenseMatrix} = A
 
 dim(t::AdjointTensorMap) = dim(t.parent)
 

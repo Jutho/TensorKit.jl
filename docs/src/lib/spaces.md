@@ -20,6 +20,19 @@ CompositeSpace
 ProductSpace
 ```
 
+## Useful constants
+```@docs
+Vect
+Rep
+ZNSpace{N}
+Z2Space
+Z3Space
+Z4Space
+U1Space
+SU2Space
+CU1Space
+```
+
 ## Methods
 Methods often apply similar to e.g. spaces and corresponding tensors or tensor maps, e.g.:
 ```@docs

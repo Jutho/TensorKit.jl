@@ -30,7 +30,6 @@ end
 
 # convenience constructor
 Base.getindex(::RealNumbers) = CartesianSpace
-Base.getindex(::RealNumbers, d::Int) = CartesianSpace(d)  # ℝ[d]
 Base.:^(::RealNumbers, d::Int) = CartesianSpace(d)
 
 # Corresponding methods:

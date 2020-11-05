@@ -10,13 +10,18 @@ Sector
 SectorValues
 FusionStyle
 BraidingStyle
-Irrep
+AbstractIrrep
 ZNIrrep
 U1Irrep
 SU2Irrep
 CU1Irrep
 FibonacciAnyon
 FusionTree
+```
+
+## Useful constants
+```@docs
+Irrep
 ```
 
 ## Methods for defining and characterizing `Sector` subtypes

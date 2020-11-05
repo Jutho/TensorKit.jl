@@ -13,15 +13,17 @@ const ℤ₃ = ℤ{3}
 const ℤ₄ = ℤ{4}
 const SU₂ = SU{2}
 
-Base.show(io::IO, ::Type{ℤ₂}) = print(io, "ℤ₂")
-Base.show(io::IO, ::Type{ℤ₃}) = print(io, "ℤ₃")
-Base.show(io::IO, ::Type{ℤ₄}) = print(io, "ℤ₄")
-Base.show(io::IO, ::Type{SU₂}) = print(io, "SU₂")
+type_repr(::Type{ℤ₂}) = "ℤ₂"
+type_repr(::Type{ℤ₃}) = "ℤ₃"
+type_repr(::Type{ℤ₄}) = "ℤ₄"
+type_repr(::Type{SU₂}) = "SU₂"
 
 const GroupTuple = Tuple{Vararg{Group}}
 
 abstract type ProductGroup{T<:GroupTuple} <: Group end
 
+×(a::Type{<:Group}, b::Type{<:Group}, c::Type{<:Group}...) = ×(×(a, b), c...)
+×(G::Type{<:Group}) = ProductGroup{Tuple{G}}
 ×(G1::Type{ProductGroup{Tuple{}}},
                     G2::Type{ProductGroup{T}}) where {T<:GroupTuple} = G2
 ×(G1::Type{ProductGroup{T1}},
@@ -35,25 +37,20 @@ abstract type ProductGroup{T<:GroupTuple} <: Group end
     ProductGroup{Base.tuple_type_cons(G1, T)}
 ×(G1::Type{<:Group}, G2::Type{<:Group}) = ProductGroup{Tuple{G1, G2}}
 
-function Base.show(io::IO, G::Type{<:ProductGroup})
-    if G isa UnionAll
-        print(io, "ProductGroup")
+function type_repr(G::Type{<:ProductGroup})
+    T = G.parameters[1]
+    groups = T.parameters
+    if length(groups) == 1
+        s = "ProductGroup{Tuple{" * type_repr(groups[1]) * "}}"
     else
-        T = G.parameters[1]
-        if T isa Type{<:Tuple}
-            groups = T.parameters
-            if length(groups) == 1
-                print(io, "ProductGroup{Tuple{", groups[1], "}}")
-            else
-                print(io, "(")
-                for i = 1:length(groups)
-                    i == 1 || print(io, " × ")
-                    print(io, groups[i])
-                end
-                print(io, ")")
+        s = "("
+        for i = 1:length(groups)
+            if i != 1
+                s *= " × "
             end
-        else
-            print(io, "ProductGroup{", T, "}")
+            s *= type_repr(groups[i])
         end
+        s *= ")"
     end
+    return s
 end

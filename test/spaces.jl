@@ -2,7 +2,7 @@ println("------------------------------------")
 println("|     Fields and vector spaces     |")
 println("------------------------------------")
 ti = time()
-@testset TimedTestSet "Fields" begin
+@timedtestset "Fields" begin
     @test isa(ℝ, Field)
     @test isa(ℂ, Field)
     @test eval(Meta.parse(sprint(show, ℝ))) == ℝ
@@ -44,7 +44,7 @@ ti = time()
     end
 end
 
-@testset TimedTestSet "ElementarySpace: CartesianSpace" begin
+@timedtestset "ElementarySpace: CartesianSpace" begin
     d = 2
     V = ℝ^d
     @test eval(Meta.parse(sprint(show, V))) == V
@@ -68,8 +68,8 @@ end
     @test dim(@constinferred(typeof(V)())) == 0
     @test (sectors(typeof(V)())...,) == ()
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
-    @test V == ℝ[d] == ℝ[](d) == typeof(V)(d)
-    W = @constinferred ℝ[1]
+    @test ℝ^d == ℝ[](d) == CartesianSpace(d) == typeof(V)(d)
+    W = @constinferred ℝ^1
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     @test @constinferred(⊕(V,V)) == ℝ^(2d)
     @test @constinferred(⊕(V,oneunit(V))) == ℝ^(d+1)
@@ -86,7 +86,7 @@ end
     @test @constinferred(supremum(V', ℝ^3)) == ℝ^3
 end
 
-@testset TimedTestSet "ElementarySpace: ComplexSpace" begin
+@timedtestset "ElementarySpace: ComplexSpace" begin
     d = 2
     V = ℂ^d
     @test eval(Meta.parse(sprint(show, V))) == V
@@ -112,8 +112,8 @@ end
     @test dim(@constinferred(typeof(V)())) == 0
     @test (sectors(typeof(V)())...,) == ()
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
-    @test V == ℂ[d] == ℂ[](d) == typeof(V)(d)
-    W = @constinferred ℂ[1]
+    @test ℂ^d == Vect[Trivial](d) == Vect[](Trivial()=>d) == ℂ[](d) == typeof(V)(d)
+    W = @constinferred ℂ^1
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     @test @constinferred(⊕(V, V)) == ℂ^(2d)
     @test_throws SpaceMismatch (⊕(V, V'))
@@ -131,10 +131,10 @@ end
     @test V ≺ ⊕(V,V)
     @test !(V ≻ ⊕(V,V))
     @test @constinferred(infimum(V, ℂ^3)) == V
-    @test @constinferred(supremum(V', ℂ[3]')) == ℂ[3]'
+    @test @constinferred(supremum(V', (ℂ^3)')) == dual(ℂ^3) == conj(ℂ^3)
 end
 
-@testset TimedTestSet "ElementarySpace: GeneralSpace" begin
+@timedtestset "ElementarySpace: GeneralSpace" begin
     d = 2
     V = GeneralSpace{ℂ}(d)
     @test eval(Meta.parse(sprint(show, V))) == V
@@ -162,7 +162,7 @@ end
     @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
 end
 
-@testset TimedTestSet "ElementarySpace: GradedSpace[$I]" for I in sectorlist
+@timedtestset "ElementarySpace: $(TensorKit.type_repr(Vect[I]))" for I in sectorlist
     if Base.IteratorSize(values(I)) === Base.IsInfinite()
         set = unique(vcat(one(I), [randsector(I) for k = 1:10]))
         gen = (c=>2 for c in set)
@@ -170,6 +170,7 @@ end
         gen = (values(I)[k]=>(k+1) for k in 1:length(values(I)))
     end
     V = GradedSpace(gen)
+    @test eval(Meta.parse(TensorKit.type_repr(typeof(V)))) == typeof(V)
     @test eval(Meta.parse(sprint(show, V))) == V
     @test eval(Meta.parse(sprint(show, V'))) == V'
     @test V' == GradedSpace(gen; dual = true)
@@ -179,12 +180,12 @@ end
     @test V' == @constinferred GradedSpace(tuple(gen...); dual = true)
     @test V == @constinferred GradedSpace(Dict(gen))
     @test V' == @constinferred GradedSpace(Dict(gen); dual = true)
-    @test V == @inferred GradedSpace[I](gen)
-    @test V' == @constinferred GradedSpace[I](gen; dual = true)
-    @test V == @constinferred GradedSpace[I](gen...)
-    @test V' == @constinferred GradedSpace[I](gen...; dual = true)
-    @test V == @constinferred GradedSpace[I](Dict(gen))
-    @test V' == @constinferred GradedSpace[I](Dict(gen); dual = true)
+    @test V == @inferred Vect[I](gen)
+    @test V' == @constinferred Vect[I](gen; dual = true)
+    @test V == @constinferred Vect[I](gen...)
+    @test V' == @constinferred Vect[I](gen...; dual = true)
+    @test V == @constinferred Vect[I](Dict(gen))
+    @test V' == @constinferred Vect[I](Dict(gen); dual = true)
     @test V == @constinferred typeof(V)(c=>dim(V,c) for c in sectors(V))
     if I isa ZNIrrep
         @test V == @constinferred typeof(V)(V.dims)
@@ -197,7 +198,7 @@ end
     # space with no sectors
     @test dim(@constinferred(typeof(V)())) == 0
     # space with a single sector
-    W = @constinferred ℂ[one(I)=>1]
+    W = @constinferred GradedSpace(one(I)=>1)
     @test W == GradedSpace(one(I)=>1, randsector(I) => 0)
     @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
     # randsector never returns trivial sector, so this cannot error
@@ -219,10 +220,10 @@ end
     if hasfusiontensor(I)
         @test @constinferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
     end
-    @test @constinferred(⊕(V,V)) == GradedSpace[I](c=>2dim(V,c) for c in sectors(V))
-    @test @constinferred(⊕(V,V,V,V)) == GradedSpace[I](c=>4dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V)) == Vect[I](c=>2dim(V,c) for c in sectors(V))
+    @test @constinferred(⊕(V,V,V,V)) == Vect[I](c=>4dim(V,c) for c in sectors(V))
     @test @constinferred(⊕(V,oneunit(V))) ==
-            GradedSpace[I](c=>isone(c)+dim(V,c) for c in sectors(V))
+            Vect[I](c=>isone(c)+dim(V,c) for c in sectors(V))
     @test @constinferred(fuse(V,oneunit(V))) == V
     d = Dict{I,Int}()
     for a in sectors(V), b in sectors(V)
@@ -232,7 +233,7 @@ end
     end
     @test @constinferred(fuse(V,V)) == GradedSpace(d)
     @test @constinferred(flip(V)) ==
-            GradedSpace[I](conj(c)=>dim(V,c) for c in sectors(V))'
+            Vect[I](conj(c)=>dim(V,c) for c in sectors(V))'
     @test flip(V) ≅ V
     @test flip(V) ≾ V
     @test flip(V) ≿ V
@@ -244,8 +245,8 @@ end
     @test_throws SpaceMismatch (⊕(V, V'))
 end
 
-@testset TimedTestSet "ProductSpace{ℂ}" begin
-    V1, V2, V3, V4 = ℂ[1], ℂ[2], ℂ[3], ℂ[4]
+@timedtestset "ProductSpace{ℂ}" begin
+    V1, V2, V3, V4 = ℂ^1, ℂ^2, ℂ^3, ℂ^4
     P = @constinferred ProductSpace(V1, V2, V3, V4)
     @test eval(Meta.parse(sprint(show, P))) == P
     @test eval(Meta.parse(sprint(show, typeof(P)))) == typeof(P)
@@ -293,7 +294,7 @@ end
     @test P^2 == P ⊗ P
     @test @constinferred(dims(P, first(sectors(P)))) == dims(P)
     @test ((@constinferred blocksectors(P))...,) == (Trivial(),)
-    @test (blocksectors(P ⊗ ℂ[0])...,) == ()
+    @test (blocksectors(P ⊗ ℂ^0)...,) == ()
     @test @constinferred(blockdim(P, first(blocksectors(P)))) == dim(P)
     @test Base.IteratorEltype(P) == Base.IteratorEltype(typeof(P)) ==
                                     Base.IteratorEltype(P.spaces)
@@ -304,7 +305,7 @@ end
     @test collect(P) == [V1, V2, V3, V4]
 end
 
-@testset TimedTestSet "ProductSpace{SU₂Space}" begin
+@timedtestset "ProductSpace{SU₂Space}" begin
     V1, V2, V3 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1), SU₂Space(1//2=>1, 1=>1)'
     P = @constinferred ProductSpace(V1, V2, V3)
     @test eval(Meta.parse(sprint(show, P))) == P
@@ -339,7 +340,7 @@ end
     @test sum(dim(c)*blockdim(P, c) for c in @constinferred(blocksectors(P))) == dim(P)
 end
 
-@testset TimedTestSet "Deligne tensor product of spaces" begin
+@timedtestset "Deligne tensor product of spaces" begin
     V1 = SU₂Space(0=>3, 1//2=>1)
     V2 = SU₂Space(0=>2, 1=>1)'
     V3 = ℤ₃Space(0=>3, 1=>2, 2=>1)
@@ -375,7 +376,7 @@ end
     @test fuse(V3 ⊠ V4) == fuse(V4 ⊠ V3) == ℤ₃Space(0=>9, 1=>6, 2=>3)
 end
 
-@testset TimedTestSet "HomSpace" begin
+@timedtestset "HomSpace" begin
     V1, V2, V3, V4, V5 = SU₂Space(0=>3, 1//2=>1), SU₂Space(0=>2, 1=>1),
                             SU₂Space(1//2=>1, 1=>1)', SU₂Space(0=>2, 1//2=>2),
                             SU₂Space(0=>1, 1//2=>1, 3//2=>1)'

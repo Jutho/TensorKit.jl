@@ -11,9 +11,9 @@ _sectors(::Type{T}) where {T<:SectorTuple} =
 
 Base.IteratorSize(::Type{SectorValues{ProductSector{T}}}) where {T<:SectorTuple} =
     Base.IteratorSize(Base.Iterators.product(map(values, _sectors(T))...))
-Base.@pure Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple} =
+Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple} =
     map(s->length(values(s)), _sectors(T))
-Base.@pure Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
+Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
 
 function Base.iterate(::SectorValues{ProductSector{T}}, args...) where {T<:SectorTuple}
     next = iterate(product(values.(_sectors(T))...), args...)
@@ -143,9 +143,11 @@ Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
 # Default construction from tensor product of sectors
 #-----------------------------------------------------
 ⊠(s1, s2, s3, s4...) = ⊠(⊠(s1, s2), s3, s4...)
+const deligneproduct = ⊠
 
 """
     ⊠(s₁::Sector, s₂::Sector)
+    deligneproduct(s₁::Sector, s₂::Sector)
 
 Given two sectors `s₁` and `s₂`, which label an isomorphism class of simple objects in a
 fusion category ``C₁`` and ``C₂``, `s1 ⊠ s2` (obtained as `\boxtimes+TAB`) labels the
@@ -199,46 +201,42 @@ function Base.show(io::IO, P::ProductSector)
     print(io, ")")
 end
 
-function Base.show(io::IO, P::Type{<:ProductSector})
-    if Base.isconcretetype(P)
-        sectors = P.parameters[1].parameters
-        if length(sectors) == 1
-            print(io, "ProductSector{Tuple{", sectors[1], "}}")
-        else
-            print(io, "(")
-            for i = 1:length(sectors)
-                i == 1 || print(io, " ⊠ ")
-                print(io, sectors[i])
-            end
-            print(io, ")")
-        end
-    elseif !(P isa UnionAll)
-        print(io, "ProductSector{", P.parameters[1], "}")
-    elseif P.var.ub != SectorTuple
-        print(io, "ProductSector{<:", P.var.ub, "}")
+function type_repr(P::Type{<:ProductSector})
+    sectors = P.parameters[1].parameters
+    if length(sectors) == 1
+        s = "ProductSector{Tuple{" * type_repr(sectors[1]) * "}}"
     else
-        print(io, "ProductSector")
+        s = "("
+        for i in 1:length(sectors)
+            if i != 1
+                s *= " ⊠ "
+            end
+            s *= type_repr(sectors[i])
+        end
+        s *= ")"
     end
+    return s
 end
 
 # TODO: Do we want custom printing for product of Irreps
-# function Base.show(io::IO, ::Type{ProductSector{T}}) where {T<:Tuple{Vararg{Irrep}}}
-#     sectors = T.parameters
-#     print(io, "Rep[")
-#     for i = 1:length(sectors)
-#         i == 1 || print(io, " × ")
-#         print(io, supertype(sectors[i]).parameters[1])
-#     end
-#     print(io, "]")
-# end
+function type_repr(::Type{ProductSector{T}}) where {T<:Tuple{Vararg{AbstractIrrep}}}
+    sectors = T.parameters
+    s = "Irrep["
+    for i in 1:length(sectors)
+        if i != 1
+            s *= " × "
+        end
+        s *= type_repr(supertype(sectors[i]).parameters[1])
+    end
+    s *= "]"
+    return s
+end
 
-Base.@pure function Base.getindex(::Type{Irrep},
-                                    ::Type{ProductGroup{Gs}}) where {Gs<:GroupTuple}
+function Base.getindex(::IrrepTable, ::Type{ProductGroup{Gs}}) where {Gs<:GroupTuple}
     G1 = tuple_type_head(Gs)
     Grem = tuple_type_tail(Gs)
     ProductSector{Tuple{Irrep[G1]}} ⊠ Irrep[ProductGroup{tuple_type_tail(Gs)}]
 end
-Base.@pure function Base.getindex(::Type{Irrep},
-                                    ::Type{ProductGroup{Tuple{G}}}) where {G<:Group}
+function Base.getindex(::IrrepTable, ::Type{ProductGroup{Tuple{G}}}) where {G<:Group}
     ProductSector{Tuple{Irrep[G]}}
 end

@@ -28,20 +28,27 @@ VSU₂ = (ℂ[SU2Irrep](0=>3, 1//2=>1),
         ℂ[SU2Irrep](1//2=>1, 1=>1)',
         ℂ[SU2Irrep](0=>2, 1//2=>2),
         ℂ[SU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
-VNSU₂ = (ℂ[NewSU2Irrep](0=>3, 1//2=>1),
-        ℂ[NewSU2Irrep](0=>2, 1=>1),
-        ℂ[NewSU2Irrep](1//2=>1, 1=>1)',
-        ℂ[NewSU2Irrep](0=>2, 1//2=>2),
-        ℂ[NewSU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
+# VSU₃ = (ℂ[SU3Irrep]((0,0,0)=>3, (1,0,0)=>1),
+#                ℂ[SU3Irrep]((0,0,0)=>3, (2,0,0)=>1)',
+#                ℂ[SU3Irrep]((1,1,0)=>1, (2,1,0)=>1),
+#                ℂ[SU3Irrep]((1,0,0)=>1, (2,0,0)=>1),
+#                ℂ[SU3Irrep]((0,0,0)=>1, (1,0,0)=>1, (1,1,0)=>1)')
 
-for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃), (Irrep[U₁], VU₁),
-                (Irrep[CU₁], VCU₁), (Irrep[SU₂], VSU₂), (NewSU2Irrep, VNSU₂))
-    println("------------------------------------")
-    println("Tensors with symmetry: $I")
-    println("------------------------------------")
+for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂)#, VSU₃)
+    V1, V2, V3, V4, V5 = V
+    @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
+    @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
+end
+
+for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂)#, VSU₃)
+    I = sectortype(first(V))
+    Istr = TensorKit.type_repr(I)
+    println("---------------------------------------")
+    println("Tensors with symmetry: $Istr")
+    println("---------------------------------------")
     global ti = time()
     V1, V2, V3, V4, V5 = V
-    @testset TimedTestSet "Basic tensor properties" begin
+    @timedtestset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
             t = Tensor(zeros, T, W)
@@ -54,7 +61,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             @test typeof(t) == @constinferred tensormaptype(spacetype(t), 5, 0, T)
         end
     end
-    @testset TimedTestSet "Tensor Dict conversion" begin
+    @timedtestset "Tensor Dict conversion" begin
         W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
         for T in (Int, Float32, ComplexF64)
             t = TensorMap(rand, T, W)
@@ -63,7 +70,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Tensor Array conversion" begin
+        @timedtestset "Tensor Array conversion" begin
             W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
             for T in (Int, Float32, ComplexF64)
                 if T == Int
@@ -76,7 +83,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Basic linear algebra" begin
+    @timedtestset "Basic linear algebra" begin
         W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
         for T in (Float32, ComplexF64)
             t = TensorMap(rand, T, W)
@@ -117,7 +124,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Basic linear algebra: test via conversion" begin
+        @timedtestset "Basic linear algebra: test via conversion" begin
             W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
             for T in (Float32, ComplexF64)
                 t = TensorMap(rand, T, W)
@@ -129,7 +136,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
                 @test convert(Array, t+t) ≈ 2*convert(Array,t)
             end
         end
-        @testset TimedTestSet "Real and imaginary parts" begin
+        @timedtestset "Real and imaginary parts" begin
             W = V1 ⊗ V2
             for T in (Float64, ComplexF64, ComplexF32)
                 t = TensorMap(randn, T, W, W)
@@ -138,7 +145,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Tensor conversion" begin
+    @timedtestset "Tensor conversion" begin
         W = V1 ⊗ V2
         t = TensorMap(randn, Float64, W, W)
         @test typeof(convert(TensorMap, t')) == typeof(t)
@@ -147,14 +154,14 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         @test typeof(convert(typeof(tc), t)) == typeof(tc)
         @test typeof(convert(typeof(tc), t')) == typeof(tc)
     end
-    @testset TimedTestSet "Permutations: test via inner product invariance" begin
+    @timedtestset "Permutations: test via inner product invariance" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        t = Tensor(rand, ComplexF64, W);
-        t′ = Tensor(rand, ComplexF64, W);
+        t = Tensor(rand, ComplexF64, W)
+        t′ = Tensor(rand, ComplexF64, W)
         for k = 0:5
             for p in permutations(1:5)
-                p1 = ntuple(n->p[n], StaticLength(k))
-                p2 = ntuple(n->p[k+n], StaticLength(5-k))
+                p1 = ntuple(n->p[n], k)
+                p2 = ntuple(n->p[k+n], 5-k)
                 t2 = @constinferred permute(t, p1, p2)
                 @test norm(t2) ≈ norm(t)
                 t2′= permute(t′, p1, p2)
@@ -163,13 +170,13 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Permutations: test via conversion" begin
+        @timedtestset "Permutations: test via conversion" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-            t = Tensor(rand, ComplexF64, W);
+            t = Tensor(rand, ComplexF64, W)
             for k = 0:5
                 for p in permutations(1:5)
-                    p1 = ntuple(n->p[n], StaticLength(k))
-                    p2 = ntuple(n->p[k+n], StaticLength(5-k))
+                    p1 = ntuple(n->p[n], k)
+                    p2 = ntuple(n->p[k+n], 5-k)
                     t2 = permute(t, p1, p2)
                     a2 = convert(Array, t2)
                     @test a2 ≈ permutedims(convert(Array, t), (p1...,p2...))
@@ -178,8 +185,8 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Full trace: test self-consistency" begin
-        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1');
+    @timedtestset "Full trace: test self-consistency" begin
+        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1')
         t2 = permute(t, (1,2), (4,3))
         s = @constinferred tr(t2)
         @test conj(s) ≈ tr(t2')
@@ -189,31 +196,31 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         @test s ≈ s2
         @test s ≈ s3
     end
-    @testset TimedTestSet "Partial trace: test self-consistency" begin
-        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
+    @timedtestset "Partial trace: test self-consistency" begin
+        t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
         @tensor t2[a,b] := t[c,d,b,d,c,a]
         @tensor t4[a,b,c,d] := t[d,e,b,e,c,a]
         @tensor t5[a,b] := t4[a,b,c,c]
         @test t2 ≈ t5
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Trace: test via conversion" begin
-            t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V1);
+        @timedtestset "Trace: test via conversion" begin
+            t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
             @tensor t2[a,b] := t[c,d,b,d,c,a]
             @tensor t3[a,b] := convert(Array, t)[c,d,b,d,c,a]
             @test t3 ≈ convert(Array, t2)
         end
     end
-    @testset TimedTestSet "Trace and contraction" begin
-        t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3);
-        t2 = Tensor(rand, ComplexF64, V2' ⊗ V4 ⊗ V1');
+    @timedtestset "Trace and contraction" begin
+        t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3)
+        t2 = Tensor(rand, ComplexF64, V2' ⊗ V4 ⊗ V1')
         t3 = t1 ⊗ t2
         @tensor ta[a,b] := t1[x,y,a]*t2[y,b,x]
         @tensor tb[a,b] := t3[x,y,a,y,b,x]
         @test ta ≈ tb
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Tensor contraction: test via conversion" begin
+        @timedtestset "Tensor contraction: test via conversion" begin
             A1 = TensorMap(randn, ComplexF64, V1'*V2', V3')
             A2 = TensorMap(randn, ComplexF64, V3*V4, V5)
             rhoL = TensorMap(randn, ComplexF64, V1, V1)
@@ -231,7 +238,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             @test HrA12array ≈ convert(Array, HrA12)
         end
     end
-    @testset TimedTestSet "Multiplication and inverse: test compatibility" begin
+    @timedtestset "Multiplication and inverse: test compatibility" begin
         W1 = V1 ⊗ V2 ⊗ V3
         W2 = V4 ⊗ V5
         for T in (Float64, ComplexF64)
@@ -250,7 +257,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Multiplication and inverse: test via conversion" begin
+        @timedtestset "Multiplication and inverse: test via conversion" begin
             W1 = V1 ⊗ V2 ⊗ V3
             W2 = V4 ⊗ V5
             for T in (Float32, Float64, ComplexF32, ComplexF64)
@@ -286,17 +293,17 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Factorization" begin
+    @timedtestset "Factorization" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
         for T in (Float32, ComplexF64)
             # Test both a normal tensor and an adjoint one.
             ts = (Tensor(rand, T, W), Tensor(rand, T, W)')
             for t in ts
                 @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(), TensorKit.QL(), TensorKit.QLpos(), TensorKit.Polar(), TensorKit.SVD(), TensorKit.SDD())
-                    Q, R = @constinferred leftorth(t, (3,4,2),(1,5); alg = alg)
+                    Q, R = @constinferred leftorth(t, (3,4,2), (1,5); alg = alg)
                     QdQ = Q'*Q
                     @test QdQ ≈ one(QdQ)
-                    @test Q*R ≈ permute(t, (3,4,2),(1,5))
+                    @test Q*R ≈ permute(t, (3,4,2), (1,5))
                     if alg isa Polar
                         @test isposdef(R)
                         @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'
@@ -388,7 +395,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Tensor truncation" begin
+    @timedtestset "Tensor truncation" begin
         for T in (Float32, ComplexF64)
             for p in (1, 2, 3, Inf)
                 # Test both a normal tensor and an adjoint one.
@@ -419,7 +426,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Tensor functions" begin
+        @timedtestset "Tensor functions" begin
             W = V1 ⊗ V2
             for T in (Float64, ComplexF64)
                 t = TensorMap(randn, T, W, W)
@@ -462,7 +469,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Sylvester equation" begin
+    @timedtestset "Sylvester equation" begin
         for T in (Float32, ComplexF64)
             tA = TensorMap(rand, T, V1 ⊗ V3, V1 ⊗ V3)
             tB = TensorMap(rand, T, V2 ⊗ V4, V2 ⊗ V4)
@@ -479,7 +486,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Tensor product: test via norm preservation" begin
+    @timedtestset "Tensor product: test via norm preservation" begin
         for T in (Float32, ComplexF64)
             t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
             t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
@@ -488,7 +495,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     if hasfusiontensor(I)
-        @testset TimedTestSet "Tensor product: test via conversion" begin
+        @timedtestset "Tensor product: test via conversion" begin
             for T in (Float32, ComplexF64)
                 t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
                 t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
@@ -504,7 +511,7 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
             end
         end
     end
-    @testset TimedTestSet "Tensor product: test via tensor contraction" begin
+    @timedtestset "Tensor product: test via tensor contraction" begin
         for T in (Float32, ComplexF64)
             t1 = Tensor(rand, T, V2 ⊗ V3 ⊗ V1)
             t2 = Tensor(rand, T, V2 ⊗ V1 ⊗ V3)
@@ -514,13 +521,13 @@ for (I,V) in ((Trivial, Vtr), (Irrep[ℤ₂], Vℤ₂), (Irrep[ℤ₃], Vℤ₃)
         end
     end
     global tf = time()
-    printstyled("Finished tensor tests with symmetry $I in ",
+    printstyled("Finished tensor tests with symmetry $Istr in ",
                 string(round(tf-ti; sigdigits=3)),
                 " seconds."; bold = true, color = Base.info_color())
     println()
 end
 
-@testset TimedTestSet "Deligne tensor product: test via conversion" begin
+@timedtestset "Deligne tensor product: test via conversion" begin
     @testset for Vlist1 in (Vtr, VSU₂), Vlist2 in (Vtr, Vℤ₂)
         V1, V2, V3, V4, V5 = Vlist1
         W1, W2, W3, W4, W5 = Vlist2

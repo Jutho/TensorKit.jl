@@ -39,14 +39,49 @@ scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} =
                                     p1::IndexTuple, p2::IndexTuple) where {S}
     I = sectortype(S)
     if BraidingStyle(I) isa SymmetricBraiding
-        add!(α, tsrc, β, tdst, p1, p2, (codomainind(tsrc)..., domainind(tsrc)...))
+        add_permute!(α, tsrc, β, tdst, p1, p2)
     else
-        throw(ArgumentError("add! without levels only if `BraidingStyle(sectortype(...)) isa SymmetricBraiding`"))
+        throw(ArgumentError("add! without levels is defined only if `BraidingStyle(sectortype(...)) isa SymmetricBraiding`"))
     end
 end
+@propagate_inbounds function add!(α, tsrc::AbstractTensorMap{S},
+                                    β, tdst::AbstractTensorMap{S},
+                                    p1::IndexTuple, p2::IndexTuple,
+                                    levels::IndexTuple) where {S}
+    add_braid!(α, tsrc, β, tdst, p1, p2, levels)
+end
 
-function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N₁, N₂},
-                p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, levels::IndexTuple) where {S, N₁, N₂}
+@propagate_inbounds function add_permute!(α, tsrc::AbstractTensorMap{S},
+                                            β, tdst::AbstractTensorMap{S, N₁, N₂},
+                                            p1::IndexTuple{N₁},
+                                            p2::IndexTuple{N₂}) where {S, N₁, N₂}
+
+    _add!(α, tsrc, β, tdst, p1, p2, (f1, f2)->permute(f1, f2, p1, p2))
+end
+@propagate_inbounds function add_braid!(α, tsrc::AbstractTensorMap{S},
+                                            β, tdst::AbstractTensorMap{S, N₁, N₂},
+                                            p1::IndexTuple{N₁},
+                                            p2::IndexTuple{N₂},
+                                            levels::IndexTuple) where {S, N₁, N₂}
+
+    length(levels) == numind(tsrc) ||
+        throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(tsrc)) ← $(domain(tsrc))"))
+
+    levels1 = TupleTools.getindices(levels, codomainind(tsrc))
+    levels2 = TupleTools.getindices(levels, domainind(tsrc))
+    _add!(α, tsrc, β, tdst, p1, p2, (f1, f2)->braid(f1, f2, levels1, levels2, p1, p2))
+end
+@propagate_inbounds function add_transpose!(α, tsrc::AbstractTensorMap{S},
+                                            β, tdst::AbstractTensorMap{S, N₁, N₂},
+                                            p1::IndexTuple{N₁},
+                                            p2::IndexTuple{N₂}) where {S, N₁, N₂}
+
+    _add!(α, tsrc, β, tdst, p1, p2, (f1, f2)->transpose(f1, f2, p1, p2))
+end
+
+
+function _add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N₁, N₂},
+                p1::IndexTuple{N₁}, p2::IndexTuple{N₂}, fusiontreemap) where {S, N₁, N₂}
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)),
@@ -54,22 +89,23 @@ function add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N�
         all(i->space(tsrc, p2[i]) == space(tdst, N₁+i), 1:N₂) ||
             throw(SpaceMismatch("tsrc = $(codomain(tsrc))←$(domain(tsrc)),
             tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
-        length(levels) == numind(tsrc) ||
-            throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(t)) ← $(domain(t))"))
     end
 
     # do some kind of dispatch which is compiled away if S is known at compile time,
     # and makes the compiler give up quickly if S is unknown
     I = sectortype(S)
     i = I === Trivial ? 1 : (FusionStyle(I) isa Abelian ? 2 : 3)
-    _add_kernel! = _add_kernels[i]
-    _add_kernel!(α, tsrc, β, tdst, p1, p2, levels)
-
+    if p1 == codomainind(tsrc) && p2 == domainind(tsrc)
+        axpby!(α, tsrc, β, tdst)
+    else
+        _add_kernel! = _add_kernels[i]
+        _add_kernel!(α, tsrc, β, tdst, p1, p2, fusiontreemap)
+    end
     return tdst
 end
 
 function _add_trivial_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTensorMap,
-                                p1::IndexTuple, p2::IndexTuple, levels::IndexTuple)
+                                p1::IndexTuple, p2::IndexTuple, fusiontreemap)
     cod = codomain(tsrc)
     dom = domain(tsrc)
     n = length(cod)
@@ -79,17 +115,17 @@ function _add_trivial_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTen
 end
 
 function _add_abelian_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTensorMap,
-                                p1::IndexTuple, p2::IndexTuple, levels::IndexTuple)
+                                p1::IndexTuple, p2::IndexTuple, fusiontreemap)
     if Threads.nthreads() > 1
         nstridedthreads = Strided.get_num_threads()
         Strided.set_num_threads(1)
         Threads.@sync for (f1, f2) in fusiontrees(tsrc)
-            Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+            Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2, fusiontreemap)
         end
         Strided.set_num_threads(nstridedthreads)
     else # debugging is easier this way
         for (f1, f2) in fusiontrees(tsrc)
-            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2)
+            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2, fusiontreemap)
         end
     end
     return nothing
@@ -98,16 +134,17 @@ end
 function _addabelianblock!(α, tsrc::AbstractTensorMap,
                             β, tdst::AbstractTensorMap,
                             p1::IndexTuple, p2::IndexTuple,
-                            f1::FusionTree, f2::FusionTree)
+                            f1::FusionTree, f2::FusionTree,
+                            fusiontreemap)
     cod = codomain(tsrc)
     dom = domain(tsrc)
-    (f1′, f2′), coeff = first(permute(f1, f2, p1, p2))
+    (f1′, f2′), coeff = first(fusiontreemap(f1, f2))
     pdata = (p1..., p2...)
     @inbounds axpby!(α*coeff, permutedims(tsrc[f1, f2], pdata), β, tdst[f1′, f2′])
 end
 
 function _add_general_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTensorMap,
-                                p1::IndexTuple, p2::IndexTuple, levels::IndexTuple)
+                                p1::IndexTuple, p2::IndexTuple, fusiontreemap)
     cod = codomain(tsrc)
     dom = domain(tsrc)
     n = length(cod)
@@ -117,10 +154,8 @@ function _add_general_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTen
     elseif β != 1
         mul!(tdst, β, tdst)
     end
-    levels1 = TupleTools.getindices(levels, codomainind(tsrc))
-    levels2 = TupleTools.getindices(levels, domainind(tsrc))
     for (f1, f2) in fusiontrees(tsrc)
-        for ((f1′, f2′), coeff) in braid(f1, f2, levels1, levels2, p1, p2)
+        for ((f1′, f2′), coeff) in fusiontreemap(f1, f2)
             @inbounds axpy!(α*coeff, permutedims(tsrc[f1, f2], pdata), tdst[f1′, f2′])
         end
     end

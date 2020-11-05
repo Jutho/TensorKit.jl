@@ -31,7 +31,6 @@ end
 
 # convenience constructor
 Base.getindex(::ComplexNumbers) = ComplexSpace
-Base.getindex(::ComplexNumbers, d::Int) = ComplexSpace(d)  # ℂ[d]
 Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)
 
 # Corresponding methods:
