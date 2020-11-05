@@ -177,7 +177,7 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N
                     tdst = $(codomain(tdst))←$(domain(tdst)), p1 = $(p1), p2 = $(p2)"))
         all(i->space(tsrc, q1[i]) == dual(space(tsrc, q2[i])), 1:N₃) ||
             throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
-                    q1 = $(p1), q2 = $(q2)"))
+                    q1 = $(q1), q2 = $(q2)"))
     end
 
     I = sectortype(S)
