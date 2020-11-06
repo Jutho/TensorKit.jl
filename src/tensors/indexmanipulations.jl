@@ -58,14 +58,15 @@ function has_shared_permute(t::AdjointTensorMap, p1, p2)
 end
 
 """
-    permute(tsrc::AbstractTensorMap{S}, p1::NTuple{N₁, Int}, p2::NTuple{N₂, Int} = ())
-        -> tdst::TensorMap{S, N₁, N₂}
+    permute!(tdst::AbstractTensorMap{S, N₁, N₂}, tsrc::AbstractTensorMap{S},
+        p1::IndexTuple{N₁}, p2::IndexTuple{N₂}=()
+    ) -> tdst
 
-Permute the indices of `tsrc::AbstractTensorMap{S}` such that a new tensor
-`tdst::TensorMap{S, N₁, N₂}` is obtained, with indices in `p1` playing the role of the
-codomain or range of the map, and indices in `p2` indicating the domain.
+Permute the indices of `tsrc` and write the result into `tdst`, with indices in `p1` playing
+the role of the codomain or range of the map `tdst`, and indices in `p2` indicating the
+domain of `tdst`.
 
-To permute into an existing `tdst`, see [`add!`](@ref)
+For more details see [`add!`](@ref), of which this is a special case.
 """
 @propagate_inbounds Base.permute!(tdst::AbstractTensorMap{S, N₁, N₂},
                                     tsrc::AbstractTensorMap{S},
@@ -134,6 +135,11 @@ end
 twist(t::AbstractTensorMap, i::Int; inv::Bool = false) = twist!(copy(t), i; inv = inv)
 
 function twist!(t::AbstractTensorMap, i::Int; inv::Bool = false)
+    if i > numind(t)
+        msg = "Can't twist index $i of a tensor with only $(numind(t)) indices."
+        throw(ArgumentError(msg))
+    end
+    BraidingStyle(sectortype(t)) == Bosonic() && return t
     N₁ = numout(t)
     for (f1, f2) in fusiontrees(t)
         θ = i <= N₁ ? twist(f1.uncoupled[i]) : twist(f2.uncoupled[i-N₁])
