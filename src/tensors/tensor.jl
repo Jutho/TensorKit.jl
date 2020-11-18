@@ -101,7 +101,7 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
             end
         end
         rhs = reshape(data, (l,))
-        if FusionStyle(sectortype(t)) isa Abelian
+        if FusionStyle(sectortype(t)) isa UniqueFusion
             lhs = basis'*rhs
         else
             lhs = Diagonal(qdims) \ (basis'*rhs)
@@ -380,8 +380,8 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
                                 sectors::Tuple{Vararg{I}}) where {N₁,N₂,I<:Sector}
 
-    FusionStyle(I) isa Abelian ||
-        throw(SectorMismatch("Indexing with sectors only possible if abelian"))
+    FusionStyle(I) isa UniqueFusion ||
+        throw(SectorMismatch("Indexing with sectors only possible if unique fusion"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
     s2 = map(dual, TupleTools.getindices(sectors, domainind(t)))
     c1 = length(s1) == 0 ? one(I) : (length(s1) == 1 ? s1[1] : first(⊗(s1...)))
@@ -456,7 +456,7 @@ function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
     if sectortype(S) == Trivial
         Base.print_array(io, t[])
         println(io)
-    elseif FusionStyle(sectortype(S)) isa Abelian
+    elseif FusionStyle(sectortype(S)) isa UniqueFusion
         for (f1,f2) in fusiontrees(t)
             println(io, "* Data for sector ", f1.uncoupled, " ← ", f2.uncoupled, ":")
             Base.print_array(io, t[f1,f2])

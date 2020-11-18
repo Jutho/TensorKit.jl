@@ -209,13 +209,14 @@ for the different copies. We implement a "trait" (similar to `IndexStyle` for
 `AbstractArray`s in Julia Base), i.e. a type hierarchy
 ```julia
 abstract type FusionStyle end
-struct Abelian <: FusionStyle
+struct UniqueFusion <: FusionStyle # unique fusion output when fusion two sectors
 end
-abstract type NonAbelian <: FusionStyle end
-struct SimpleNonAbelian <: NonAbelian # non-abelian fusion but multiplicity free
+abstract type MultipleFusion <: FusionStyle end
+struct SimpleFusion <: MultipleFusion # multiple fusion but multiplicity free
 end
-struct DegenerateNonAbelian <: NonAbelian # non-abelian fusion with multiplicities
+struct GenericFusion <: MultipleFusion # multiple fusion with multiplicities
 end
+const MultiplicityFreeFusion = Union{UniqueFusion, SimpleFusion}
 ```
 New sector types `I<:Sector` should then indicate which fusion style they have by defining
 `FusionStyle(::Type{I})`.
@@ -263,7 +264,7 @@ Nsymbol(::Trivial, ::Trivial, ::Trivial) = true
 Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 Rsymbol(::Trivial, ::Trivial, ::Trivial) = 1
 Base.isreal(::Type{Trivial}) = true
-FusionStyle(::Type{Trivial}) = Abelian()
+FusionStyle(::Type{Trivial}) = UniqueFusion()
 BraidingStyle(::Type{Trivial}) = Bosonic()
 ```
 The `Trivial` sector type is special cased in the construction of tensors, so that most of
@@ -301,7 +302,7 @@ BraidingStyle(::Type{<:AbstractIrrep}) = Bosonic()
 while we gather some more common functionality for irreps of abelian groups (which exhaust all possibilities of fusion categories with abelian fusion)
 ```julia
 const AbelianIrrep{G} = AbstractIrrep{G} where {G<:AbelianGroup}
-FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
+FusionStyle(::Type{<:AbelianIrrep}) = UniqueFusion()
 Base.isreal(::Type{<:AbelianIrrep}) = true
 
 Nsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = c == first(a ⊗ b)
@@ -428,7 +429,7 @@ Base.one(::Type{SU2Irrep}) = SU2Irrep(zero(HalfInt))
 Base.conj(s::SU2Irrep) = s
 ⊗(s1::SU2Irrep, s2::SU2Irrep) = SectorSet{SU2Irrep}(abs(s1.j-s2.j):(s1.j+s2.j))
 dim(s::SU2Irrep) = twice(s.j)+1
-FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
+FusionStyle(::Type{SU2Irrep}) = SimpleFusion()
 Base.isreal(::Type{SU2Irrep}) = true
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
 Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
@@ -494,13 +495,13 @@ Base.one(::Type{CU1Irrep}) = CU1Irrep(zero(HalfInt), 0)
 Base.conj(c::CU1Irrep) = c
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
 
-FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
+FusionStyle(::Type{CU1Irrep}) = SimpleFusion()
 ...
 ```
 The rest of the implementation can be read in the source code, but is rather long due to all
 the different cases for the arguments of `Fsymbol`.
 
-So far, no sectors have been implemented with `FusionStyle(G) == DegenerateNonAbelian()`,
+So far, no sectors have been implemented with `FusionStyle(G) == GenericFusion()`,
 though an example would be the representation theory of ``\mathsf{SU}_N``, i.e. represented
 by the group `SU{N}`, for `N>2`. Such sectors are not yet fully supported; certain
 operations remain to be implemented. Furthermore, the topological data of the
@@ -565,10 +566,10 @@ Julia's manual), and implements the following minimal set of methods
 Base.one(::Type{I}) = I(...)
 Base.conj(a::I) = I(...)
 Base.isreal(::Type{I}) = ... # true or false
-TensorKit.FusionStyle(::Type{I}) = ... # Abelian(), SimpleNonAbelian(), DegenerateNonAbelian()
+TensorKit.FusionStyle(::Type{I}) = ... # UniqueFusion(), SimpleFusion(), GenericFusion()
 TensorKit.BraidingStyle(::Type{I}) = ... # Bosonic(), Fermionic(), Anyonic()
 TensorKit.Nsymbol(a::I, b::I, c::I) = ...
-    # Bool or Integer if FusionStyle(I) == DegenerateNonAbelian()
+    # Bool or Integer if FusionStyle(I) == GenericFusion()
 Base.:⊗(a::I, b::I) = ... # some iterable object that generates all possible fusion outputs
 TensorKit.Fsymbol(a::I, b::I, c::I, d::I, e::I, f::I)
 TensorKit.Rsymbol(a::I, b::I, c::I)
@@ -595,7 +596,7 @@ by the F-symbol, just like the quantum dimensions. Hence, there is a default imp
 for each of these three functions that just relies on `Fsymbol`, and alternative
 definitions need to be given only if a more efficient version is available.
 
-If `FusionStyle(I) == DegenerateNonAbelian()`, then the multiple outputs `c` in the tensor
+If `FusionStyle(I) == GenericFusion()`, then the multiple outputs `c` in the tensor
 product of `a` and `b` will be labeled as `i=1`, `2`, …, `Nsymbol(a,b,c)`. Optionally, a
 different label can be provided by defining
 ```julia
@@ -889,11 +890,11 @@ the fusion tree can be considered to be the adjoint of a corresponding splitting
 ``c→(b_1⊗b_2)⊗b_3``, we now first consider splitting trees in isolation. A splitting tree
 which goes from one coupled sectors ``c`` to ``N`` uncoupled sectors ``a_1``, ``a_2``, …,
 ``a_N`` needs ``N-2`` additional internal sector labels ``e_1``, …, ``e_{N-2}``, and, if
-`FusionStyle(I) isa DegenerateNonAbelian`, ``N-1`` additional multiplicity labels ``μ_1``,
+`FusionStyle(I) isa GenericFusion`, ``N-1`` additional multiplicity labels ``μ_1``,
 …, ``μ_{N-1}``. We henceforth refer to them as vertex labels, as they are associated with
-the vertices of the splitting tree. In the case of `FusionStyle(I) isa Abelian`, the
+the vertices of the splitting tree. In the case of `FusionStyle(I) isa UniqueFusion`, the
 internal sectors ``e_1``, …, ``e_{N-2}`` are completely fixed, for
-`FusionStyle(I) isa NonAbelian` they can also take different values. In our abstract
+`FusionStyle(I) isa MultipleFusion` they can also take different values. In our abstract
 notation of the splitting basis ``X^{a_1a_2…a_N}_{c,α}`` used above, ``α`` can be consided
 a collective label, i.e. ``α = (e_1, …, e_{N-2}; μ₁, … ,μ_{N-1})``. Indeed, we can check
 the orthogonality condition
@@ -944,7 +945,7 @@ capabilities, such as checking for equality with `==` and support for
 `hash(f::FusionTree, h::UInt)`, as splitting and fusion trees are used as keys in look-up
 tables (i.e. `AbstractDictionary` instances) to look up certain parts of the data of a
 tensor. The type of `L` of the vertex labels can be `Nothing` when they are not needed
-(i.e. if `FusionStyle(I) ∈ (Abelian(), NonAbelian())`).
+(i.e. if `FusionStyle(I) isa MultiplicityFreeFusion`).
 
 `FusionTree` instances are not checked for consistency (i.e. valid fusion rules etc) upon
 creation, hence, they are assumed to be created correctly. The most natural way to create
@@ -1012,7 +1013,7 @@ braided with the sector at position `i+1` in the fusion tree `f`. The keyword ar
 allows to select the inverse braiding operation, which amounts to replacing the R-matrix
 with its inverse (or thus, adjoint) in the above steps. The result is returned as a
 dictionary with possible output fusion trees as keys and corresponding coefficients as
-value. In the case of `FusionStyle(I) == Abelian()`, their is only one resulting fusion
+value. In the case of `FusionStyle(I) isa UniqueFusion`, their is only one resulting fusion
 tree, with corresponding coefficient a complex phase (which is one for the bosonic
 representation theory of an Abelian group), and the result is a special
 `SingletonDict<:AbstractDict`, a `struct` type defined in TensorKit.jl to hold a single key
@@ -1070,7 +1071,7 @@ Other manipulations which are sometimes needed are
 
 *   [merge(f1::FusionTree{I,N₁}, f2::FusionTree{I,N₂}, c::I, μ=nothing)](@ref TensorKit.merge) :
     merges two fusion trees `f1` and `f2` by fusing the coupled sectors of `f1` and `f2`
-    into a sector `c` (with vertex label `μ` if `FusionStyle(I) == DegenerateNonAbelian()`),
+    into a sector `c` (with vertex label `μ` if `FusionStyle(I) == GenericFusion()`),
     and reexpressing the result as a linear combination of fusion trees with `N₁+N₂`
     uncoupled sectors in canonical order. This is a simple application of `insertat`.
     Diagrammatically, this operation is represented as:
@@ -1109,7 +1110,7 @@ that we need is summarized in
 
 We will only need the B-symbol and not the A-symbol. Applying the left evaluation on the
 second sector of a splitting tensor thus yields a linear combination of fusion tensors
-(when `FusionStyle(I) == DegenerateNonAbelian()`, or just a scalar times the corresponding
+(when `FusionStyle(I) == GenericFusion()`, or just a scalar times the corresponding
 fusion tensor otherwise), with corresponding ``Z`` ismorphism. Taking the adjoint of this
 relation yields the required relation to transform a fusion tensor into a splitting tensor
 with an added ``Z^†`` isomorphism.
@@ -1143,7 +1144,7 @@ Graphically, for `N₁ = 4`, `N₂ = 3`, `N = 2` and some particular choice of `
 
 The result is returned as a dictionary with keys `(f1′, f2′)` and the corresponding `coeff`
 as value. Note that the summation is only over the ``κ_j`` labels, such that, in the case
-of `FusionStyle(I) ∈ (Abelian(), SimpleNonAbelian())`, the linear combination simplifies to
+of `FusionStyle(I) isa MultiplicityFreeFusion`, the linear combination simplifies to
 a single term with a scalar coefficient.
 
 With this basic function, we can now perform arbitrary combinations of braids or
@@ -1191,8 +1192,8 @@ might change in the future. The use of this cache is however controlled by two c
 type `RefValue{Bool}`, namely `usebraidcache_abelian` and `usebraidcache_nonabelian`. The
 default values are given by `TensorKit.usebraidcache_abelian[] = false` and
 `TensorKit.usebraidcache_nonabelian[] = true`, and respectively reflect that the cache is
-likely not going to help (or even slow down) fusion trees with `FusionStyle(f) isa Abelian`,
-but is probably useful for fusion trees with `FusionStyle(f) isa NonAbelian`. One can change
+likely not going to help (or even slow down) fusion trees with `FusionStyle(f) isa UniqueFusion`,
+but is probably useful for fusion trees with `FusionStyle(f) isa MultipleFusion`. One can change
 these values and test the effect on their application.
 
 The existence of `braidcache` also implies that potential inefficiencies in the fusion
@@ -1206,10 +1207,10 @@ of group representations), this explicit representation can be created, which ca
 for checking purposes. Hereto, it is necessary that the *splitting tensor*
 ``X^{ab}_{c,μ}``, i.e. the Clebsch-Gordan coefficients of the group, are encoded via the
 routine `fusiontensor(a,b,c [,μ = nothing])`, where the last argument is only necessary in
-the case of `FusionStyle(I) == DegenerateNonAbelian()`. We can then convert a
+the case of `FusionStyle(I) == GenericFusion()`. We can then convert a
 `FusionTree{I,N}` into an `Array`, which will yield a rank `N+1` array where the first `N`
 dimensions correspond to the uncoupled sectors, and the last dimension to the coupled
-sector. Note that this is mostly useful for the case of `FusionStyle(I) isa NonAbelian`
+sector. Note that this is mostly useful for the case of `FusionStyle(I) isa MultipleFusion`
 groups, as in the case of abelian groups, all irreps are one-dimensional.
 
 Some examples:

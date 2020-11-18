@@ -67,7 +67,7 @@ below, can act directly on this matrix representation.
     compatible basis.
 
 Now consider the case where `sectortype(S) == I` for some `I` which has
-`FusionStyle(I) == Abelian()`, i.e. the representations of an Abelian group, e.g.
+`FusionStyle(I) == UniqueFusion()`, i.e. the representations of an Abelian group, e.g.
 `I == Irrep[ℤ₂]` or `I == Irrep[U₁]`. In this case, the tensor data is associated with
 sectors `(a1, a2, …, aN₁) ∈ sectors(V1 ⊗ V2 ⊗ … ⊗ VN₁)` and
 `(b1, …, bN₂) ∈ sectors(W1 ⊗ … ⊗ WN₂)` such that they fuse to a same common charge, i.e.
@@ -114,21 +114,21 @@ the data in this `view` is not contiguous, because the stride between the differ
 is larger than the length of the columns. Nonetheless, this does not pose a problem and even
 as multidimensional array there is still a definite stride associated with each dimension.
 
-When `FusionStyle(I) isa NonAbelian`, things become slightly more complicated. Not only do
-`(a1, …, aN₁)` give rise to different coupled sectors `c`, there can be multiply ways in
+When `FusionStyle(I) isa MultipleFusion`, things become slightly more complicated. Not only
+do `(a1, …, aN₁)` give rise to different coupled sectors `c`, there can be multiply ways in
 which they fuse to `c`. These different possibilities are enumerated by the iterator
 `fusiontrees((a1, …, aN₁), c)` and `fusiontrees((b1, …, bN₂), c)`, and with each of those,
-there is tensor data that takes the form of a multidimensional array, or, after reshaping,
-a matrix of size `(dim(codomain, (a1, …, aN₁)), dim(domain, (b1, …, bN₂))))`. Again, we can
+there is tensor data that takes the form of a multidimensional array, or, after reshaping, a
+matrix of size `(dim(codomain, (a1, …, aN₁)), dim(domain, (b1, …, bN₂))))`. Again, we can
 stack all such matrices with the same value of `f₁ ∈ fusiontrees((a1, …, aN₁), c)`
-horizontally (as they all have the same number of rows), and with the same value of
-`f₂ ∈ fusiontrees((b1, …, bN₂), c)` vertically (as they have the same number of columns).
-What emerges is a large matrix of size `(blockdim(codomain, c), blockdim(domain, c))`
-containing all the tensor data associated with the coupled sector `c`, where
-`blockdim(P, c) = sum(dim(P, s)*length(fusiontrees(s, c)) for s in sectors(P))` for some
-instance `P` of `ProductSpace`. The tensor implementation does not distinguish between
-abelian or non-abelian sectors and still stores these matrices as a `DenseMatrix`,
-accessible via `block(t, c)`.
+horizontally (as they all have the same number of rows), and with the same value of `f₂ ∈
+fusiontrees((b1, …, bN₂), c)` vertically (as they have the same number of columns). What
+emerges is a large matrix of size `(blockdim(codomain, c), blockdim(domain, c))` containing
+all the tensor data associated with the coupled sector `c`, where `blockdim(P, c) =
+sum(dim(P, s)*length(fusiontrees(s, c)) for s in sectors(P))` for some instance `P` of
+`ProductSpace`. The tensor implementation does not distinguish between abelian or
+non-abelian sectors and still stores these matrices as a `DenseMatrix`, accessible via
+`block(t, c)`.
 
 At first sight, it might now be less clear what the relevance of this block is in relation
 to the full matrix representation of the tensor map, where the symmetry is not exploited.
@@ -221,8 +221,8 @@ living are managed within the tensor implementation, and these subblocks can be 
 via `t[f₁,f₂]`, and is returned as a `StridedArray` of size
 ``n_{a_1} × n_{a_2} × … × n_{a_{N_1}} × n_{b_1} × … n_{b_{N₂}}``, or in code,
 `(dim(V1, a1), dim(V2, a2), …, dim(VN₁, aN₁), dim(W1, b1), …, dim(WN₂, bN₂))`. While the
-implementation does not distinguish between `FusionStyle isa Abelian` or
-`FusionStyle isa NonAbelian`, in the former case the fusion tree is completely
+implementation does not distinguish between `FusionStyle isa UniqueFusion` or
+`FusionStyle isa MultipleFusion`, in the former case the fusion tree is completely
 characterized by the uncoupled sectors, and so the subblocks can also be accessed as
 `t[(a1, …, aN₁), (b1, …, bN₂)]`. When there is no symmetry at all, i.e.
 `sectortype(t) == Trivial`, `t[]` returns the raw tensor data as a `StridedArray` of size
@@ -342,7 +342,7 @@ sector is two-dimensional, and has an eigenvalue ``+1`` and an eigenvalue ``-1``
 To construct the proper `data` in more complicated cases, one has to know where to find
 each sector in the range `1:dim(V)` of every index `i` with associated space `V`, as well
 as the internal structure of the representation space when the corresponding sector `c` has
-`dim(c)>1`, i.e. in the case of `FusionStyle(c) isa NonAbelian`. Currently, the only non-
+`dim(c)>1`, i.e. in the case of `FusionStyle(c) isa MultipleFusion`. Currently, the only non-
 abelian sectors are `Irrep[SU₂]` and `Irrep[CU₁]`, for which the internal structure is the
 natural one.
 
@@ -440,11 +440,11 @@ and `N₂`. Here, we use the operation `fuse(V)`, which creates an `ElementarySp
 isomorphic to a given space `V` (of type `ProductSpace` or `ElementarySpace`). The specific
 map between those two spaces constructed using the specific method `unitary` implements
 precisely the basis change from the product basis to the coupled basis. In this case, for a
-group `G` with `FusionStyle(Irrep[G]) isa Abelian`, it is a permutation matrix. Specifically
+group `G` with `FusionStyle(Irrep[G]) isa UniqueFusion`, it is a permutation matrix. Specifically
 choosing `V` equal to the codomain and domain of `t`, we can construct the explicit basis
 transforms that bring `t` into block diagonal form.
 
-Let's repeat the same exercise for `I = Irrep[SU₂]`, which has `FusionStyle(I) isa NonAbelian`.
+Let's repeat the same exercise for `I = Irrep[SU₂]`, which has `FusionStyle(I) isa MultipleFusion`.
 ```@repl tensors
 V1 = SU₂Space(0=>2,1=>1)
 V2 = SU₂Space(0=>1,1=>1)

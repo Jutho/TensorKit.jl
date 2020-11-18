@@ -94,7 +94,7 @@ function _add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N�
     # do some kind of dispatch which is compiled away if S is known at compile time,
     # and makes the compiler give up quickly if S is unknown
     I = sectortype(S)
-    i = I === Trivial ? 1 : (FusionStyle(I) isa Abelian ? 2 : 3)
+    i = I === Trivial ? 1 : (FusionStyle(I) isa UniqueFusion ? 2 : 3)
     if p1 == codomainind(tsrc) && p2 == domainind(tsrc)
         axpby!(α, tsrc, β, tdst)
     else
@@ -187,8 +187,8 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N
         n = length(cod)
         pdata = (p1..., p2...)
         TO._trace!(α, tsrc[], β, tdst[], pdata, q1, q2)
-    # elseif FusionStyle(I) isa Abelian
-    # TODO: is it worth multithreading Abelian case for traces?
+    # elseif FusionStyle(I) isa UniqueFusion
+    # TODO: is it worth multithreading UniqueFusion case for traces?
     else
         cod = codomain(tsrc)
         dom = domain(tsrc)

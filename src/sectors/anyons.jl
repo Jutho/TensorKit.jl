@@ -38,7 +38,7 @@ Base.conj(s::FibonacciAnyon) = s
 const _goldenratio = Float64(MathConstants.golden)
 dim(a::FibonacciAnyon) = isone(a) ? one(_goldenratio) : _goldenratio
 
-FusionStyle(::Type{FibonacciAnyon}) = SimpleNonAbelian()
+FusionStyle(::Type{FibonacciAnyon}) = SimpleFusion()
 BraidingStyle(::Type{FibonacciAnyon}) = Anyonic()
 Base.isreal(::Type{FibonacciAnyon}) = false
 
@@ -152,7 +152,7 @@ Base.conj(s::IsingAnyon) = s
 
 dim(a::IsingAnyon) = a.s == :σ ? sqrt(2) : 1.0
 
-FusionStyle(::Type{IsingAnyon}) = SimpleNonAbelian()
+FusionStyle(::Type{IsingAnyon}) = SimpleFusion()
 BraidingStyle(::Type{IsingAnyon}) = Anyonic()
 Base.isreal(::Type{IsingAnyon}) = false
 

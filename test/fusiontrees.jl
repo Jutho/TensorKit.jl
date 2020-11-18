@@ -18,9 +18,184 @@ ti = time()
     @constinferred Nothing iterate(it)
     f = @constinferred first(it)
     @testset "Fusion tree $I: printing" begin
-        @test eval(Meta.parse(sprint(show,f))) == f
+        @test eval(Meta.parse(sprint(show, f))) == f
     end
-    @testset "Fusion tree $Istr: braiding" begin
+    @testset "Fusion tree $Istr: insertat" begin
+        N = 4
+        out2 = ntuple(n->randsector(I), N)
+        in2 = rand(collect(⊗(out2...)))
+        isdual2 = ntuple(n->rand(Bool), N)
+        f2 = rand(collect(fusiontrees(out2, in2, isdual2)))
+        for i = 1:N
+            out1 = ntuple(n->randsector(I), N)
+            out1 = Base.setindex(out1, in2, i)
+            in1 = rand(collect(⊗(out1...)))
+            isdual1 = ntuple(n->rand(Bool), N)
+            isdual1 = Base.setindex(isdual1, false, i)
+            f1 = rand(collect(fusiontrees(out1, in1, isdual1)))
+
+            trees = @constinferred TK.insertat(f1, i, f2)
+            @test norm(values(trees)) ≈ 1
+
+            f1a, f1b = @constinferred TK.split(f1, $i)
+            @test length(TK.insertat(f1b, 1, f1a)) == 1
+            @test first(TK.insertat(f1b, 1, f1a)) == (f1 => 1)
+
+            levels = ntuple(identity, N)
+            gen = Base.Generator(braid(f1, levels, (i, (1:i-1)..., (i+1:N)...))) do (t, c)
+                (t′, c′) = first(TK.insertat(t, 1, f2))
+                @test c′ == one(c′)
+                return t′ => c
+            end
+            trees2 = Dict(gen)
+            trees3 = empty(trees2)
+            p = ((N+1:N+i-1)..., (1:N)..., (N+i:2N-1)...)
+            levels = ((i:N+i-1)..., (1:i-1)..., (i+N:2N-1)...)
+            for (t,coeff) in trees2
+                for (t′,coeff′) in braid(t, levels, p)
+                    trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
+                end
+            end
+            for (t, coeff) in trees3
+                coeff′ = get(trees, t, zero(coeff))
+                @test isapprox(coeff′, coeff; atol = 1e-12, rtol = 1e-12)
+            end
+
+            if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
+                Af1 = convert(Array, f1)
+                Af2 = convert(Array, f2)
+                Af = TensorOperations.tensorcontract(Af1, [1:i-1; -1; N-1 .+ (i+1:N+1)],
+                                                     Af2, [i-1 .+ (1:N); -1], 1:2N)
+                Af′ = zero(Af)
+                for (f, coeff) in trees
+                    Af′ .+= coeff .* convert(Array, f)
+                end
+                @test isapprox(Af, Af′; atol = 1e-12, rtol = 1e-12)
+            end
+        end
+    end
+    @testset "Fusion tree $Istr: planar trace" begin
+        if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
+            s = randsector(I)
+            N = 6
+            outgoing = (s, dual(s), s, dual(s), s, dual(s))
+            for bool in (true, false)
+                isdual = (bool, !bool, bool, !bool, bool, !bool)
+                for f in fusiontrees(outgoing, one(s), isdual)
+                    af = convert(Array, f)
+                    T = eltype(af)
+
+                    for i = 1:N
+                        d = @constinferred TK.elementary_trace(f, i)
+                        j = mod1(i+1, N)
+                        if j > i
+                            oind = tuple(vcat(1:(i-1), j+1:N, N+1)...)
+                        else
+                            oind = tuple(vcat(2:N-1, N+1)...)
+                        end
+                        bf = TensorOperations.similar_from_indices(T, oind, (), af, :N)
+                        TensorOperations.trace!(1, af, :N, 0, bf, oind, (), (i,), (j,))
+                        bf′ = zero(bf)
+                        for (f′, coeff) in d
+                            bf′ .+= coeff .* convert(Array, f′)
+                        end
+                        @test bf ≈ bf′ atol=1e-12
+                    end
+
+                    d2 = @constinferred TK.planar_trace(f, (1, 3), (2, 4))
+                    oind2 = (5, 6, 7)
+                    bf2 = TensorOperations.similar_from_indices(T, oind2, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf2, oind2, (), (1, 3), (2, 4))
+                    bf2′ = zero(bf2)
+                    for (f2′, coeff) in d2
+                        bf2′ .+= coeff .* convert(Array, f2′)
+                    end
+                    @test bf2 ≈ bf2′ atol=1e-12
+
+                    d2 = @constinferred TK.planar_trace(f, (5, 6), (2, 1))
+                    oind2 = (3, 4, 7)
+                    bf2 = TensorOperations.similar_from_indices(T, oind2, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf2, oind2, (), (5, 6), (2, 1))
+                    bf2′ = zero(bf2)
+                    for (f2′, coeff) in d2
+                        bf2′ .+= coeff .* convert(Array, f2′)
+                    end
+                    @test bf2 ≈ bf2′ atol=1e-12
+
+                    d2 = @constinferred TK.planar_trace(f, (5, 6), (2, 1))
+                    oind2 = (3, 4, 7)
+                    bf2 = TensorOperations.similar_from_indices(T, oind2, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf2, oind2, (), (5, 6), (2, 1))
+                    bf2′ = zero(bf2)
+                    for (f2′, coeff) in d2
+                        bf2′ .+= coeff .* convert(Array, f2′)
+                    end
+                    @test bf2 ≈ bf2′ atol=1e-12
+
+                    d2 = @constinferred TK.planar_trace(f, (1, 4), (6, 3))
+                    oind2 = (2, 5, 7)
+                    bf2 = TensorOperations.similar_from_indices(T, oind2, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf2, oind2, (), (6, 3), (1, 4))
+                    bf2′ = zero(bf2)
+                    for (f2′, coeff) in d2
+                        bf2′ .+= coeff .* convert(Array, f2′)
+                    end
+                    @test bf2 ≈ bf2′ atol=1e-12
+
+                    q1 = (1, 3, 5)
+                    q2 = (2, 4, 6)
+                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    oind3 = (7,)
+                    bf3 = TensorOperations.similar_from_indices(T, oind3, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf3, oind3, (), q1, q2)
+                    bf3′ = zero(bf3)
+                    for (f3′, coeff) in d3
+                        bf3′ .+= coeff .* convert(Array, f3′)
+                    end
+                    @test bf3 ≈ bf3′ atol=1e-12
+
+                    q1 = (1, 3, 5)
+                    q2 = (6, 2, 4)
+                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    oind3 = (7,)
+                    bf3 = TensorOperations.similar_from_indices(T, oind3, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf3, oind3, (), q1, q2)
+                    bf3′ = zero(bf3)
+                    for (f3′, coeff) in d3
+                        bf3′ .+= coeff .* convert(Array, f3′)
+                    end
+                    @test bf3 ≈ bf3′ atol=1e-12
+
+                    q1 = (1, 2, 3)
+                    q2 = (6, 5, 4)
+                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    oind3 = (7,)
+                    bf3 = TensorOperations.similar_from_indices(T, oind3, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf3, oind3, (), q1, q2)
+                    bf3′ = zero(bf3)
+                    for (f3′, coeff) in d3
+                        bf3′ .+= coeff .* convert(Array, f3′)
+                    end
+                    @test bf3 ≈ bf3′ atol=1e-12
+
+                    q1 = (1, 2, 4)
+                    q2 = (6, 3, 5)
+                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    oind3 = (7,)
+                    bf3 = TensorOperations.similar_from_indices(T, oind3, (), af, :N)
+                    TensorOperations.trace!(1, af, :N, 0, bf3, oind3, (), q1, q2)
+                    bf3′ = zero(bf3)
+                    for (f3′, coeff) in d3
+                        bf3′ .+= coeff .* convert(Array, f3′)
+                    end
+                    @test bf3 ≈ bf3′ atol=1e-12
+                end
+            end
+        end
+    end
+    @testset "Fusion tree $Istr: elementy artin braid" begin
+        N = length(out)
+        isdual = ntuple(n->rand(Bool), N)
         for in = ⊗(out...)
             for i = 1:N-1
                 for f in fusiontrees(out, in, isdual)
@@ -75,15 +250,16 @@ ti = time()
         end
     end
     @testset "Fusion tree $Istr: braiding and permuting" begin
+        f = rand(collect(fusiontrees(out, in, isdual)))
         p = tuple(randperm(N)...,)
         ip = invperm(p)
 
         levels = ntuple(identity, N)
-        d = @constinferred TK.braid(f, levels, p)
+        d = @constinferred braid(f, levels, p)
         d2 = Dict{typeof(f), valtype(d)}()
         levels2 = p
         for (f2, coeff) in d
-            for (f1,coeff2) in TK.braid(f2, levels2, ip)
+            for (f1,coeff2) in braid(f2, levels2, ip)
                 d2[f1] = get(d2, f1, zero(coeff)) + coeff2*coeff
             end
         end
@@ -105,60 +281,7 @@ ti = time()
             @test Afp ≈ Afp2
         end
     end
-    @testset "Fusion tree $Istr: insertat" begin
-        N = 4
-        out2 = ntuple(n->randsector(I), N)
-        in2 = rand(collect(⊗(out2...)))
-        isdual2 = ntuple(n->rand(Bool), N)
-        f2 = rand(collect(fusiontrees(out2, in2, isdual2)))
-        for i = 1:N
-            out1 = ntuple(n->randsector(I), N)
-            out1 = Base.setindex(out1, in2, i)
-            in1 = rand(collect(⊗(out1...)))
-            isdual1 = ntuple(n->rand(Bool), N)
-            isdual1 = Base.setindex(isdual1, false, i)
-            f1 = rand(collect(fusiontrees(out1, in1, isdual1)))
 
-            trees = @constinferred TK.insertat(f1, i, f2)
-            @test norm(values(trees)) ≈ 1
-
-            f1a, f1b = @constinferred TK.split(f1, $i)
-            @test length(TK.insertat(f1b, 1, f1a)) == 1
-            @test first(TK.insertat(f1b, 1, f1a)) == (f1 => 1)
-
-            levels = ntuple(identity, N)
-            gen = Base.Generator(TK.braid(f1, levels, (i, (1:i-1)..., (i+1:N)...))) do (t, c)
-                (t′, c′) = first(TK.insertat(t, 1, f2))
-                @test c′ == one(c′)
-                return t′ => c
-            end
-            trees2 = Dict(gen)
-            trees3 = empty(trees2)
-            p = ((N+1:N+i-1)..., (1:N)..., (N+i:2N-1)...)
-            levels = ((i:N+i-1)..., (1:i-1)..., (i+N:2N-1)...)
-            for (t,coeff) in trees2
-                for (t′,coeff′) in TK.braid(t, levels, p)
-                    trees3[t′] = get(trees3, t′, zero(coeff′)) + coeff*coeff′
-                end
-            end
-            for (t, coeff) in trees3
-                coeff′ = get(trees, t, zero(coeff))
-                @test isapprox(coeff′, coeff; atol = 1e-12, rtol = 1e-12)
-            end
-
-            if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
-                Af1 = convert(Array, f1)
-                Af2 = convert(Array, f2)
-                Af = TensorOperations.tensorcontract(Af1, [1:i-1; -1; N-1 .+ (i+1:N+1)],
-                                                     Af2, [i-1 .+ (1:N); -1], 1:2N)
-                Af′ = zero(Af)
-                for (f, coeff) in trees
-                    Af′ .+= coeff .* convert(Array, f)
-                end
-                @test isapprox(Af, Af′; atol = 1e-12, rtol = 1e-12)
-            end
-        end
-    end
     @testset "Fusion tree $Istr: merging" begin
         N = 3
         out1 = ntuple(n->randsector(I), N)
@@ -169,7 +292,7 @@ ti = time()
         f2 = rand(collect(fusiontrees(out2, in2)))
 
         @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), 1)
-        if !(FusionStyle(I) isa DegenerateNonAbelian)
+        if !(FusionStyle(I) isa GenericFusion)
             @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), nothing)
             @constinferred TK.merge(f1, f2, first(in1 ⊗ in2))
         end
@@ -180,14 +303,14 @@ ti = time()
         for c in in1 ⊗ in2
             R = Rsymbol(in1, in2, c)
             for μ = 1:Nsymbol(in1, in2, c)
-                μ′ = FusionStyle(I) isa DegenerateNonAbelian ? μ : nothing
+                μ′ = FusionStyle(I) isa GenericFusion ? μ : nothing
                 trees1 = TK.merge(f1, f2, c, μ′)
 
                 # test merge and braid interplay
                 trees2 = Dict{keytype(trees1), complex(valtype(trees1))}()
                 trees3 = Dict{keytype(trees1), complex(valtype(trees1))}()
                 for ν = 1:Nsymbol(in2, in1, c)
-                    ν′ = FusionStyle(I) isa DegenerateNonAbelian ? ν : nothing
+                    ν′ = FusionStyle(I) isa GenericFusion ? ν : nothing
                     for (t, coeff) in TK.merge(f2, f1, c, ν′)
                         trees2[t] = get(trees2, t, zero(valtype(trees2))) + coeff*R[μ,ν]
                     end
@@ -195,7 +318,7 @@ ti = time()
                 perm = ( (N.+(1:N))... , (1:N)...)
                 levels = ntuple(identity, 2*N)
                 for (t, coeff) in trees1
-                    for (t′, coeff′) in TK.braid(t, levels, perm)
+                    for (t′, coeff′) in braid(t, levels, perm)
                         trees3[t′] = get(trees3, t′, zero(valtype(trees3))) + coeff*coeff′
                     end
                 end
@@ -396,6 +519,26 @@ ti = time()
                                         (sz1′[1:end-1]..., sz2′[1:end-1]...))
                 end
                 @test Ap ≈ A2
+            end
+        end
+    end
+    @testset "Double fusion tree $Istr: planar trace" begin
+        d1 = transpose(f1, f1, (N+1, 1:N..., (2N:-1:N+3)...), (N+2,))
+        f1front, = TK.split(f1, N-1)
+        T = typeof(Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1,1,1])
+        d2 = Dict{typeof((f1front,f1front)), T}()
+        for ((f1′, f2′), coeff′) in d1
+            for ((f1′′,f2′′), coeff′′) in
+                TK.planar_trace(f1′, f2′, (2:N...,), (1, (2N:-1:N+3)...), (N+1,), (N+2,))
+                coeff = coeff′ * coeff′′
+                d2[(f1′′,f2′′)] = get(d2, (f1′′,f2′′), zero(coeff)) + coeff
+            end
+        end
+        for ((f1_,f2_), coeff) in d2
+            if (f1_,f2_) == (f1front, f1front)
+                @test coeff ≈ dim(f1.coupled)/dim(f1front.coupled)
+            else
+                @test abs(coeff) < 1e-12
             end
         end
     end

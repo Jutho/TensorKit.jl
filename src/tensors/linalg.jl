@@ -453,7 +453,7 @@ function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where S
                 c1 = f1l.coupled # = f1r.coupled
                 c2 = f2l.coupled # = f2r.coupled
                 for c in c1 ⊗ c2
-                    degeneracyiter = FusionStyle(c) isa DegenerateNonAbelian ?
+                    degeneracyiter = FusionStyle(c) isa GenericFusion ?
                                         (1:Nsymbol(c1, c2, c)) : (nothing,)
                     for μ in degeneracyiter
                         for (fl, coeff1) in merge(f1l, f2l, c, μ)

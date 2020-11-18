@@ -30,7 +30,7 @@ Base.iterate(::TensorKit.SectorValues{NewSU2Irrep}, i = 0) = (NewSU2Irrep(half(i
 
 # TensorKit.dim(s::NewSU2Irrep) = twice(s.j)+1
 #
-TensorKit.FusionStyle(::Type{NewSU2Irrep}) = DegenerateNonAbelian()
+TensorKit.FusionStyle(::Type{NewSU2Irrep}) = GenericFusion()
 TensorKit.BraidingStyle(::Type{NewSU2Irrep}) = Bosonic()
 Base.isreal(::Type{NewSU2Irrep}) = true
 

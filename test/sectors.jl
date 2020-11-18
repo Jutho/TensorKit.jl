@@ -67,7 +67,7 @@ ti = time()
                         Y2 = fusiontensor(a, f, d)
                         @tensor f1[-1,-2,-3,-4] := conj(Y2[a,f,d,-4])*conj(Y1[b,c,f,-3])*
                                                     X1[a,b,e,-1] * X2[e,c,d,-2]
-                        if FusionStyle(I) isa Union{Abelian,SimpleNonAbelian}
+                        if FusionStyle(I) isa MultiplicityFreeFusion
                             f2 = fill(Fsymbol(a,b,c,d,e,f)*dim(d), (1,1,1,1))
                         else
                             f2 = Fsymbol(a,b,c,d,e,f)*dim(d)
@@ -83,7 +83,7 @@ ti = time()
             for d in ⊗(a,b,c)
                 es = collect(intersect(⊗(a,b), map(dual, ⊗(c,dual(d)))))
                 fs = collect(intersect(⊗(b,c), map(dual, ⊗(dual(d),a))))
-                if FusionStyle(I) isa Union{Abelian,SimpleNonAbelian}
+                if FusionStyle(I) isa MultiplicityFreeFusion
                     @test length(es) == length(fs)
                     F = [Fsymbol(a,b,c,d,e,f) for e in es, f in fs]
                 else
@@ -105,7 +105,7 @@ ti = time()
             for f in ⊗(a,b), h in ⊗(c,d)
                 for g in ⊗(f,c), i in ⊗(b,h)
                     for e in intersect(⊗(g,d), ⊗(a,i))
-                        if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
+                        if FusionStyle(I) isa MultiplicityFreeFusion
                             p1 = Fsymbol(f,c,d,e,g,h) * Fsymbol(a,b,h,e,f,i)
                             p2 = zero(p1)
                             for j in ⊗(b,c)
@@ -134,7 +134,7 @@ ti = time()
         for a in smallset(I), b in smallset(I), c in smallset(I)
             for e in ⊗(c,a), g in ⊗(c,b)
                 for d in intersect(⊗(e,b), ⊗(a,g))
-                    if FusionStyle(I) isa Union{Abelian, SimpleNonAbelian}
+                    if FusionStyle(I) isa MultiplicityFreeFusion
                         p1 = Rsymbol(c,a,e)*Fsymbol(a,c,b,d,e,g)*Rsymbol(b,c,g)
                         p2 = zero(p1)
                         for f in ⊗(a,b)

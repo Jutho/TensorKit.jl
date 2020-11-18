@@ -50,7 +50,7 @@ function Base.show(io::IO, c::AbstractIrrep)
 end
 
 const AbelianIrrep{G} = AbstractIrrep{G} where {G<:AbelianGroup}
-FusionStyle(::Type{<:AbelianIrrep}) = Abelian()
+FusionStyle(::Type{<:AbelianIrrep}) = UniqueFusion()
 Base.isreal(::Type{<:AbelianIrrep}) = true
 
 Nsymbol(a::I, b::I, c::I) where {I<:AbelianIrrep} = c == first(a ⊗ b)
@@ -174,7 +174,7 @@ findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j)+1
 
 dim(s::SU2Irrep) = twice(s.j)+1
 
-FusionStyle(::Type{SU2Irrep}) = SimpleNonAbelian()
+FusionStyle(::Type{SU2Irrep}) = SimpleFusion()
 Base.isreal(::Type{SU2Irrep}) = true
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
@@ -183,7 +183,7 @@ function Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
     if all(==(_su2one), (s1, s2, s3, s4, s5, s6))
         return 1.0
     else
-        return sqrt(dim(s5) * dim(s6)) * WignerSymbols.racahW(Float64, s1.j, s2.j,
+        return sqrtdim(s5) * sqrtdim(s6) * WignerSymbols.racahW(Float64, s1.j, s2.j,
                                                                 s4.j, s3.j, s5.j, s6.j)
     end
 end
@@ -309,7 +309,7 @@ end
 
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
 
-FusionStyle(::Type{CU1Irrep}) = SimpleNonAbelian()
+FusionStyle(::Type{CU1Irrep}) = SimpleFusion()
 Base.isreal(::Type{CU1Irrep}) = true
 
 function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)

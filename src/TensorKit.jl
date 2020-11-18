@@ -9,7 +9,8 @@ module TensorKit
 #---------
 # Types:
 export Sector, AbstractIrrep, Irrep
-export FusionStyle, Abelian, NonAbelian, SimpleNonAbelian, DegenerateNonAbelian
+export FusionStyle, UniqueFusion, MultipleFusion, MultiplicityFreeFusion,
+        SimpleFusion, GenericFusion
 export BraidingStyle, SymmetricBraiding, Bosonic, Fermionic, Anyonic
 export Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
         #FermionParity, FermionNumber, FermionSpin # specific sectors
@@ -35,8 +36,11 @@ export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
         frobeniusschur, twist
+export fusiontrees, braid, permute, transpose
 export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
-export fusiontrees, braid, permute#, artin_braid, repartition, insertat, merge
+# other fusion tree manipulations, should not be exported:
+# export insertat, split, merge, repartition, artin_braid,
+#        bendleft, bendright, foldleft, foldright, cycleclockwise, cycleanticlockwise
 
 # some unicode
 export ⊕, ⊗, ×, ⊠, ℂ, ℝ, ℤ, ←, →, ≾, ≿, ≅, ≺, ≻
@@ -62,7 +66,7 @@ export leftorth, rightorth, leftnull, rightnull,
         leftorth!, rightorth!, leftnull!, rightnull!,
         tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
         isposdef, isposdef!, ishermitian, sylvester
-export braid!, permute!, transpose, transpose!, twist!
+export braid!, permute!, transpose!, twist!
 export catdomain, catcodomain
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,

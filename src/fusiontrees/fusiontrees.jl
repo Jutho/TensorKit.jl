@@ -8,9 +8,9 @@ sectors to a coupled sector. (It actually represents a splitting tree, but fusio
 is a more common term). The `isdual` field indicates whether an isomorphism is present
 (if the corresponding value is true) or not. The field `uncoupled` contains the sectors
 coming out of the splitting trees, before the possible 𝑍 isomorphism. This fusion tree
-has `M=max(0, N-2)` inner lines. Furthermore, for `FusionStyle(I) isa DegenerateNonAbelian`,
+has `M=max(0, N-2)` inner lines. Furthermore, for `FusionStyle(I) isa GenericFusion`,
 the `L=max(0, N-1)` corresponding vertices carry a label of type `T`. If `FusionStyle(I)
-isa Union{Abelian, SimpleNonAbelian}`, `T = Nothing`.
+isa MultiplicityFreeFusion, `T = Nothing`.
 """
 struct FusionTree{I<:Sector, N, M, L, T}
     uncoupled::NTuple{N, I}
@@ -46,7 +46,7 @@ function FusionTree{I}(uncoupled::NTuple{N, Any},
                         innerlines,
                         vertices = ntuple(n->nothing, max(0, N-1))
                         ) where {I<:Sector, N}
-    if FusionStyle(I) isa DegenerateNonAbelian
+    if FusionStyle(I) isa GenericFusion
         fusiontreetype(I, N)(map(s->convert(I, s), uncoupled),
             convert(I, coupled), isdual, map(s->convert(I, s), innerlines), vertices)
     else
@@ -65,7 +65,7 @@ function FusionTree(uncoupled::NTuple{N, I},
                         innerlines,
                         vertices = ntuple(n->nothing, max(0, N-1))
                         ) where {I<:Sector, N}
-    if FusionStyle(I) isa DegenerateNonAbelian
+    if FusionStyle(I) isa GenericFusion
         fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices)
     else
         vertices′ = ntuple(n->nothing, max(0, N-1))
@@ -79,15 +79,15 @@ end
 
 function FusionTree{I}(uncoupled::NTuple{N}, coupled = one(I),
                         isdual = ntuple(n->false, N)) where {I<:Sector, N}
-    FusionStyle(I) isa Abelian ||
-        error("fusion tree requires inner lines if `FusionStyle(I) <: NonAbelian`")
+    FusionStyle(I) isa UniqueFusion ||
+        error("fusion tree requires inner lines if `FusionStyle(I) <: MultipleFusion`")
     FusionTree{I}(map(s->convert(I, s), uncoupled), convert(I, coupled), isdual,
                     _abelianinner(map(s->convert(I, s), (uncoupled..., dual(coupled)))))
 end
 function FusionTree(uncoupled::NTuple{N, I}, coupled::I = one(I),
                         isdual = ntuple(n->false, N)) where {I<:Sector, N}
-    FusionStyle(I) isa Abelian ||
-        error("fusion tree requires inner lines if `FusionStyle(I) <: NonAbelian`")
+    FusionStyle(I) isa UniqueFusion ||
+        error("fusion tree requires inner lines if `FusionStyle(I) <: MultipleFusion`")
     FusionTree{I}(uncoupled, coupled, isdual, _abelianinner((uncoupled..., dual(coupled))))
 end
 
@@ -105,10 +105,10 @@ Base.length(f::FusionTree) = length(typeof(f))
 # Hashing, important for using fusion trees as key in a dictionary
 function Base.hash(f::FusionTree{I}, h::UInt) where {I}
     h = hash(f.isdual, hash(f.coupled, hash(f.uncoupled, h)))
-    if FusionStyle(I) isa NonAbelian
+    if FusionStyle(I) isa MultipleFusion
         h = hash(f.innerlines, h)
     end
-    if FusionStyle(I) isa DegenerateNonAbelian
+    if FusionStyle(I) isa GenericFusion
         h = hash(f.vertices, h)
     end
     return h
@@ -119,12 +119,12 @@ function Base.isequal(f1::FusionTree{I, N}, f2::FusionTree{I, N}) where {I<:Sect
         f1.uncoupled[i] == f2.uncoupled[i] || return false
         f1.isdual[i] == f2.isdual[i] || return false
     end
-    if FusionStyle(I) isa NonAbelian
+    if FusionStyle(I) isa MultipleFusion
         @inbounds for i=1:N-2
             f1.innerlines[i] == f2.innerlines[i] || return false
         end
     end
-    if FusionStyle(I) isa DegenerateNonAbelian
+    if FusionStyle(I) isa GenericFusion
         @inbounds for i=1:N-1
             f1.vertices[i] == f2.vertices[i] || return false
         end
@@ -152,13 +152,8 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 0}) where {I}
 end
 function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 1}) where {I}
     c = f.coupled
-    dc = dim(c)
     if f.isdual[1]
-        if FusionStyle(I) isa Abelian # for type stability
-            sqrtdc = 1
-        else
-            sqrtdc = sqrt(dc)
-        end
+        sqrtdc = sqrtdim(c)
         Zcbartranspose = sqrtdc * convert(A, fusiontensor(conj(c), c, one(c)))[:, :, 1, 1]
         X = conj!(Zcbartranspose) # we want Zcbar^†
     else
@@ -172,7 +167,7 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 2}) where {I}
     isduala, isdualb = f.isdual
     c = f.coupled
     da, db, dc = dim.((a, b, c))
-    μ = (FusionStyle(I) isa DegenerateNonAbelian) ? f.vertices[1] : 1
+    μ = (FusionStyle(I) isa GenericFusion) ? f.vertices[1] : 1
     C = convert(A, fusiontensor(a, b, c))[:, :, :, μ]
     X = C
     if isduala
