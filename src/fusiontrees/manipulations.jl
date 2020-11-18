@@ -158,7 +158,11 @@ operation is the inverse of `insertat` in the sense that if
     elseif M === N
         (f, FusionTree{I}((f.coupled,), f.coupled, (false,), (), ()))
     elseif M === 1
-        (FusionTree{I}((f.uncoupled[1],), f.uncoupled[1], (false,), (), ()), f)
+        isdual1 = (f.isdual[1],)
+        isdual2 = Base.setindex(f.isdual, false, 1)
+        f1 = FusionTree{I}((f.uncoupled[1],), f.uncoupled[1], isdual1, (), ())
+        f2 = FusionTree{I}(f.uncoupled, f.coupled, isdual2, f.innerlines, f.vertices)
+        return f1, f2
     elseif M === 0
         f1 = FusionTree{I}((), one(I), (), ())
         uncoupled2 = (one(I), f.uncoupled...)
