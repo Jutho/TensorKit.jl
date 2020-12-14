@@ -7,8 +7,8 @@ using TensorKit: ProductSector, fusiontensor
 using TensorOperations
 TensorOperations.disable_cache() # avoids memory overflow during CI?
 using Base.Iterators: take, product
-# using SUNRepresentations: SUNIrrep
-# const SU3Irrep = SUNIrrep{3}
+using SUNRepresentations: SUNIrrep
+const SU3Irrep = SUNIrrep{3}
 import LinearAlgebra
 
 include("newsectors.jl")
@@ -50,7 +50,7 @@ function hasfusiontensor(I::Type{<:Sector})
     end
 end
 
-sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep,# SU3Irrep,
+sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep, SU3Irrep,
               FibonacciAnyon, IsingAnyon, Z3Irrep ⊠ Z4Irrep, U1Irrep ⊠ SU2Irrep, SU2Irrep ⊠
               SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep, NewSU2Irrep ⊠ SU2Irrep, SU2Irrep ⊠
               NewSU2Irrep, Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
