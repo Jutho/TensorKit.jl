@@ -293,6 +293,7 @@ function leftorth!(t::TensorMap{<:EuclideanSpace};
     Rdata = SectorDict{I, A}()
     dims = SectorDict{I, Int}()
     for c in blocksectors(domain(t))
+        isempty(block(t,c)) && continue
         Q, R = _leftorth!(block(t, c), alg, atol)
         Qdata[c] = Q
         Rdata[c] = R
@@ -350,6 +351,7 @@ function rightorth!(t::TensorMap{<:EuclideanSpace};
     Qdata = SectorDict{I, A}()
     dims = SectorDict{I, Int}()
     for c in blocksectors(codomain(t))
+        isempty(block(t,c)) && continue
         L, Q = _rightorth!(block(t, c), alg, atol)
         Ldata[c] = L
         Qdata[c] = Q

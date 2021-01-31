@@ -906,13 +906,14 @@ in its image or coimage.
     The underlying algorithm used to compute this decomposition can be chosen among `QR()`,
     `QRpos()`, `QL()`, `QLpos()`, `SVD()`, `SDD()`, `Polar()`. `QR()` uses the underlying
     `qr` decomposition from `LinearAlgebra`, while `QRpos()` (the default) adds a correction
-    to that to make sure that the diagonal elements of `R` are positive. Both result in
-    block matrices in `R` which are upper triangular. `QL()` and `QLpos()` similarly result
-    in a lower triangular block matrices in `R`, but only work if all block matrices are
+    to that to make sure that the diagonal elements of `R` are positive.
+    Both result in upper triangular `R`, which are square when `t` is full rank and
+    surjective otherwise. `QL()` and `QLpos()` similarly result
+    in a lower triangular matrices in `R`, but only work if all block matrices are
     tall, i.e. `blockdim(codomain(t), c) >= blockdim(domain(t), c)` for all `c ∈
-    blocksectors(t)`. All of these methods assume `t` has full rank.
+    blocksectors(t)`.
 
-    If this is not the case, one can also use `alg = SVD()` or `alg = SDD()`, with extra
+    One can also use `alg = SVD()` or `alg = SDD()`, with extra
     keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then set
     `Q=U` and `R=Σ*Vʰ` from the corresponding singular value decomposition, where only
     these singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors
@@ -932,13 +933,12 @@ in its image or coimage.
     The underlying algorithm used to compute this decomposition can be chosen among `LQ()`,
     `LQpos()`, `RQ()`, `RQpos()`, `SVD()`, `SDD()`, `Polar()`. `LQ()` uses the underlying
     `qr` decomposition from `LinearAlgebra` on the transposed data, and leads to lower
-    triangular block matrices in `L`; `LQpos()` makes sure the diagonal elements are
-    positive. `RQ()` and `RQpos()` similarly result in upper triangular block matrices in
+    triangular matrices in `L`; `LQpos()` makes sure the diagonal elements are
+    positive. `RQ()` and `RQpos()` similarly result in upper triangular matrices in
     `L`, but only works for wide matrices, i.e. `blockdim(codomain(t), c) <=
-    blockdim(domain(t), c)` for all `c ∈ blocksectors(t)`. All of these methods assume `t`
-    has full rank.
+    blockdim(domain(t), c)` for all `c ∈ blocksectors(t)`.
 
-    If this is not the case, one can also use `alg = SVD()` or `alg = SDD()`, with extra
+    One can also use `alg = SVD()` or `alg = SDD()`, with extra
     keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then set
     `L=U*Σ` and `Q=Vʰ` from the corresponding singular value decomposition, where only these
     singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors in
