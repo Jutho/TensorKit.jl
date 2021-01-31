@@ -101,7 +101,6 @@ function Rsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon)
     end
 end
 
-Base.show(io::IO, ::Type{FibonacciAnyon}) = print(io, "FibonacciAnyon")
 function Base.show(io::IO, a::FibonacciAnyon)
     s = isone(a) ? ":I" : ":τ"
     return get(io, :typeinfo, nothing) === FibonacciAnyon ?
@@ -239,8 +238,6 @@ function Rsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon)
     end
     return complex(1.0)
 end
-
-Base.show(io::IO, ::Type{IsingAnyon}) = print(io, "IsingAnyon")
 
 function Base.show(io::IO, a::IsingAnyon)
     if get(io, :typeinfo, nothing) === IsingAnyon

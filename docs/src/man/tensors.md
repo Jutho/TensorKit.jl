@@ -907,18 +907,18 @@ in its image or coimage.
     `QRpos()`, `QL()`, `QLpos()`, `SVD()`, `SDD()`, `Polar()`. `QR()` uses the underlying
     `qr` decomposition from `LinearAlgebra`, while `QRpos()` (the default) adds a correction
     to that to make sure that the diagonal elements of `R` are positive.
-    Both result in upper triangular `R`, which are square when `t` is full rank and
-    surjective otherwise. `QL()` and `QLpos()` similarly result
-    in a lower triangular matrices in `R`, but only work if all block matrices are
-    tall, i.e. `blockdim(codomain(t), c) >= blockdim(domain(t), c)` for all `c ∈
-    blocksectors(t)`.
+    Both result in upper triangular `R`, which are square when `codomain(t) ≾ domain(t)`
+    and wide otherwise. `QL()` and `QLpos()` similarly result in a lower triangular
+    matrices in `R`, but only work in the former case, i.e. `codomain(t) ≾ domain(t)`,
+    which amounts to `blockdim(codomain(t), c) >= blockdim(domain(t), c)` for all
+    `c ∈ blocksectors(t)`.
 
-    One can also use `alg = SVD()` or `alg = SDD()`, with extra
-    keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then set
-    `Q=U` and `R=Σ*Vʰ` from the corresponding singular value decomposition, where only
-    these singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors
-    in `U`) are kept. More finegrained control on the chosen singular values can be
-    obtained with `tsvd` and its `trunc` keyword.
+    One can also use `alg = SVD()` or `alg = SDD()`, with extra keywords to control the
+    absolute (`atol`) or relative (`rtol`) tolerance. We then set `Q=U` and `R=Σ*Vʰ` from
+    the corresponding singular value decomposition, where only these singular values
+    `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors in `U`) are kept.
+    More finegrained control on the chosen singular values can be obtained with `tsvd` and
+    its `trunc` keyword.
 
     Finally, `Polar()` sets `Q=U*Vʰ` and `R = (Vʰ)'*Σ*Vʰ`, such that `R` is positive
     definite; in this case `SDD()` is used to actually compute the singular value
@@ -934,16 +934,17 @@ in its image or coimage.
     `LQpos()`, `RQ()`, `RQpos()`, `SVD()`, `SDD()`, `Polar()`. `LQ()` uses the underlying
     `qr` decomposition from `LinearAlgebra` on the transposed data, and leads to lower
     triangular matrices in `L`; `LQpos()` makes sure the diagonal elements are
-    positive. `RQ()` and `RQpos()` similarly result in upper triangular matrices in
-    `L`, but only works for wide matrices, i.e. `blockdim(codomain(t), c) <=
-    blockdim(domain(t), c)` for all `c ∈ blocksectors(t)`.
+    positive. The matrices `L` are square when `codomain(t) ≿ domain(t)` and tall otherwise.
+    Similarly, `RQ()` and `RQpos()` result in upper triangular matrices in `L`, but only
+    works if `codomain(t) ≿ domain(t)`, i.e. when
+    `blockdim(codomain(t), c) <= blockdim(domain(t), c)` for all `c ∈ blocksectors(t)`.
 
-    One can also use `alg = SVD()` or `alg = SDD()`, with extra
-    keywords to control the absolute (`atol`) or relative (`rtol`) tolerance. We then set
-    `L=U*Σ` and `Q=Vʰ` from the corresponding singular value decomposition, where only these
-    singular values `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors in
-    `Vʰ`) are kept. More finegrained control on the chosen singular values can be obtained
-    with `tsvd` and its `trunc` keyword.
+    One can also use `alg = SVD()` or `alg = SDD()`, with extra keywords to control the
+    absolute (`atol`) or relative (`rtol`) tolerance. We then set `L=U*Σ` and `Q=Vʰ` from
+    the corresponding singular value decomposition, where only these singular values
+    `σ >= max(atol, norm(t)*rtol)` (and corresponding singular vectors in `Vʰ`) are kept.
+    More finegrained control on the chosen singular values can be obtained with `tsvd` and
+    its `trunc` keyword.
 
     Finally, `Polar()` sets `L = U*Σ*U'` and `Q=U*Vʰ`, such that `L` is positive definite;
     in this case `SDD()` is used to actually compute the singular value decomposition and no
