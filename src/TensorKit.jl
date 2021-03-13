@@ -13,7 +13,7 @@ export FusionStyle, UniqueFusion, MultipleFusion, MultiplicityFreeFusion,
         SimpleFusion, GenericFusion
 export BraidingStyle, SymmetricBraiding, Bosonic, Fermionic, Anyonic
 export Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
-        #FermionParity, FermionNumber, FermionSpin # specific sectors
+export Fermion, FermionParity, FermionNumber, FermionSpin
 export FibonacciAnyon
 export IsingAnyon
 
@@ -45,6 +45,7 @@ export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
 # some unicode
 export ⊕, ⊗, ×, ⊠, ℂ, ℝ, ℤ, ←, →, ≾, ≿, ≅, ≺, ≻
 export ℤ₂, ℤ₃, ℤ₄, U₁, SU, SU₂, CU₁
+export fℤ₂, fU₁, fSU₂
 export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps

@@ -8,6 +8,11 @@ Vℤ₂ = (ℂ[Z2Irrep](0=>1, 1=>1),
         ℂ[Z2Irrep](0=>3, 1=>2)',
         ℂ[Z2Irrep](0=>2, 1=>3),
         ℂ[Z2Irrep](0=>2, 1=>5))
+Vfℤ₂ = (ℂ[FermionParity](0=>1, 1=>1),
+        ℂ[FermionParity](0=>1, 1=>2)',
+        ℂ[FermionParity](0=>3, 1=>2)',
+        ℂ[FermionParity](0=>2, 1=>3),
+        ℂ[FermionParity](0=>2, 1=>5))
 Vℤ₃ = (ℂ[Z3Irrep](0=>1, 1=>2, 2=>2),
         ℂ[Z3Irrep](0=>3, 1=>1, 2=>1),
         ℂ[Z3Irrep](0=>2, 1=>2, 2=>1)',
@@ -18,6 +23,11 @@ VU₁ = (ℂ[U1Irrep](0=>1, 1=>2, -1=>2),
         ℂ[U1Irrep](0=>2, 1=>2, -1=>1)',
         ℂ[U1Irrep](0=>1, 1=>2, -1=>3),
         ℂ[U1Irrep](0=>1, 1=>3, -1=>3)')
+VfU₁ = (ℂ[FermionNumber](0=>1, 1=>2, -1=>2),
+        ℂ[FermionNumber](0=>3, 1=>1, -1=>1),
+        ℂ[FermionNumber](0=>2, 1=>2, -1=>1)',
+        ℂ[FermionNumber](0=>1, 1=>2, -1=>3),
+        ℂ[FermionNumber](0=>1, 1=>3, -1=>3)')
 VCU₁ = (ℂ[CU1Irrep]((0,0)=>1, (0,1)=>2, 1=>1),
         ℂ[CU1Irrep]((0,0)=>3, (0,1)=>0, 1=>1),
         ℂ[CU1Irrep]((0,0)=>1, (0,1)=>0, 1=>2)',
@@ -28,13 +38,18 @@ VSU₂ = (ℂ[SU2Irrep](0=>3, 1//2=>1),
         ℂ[SU2Irrep](1//2=>1, 1=>1)',
         ℂ[SU2Irrep](0=>2, 1//2=>2),
         ℂ[SU2Irrep](0=>1, 1//2=>1, 3//2=>1)')
+VfSU₂ = (ℂ[FermionSpin](0=>3, 1//2=>1),
+            ℂ[FermionSpin](0=>2, 1=>1),
+            ℂ[FermionSpin](1//2=>1, 1=>1)',
+            ℂ[FermionSpin](0=>2, 1//2=>2),
+            ℂ[FermionSpin](0=>1, 1//2=>1, 3//2=>1)')
 VSU₃ = (ℂ[SU3Irrep]((0,0,0)=>3, (1,0,0)=>1),
                ℂ[SU3Irrep]((0,0,0)=>3, (2,0,0)=>1)',
                ℂ[SU3Irrep]((1,1,0)=>1, (2,1,0)=>1),
                ℂ[SU3Irrep]((1,0,0)=>1, (2,0,0)=>1),
                ℂ[SU3Irrep]((0,0,0)=>1, (1,0,0)=>1, (1,1,0)=>1)')
 
-for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂)#, VSU₃)
+for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests

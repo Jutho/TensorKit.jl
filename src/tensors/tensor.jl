@@ -79,7 +79,7 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
         size(data) == (dims(codom)..., dims(dom)...))
         throw(DimensionMismatch())
     end
-    if sectortype(S) === Trivial # For now, we can only accept array data for Trivial sectortype
+    if sectortype(S) === Trivial
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data2, codom, dom)

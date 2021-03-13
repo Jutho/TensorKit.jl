@@ -98,7 +98,11 @@ which case it is complex).
 """
 function Base.isreal(I::Type{<:Sector})
     u = one(I)
-    return (eltype(Fsymbol(u, u, u, u, u, u))<:Real) && (eltype(Rsymbol(u, u, u))<:Real)
+    if BraidingStyle(I) isa HasBraiding
+        return (eltype(Fsymbol(u, u, u, u, u, u))<:Real) && (eltype(Rsymbol(u, u, u))<:Real)
+    else
+        return (eltype(Fsymbol(u, u, u, u, u, u))<:Real)
+    end
 end
 Base.isreal(::Type{Trivial}) = true
 
@@ -379,6 +383,6 @@ end
 # possible sectors
 include("groups.jl")
 include("irreps.jl") # irreps of symmetry groups, with bosonic braiding
-# include("fermions.jl") # irreps with defined fermionparity and fermionic braiding
+include("fermions.jl") # irreps with defined fermionparity and fermionic braiding
 include("anyons.jl") # non-group sectors
 include("product.jl") # direct product of different sectors

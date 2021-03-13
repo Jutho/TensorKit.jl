@@ -1,17 +1,13 @@
 function cached_permute(sym::Symbol, t::TensorMap{S},
-                            p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S, N₁, N₂}
+                            p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=();
+                            copy::Bool = false) where {S, N₁, N₂}
     cod = ProductSpace{S, N₁}(map(n->space(t, n), p1))
     dom = ProductSpace{S, N₂}(map(n->dual(space(t, n)), p2))
-
     # share data if possible
-    if p1 === codomainind(t) && p2 === domainind(t)
-        return t
-    elseif isa(t, TensorMap) && sectortype(S) === Trivial
-        stridet = i->stride(t[], i)
-        sizet = i->size(t[], i)
-        canfuse1, d1, s1 = TensorOperations._canfuse(sizet.(p1), stridet.(p1))
-        canfuse2, d2, s2 = TensorOperations._canfuse(sizet.(p2), stridet.(p2))
-        if canfuse1 && canfuse2 && s1 == 1 && (d2 == 1 || s2 == d1)
+    if !copy
+        if p1 === codomainind(t) && p2 === domainind(t)
+            return t
+        elseif has_shared_permute(t, p1, p2)
             return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
         end
     end
@@ -23,11 +19,11 @@ function cached_permute(sym::Symbol, t::TensorMap{S},
 end
 
 function cached_permute(sym::Symbol, t::AdjointTensorMap{S},
-                            p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=()) where {S, N₁, N₂}
-
+                            p1::IndexTuple,  p2::IndexTuple=();
+                            copy::Bool = false) where {S, N₁, N₂}
     p1′ = adjointtensorindices(t, p2)
     p2′ = adjointtensorindices(t, p1)
-    adjoint(cached_permute(sym, adjoint(t), p1′, p2′))
+    adjoint(cached_permute(sym, adjoint(t), p1′, p2′; copy = copy))
 end
 
 scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace} =
@@ -254,21 +250,21 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     memcost4 += dB*(!hsp(B, oindB, cindB′′)) +
                 dA*(!hsp(A, cindA′′, oindA))
 
-    if min(memcost1, memcost2) <= min(memcost3, memcost4)
+    # if min(memcost1, memcost2) <= min(memcost3, memcost4)
         if memcost1 <= memcost2
             return _contract!(α, A, B, β, C, oindA, cindA′, oindB, cindB′, p1, p2, syms)
         else
             return _contract!(α, A, B, β, C, oindA, cindA′′, oindB, cindB′′, p1, p2, syms)
         end
-    else
-        p1′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p1)
-        p2′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p2)
-        if memcost3 <= memcost4
-            return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′, syms)
-        else
-            return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′, syms)
-        end
-    end
+    # else
+    #     p1′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p1)
+    #     p2′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p2)
+    #     if memcost3 <= memcost4
+    #         return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′, syms)
+    #     else
+    #         return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′, syms)
+    #     end
+    # end
 end
 
 function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
@@ -278,12 +274,30 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     p1::IndexTuple, p2::IndexTuple,
                     syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S, N₁, N₂}
 
+    if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
+        throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
+    end
+    copyA = false
+    if BraidingStyle(sectortype(S)) isa Fermionic
+        for i in cindA
+            if !isdual(space(A, i))
+                copyA = true
+            end
+        end
+    end
     if syms === nothing
-        A′ = permute(A, oindA, cindA)
+        A′ = permute(A, oindA, cindA; copy = copyA)
         B′ = permute(B, cindB, oindB)
     else
-        A′ = cached_permute(syms[1], A, oindA, cindA)
+        A′ = cached_permute(syms[1], A, oindA, cindA; copy = copyA)
         B′ = cached_permute(syms[2], B, cindB, oindB)
+    end
+    if BraidingStyle(sectortype(S)) isa Fermionic
+        for i in domainind(A′)
+            if !isdual(space(A′, i))
+                A′ = twist!(A′, i)
+            end
+        end
     end
     ipC = TupleTools.invperm((p1..., p2...))
     oindAinC = TupleTools.getindices(ipC, ntuple(n->n, N₁))

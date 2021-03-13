@@ -875,7 +875,7 @@ function braid(f::FusionTree{I, N},
         for i = 1:N
             for j = 1:i-1
                 if p[j] > p[i]
-                    a, b = f.uncoupled[j], f.uncoupled[i]
+                    a, b = f.uncoupled[p[j]], f.uncoupled[p[i]]
                     coeff *= Rsymbol(a, b, first(a ⊗ b))
                 end
             end

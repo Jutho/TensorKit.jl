@@ -11,13 +11,12 @@ codomain or range of the map, and indices in `p2` indicating the domain.
 To permute into an existing `tdst`, see [`add!`](@ref)
 """
 function permute(t::TensorMap{S},
-                    p1::IndexTuple, p2::IndexTuple=();
-                    copy::Bool = false) where {S}
-    cod = ProductSpace{S}(map(n->space(t, n), p1))
-    dom = ProductSpace{S}(map(n->dual(space(t, n)), p2))
-
+                    p1::IndexTuple{N₁},  p2::IndexTuple{N₂}=();
+                    copy::Bool = false) where {S, N₁, N₂}
+    cod = ProductSpace{S, N₁}(map(n->space(t, n), p1))
+    dom = ProductSpace{S, N₂}(map(n->dual(space(t, n)), p2))
+    # share data if possible
     if !copy
-        # share data if possible
         if p1 === codomainind(t) && p2 === domainind(t)
             return t
         elseif has_shared_permute(t, p1, p2)

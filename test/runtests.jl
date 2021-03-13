@@ -19,6 +19,7 @@ const TK = TensorKit
 Random.seed!(1234)
 
 smallset(::Type{I}) where {I<:Sector} = take(values(I), 5)
+smallset(::Type{FermionNumber}) = FermionNumber.((0, +1, -1, +2, -2))
 function smallset(::Type{ProductSector{Tuple{I1,I2}}}) where {I1,I2}
     iter = product(smallset(I1), smallset(I2))
     s = collect(i ⊠ j for (i,j) in iter if dim(i)*dim(j) <= 6)
@@ -51,9 +52,10 @@ function hasfusiontensor(I::Type{<:Sector})
 end
 
 sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep, SU3Irrep,
-              FibonacciAnyon, IsingAnyon, Z3Irrep ⊠ Z4Irrep, U1Irrep ⊠ SU2Irrep, SU2Irrep ⊠
-              SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep, NewSU2Irrep ⊠ SU2Irrep, SU2Irrep ⊠
-              NewSU2Irrep, Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
+              FibonacciAnyon, IsingAnyon, FermionParity, FermionNumber, FermionSpin,
+              FermionParity ⊠ FermionParity, Z3Irrep ⊠ Z4Irrep, FermionNumber ⊠ SU2Irrep,
+              FermionSpin ⊠ SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep, NewSU2Irrep ⊠ SU2Irrep,
+              FermionSpin ⊠ NewSU2Irrep, Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()
 include("sectors.jl")
