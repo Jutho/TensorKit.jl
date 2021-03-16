@@ -55,7 +55,24 @@ for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU�
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
 end
 
-for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+spacelist = try
+    if ENV["CI"] == true
+        println("Detected running on CI")
+        if Sys.iswindows()
+            (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂)
+        elseif Sys.isapple()
+            (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VfU₁, VfSU₂, VSU₃)
+        else
+            (Vtr, Vℤ₂, Vfℤ₂, VU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+        end
+    else
+        (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+    end
+catch
+    (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+end
+
+for V in spacelist
     I = sectortype(first(V))
     Istr = TensorKit.type_repr(I)
     println("---------------------------------------")
