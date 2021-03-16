@@ -49,13 +49,13 @@ VSU₃ = (ℂ[SU3Irrep]((0,0,0)=>3, (1,0,0)=>1),
                ℂ[SU3Irrep]((1,0,0)=>1, (2,0,0)=>1),
                ℂ[SU3Irrep]((0,0,0)=>1, (1,0,0)=>1, (1,1,0)=>1)')
 
-for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
+for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
 end
 
-for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂, VSU₃)
+for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
     I = sectortype(first(V))
     Istr = TensorKit.type_repr(I)
     println("---------------------------------------")
@@ -205,11 +205,18 @@ for V in (Vtr, Vℤ₂, Vℤ₃, VU₁, VCU₁, VSU₂, VSU₃)
         t2 = permute(t, (1,2), (4,3))
         s = @constinferred tr(t2)
         @test conj(s) ≈ tr(t2')
+        if !isdual(V1)
+            t2 = twist!(t2, 1)
+        end
+        if isdual(V2)
+            t2 = twist!(t2, 2)
+        end
+        ss = tr(t2)
         @tensor s2 = t[a,b,b,a]
         @tensor t3[a,b] := t[a,c,c,b]
         @tensor s3 = t3[a,a]
-        @test s ≈ s2
-        @test s ≈ s3
+        @test ss ≈ s2
+        @test ss ≈ s3
     end
     @timedtestset "Partial trace: test self-consistency" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')

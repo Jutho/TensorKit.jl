@@ -163,7 +163,10 @@ const _add_kernels = (_add_trivial_kernel!, _add_abelian_kernel!, _add_general_k
 function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N₁, N₂},
                 p1::IndexTuple{N₁}, p2::IndexTuple{N₂},
                 q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {S, N₁, N₂, N₃}
-    # TODO: check Frobenius-Schur indicators!, and  add fermions!
+
+    if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
+        throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
+    end
     @boundscheck begin
         all(i->space(tsrc, p1[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
@@ -203,6 +206,11 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S, N
                 f2′′, g2 = split(f2′, N₂)
                 if g1 == g2
                     coeff *= dim(g1.coupled)/dim(g1.uncoupled[1])
+                    for i = 2:length(g1.uncoupled)
+                        if !(g1.isdual[i])
+                            coeff *= twist(g1.uncoupled[i])
+                        end
+                    end
                     TO._trace!(α*coeff, tsrc[f1, f2], true, tdst[f1′′, f2′′], pdata, q1, q2)
                 end
             end
@@ -250,21 +258,21 @@ function contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     memcost4 += dB*(!hsp(B, oindB, cindB′′)) +
                 dA*(!hsp(A, cindA′′, oindA))
 
-    # if min(memcost1, memcost2) <= min(memcost3, memcost4)
+    if min(memcost1, memcost2) <= min(memcost3, memcost4)
         if memcost1 <= memcost2
             return _contract!(α, A, B, β, C, oindA, cindA′, oindB, cindB′, p1, p2, syms)
         else
             return _contract!(α, A, B, β, C, oindA, cindA′′, oindB, cindB′′, p1, p2, syms)
         end
-    # else
-    #     p1′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p1)
-    #     p2′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p2)
-    #     if memcost3 <= memcost4
-    #         return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′, syms)
-    #     else
-    #         return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′, syms)
-    #     end
-    # end
+    else
+        p1′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p1)
+        p2′ = map(n->ifelse(n>N₁, n-N₁, n+N₂), p2)
+        if memcost3 <= memcost4
+            return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′, syms)
+        else
+            return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′, syms)
+        end
+    end
 end
 
 function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
