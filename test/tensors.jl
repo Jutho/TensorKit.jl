@@ -56,7 +56,7 @@ for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU�
 end
 
 spacelist = try
-    if ENV["CI"] == true
+    if ENV["CI"] == "true"
         println("Detected running on CI")
         if Sys.iswindows()
             (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂)
