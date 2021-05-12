@@ -806,9 +806,9 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
         local newtrees
         for c′ in intersect(a ⊗ d, e ⊗ conj(b))
             coeff = oftype(oneT, if inv
-                    conj(Rsymbol(d, c, e)*Fsymbol(d, a, b, e, c′, c))*Rsymbol(a, d, c′)
+                    conj(Rsymbol(d, c, e)*Fsymbol(d, a, b, e, c′, c))*Rsymbol(d, a, c′)
                 else
-                    Rsymbol(c, d, e)*conj(Fsymbol(d, a, b, e, c′, c)*Rsymbol(d, a, c′))
+                    Rsymbol(c, d, e)*conj(Fsymbol(d, a, b, e, c′, c)*Rsymbol(a, d, c′))
                 end)
             iszero(coeff) && continue
             inner′ = TupleTools.setindex(inner, c′, i-1)
@@ -824,7 +824,7 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
         local newtrees
         for c′ in intersect(a ⊗ d, e ⊗ conj(b))
             Rmat1 = inv ? Rsymbol(d, c, e)' : Rsymbol(c, d, e)
-            Rmat2 = inv ? Rsymbol(a, d, c′) : Rsymbol(d, a, c′)'
+            Rmat2 = inv ? Rsymbol(d, a, c′) : Rsymbol(a, d, c′)'
             Fmat = Fsymbol(d, a, b, e, c′, c)
             μ = vertices[i-1]
             ν = vertices[i]
