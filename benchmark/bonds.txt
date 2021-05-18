@@ -1,4 +1,5 @@
-# warning: it's good to have about 32 GB of RAM or even more (64 GB)
+# Warning: it's good to have about 32 GB of RAM or even more (64 GB)
+# Warning: this should be both valid Python and valid Julia code
 
 mpodims_triv = ([ 10, 40, 160, 640, 2560, 100, 200, 300], # mps
                 [  4,  4,   4,   4,    4,  10,  10,  20], # mpo
@@ -25,7 +26,7 @@ pepodims_z2 = (     [  4,   4,  5,   5,  6,   6,   8,   8], # peps
 pepodims_u1 = (     [  4,   4,   6,   6,   8,   8,  10,  10], # peps
                     [  2,   4,   2,   3,   2,   2,   2,   3], # pepo
                     [  2,   4,   2,   4,   2,   4,   2,   2], # phys
-                    [100, 200, 100, 200, 100, 200, 100, 200]) # env
+                    [100, 200, 100, 200, 100, 200, 50, 100]) # env
 
 meradims_triv = ([2, 3, 4, 8, 12, 16],)
 meradims_z2 = ([2, 4, 8, 12, 16, 20],)
