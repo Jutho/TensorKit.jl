@@ -2,7 +2,6 @@
 *.jl.*.cov
 *.jl.mem
 .DS_Store
-benchmark-old/*
+*-old
 __pycache__
 .ipynb*
-benchmark/results*
