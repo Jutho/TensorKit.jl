@@ -68,7 +68,7 @@ function planar_unique2(allind)
     while removing
         removing = false
         i = 1
-        while i <= length(oind)
+        while i <= length(oind) && length(oind)>1
             j = mod1(i+1, length(oind))
             if oind[i] == oind[j]
                 deleteat!(oind, i)
