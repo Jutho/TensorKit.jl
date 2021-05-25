@@ -68,7 +68,7 @@ function planar_unique2(allind)
     while removing
         removing = false
         i = 1
-        while i <= length(oind)
+        while i <= length(oind) && length(oind) > 1
             j = mod1(i+1, length(oind))
             if oind[i] == oind[j]
                 deleteat!(oind, i)
@@ -84,11 +84,11 @@ end
 
 # remove intersection (contraction indices) from two cyclic sets
 function planar_complement(ind1, ind2)
-    N1, N2 = length(ind1), length(ind2)
     j1 = findfirst(in(ind2), ind1)
     if j1 === nothing
-        return [], []
+        return ind1, ind2
     else
+        N1, N2 = length(ind1), length(ind2)
         j2 = findfirst(==(ind1[j1]), ind2)
         jmax1 = j1
         jmin2 = j2
@@ -121,7 +121,7 @@ function _check_planarity(ex::Expr)
     elseif TO.isassignment(ex) || TO.isdefinition(ex)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
         if TO.istensorexpr(rhs)
-            indlhs = get_planar_indices(lhs)
+            indlhs = TO.istensorexpr(lhs) ? get_planar_indices(lhs) : []
             indrhs = get_planar_indices(rhs)
             (length(indlhs) == length(indrhs) &&
                 iscyclicpermutation(indexin(indrhs, indlhs))) || not_planar_err()
