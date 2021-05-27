@@ -1,5 +1,5 @@
 using DelimitedFiles
-using Plots, StatsPlots
+using Plots, StatsPlots, Measures
 gr()
 
 M = 1 # markersize
@@ -24,7 +24,7 @@ for j = 1:3
     ymin = minimum(data_tensorkit)
     ymax = maximum(data_tensorkit)
     data_itensors = try
-        readdlm("results/itensors"*s)
+        readdlm("results/itensors"*s) - readdlm("results/itensors"*s[1:end-4]*"_gc.txt")
     catch
         nothing
     end

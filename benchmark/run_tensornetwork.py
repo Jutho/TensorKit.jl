@@ -6,7 +6,7 @@ import tensornetwork as tn
 import numpy as np
 import tensornetwork_timers
 
-K = 1 # number of repititions; scale up for more reliable testing.
+K = 100 # number of repititions; scale up for more reliable testing.
 
 Triv = 0
 Z2 = tn.Z2Charge
