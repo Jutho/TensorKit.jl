@@ -879,7 +879,7 @@ To couple or fuse the different sectors together into a single block sector, we 
 sequentially fuse together two sectors into a single coupled sector, which is then fused
 with the next uncoupled sector, using the splitting tensors ``X_{a,b}^{c,μ} : R_c → R_a ⊗
 R_b`` and their adjoints. This amounts to the canonical choice of our tensor product, and
-for a given tensor mapping from ``(((W_1 ⊗ V_2) ⊗ V_3) ⊗ … )⊗ W_{N_2})`` to ``(((V_1 ⊗ V_2)
+for a given tensor mapping from ``(((W_1 ⊗ W_2) ⊗ W_3) ⊗ … )⊗ W_{N_2})`` to ``(((V_1 ⊗ V_2)
 ⊗ V_3) ⊗ … )⊗ V_{N_1})``, the corresponding fusion and splitting trees take the form
 
 ![double fusion tree](img/tree-simple.svg)
