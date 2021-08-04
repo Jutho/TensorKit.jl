@@ -312,22 +312,22 @@ const _TOFUNCTIONS = (:similar_from_indices, :cached_similar_from_indices,
 function _add_modules(ex::Expr)
     if ex.head == :call && ex.args[1] in _TOFUNCTIONS
         return Expr(ex.head, GlobalRef(TensorOperations, ex.args[1]),
-                        (ex.args[i] for i in 2:length(ex.args))...)
+                        (_add_modules(ex.args[i]) for i in 2:length(ex.args))...)
     elseif ex.head == :call && ex.args[1] == :add!
         @assert ex.args[4] == :(:N)
         argind = [2,3,5,6,7,8]
         return Expr(ex.head, GlobalRef(TensorKit, Symbol(:planar_add!)),
-                        (ex.args[i] for i in argind)...)
+                        (_add_modules(ex.args[i]) for i in argind)...)
     elseif ex.head == :call && ex.args[1] == :trace!
         @assert ex.args[4] == :(:N)
         argind = [2,3,5,6,7,8,9,10]
         return Expr(ex.head, GlobalRef(TensorKit, Symbol(:planar_trace!)),
-                        (ex.args[i] for i in argind)...)
+                        (_add_modules(ex.args[i]) for i in argind)...)
     elseif ex.head == :call && ex.args[1] == :contract!
         @assert ex.args[4] == :(:N) && ex.args[6] == :(:N)
         argind = vcat([2,3,5], 7:length(ex.args))
         return Expr(ex.head, GlobalRef(TensorKit, Symbol(:planar_contract!)),
-                        (ex.args[i] for i in argind)...)
+                        (_add_modules(ex.args[i]) for i in argind)...)
     else
         return Expr(ex.head, (_add_modules(e) for e in ex.args)...)
     end
