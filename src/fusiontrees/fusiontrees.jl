@@ -135,7 +135,7 @@ Base.isequal(f1::FusionTree, f2::FusionTree) = false
 
 
 # Facilitate getting correct fusion tree types
-Base.@pure function fusiontreetype(::Type{I}, N::Int) where {I<:Sector}
+function fusiontreetype(::Type{I}, N::Int) where {I<:Sector}
     if N === 0
         FusionTree{I, 0, 0, 0, vertex_labeltype(I)}
     elseif N === 1
