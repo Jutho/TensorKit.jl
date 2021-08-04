@@ -223,18 +223,23 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
 end
 
 function _extract_tensormap_objects(ex)
-    inputtensors = TO.getinputtensorobjects(ex)
-    outputtensors = TO.getoutputtensorobjects(ex)
+    inputtensors = _remove_adjoint.(TO.getinputtensorobjects(ex))
+    outputtensors = _remove_adjoint.(TO.getoutputtensorobjects(ex))
     newtensors = TO.getnewtensorobjects(ex)
+    @assert !any(_is_adjoint, newtensors)
     existingtensors = unique!(vcat(inputtensors, outputtensors))
     alltensors = unique!(vcat(existingtensors, newtensors))
     tensordict = Dict{Any,Any}(a => gensym() for a in alltensors)
     pre = Expr(:block, [Expr(:(=), tensordict[a], a) for a in existingtensors]...)
     pre2 = Expr(:block)
     ex = TO.replacetensorobjects(ex) do obj, leftind, rightind
+        _is_adj = _is_adjoint(obj)
+        if _is_adj
+            leftind, rightind = rightind, leftind
+            obj = _remove_adjoint(obj)
+        end
         newobj = get(tensordict, obj, obj)
-        obj == newobj && return obj
-        if !(obj in newtensors)
+        if (obj in existingtensors)
             nl = length(leftind)
             nr = length(rightind)
             nlsym = gensym()
@@ -250,7 +255,7 @@ function _extract_tensormap_objects(ex)
             end
             push!(pre2.args, checksize)
         end
-        return newobj
+        return _is_adj ? _restore_adjoint(newobj) : newobj
     end
     post = Expr(:block, [Expr(:(=), a, tensordict[a]) for a in newtensors]...)
     pre = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), pre)
@@ -258,6 +263,9 @@ function _extract_tensormap_objects(ex)
     post = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), post)
     return Expr(:block, pre, pre2, ex, post)
 end
+_is_adjoint(ex) = isa(ex, Expr) && ex.head == TO.prime
+_remove_adjoint(ex) = _is_adjoint(ex) ? ex.args[1] : ex
+_restore_adjoint(ex) = Expr(TO.prime, ex)
 
 function _update_temporaries(ex, temporaries)
     if ex isa Expr && ex.head == :(=)
