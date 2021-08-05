@@ -304,7 +304,7 @@ function foldright(f1::FusionTree{I, N₁}, f2::FusionTree{I, N₂}) where {I<:S
         c = first(c1 ⊗ c2)
         fl = FusionTree{I}(Base.tail(f1.uncoupled), c, Base.tail(f1.isdual))
         fr = FusionTree{I}((c1, f2.uncoupled...), c, (!isduala, f2.isdual...))
-        return fusiontreedict(I)((fl,fr)=>1)
+        return fusiontreedict(I)((fl, fr) => factor)
     else
         a = f1.uncoupled[1]
         isduala = f1.isdual[1]
