@@ -355,12 +355,18 @@ end
 # -> composite manipulations that depend on the duality (rigidity) and pivotal structure
 # -> planar manipulations that do not require braiding, everything is in Fsymbol (A/Bsymbol)
 # -> transpose expressed as cyclic permutation
+# one-argument version: check whether `p` is a cyclic permutation (of `1:length(p)`)
 function iscyclicpermutation(p)
     N = length(p)
     @inbounds for i = 1:N
         p[mod1(i+1, N)] == mod1(p[i] + 1, N) || return false
     end
     return true
+end
+# two-argument version: check whether `v1` is a cyclic permutation of `v2`
+function iscyclicpermutation(v1, v2)
+    length(v1) == length(v2) || return false
+    return iscyclicpermutation(indexin(v1, v2))
 end
 
 # clockwise cyclic permutation while preserving (N₁, N₂): foldright & bendleft

@@ -1,4 +1,5 @@
-@noinline not_planar_err() = throw(ArgumentError("not a planar diagram"))
+@noinline not_planar_err() = throw(ArgumentError("not a planar diagram expression"))
+@noinline not_planar_err(ex) = throw(ArgumentError("not a planar diagram expression: $ex"))
 
 macro planar(ex::Expr)
     return esc(planar_parser(ex))
@@ -8,15 +9,18 @@ end
 
 function planar_parser(ex::Expr)
     parser = TO.TensorParser()
-    parser.preprocessors[end] = _extract_tensormap_objects
+
+    pop!(parser.preprocessors) # remove TO.extracttensorobjects
     push!(parser.preprocessors, _conj_to_adjoint)
     treebuilder = parser.contractiontreebuilder
     treesorter = parser.contractiontreesorter
     push!(parser.preprocessors, ex->TO.processcontractions(ex, treebuilder, treesorter))
     push!(parser.preprocessors, ex->_check_planarity(ex))
+    push!(parser.preprocessors, _extract_tensormap_objects)
     temporaries = Vector{Symbol}()
     push!(parser.preprocessors, ex->_decompose_planar_contractions(ex, temporaries))
-    deleteat!(parser.postprocessors, length(parser.postprocessors))
+
+    pop!(parser.postprocessors) # remove TO.addtensoroperations
     push!(parser.postprocessors, ex->_update_temporaries(ex, temporaries))
     push!(parser.postprocessors, ex->_annotate_temporaries(ex, temporaries))
     push!(parser.postprocessors, _add_modules)
@@ -26,7 +30,7 @@ end
 function _conj_to_adjoint(ex::Expr)
     if ex.head == :call && ex.args[1] == :conj && TO.istensor(ex.args[2])
         obj, leftind, rightind = TO.decomposetensor(ex.args[2])
-        return Expr(:typed_vcat, Expr(:call, :adjoint, obj),
+        return Expr(:typed_vcat, Expr(TO.prime, obj),
                         Expr(:tuple, rightind...), Expr(:tuple, leftind...))
     else
         return Expr(ex.head, [_conj_to_adjoint(a) for a in ex.args]...)
@@ -34,28 +38,38 @@ function _conj_to_adjoint(ex::Expr)
 end
 _conj_to_adjoint(ex) = ex
 
-function get_planar_indices(ex::Expr)
+function get_possible_planar_indices(ex::Expr)
     @assert TO.istensorexpr(ex)
     if TO.isgeneraltensor(ex)
         _,leftind,rightind = TO.decomposegeneraltensor(ex)
         ind = planar_unique2(vcat(leftind, reverse(rightind)))
-        length(ind) == length(unique(ind)) || not_planar_err()
-        return ind
+        return length(ind) == length(unique(ind)) ? Any[ind] : Any[]
     elseif ex.head == :call && (ex.args[1] == :+ || ex.args[1] == :-)
-        ind = get_planar_indices(ex.args[2])
+        inds = get_possible_planar_indices(ex.args[2])
+        keep = fill(true, length(inds))
         for i = 3:length(ex.args)
-            ind′ = get_planar_indices(ex.args[i])
-            (length(ind) == length(ind′) && iscyclicpermutation(indexin(ind′, ind))) ||
-                not_planar_err()
+            inds′ = get_possible_planar_indices(ex.args[i])
+            keepᵢ = fill(false, length(inds))
+            for (j, ind) in enumerate(inds), ind′ in inds′
+                if iscyclicpermutation(ind′, ind)
+                    keepᵢ[j] = true
+                end
+            end
+            keep .&= keepᵢ
+            any(keep) || break # give up early if keep is all false
         end
-        return ind
+        return inds[keep]
     elseif ex.head == :call && ex.args[1] == :*
         @assert length(ex.args) == 3
-        ind1 = get_planar_indices(ex.args[2])
-        ind2 = get_planar_indices(ex.args[3])
-        indo1, indo2 = planar_complement(ind1, ind2)
-        isempty(intersect(indo1, indo2)) || not_planar_err()
-        return vcat(indo1, indo2)
+        inds1 = get_possible_planar_indices(ex.args[2])
+        inds2 = get_possible_planar_indices(ex.args[3])
+        inds = Any[]
+        for ind1 in inds1, ind2 in inds2
+            for (oind1, oind2, cind1, cind2) in possible_planar_complements(ind1, ind2)
+                push!(inds, vcat(oind1, oind2))
+            end
+        end
+        return inds
     else
         return Any[]
     end
@@ -83,11 +97,15 @@ function planar_unique2(allind)
 end
 
 # remove intersection (contraction indices) from two cyclic sets
-function planar_complement(ind1, ind2)
+function possible_planar_complements(ind1, ind2)
+    # quick return path
+    (isempty(ind1) || isempty(ind2)) && return Any[(ind1, ind2, Any[], Any[])]
+    # general case:
     j1 = findfirst(in(ind2), ind1)
-    if j1 === nothing
-        return ind1, ind2
-    else
+    if j1 === nothing # disconnected diagrams, can be made planar in various ways
+        return Any[(circshift(ind1, i-1), circshift(ind2, j-1), Any[], Any[])
+                    for i ∈ eachindex(ind1), j ∈ eachindex(ind2)]
+    else # genuine contraction
         N1, N2 = length(ind1), length(ind2)
         j2 = findfirst(==(ind1[j1]), ind2)
         jmax1 = j1
@@ -110,9 +128,11 @@ function planar_complement(ind1, ind2)
         end
         indo1 = jmin1 < 1 ? ind1[(jmax1+1):mod1(jmin1-1, N1)] :
                     vcat(ind1[(jmax1+1):N1], ind1[1:(jmin1-1)])
+        cind1 = jmin1 < 1 ? vcat(ind1[mod1(jmin1, N1):N1], ind1[1:jmax1]) : ind1[jmin1:jmax1]
         indo2 = jmin2 < 1 ? ind2[(jmax2+1):mod1(jmin2-1, N2)] :
                     vcat(ind2[(jmax2+1):N2], ind2[1:(jmin2-1)])
-        return indo1, indo2
+        cind2 = reverse(cind1)
+        return isempty(intersect(indo1, indo2)) ? Any[(indo1, indo2, cind1, cind2)] : Any[]
     end
 end
 
@@ -121,10 +141,16 @@ function _check_planarity(ex::Expr)
     elseif TO.isassignment(ex) || TO.isdefinition(ex)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
         if TO.istensorexpr(rhs)
-            indlhs = TO.istensorexpr(lhs) ? get_planar_indices(lhs) : []
-            indrhs = get_planar_indices(rhs)
-            (length(indlhs) == length(indrhs) &&
-                iscyclicpermutation(indexin(indrhs, indlhs))) || not_planar_err()
+            if TO.istensorexpr(lhs)
+                @assert TO.istensor(lhs)
+                indlhs = only(get_possible_planar_indices(lhs)) # should have only one element
+            else
+                indlhs = Any[]
+            end
+            indsrhs = get_possible_planar_indices(rhs)
+            isempty(indsrhs) && not_planar_err(rhs)
+            i = findfirst(ind -> iscyclicpermutation(ind, indlhs), indsrhs)
+            i === nothing && not_planar_err(ex)
         end
     else
         foreach(ex.args) do a
@@ -133,8 +159,10 @@ function _check_planarity(ex::Expr)
     end
     return ex
 end
-_check_planarity(ex, leftind = nothing, rightind = nothing) = ex
+_check_planarity(ex) = ex
 
+# decompose contraction trees in order to fix index order of temporaries
+# to ensure that planarity is guaranteed
 _decompose_planar_contractions(ex, temporaries) = ex
 function _decompose_planar_contractions(ex::Expr, temporaries)
     if ex.head == :macrocall && ex.args[1] == Symbol("@notensor")
@@ -150,6 +178,11 @@ function _decompose_planar_contractions(ex::Expr, temporaries)
             return ex
         end
     end
+    if TO.istensorexpr(ex)
+        pre = Vector{Any}()
+        rhs = _extract_contraction_pairs(ex, (Any[], Any[]), pre, temporaries)
+        return Expr(:block, pre..., rhs)
+    end
     if ex.head == :block
         return Expr(ex.head,
                     [_decompose_planar_contractions(a, temporaries) for a in ex.args]...)
@@ -161,56 +194,83 @@ function _decompose_planar_contractions(ex::Expr, temporaries)
     return ex
 end
 
+# decompose a contraction into elementary binary contractions of tensors without inner traces
+# if lhs is an expression, it contains the existing lhs and thus the index order
+# if lhs is a tuple, the result is a temporary object and the tuple (lind, rind) gives a suggestion for the preferred index order
 function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
     if TO.isgeneraltensor(rhs)
-        if TO.hastraceindices(rhs) && lhs === nothing
+        if TO.hastraceindices(rhs) && lhs isa Tuple
             s = gensym()
-            ind = get_planar_indices(rhs)
-            lhs = Expr(:typed_vcat, s, Expr(:tuple, ind...), Expr(:tuple))
+            newlhs = Expr(:typed_vcat, s, Expr(:tuple, lhs[1]...), Expr(:tuple, lhs[2]...))
             push!(temporaries, s)
-            push!(pre, Expr(:(:=), lhs, rhs))
-            return lhs
+            push!(pre, Expr(:(:=), newlhs, rhs))
+            return newlhs
         else
             return rhs
         end
     elseif rhs.head == :call && rhs.args[1] == :*
         @assert length(rhs.args) == 3
-        a1 = _extract_contraction_pairs(rhs.args[2], nothing, pre, temporaries)
-        a2 = _extract_contraction_pairs(rhs.args[3], nothing, pre, temporaries)
-        ind1 = get_planar_indices(a1)
-        ind2 = get_planar_indices(a2)
-        oind1, oind2 = planar_complement(ind1, ind2)
+
+        if lhs isa Expr
+            _, leftind, rightind = TO.decomposetensor(lhs)
+        else
+            leftind, rightind = lhs
+        end
+        lhs_ind = vcat(leftind, reverse(rightind))
+
+        # find possible planar order
+        rhs_inds = Any[]
+        for ind1 in get_possible_planar_indices(rhs.args[2])
+            for ind2 in get_possible_planar_indices(rhs.args[3])
+                for (oind1, oind2, cind1, cind2) in possible_planar_complements(ind1, ind2)
+                    if iscyclicpermutation(vcat(oind1, oind2), lhs_ind)
+                        push!(rhs_inds, (ind1, ind2, oind1, oind2, cind1, cind2))
+                    end
+                    isempty(rhs_inds) || break
+                end
+                isempty(rhs_inds) || break
+            end
+            isempty(rhs_inds) || break
+        end
+        ind1, ind2, oind1, oind2, cind1, cind2 = only(rhs_inds) # inds_rhs should hold exactly one match
+        if all(in(leftind), oind2) && all(in(rightind), oind1) # reverse order
+            a1 = _extract_contraction_pairs(rhs.args[3], (oind2, reverse(cind2)), pre, temporaries)
+            a2 = _extract_contraction_pairs(rhs.args[2], (cind1, reverse(oind1)), pre, temporaries)
+        else
+            a1 = _extract_contraction_pairs(rhs.args[2], (oind1, reverse(cind1)), pre, temporaries)
+            a2 = _extract_contraction_pairs(rhs.args[3], (cind2, reverse(oind2)), pre, temporaries)
+        end
+        # note that index order in _extract... is only a suggestion, now we have actual index order
         _, l1, r1, = TO.decomposegeneraltensor(a1)
         _, l2, r2, = TO.decomposegeneraltensor(a2)
-        if all(in(r1), oind1) && all(in(l2), oind2)
+        if all(in(r1), oind1) && all(in(l2), oind2) # reverse order
             a1, a2 = a2, a1
             ind1, ind2 = ind2, ind1
             oind1, oind2 = oind2, oind1
         end
-        if lhs === nothing
+        if lhs isa Tuple
             rhs = Expr(:call, :*, a1, a2)
             s = gensym()
-            lhs = Expr(:typed_vcat, s, Expr(:tuple, oind1...),
+            newlhs = Expr(:typed_vcat, s, Expr(:tuple, oind1...),
                                         Expr(:tuple, reverse(oind2)...))
             push!(temporaries, s)
-            push!(pre, Expr(:(:=), lhs, rhs))
-            return lhs
+            push!(pre, Expr(:(:=), newlhs, rhs))
+            return newlhs
         else
-            _, leftind, rightind = TO.decomposetensor(lhs)
             if leftind == oind1 && rightind == reverse(oind2)
                 rhs = Expr(:call, :*, a1, a2)
                 return rhs
-            elseif leftind == oind2 && rightind == reverse(oind1)
+            elseif leftind == oind2 && rightind == reverse(oind1) # probably this can not happen anymore
                 rhs = Expr(:call, :*, a2, a1)
                 return rhs
             else
                 rhs = Expr(:call, :*, a1, a2)
                 s = gensym()
-                lhs = Expr(:typed_vcat, s, Expr(:tuple, oind1...),
+                newlhs = Expr(:typed_vcat, s, Expr(:tuple, oind1...),
                                             Expr(:tuple, reverse(oind2)...))
                 push!(temporaries, s)
-                push!(pre, Expr(:(:=), lhs, rhs))
-                return lhs
+                push!(pre, Expr(:(:=), newlhs, rhs))
+                return newlhs
             end
         end
     elseif rhs.head == :call && rhs.args[1] ∈ (:+, :-)
@@ -222,6 +282,9 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
     end
 end
 
+# replacement of TensorOperations functionality:
+# adds checks for matching number of domain and codomain indices
+# special cases adjoints so that t and t' are considered the same object
 function _extract_tensormap_objects(ex)
     inputtensors = _remove_adjoint.(TO.getinputtensorobjects(ex))
     outputtensors = _remove_adjoint.(TO.getoutputtensorobjects(ex))
@@ -267,6 +330,10 @@ _is_adjoint(ex) = isa(ex, Expr) && ex.head == TO.prime
 _remove_adjoint(ex) = _is_adjoint(ex) ? ex.args[1] : ex
 _restore_adjoint(ex) = Expr(TO.prime, ex)
 
+# since temporaries were taken out in preprocessing, they are not identified by the parsing
+# step of TensorOperations, and we have to manually fix this
+# Step 1: we have to find the new name that TO.tensorify assigned to these temporaries
+# since it parses `tmp[] := a[] * b[]` as `newtmp = similar...; tmp = contract!(.... , newtmp, ...)`
 function _update_temporaries(ex, temporaries)
     if ex isa Expr && ex.head == :(=)
         lhs = ex.args[1]
@@ -286,7 +353,7 @@ function _update_temporaries(ex, temporaries)
     end
     return ex
 end
-
+# Step 2: we find `newtmp = similar_from_...` and replace with `newtmp = cached_similar_from...`
 function _annotate_temporaries(ex, temporaries)
     if ex isa Expr && ex.head == :(=)
         lhs = ex.args[1]
@@ -377,23 +444,54 @@ end
 
 _cyclicpermute(t::Tuple) = (Base.tail(t)..., t[1])
 _cyclicpermute(t::Tuple{}) = ()
-function reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+function reorder_indices(codA, domA, codB, domB, oindA, oindB, p1, p2)
     N₁ = length(oindA)
     N₂ = length(oindB)
-    @assert all(x->x in p1, 1:N₁)
-    @assert all(x->x in p2, N₁ .+ (1:N₂))
+    @assert length(p1) == N₁ && all(in(p1), 1:N₁)
+    @assert length(p2) == N₂ && all(in(p2), N₁ .+ (1:N₂))
     oindA2 = TupleTools.getindices(oindA, p1)
     oindB2 = TupleTools.getindices(oindB, p2 .- N₁)
     indA = (codA..., reverse(domA)...)
     indB = (codB..., reverse(domB)...)
+    # cycle indA to be of the form (oindA2..., reverse(cindA2)...)
     while length(oindA2) > 0 && indA[1] != oindA2[1]
         indA = _cyclicpermute(indA)
     end
-    while length(oindB2) > 0 && indB[1] != oindB2[end]
+    # cycle indA to be of the form (cindB2..., reverse(oindB2)...)
+    while length(oindB2) > 0 && indB[end] != oindB2[1]
         indB = _cyclicpermute(indB)
     end
-    cindA2 = reverse(TensorOperations.tsetdiff(indA, oindA2))
-    cindB2 = TensorOperations.tsetdiff(indB, reverse(oindB2))
+    for i = 2:N₁
+        @assert indA[i] == oindA2[i]
+    end
+    for j = 2:N₂
+        @assert indB[end - j] == oindB2[j]
+    end
+    Nc = length(indA) - N₁
+    @assert Nc == length(indB) - N₂
+    pc = ntuple(identity, Nc)
+    cindA2 = reverse(TupleTools.getindices(indA, N₁ .+ pc))
+    cindB2 = TupleTools.getindices(indB, pc)
+    return oindA2, cindA2, oindB2, cindB2
+end
+function reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+    oindA2, cindA2, oindB2, cindB2 =
+        reorder_indices(codA, domA, codB, domB, oindA, oindB, p1, p2)
+
+    #if oindA or oindB are empty, then reorder indices can only order it correctly up to a cyclic permutation!
+    if isempty(oindA2) && !isempty(cindA)
+         # isempty(cindA) is a cornercase which I'm not sure if we can encounter
+        hit = cindA[findfirst(==(first(cindB2)), cindB)];
+        while hit != first(cindA2)
+            cindA2 = _cyclicpermute(cindA2)
+        end
+    end
+    if isempty(oindB2) && !isempty(cindB)
+        hit = cindB[findfirst(==(first(cindA2)), cindA)]
+        while hit != first(cindB2)
+            cindB2 = _cyclicpermute(cindB2)
+        end
+    end
     @assert TupleTools.sort(cindA) == TupleTools.sort(cindA2)
     @assert TupleTools.sort(tuple.(cindA2, cindB2)) == TupleTools.sort(tuple.(cindA, cindB))
     return oindA2, cindA2, oindB2, cindB2
@@ -404,7 +502,7 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                             oindA::IndexTuple{N₁}, cindA::IndexTuple,
                             oindB::IndexTuple{N₂}, cindB::IndexTuple,
                             p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S, N₁, N₂}
+                            syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S, N₁, N₂}
 
     codA = codomainind(A)
     domA = domainind(A)
@@ -416,13 +514,21 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     if oindA == codA && cindA == domA
         A′ = A
     else
-        A′ = TO.cached_similar_from_indices(syms[1], eltype(A), oindA, cindA, A, :N)
+        if isnothing(syms)
+            A′ = TO.similar_from_indices(eltype(A), oindA, cindA, A, :N)
+        else
+            A′ = TO.cached_similar_from_indices(syms[1], eltype(A), oindA, cindA, A, :N)
+        end
         add_transpose!(true, A, false, A′, oindA, cindA)
     end
     if cindB == codB && oindB == domB
         B′ = B
     else
-        B′ = TO.cached_similar_from_indices(syms[2], eltype(B), cindB, oindB, B, :N)
+        if isnothing(syms)
+            B′ = TO.similar_from_indices(eltype(B), cindB, oindB, B, :N)
+        else
+            B′ = TO.cached_similar_from_indices(syms[2], eltype(B), cindB, oindB, B, :N)
+        end
         add_transpose!(true, B, false, B′, cindB, oindB)
     end
     mul!(C, A′, B′, α, β)
