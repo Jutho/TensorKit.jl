@@ -236,6 +236,8 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
         if all(in(leftind), oind2) && all(in(rightind), oind1) # reverse order
             a1 = _extract_contraction_pairs(rhs.args[3], (oind2, reverse(cind2)), pre, temporaries)
             a2 = _extract_contraction_pairs(rhs.args[2], (cind1, reverse(oind1)), pre, temporaries)
+            oind1, oind2 = oind2, oind1
+            cind1, cind2 = cind2, cind1
         else
             a1 = _extract_contraction_pairs(rhs.args[2], (oind1, reverse(cind1)), pre, temporaries)
             a2 = _extract_contraction_pairs(rhs.args[3], (cind2, reverse(oind2)), pre, temporaries)
