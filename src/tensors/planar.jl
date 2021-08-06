@@ -467,7 +467,7 @@ function reorder_indices(codA, domA, codB, domB, oindA, oindB, p1, p2)
         @assert indA[i] == oindA2[i]
     end
     for j = 2:N₂
-        @assert indB[end - j] == oindB2[j]
+        @assert indB[end + 1 - j] == oindB2[j]
     end
     Nc = length(indA) - N₁
     @assert Nc == length(indB) - N₂
