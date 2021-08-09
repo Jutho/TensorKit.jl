@@ -180,6 +180,7 @@ include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
+include("tensors/braidingtensor.jl")
 include("tensors/planar.jl")
 
 # deprecations: to be removed in version 1.0 or sooner

@@ -7,6 +7,7 @@ using LinearAlgebra.LAPACK: liblapack, chklapackerror
 
 set_num_blas_threads(n::Integer) = LinearAlgebra.BLAS.set_num_threads(n)
 
+# TODO: Remove once we drop support for Julia 1.5 or less
 function get_num_blas_threads()
 	blas = LinearAlgebra.BLAS.vendor()
 	# Wrap in a try to catch unsupported blas versions
@@ -25,6 +26,7 @@ function get_num_blas_threads()
     error("unknown BLAS")
 end
 
+# TODO: define for CuMatrix if we support this
 function _one!(A::DenseMatrix)
     Threads.@threads for j = 1:size(A, 2)
         @simd for i = 1:size(A, 1)
