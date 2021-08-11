@@ -1,11 +1,12 @@
 @noinline not_planar_err() = throw(ArgumentError("not a planar diagram expression"))
 @noinline not_planar_err(ex) = throw(ArgumentError("not a planar diagram expression: $ex"))
 
+@nospecialize
+
 macro planar(ex::Expr)
     return esc(planar_parser(ex))
 end
 
-@nospecialize
 
 function planar_parser(ex::Expr)
     parser = TO.TensorParser()
@@ -17,6 +18,33 @@ function planar_parser(ex::Expr)
     push!(parser.preprocessors, ex->TO.processcontractions(ex, treebuilder, treesorter))
     push!(parser.preprocessors, ex->_check_planarity(ex))
     push!(parser.preprocessors, _extract_tensormap_objects)
+    temporaries = Vector{Symbol}()
+    push!(parser.preprocessors, ex->_decompose_planar_contractions(ex, temporaries))
+
+    pop!(parser.postprocessors) # remove TO.addtensoroperations
+    push!(parser.postprocessors, ex->_update_temporaries(ex, temporaries))
+    push!(parser.postprocessors, ex->_annotate_temporaries(ex, temporaries))
+    push!(parser.postprocessors, _add_modules)
+    return parser(ex)
+end
+
+macro planar2(ex::Expr)
+    return esc(planar2_parser(ex))
+end
+
+function planar2_parser(ex::Expr)
+    parser = TO.TensorParser()
+
+    braidingtensors = Vector{Any}()
+
+    pop!(parser.preprocessors) # remove TO.extracttensorobjects
+    push!(parser.preprocessors, _conj_to_adjoint)
+    push!(parser.preprocessors, _extract_tensormap_objects2)
+    push!(parser.preprocessors, _construct_braidingtensors)
+    treebuilder = parser.contractiontreebuilder
+    treesorter = parser.contractiontreesorter
+    push!(parser.preprocessors, ex->TO.processcontractions(ex, treebuilder, treesorter))
+    push!(parser.preprocessors, ex->_check_planarity(ex))
     temporaries = Vector{Symbol}()
     push!(parser.preprocessors, ex->_decompose_planar_contractions(ex, temporaries))
 
@@ -331,6 +359,136 @@ end
 _is_adjoint(ex) = isa(ex, Expr) && ex.head == TO.prime
 _remove_adjoint(ex) = _is_adjoint(ex) ? ex.args[1] : ex
 _restore_adjoint(ex) = Expr(TO.prime, ex)
+
+function _extract_tensormap_objects2(ex)
+    inputtensors = collect(filter(!=(:τ), _remove_adjoint.(TO.getinputtensorobjects(ex))))
+    outputtensors = _remove_adjoint.(TO.getoutputtensorobjects(ex))
+    newtensors = TO.getnewtensorobjects(ex)
+    (any(==(:τ), newtensors) || any(==(:τ), outputtensors)) &&
+        throw(ArgumentError("The name τ is reserved for the braiding, and should not be assigned to."))
+    @assert !any(_is_adjoint, newtensors)
+    existingtensors = unique!(vcat(inputtensors, outputtensors))
+    alltensors = unique!(vcat(existingtensors, newtensors))
+    tensordict = Dict{Any,Any}(a => gensym() for a in alltensors)
+    pre = Expr(:block, [Expr(:(=), tensordict[a], a) for a in existingtensors]...)
+    pre2 = Expr(:block)
+    ex = TO.replacetensorobjects(ex) do obj, leftind, rightind
+        _is_adj = _is_adjoint(obj)
+        if _is_adj
+            leftind, rightind = rightind, leftind
+            obj = _remove_adjoint(obj)
+        end
+        newobj = get(tensordict, obj, obj)
+        if (obj in existingtensors)
+            nl = length(leftind)
+            nr = length(rightind)
+            nlsym = gensym()
+            nrsym = gensym()
+            objstr = string(obj)
+            errorstr1 = "incorrect number of input-output indices: ($nl, $nr) instead of "
+            errorstr2 = " for $objstr."
+            checksize = quote
+                $nlsym = numout($newobj)
+                $nrsym = numin($newobj)
+                ($nlsym == $nl && $nrsym == $nr) ||
+                    throw(IndexError($errorstr1 * string(($nlsym, $nrsym)) * $errorstr2))
+            end
+            push!(pre2.args, checksize)
+        end
+        return _is_adj ? _restore_adjoint(newobj) : newobj
+    end
+    post = Expr(:block, [Expr(:(=), a, tensordict[a]) for a in newtensors]...)
+    pre = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), pre)
+    pre2 = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), pre2)
+    post = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), post)
+    return Expr(:block, pre, pre2, ex, post)
+end
+
+function _construct_braidingtensors(ex::Expr)
+    if TO.isdefinition(ex) || TO.isassignment(ex)
+        lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
+        if TO.istensorexpr(rhs)
+            list = TO.gettensors(rhs)
+            if TO.isassignment(ex) && istensor(lhs)
+                obj, l, r = TO.decomposetensor(lhs)
+                lhs_as_rhs = Expr(:typed_vcat, Expr(TO.prime, obj), Expr(:tuple, r...), Expr(:tuple, l...))
+                push!(list, lhs_as_rhs)
+            end
+        else
+            return ex
+        end
+    elseif TO.istensorexpr(ex)
+        list = TO.gettensors(ex)
+    else
+        return Expr(ex.head, map(_construct_braidingtensors, ex.args)...)
+    end
+
+    i = 1
+    translatebraidings = Dict{Any,Any}()
+    while i <= length(list)
+        t = list[i]
+        if _remove_adjoint(TO.gettensorobject(t)) == :τ
+            translatebraidings[t] = Expr(:call, GlobalRef(TensorKit, :BraidingTensor))
+            deleteat!(list, i)
+        else
+            i += 1
+        end
+    end
+    pre = Expr(:block)
+    for (t, construct_expr) in translatebraidings
+        obj, leftind, rightind = TO.decomposetensor(t)
+        length(leftind) == length(rightind) == 2 ||
+            throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
+        if _is_adjoint(obj)
+            i1b, i2b, = leftind
+            i2a, i1a, = rightind
+        else
+            i2b, i1b, = leftind
+            i1a, i2a, = rightind
+        end
+        obj_and_pos = _findindex(i1a, list)
+        if !isnothing(obj_and_pos)
+            push!(construct_expr.args, Expr(:call, :space, obj_and_pos...))
+        else
+            obj_and_pos = _findindex(i1b, list)
+            isnothing(obj_and_pos) &&
+                throw(ArgumentError("cannot determine space of index $i1a and $i1b of braiding tensor"))
+            push!(construct_expr.args, Expr(TO.prime, Expr(:call, :space, obj_and_pos...)))
+        end
+
+        obj_and_pos = _findindex(i2a, list)
+        if !isnothing(obj_and_pos)
+            push!(construct_expr.args, Expr(:call, :space, obj_and_pos...))
+        else
+            obj_and_pos = _findindex(i2b, list)
+            isnothing(obj_and_pos) &&
+                throw(ArgumentError("cannot determine space of index $i2a and $i2b of braiding tensor"))
+            push!(construct_expr.args, Expr(TO.prime, Expr(:call, :space, obj_and_pos...)))
+        end
+        s = gensym()
+        push!(pre.args, Expr(:(=), s, construct_expr))
+        ex = TO.replacetensorobjects(ex) do o, l, r
+            if o == obj && l == leftind && r == rightind
+                return obj  == :τ ? s : Expr(TO.prime, s)
+            else
+                return o
+            end
+        end
+    end
+    return Expr(:block, pre, ex)
+end
+_construct_braidingtensors(x) = x
+
+function _findindex(i, list) # finds an index i in a list of tensor expressions
+    for t in list
+        obj, l, r = TO.decomposetensor(t)
+        pos = findfirst(==(i), l)
+        isnothing(pos) || return (obj, pos)
+        pos = findfirst(==(i), r)
+        isnothing(pos) || return (obj, pos + length(l))
+    end
+    return nothing
+end
 
 # since temporaries were taken out in preprocessing, they are not identified by the parsing
 # step of TensorOperations, and we have to manually fix this
