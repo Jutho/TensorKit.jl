@@ -766,7 +766,32 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
     inner = f.innerlines
     vertices = f.vertices
     u = one(I)
+
+    if u in (uncoupled[i],uncoupled[i+1]) # the braid simplifies drastically, we are braiding a trivial sector
+        a, b = uncoupled[i], uncoupled[i+1]
+        uncoupled′ = TupleTools.setindex(uncoupled,b,i);
+        uncoupled′ = TupleTools.setindex(uncoupled′,a,i+1);
+        vertices′ = vertices;
+
+        if i > 1 #we also need to alter innerlines and vertices
+            incharges = (uncoupled[1],inner...,coupled′);
+
+            vertices′  = TupleTools.setindex(vertices′,vertices[i],i-1)
+            vertices′  = TupleTools.setindex(vertices′,vertices[i-1],i)
+
+            if a == u
+                inner = TupleTools.setindex(inner,incharges[i+1],i-1);
+            else
+                inner = TupleTools.setindex(inner,incharges[i-1],i-1);
+            end
+        end
+
+        f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner, vertices′)
+        return fusiontreedict(I)(f′ => true)
+    end
+
     oneT = one(eltype(Rsymbol(u,u,u))) * one(eltype(Fsymbol(u,u,u,u,u,u)))
+
     if i == 1
         a, b = uncoupled[1], uncoupled[2]
         c = N > 2 ? inner[1] : coupled′
