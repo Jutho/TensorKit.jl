@@ -541,7 +541,7 @@ function _transpose((f1, f2, p1, p2)::TransposeKey{I,N₁,N₂}) where {I<:Secto
         newtrees = newtrees′
         i1 -= 1
     end
-    while Nhalf < i1
+    while Nhalf < i1 && Nhalf > 0
         local newtrees′
         for ((f1a, f2a), coeffa) in newtrees
             for ((f1b, f2b), coeffb) in cycleclockwise(f1a, f2a)
