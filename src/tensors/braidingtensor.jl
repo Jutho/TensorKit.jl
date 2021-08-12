@@ -71,6 +71,12 @@ function fusiontrees(b::BraidingTensor)
     return TensorKeyIterator(rowr, colr)
 end
 
+function Base.getindex(b::BraidingTensor{S}) where S
+    sectortype(S) == Trivial || throw(SectorMismatch())
+    (V1,V2) = domain(b);
+    return reshape(storagetype(b)(LinearAlgebra.I, dim(V1)*dim(V2), dim(V1)*dim(V2)),(dim(V2),dim(V1),dim(V1),dim(V2)));
+end
+
 @inline function Base.getindex(b::BraidingTensor, f1::FusionTree{I,2}, f2::FusionTree{I,2}) where {I<:Sector}
     I == sectortype(b) || throw(SectorMismatch())
     c = f1.coupled
@@ -101,6 +107,11 @@ function Base.copy!(t::TensorMap, b::BraidingTensor)
     space(t) == space(b) || throw(SectorMismatch())
     fill!(t, zero(eltype(t)))
     for (f1, f2) in fusiontrees(t)
+        if f1 == nothing || f2 == nothing
+            copy!(t.data,one(t.data))
+            return t
+        end
+
         a1, a2 = f2.uncoupled
         c = f2.coupled
         f1.uncoupled == (a2, a1) || continue
