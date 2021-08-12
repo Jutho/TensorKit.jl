@@ -522,9 +522,11 @@ const TransposeKey{I<:Sector, N₁, N₂} = Tuple{<:FusionTree{I}, <:FusionTree{
 function _transpose((f1, f2, p1, p2)::TransposeKey{I,N₁,N₂}) where {I<:Sector, N₁, N₂}
     N = N₁ + N₂
     p = linearizepermutation(p1, p2, length(f1), length(f2))
+    newtrees = repartition(f1, f2, N₁)
+    length(p) == 0 && return newtrees
     i1 = findfirst(==(1), p)
     @assert i1 !== nothing
-    newtrees = repartition(f1, f2, N₁)
+    i1 == 1 && return newtrees
     Nhalf = N >> 1
     while 1 < i1 <= Nhalf
         local newtrees′
