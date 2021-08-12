@@ -65,7 +65,6 @@ function fusiontrees(b::BraidingTensor)
             end
         end
         dim2 = offset2
-        push!(data, c=>f((dim1, dim2)))
         push!(rowr, c=>rowrc)
         push!(colr, c=>colrc)
     end
@@ -78,8 +77,8 @@ end
     V1, V2 = domain(b)
     @boundscheck begin
         c == f2.coupled || throw(SectorMismatch())
-        ((f1.uncoupled[1] ∈ V2) && (f2.uncoupled[1] ∈ V1)) || throw(SectorMismatch())
-        ((f1.uncoupled[2] ∈ V1) && (f2.uncoupled[2] ∈ V2)) || throw(SectorMismatch())
+        ((f1.uncoupled[1] ∈ sectors(V2)) && (f2.uncoupled[1] ∈ sectors(V1))) || throw(SectorMismatch())
+        ((f1.uncoupled[2] ∈ sectors(V1)) && (f2.uncoupled[2] ∈ sectors(V2))) || throw(SectorMismatch())
     end
     @inbounds begin
         d = (dims(V2 ⊗ V1, f1.uncoupled)..., dims(V1 ⊗ V2, f2.uncoupled)...)
@@ -89,10 +88,11 @@ end
         data = fill!(storagetype(b)(undef, (n1, n2)), zero(eltype(b)))
         if f1.uncoupled == (a2, a1)
             braiddict = artin_braid(f2, 1; inv = b.adjoint)
-            r = get(dict, f1, zero(valtype(braiddict)))
+            r = get(braiddict, f1, zero(valtype(braiddict)))
             data[1:(n1+1):end] .= r # set diagonal
         end
-        return permutedims(sreshape(StridedView(data), d), (1,2,4,3))
+
+        return sreshape(StridedView(data), d)
     end
 end
 
