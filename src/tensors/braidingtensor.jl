@@ -262,7 +262,7 @@ function TensorKit.planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{
 
         local fmap;
 
-        braid_above = braidingtensor_levels[cindB[2]] > braidingtensor_levels[cindB[3]];
+        braid_above = braidingtensor_levels[cindA[2]] > braidingtensor_levels[cindA[3]];
 
         for ((f1′,f2′),coeff) in transpose(f1,f2,cindB,oindB), #transpose
             (f1′′,coeff′) in artin_braid(f1′,2,inv = braid_above), #artin braid
@@ -309,7 +309,7 @@ function TensorKit.planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTens
         rmul!(C, β)
     end
 
-    braid_above = braidingtensor_levels[cindA[2]] > braidingtensor_levels[cindA[3]];
+    braid_above = braidingtensor_levels[cindB[2]] > braidingtensor_levels[cindB[3]];
 
     for (f1, f2) in fusiontrees(A)
         if f1 == nothing && f2 == nothing
@@ -363,7 +363,7 @@ function TensorKit.planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{
         end
 
         local fmap
-        braid_above = braidingtensor_levels[cindB[1]] > braidingtensor_levels[cindB[2]];
+        braid_above = braidingtensor_levels[cindA[1]] > braidingtensor_levels[cindA[2]];
 
         for ((f1′,f2′),coeff) in transpose(f1,f2,cindB,oindB),
             (f1′′,coeff′) in artin_braid(f1′,1,inv = braid_above),
@@ -414,11 +414,11 @@ function TensorKit.planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTens
             break;
         end
 
-        braid_above = braidingtensor_levels[cindA[1]] > braidingtensor_levels[cindA[2]];
+        braid_above = braidingtensor_levels[cindB[1]] > braidingtensor_levels[cindB[2]];
 
         local fmap
 
-        for ((f1′,f2′),coeff) in transpose(f1,f2,cindA,oindA),
+        for ((f1′,f2′),coeff) in transpose(f1,f2,oindA,cindA),
             (f2′′,coeff′) in artin_braid(f2′,1,inv = braid_above),
             (f2′′′,coeff′′) in elementary_trace(f2′′, 2)
 
@@ -428,7 +428,7 @@ function TensorKit.planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTens
             if @isdefined fmap
                 fmap[nk] = get(fmap,nk,zero(nv)) + nv
             else
-                famp = Dict(nk => nv);
+                fmap = Dict(nk => nv);
             end
 
         end
