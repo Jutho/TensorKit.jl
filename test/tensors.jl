@@ -512,13 +512,13 @@ for V in spacelist
         for T in (Float32, ComplexF64)
             tA = TensorMap(rand, T, V1 ⊗ V3, V1 ⊗ V3)
             tB = TensorMap(rand, T, V2 ⊗ V4, V2 ⊗ V4)
-            tA = tA*tA'
-            tB = tB*tB'
+            tA = 3//2*leftorth(tA; alg = Polar())[1]
+            tB = 1//5*leftorth(tB; alg = Polar())[1]
             tC = TensorMap(rand, T, V1 ⊗ V3, V2 ⊗ V4)
             t = @constinferred sylvester(tA, tB, tC)
             @test codomain(t) == V1 ⊗ V3
             @test domain(t) == V2 ⊗ V4
-            # @test norm(tA*t + t*tB + tC) < (norm(tA)+norm(tB)+norm(tC))*eps(real(T))
+            @test norm(tA*t + t*tB + tC) < (norm(tA)+norm(tB)+norm(tC))*eps(real(T))^(2/3)
             if hasfusiontensor(I)
                 matrix(x) = reshape(convert(Array, x), dim(codomain(x)), dim(domain(x)))
                 @test matrix(t) ≈ sylvester(matrix(tA), matrix(tB), matrix(tC))
