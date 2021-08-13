@@ -108,7 +108,7 @@ function Base.copy!(t::TensorMap, b::BraidingTensor)
     fill!(t, zero(eltype(t)))
     for (f1, f2) in fusiontrees(t)
         if f1 == nothing || f2 == nothing
-            copy!(t.data,one(t.data))
+            _one!(t.data)
             return t
         end
 
