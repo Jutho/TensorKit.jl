@@ -150,7 +150,7 @@ function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
     domA = domainind(A)
     codB = codomainind(B)
     domB = domainind(B)
-    oindA, cindA, oindB, cindB =    reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+    oindA, cindA, oindB, cindB =  reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
 
     braidingtensor_levels = A.adjoint ? (2,1,1,2) : (1,2,2,1);
 
@@ -196,7 +196,7 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
     domA = domainind(A)
     codB = codomainind(B)
     domB = domainind(B)
-    oindA, cindA, oindB, cindB =    reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+    oindA, cindA, oindB, cindB =  reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
 
     braidingtensor_levels = B.adjoint ? (2,1,1,2) : (1,2,2,1);
 
@@ -229,6 +229,113 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
         for ((f1′,f2′),c) in fmap
             TO._add!(c*α, A[f1, f2], true,C[f1′,f2′], (oindA...,reverse(cindA)...));
         end
+    end
+    C
+end
+
+function TensorKit.planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
+                            β, C::AbstractTensorMap{S},
+                            oindA::IndexTuple{0}, cindA::IndexTuple{4},
+                            oindB::IndexTuple{N₂}, cindB::IndexTuple,
+                            p1::IndexTuple, p2::IndexTuple,
+                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S, N₂}
+
+    braidingtensor_levels = A.adjoint ? (2,1,1,2) : (1,2,2,1);
+    codA = codomainind(A)
+    domA = domainind(A)
+    codB = codomainind(B)
+    domB = domainind(B)
+
+    oindA, cindA, oindB, cindB =    reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+
+    if iszero(β)
+        fill!(C, β)
+    elseif β != 1
+        rmul!(C, β)
+    end
+
+    for (f1, f2) in fusiontrees(B)
+        if f1 == nothing && f2 == nothing
+            TO.trace!(α, B, :N,true,C, oindB, (),(cindB[1],cindB[2]), (cindB[3],cindB[4]))
+            break;
+        end
+
+        local fmap;
+
+        braid_above = braidingtensor_levels[cindB[2]] > braidingtensor_levels[cindB[3]];
+
+        for ((f1′,f2′),coeff) in transpose(f1,f2,cindB,oindB), #transpose
+            (f1′′,coeff′) in artin_braid(f1′,2,inv = braid_above), #artin braid
+            (f1_tr1,c_tr1) in elementary_trace(f1′′, 1), #trace
+            (f1_tr2,c_tr2) in elementary_trace(f1_tr1,1) #trace
+            nk = (f1_tr2,f2′);
+            nv = coeff*coeff′*c_tr1*c_tr2*α;
+            if @isdefined fmap
+                fmap[nk] = get(fmap,nk,zero(nv)) + nv;
+            else
+                fmap = Dict(nk=>nv);
+            end
+
+        end
+
+        for ((f1′,f2′),c) in fmap
+            TO._trace!(c, B[f1, f2], true,C[f1′,f2′], oindB, (cindB[1],cindB[2]), (cindB[3],cindB[4]))
+        end
+    end
+
+    C
+end
+
+function TensorKit.planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
+                            β, C::AbstractTensorMap{S},
+                            oindA::IndexTuple{N₁}, cindA::IndexTuple,
+                            oindB::IndexTuple{0}, cindB::IndexTuple{4},
+                            p1::IndexTuple, p2::IndexTuple,
+                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S, N₁}
+
+    braidingtensor_levels = B.adjoint ? (2,1,1,2) : (1,2,2,1);
+
+    codA = codomainind(A)
+    domA = domainind(A)
+    codB = codomainind(B)
+    domB = domainind(B)
+
+    oindA, cindA, oindB, cindB =    reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+
+
+    if iszero(β)
+        fill!(C, β)
+    elseif β != 1
+        rmul!(C, β)
+    end
+
+    braid_above = braidingtensor_levels[cindA[2]] > braidingtensor_levels[cindA[3]];
+
+    for (f1, f2) in fusiontrees(A)
+        if f1 == nothing && f2 == nothing
+            TO.trace!(α, A, :N,true,C, oindA , (),(cindA[1],cindA[2]), (cindA[3],cindA[4]))
+            break;
+        end
+
+        local fmap;
+        for ((f1′,f2′),coeff) in transpose(f1,f2,oindA,cindA), #transpose
+            (f2′′,coeff′) in artin_braid(f2′,2,inv = braid_above), #artin braid
+            (f2_tr1,c_tr1) in elementary_trace(f2′′, 1), #trace
+            (f2_tr2,c_tr2) in elementary_trace(f2_tr1,1) #trace
+
+            nk = (f1′,f2_tr2);
+            nv = coeff*coeff′*c_tr1*c_tr2*α;
+            if @isdefined fmap
+                fmap[nk] = get(fmap,nk,zero(nv)) + nv;
+            else
+                fmap = Dict(nk=>nv);
+            end
+        end
+
+        for ((f1′,f2′),c) in fmap
+            TO._trace!(c, A[f1, f2], true,C[f1′,f2′], oindA , (cindA[1],cindA[2]), (cindA[3],cindA[4]))
+        end
+
     end
     C
 end
