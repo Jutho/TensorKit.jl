@@ -769,6 +769,12 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
     vertices = f.vertices
     u = one(I)
 
+    if BraidingStyle(I) isa NoBraiding
+        oneT = one(eltype(Fsymbol(u,u,u,u,u,u)))
+    else
+        oneT = one(eltype(Rsymbol(u,u,u))) * one(eltype(Fsymbol(u,u,u,u,u,u)))
+    end
+
     if u in (uncoupled[i],uncoupled[i+1]) # the braid simplifies drastically, we are braiding a trivial sector
         a, b = uncoupled[i], uncoupled[i+1]
         uncoupled′ = TupleTools.setindex(uncoupled,b,i);
@@ -789,10 +795,10 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
         end
 
         f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner, vertices′)
-        return fusiontreedict(I)(f′ => true)
+        return fusiontreedict(I)(f′ => oneT)
     end
 
-    oneT = one(eltype(Rsymbol(u,u,u))) * one(eltype(Fsymbol(u,u,u,u,u,u)))
+    BraidingStyle(I) isa NoBraiding && throw(SectorMismatch("cannot braid sector "*type_repr(I)))
 
     if i == 1
         a, b = uncoupled[1], uncoupled[2]
