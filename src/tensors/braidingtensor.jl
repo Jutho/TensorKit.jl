@@ -339,3 +339,104 @@ function TensorKit.planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTens
     end
     C
 end
+
+function TensorKit.planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
+                            β, C::AbstractTensorMap{S},
+                            oindA::IndexTuple{1}, cindA::IndexTuple{3},
+                            oindB::IndexTuple{N₂}, cindB::IndexTuple,
+                            p1::IndexTuple, p2::IndexTuple,
+                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S, N₁, N₂}
+
+    braidingtensor_levels = A.adjoint ? (2,1,1,2) : (1,2,2,1);
+
+    codA = codomainind(A)
+    domA = domainind(A)
+    codB = codomainind(B)
+    domB = domainind(B)
+
+    oindA, cindA, oindB, cindB =    reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+
+    for (f1, f2) in fusiontrees(B)
+        if f1 == nothing && f2 == nothing
+            TO.trace!(α, B,:N, true,C, (cindB[2],), oindB, (cindB[1],), (cindB[3],))
+            break;
+        end
+
+        local fmap
+        braid_above = braidingtensor_levels[cindB[1]] > braidingtensor_levels[cindB[2]];
+
+        for ((f1′,f2′),coeff) in transpose(f1,f2,cindB,oindB),
+            (f1′′,coeff′) in artin_braid(f1′,1,inv = braid_above),
+            (f1′′′,coeff′′) in elementary_trace(f1′′, 2)
+            nk = (f1′′′,f2′);
+            nv = coeff*coeff′*coeff′′*α
+            if @isdefined fmap
+                fmap[nk] = get(fmap,nk,zero(nv)) + nv
+            else
+                fmap = Dict(nk => nv)
+            end
+        end
+
+        for ((f1′,f2′),c) in fmap
+            TO._trace!(c, B[f1, f2], true,C[f1′,f2′], (cindB[2],oindB...) , (cindB[1],), (cindB[3],))
+        end
+    end
+
+
+    C
+end
+
+function TensorKit.planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
+                            β, C::AbstractTensorMap{S},
+                            oindA::IndexTuple{N₁}, cindA::IndexTuple,
+                            oindB::IndexTuple{1}, cindB::IndexTuple{3},
+                            p1::IndexTuple, p2::IndexTuple,
+                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S, N₁}
+    braidingtensor_levels = B.adjoint ? (2,1,1,2) : (1,2,2,1);
+
+    codA = codomainind(A)
+    domA = domainind(A)
+    codB = codomainind(B)
+    domB = domainind(B)
+
+    oindA, cindA, oindB, cindB =    reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
+
+    if iszero(β)
+        fill!(C, β)
+    elseif β != 1
+        rmul!(C, β)
+    end
+
+    for (f1, f2) in fusiontrees(A)
+        if f1 == nothing && f2 == nothing
+
+            TO.trace!(α, A,:N, true,C, oindA, (cindA[2],) , (cindA[1],), (cindA[3],))
+            break;
+        end
+
+        braid_above = braidingtensor_levels[cindA[1]] > braidingtensor_levels[cindA[2]];
+
+        local fmap
+
+        for ((f1′,f2′),coeff) in transpose(f1,f2,cindA,oindA),
+            (f2′′,coeff′) in artin_braid(f2′,1,inv = braid_above),
+            (f2′′′,coeff′′) in elementary_trace(f2′′, 2)
+
+            nk = (f1′,f2′′′);
+            nv = coeff*coeff′*coeff′′*α;
+
+            if @isdefined fmap
+                fmap[nk] = get(fmap,nk,zero(nv)) + nv
+            else
+                famp = Dict(nk => nv);
+            end
+
+        end
+
+        for ((f1′,f2′),c) in fmap
+            TO._trace!(c, A[f1, f2], true,C[f1′,f2′], (oindA...,cindA[2]) , (cindA[1],), (cindA[3],))
+        end
+    end
+
+    C
+end
