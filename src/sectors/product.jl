@@ -6,7 +6,7 @@ struct ProductSector{T<:SectorTuple} <: Sector
     sectors::T
 end
 _sectors(::Type{Tuple{}}) = ()
-_sectors(::Type{T}) where {T<:SectorTuple} =
+Base.@pure _sectors(::Type{T}) where {T<:SectorTuple} =
     (Base.tuple_type_head(T),  _sectors(Base.tuple_type_tail(T))...)
 
 Base.IteratorSize(::Type{SectorValues{ProductSector{T}}}) where {T<:SectorTuple} =
