@@ -67,8 +67,10 @@ end
 _conj_to_adjoint(ex) = ex
 
 function get_possible_planar_indices(ex::Expr)
-    @assert TO.istensorexpr(ex)
-    if TO.isgeneraltensor(ex)
+    #@assert TO.istensorexpr(ex)
+    if !TO.istensorexpr(ex)
+        return [[]]
+    elseif TO.isgeneraltensor(ex)
         _,leftind,rightind = TO.decomposegeneraltensor(ex)
         ind = planar_unique2(vcat(leftind, reverse(rightind)))
         return length(ind) == length(unique(ind)) ? Any[ind] : Any[]
@@ -270,6 +272,17 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
             a1 = _extract_contraction_pairs(rhs.args[2], (oind1, reverse(cind1)), pre, temporaries)
             a2 = _extract_contraction_pairs(rhs.args[3], (cind2, reverse(oind2)), pre, temporaries)
         end
+
+        if TO.isscalarexpr(a1) || TO.isscalarexpr(a2)
+            rhs = Expr(:call, :*, a1, a2)
+            s = gensym()
+            newlhs = Expr(:typed_vcat, s, Expr(:tuple, oind1...),
+                                        Expr(:tuple, reverse(oind2)...))
+            push!(temporaries, s)
+            push!(pre, Expr(:(:=), newlhs, rhs))
+            return newlhs
+        end
+
         # note that index order in _extract... is only a suggestion, now we have actual index order
         _, l1, r1, = TO.decomposegeneraltensor(a1)
         _, l2, r2, = TO.decomposegeneraltensor(a2)
@@ -307,6 +320,9 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
         args = [_extract_contraction_pairs(a, lhs, pre, temporaries) for
                     a in rhs.args[2:end]]
         return Expr(rhs.head, rhs.args[1], args...)
+    elseif TO.isscalarexpr(rhs)
+        #do nothing?
+        return rhs
     else
         throw(ArgumentError("unknown tensor expression"))
     end
@@ -409,7 +425,7 @@ function _construct_braidingtensors(ex::Expr)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
         if TO.istensorexpr(rhs)
             list = TO.gettensors(rhs)
-            if TO.isassignment(ex) && istensor(lhs)
+            if TO.isassignment(ex) && TO.istensor(lhs)
                 obj, l, r = TO.decomposetensor(lhs)
                 lhs_as_rhs = Expr(:typed_vcat, Expr(TO.prime, obj), Expr(:tuple, r...), Expr(:tuple, l...))
                 push!(list, lhs_as_rhs)
@@ -434,8 +450,10 @@ function _construct_braidingtensors(ex::Expr)
             i += 1
         end
     end
-    pre = Expr(:block)
-    for (t, construct_expr) in translatebraidings
+
+    unresolved = Any[]; # list of indices that we couldn't yet figure out
+    indexmaps = Dict{Any,Any}(); # contains the expression to resolve the space at index indexmaps[i]
+    for (t,construct_expr) in translatebraidings
         obj, leftind, rightind = TO.decomposetensor(t)
         length(leftind) == length(rightind) == 2 ||
             throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
@@ -446,25 +464,71 @@ function _construct_braidingtensors(ex::Expr)
             i2b, i1b, = leftind
             i1a, i2a, = rightind
         end
-        obj_and_pos = _findindex(i1a, list)
-        if !isnothing(obj_and_pos)
-            push!(construct_expr.args, Expr(:call, :space, obj_and_pos...))
+
+        obj_and_pos1a = _findindex(i1a, list)
+        obj_and_pos2a = _findindex(i2a, list)
+        obj_and_pos1b = _findindex(i1b, list)
+        obj_and_pos2b = _findindex(i2b, list)
+
+        if !isnothing(obj_and_pos1a)
+            indexmaps[i1a] = Expr(:call, :space, obj_and_pos1a...);
+            indexmaps[i1b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1a...));
+        elseif !isnothing(obj_and_pos1b)
+            indexmaps[i1a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...));
+            indexmaps[i1b] = Expr(:call, :space, obj_and_pos1b...);
         else
-            obj_and_pos = _findindex(i1b, list)
-            isnothing(obj_and_pos) &&
-                throw(ArgumentError("cannot determine space of index $i1a and $i1b of braiding tensor"))
-            push!(construct_expr.args, Expr(TO.prime, Expr(:call, :space, obj_and_pos...)))
+            push!(unresolved,(i1a,i1b));
         end
 
-        obj_and_pos = _findindex(i2a, list)
-        if !isnothing(obj_and_pos)
-            push!(construct_expr.args, Expr(:call, :space, obj_and_pos...))
+        if !isnothing(obj_and_pos2a)
+            indexmaps[i2a] = Expr(:call, :space, obj_and_pos2a...);
+            indexmaps[i2b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2a...))
+        elseif !isnothing(obj_and_pos2b)
+            indexmaps[i2a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
+            indexmaps[i2b] = Expr(:call, :space, obj_and_pos2b...);
         else
-            obj_and_pos = _findindex(i2b, list)
-            isnothing(obj_and_pos) &&
-                throw(ArgumentError("cannot determine space of index $i2a and $i2b of braiding tensor"))
-            push!(construct_expr.args, Expr(TO.prime, Expr(:call, :space, obj_and_pos...)))
+            push!(unresolved,(i2a,i2b));
         end
+    end
+
+    # very simple loop that tries to resolve as many indices as possible
+    changed = true;
+    while changed == true
+        changed = false;
+
+        i = 1;
+        while i<=length(unresolved)
+            (i1,i2) = unresolved[i];
+            if i1 in keys(indexmaps)
+                changed = true;
+                indexmaps[i2] = Expr(TO.prime,indexmaps[i1]);
+                deleteat!(unresolved,i);
+            elseif i2 in keys(indexmaps)
+                changed = true;
+                indexmaps[i1] = Expr(TO.prime,indexmaps[i2]);
+                deleteat!(unresolved,i);
+            else
+                i+=1
+            end
+        end
+    end
+
+    !isempty(unresolved) && throw(ArgumentError("cannot determine the spaces of indices $(tuple(unresolved...)) for the braiding tensors in $(ex)"));
+
+    pre = Expr(:block)
+    for (t, construct_expr) in translatebraidings
+        obj, leftind, rightind = TO.decomposetensor(t)
+        if _is_adjoint(obj)
+            i1b, i2b, = leftind
+            i2a, i1a, = rightind
+        else
+            i2b, i1b, = leftind
+            i1a, i2a, = rightind
+        end
+
+        push!(construct_expr.args, indexmaps[i1a]);
+        push!(construct_expr.args, indexmaps[i2a]);
+
         s = gensym()
         push!(pre.args, Expr(:(=), s, construct_expr))
         ex = TO.replacetensorobjects(ex) do o, l, r
@@ -500,11 +564,15 @@ function _update_temporaries(ex, temporaries)
         i = findfirst(==(lhs), temporaries)
         if i !== nothing
             rhs = ex.args[2]
-            if !(rhs isa Expr && rhs.head == :call && rhs.args[1] == :contract!)
+            if rhs isa Expr && rhs.head == :call && rhs.args[1] == :add!
+                newname = rhs.args[6]
+                temporaries[i] = newname
+            elseif rhs isa Expr && rhs.head == :call && rhs.args[1] == :contract!
+                newname = rhs.args[8]
+                temporaries[i] = newname
+            else
                 @error "lhs = $lhs , rhs = $rhs"
             end
-            newname = rhs.args[8]
-            temporaries[i] = newname
         end
     elseif ex isa Expr
         for a in ex.args
