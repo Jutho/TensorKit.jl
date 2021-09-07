@@ -310,12 +310,15 @@ function foldright(f1::FusionTree{I, N₁}, f2::FusionTree{I, N₂}) where {I<:S
     else
         hasmultiplicities = FusionStyle(a) isa GenericFusion
         local newtrees
+        if N₁ == 1
+            cset = (one(c1),)
+        elseif N₁ == 2
+            cset = (f1.uncoupled[2],)
+        else
+            cset = ⊗(Base.tail(f1.uncoupled)...)
+        end
         for c in c1 ⊗ c2
-            _uncoupled = map((x,y)->ifelse(y, dual(x), x),
-                                Base.tail(f1.uncoupled), Base.tail(f1.isdual))
-            N₁ == 1 && c != one(c) && continue
-            N₁ == 2 && c != _uncoupled[1] && continue
-            N₁ > 2 && c ∉ ⊗(_uncoupled...) && continue
+            c ∈ cset || continue
             for μ in (hasmultiplicities ? (1:Nsymbol(c1, c2, c)) : (nothing,))
                 fc = FusionTree((c1, c2), c, (!isduala, false), (), (μ,))
                 for (fl′, coeff1) in insertat(fc, 2, f1)
