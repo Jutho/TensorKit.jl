@@ -292,32 +292,30 @@ end
 function foldright(f1::FusionTree{I, N₁}, f2::FusionTree{I, N₂}) where {I<:Sector, N₁, N₂}
     # map first splitting vertex (a, b)<-c to fusion vertex b<-(dual(a), c)
     @assert N₁ > 0
+    a = f1.uncoupled[1]
+    isduala = f1.isdual[1]
+    factor = sqrtdim(a)
+    if !isduala
+        factor *= frobeniusschur(a)
+    end
+    c1 = dual(a)
+    c2 = f1.coupled
+    uncoupled = Base.tail(f1.uncoupled)
+    isdual = Base.tail(f1.isdual)
     if FusionStyle(I) isa UniqueFusion
-        a = f1.uncoupled[1]
-        isduala = f1.isdual[1]
-        factor = sqrtdim(a)
-        if !isduala
-            factor *= frobeniusschur(a)
-        end
-        c1 = dual(a)
-        c2 = f1.coupled
         c = first(c1 ⊗ c2)
         fl = FusionTree{I}(Base.tail(f1.uncoupled), c, Base.tail(f1.isdual))
         fr = FusionTree{I}((c1, f2.uncoupled...), c, (!isduala, f2.isdual...))
         return fusiontreedict(I)((fl, fr) => factor)
     else
-        a = f1.uncoupled[1]
-        isduala = f1.isdual[1]
-        factor = sqrtdim(a)
-        if !isduala
-            factor *= frobeniusschur(a)
-        end
-        c1 = dual(a)
-        c2 = f1.coupled
         hasmultiplicities = FusionStyle(a) isa GenericFusion
         local newtrees
         for c in c1 ⊗ c2
+            _uncoupled = map((x,y)->ifelse(y, dual(x), x),
+                                Base.tail(f1.uncoupled), Base.tail(f1.isdual))
             N₁ == 1 && c != one(c) && continue
+            N₁ == 2 && c != _uncoupled[1] && continue
+            N₁ > 2 && c ∉ ⊗(_uncoupled...) && continue
             for μ in (hasmultiplicities ? (1:Nsymbol(c1, c2, c)) : (nothing,))
                 fc = FusionTree((c1, c2), c, (!isduala, false), (), (μ,))
                 for (fl′, coeff1) in insertat(fc, 2, f1)
