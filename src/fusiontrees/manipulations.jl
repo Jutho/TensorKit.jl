@@ -17,7 +17,7 @@ function insertat(f1::FusionTree{I}, i::Int, f2::FusionTree{I, 0}) where {I}
     # this actually removes uncoupled line i, which should be trivial
     (f1.uncoupled[i] == f2.coupled && !f1.isdual[i]) ||
         throw(SectorMismatch("cannot connect $(f2.uncoupled) to $(f1.uncoupled[i])"))
-    coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1]
+    coeff = Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1,1,1,1]
 
     uncoupled = TupleTools.deleteat(f1.uncoupled, i)
     coupled = f1.coupled
@@ -221,10 +221,10 @@ function merge(f1::FusionTree{I, N₁}, f2::FusionTree{I, N₂},
     @assert coeff == one(coeff)
     return insertat(f, N₁+1, f2)
 end
-function merge(f1::FusionTree{I, 0}, f2::FusionTree{I, 0}, c::I, μ =nothing) where {I}
+function merge(f1::FusionTree{I, 0}, f2::FusionTree{I, 0}, c::I, μ = nothing) where {I}
     c == one(I) ||
         throw(SectorMismatch("cannot fuse sectors $(f1.coupled) and $(f2.coupled) to $c"))
-    return fusiontreedict(I)(f1=>Fsymbol(c, c, c, c, c, c))
+    return fusiontreedict(I)(f1=>Fsymbol(c, c, c, c, c, c)[1,1,1,1])
 end
 
 # ELEMENTARY DUALITY MANIPULATIONS: A- and B-moves
@@ -763,49 +763,41 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
     1 <= i < N ||
         throw(ArgumentError("Cannot swap outputs i=$i and i+1 out of only $N outputs"))
     uncoupled = f.uncoupled
+    a, b = uncoupled[i], uncoupled[i+1]
+    uncoupled′ = TupleTools.setindex(uncoupled, b, i)
+    uncoupled′ = TupleTools.setindex(uncoupled′, a, i+1)
     coupled′ = f.coupled
     isdual′ = TupleTools.setindex(f.isdual, f.isdual[i], i+1)
     isdual′ = TupleTools.setindex(isdual′, f.isdual[i+1], i)
     inner = f.innerlines
+    inner_extended = (uncoupled[1], inner..., coupled′)
     vertices = f.vertices
     u = one(I)
 
     if BraidingStyle(I) isa NoBraiding
-        oneT = one(eltype(Fsymbol(u,u,u,u,u,u)))
+        oneT = Fsymbol(u,u,u,u,u,u)[1,1,1,1]
     else
-        oneT = one(eltype(Rsymbol(u,u,u))) * one(eltype(Fsymbol(u,u,u,u,u,u)))
+        oneT = Rsymbol(u,u,u)[1,1] * Fsymbol(u,u,u,u,u,u)[1,1,1,1]
     end
 
-    if u in (uncoupled[i],uncoupled[i+1]) # the braid simplifies drastically, we are braiding a trivial sector
-        a, b = uncoupled[i], uncoupled[i+1]
-        uncoupled′ = TupleTools.setindex(uncoupled,b,i);
-        uncoupled′ = TupleTools.setindex(uncoupled′,a,i+1);
-        vertices′ = vertices;
-
-        if i > 1 #we also need to alter innerlines and vertices
-            incharges = (uncoupled[1],inner...,coupled′);
-
-            vertices′  = TupleTools.setindex(vertices′,vertices[i],i-1)
-            vertices′  = TupleTools.setindex(vertices′,vertices[i-1],i)
-
-            if a == u
-                inner = TupleTools.setindex(inner,incharges[i+1],i-1);
-            else
-                inner = TupleTools.setindex(inner,incharges[i-1],i-1);
-            end
+    if u in (uncoupled[i], uncoupled[i+1])
+        # braiding with trivial sector: simple and always possible
+        inner′ = inner
+        vertices′ = vertices
+        if i > 1 # we also need to alter innerlines and vertices
+            inner′ = TupleTools.setindex(inner, inner_extended[a == u ? (i+1) : (i-1)], i-1)
+            vertices′  = TupleTools.setindex(vertices′, vertices[i], i-1)
+            vertices′  = TupleTools.setindex(vertices′, vertices[i-1], i)
         end
-
-        f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner, vertices′)
+        f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner′, vertices′)
         return fusiontreedict(I)(f′ => oneT)
     end
 
-    BraidingStyle(I) isa NoBraiding && throw(SectorMismatch("cannot braid sector "*type_repr(I)))
+    BraidingStyle(I) isa NoBraiding &&
+        throw(SectorMismatch("Cannot braid sector " * type_repr(I)))
 
     if i == 1
-        a, b = uncoupled[1], uncoupled[2]
         c = N > 2 ? inner[1] : coupled′
-        uncoupled′ = TupleTools.setindex(uncoupled, b, 1)
-        uncoupled′ = TupleTools.setindex(uncoupled′, a, 2)
         if FusionStyle(I) isa MultiplicityFreeFusion
             R = oftype(oneT, (inv ? conj(Rsymbol(b, a, c)) : Rsymbol(a, b, c)))
             f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner, vertices)
@@ -828,20 +820,22 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
             return newtrees
         end
     end
-    # case i > 1:
+    # case i > 1: other naming convention
     b = uncoupled[i]
     d = uncoupled[i+1]
-    a = i == 2 ? uncoupled[1] : inner[i-2]
-    c = inner[i-1]
-    e = i == N-1 ? coupled′ : inner[i]
-    uncoupled′ = TupleTools.setindex(uncoupled, d, i)
-    uncoupled′ = TupleTools.setindex(uncoupled′, b, i+1)
+    a = inner_extended[i-1]
+    c = inner_extended[i]
+    e = inner_extended[i+1]
     if FusionStyle(I) isa UniqueFusion
-        inner′ = TupleTools.setindex(inner, first(a ⊗ d), i-1)
-        bd = first(b ⊗ d)
-        R = oftype(oneT, inv ? conj(Rsymbol(d, b, bd)) : Rsymbol(b, d, bd))
+        c′ = first(a ⊗ d)
+        coeff = oftype(oneT, if inv
+                conj(Rsymbol(d, c, e)*Fsymbol(d, a, b, e, c′, c))*Rsymbol(d, a, c′)
+            else
+                Rsymbol(c, d, e)*conj(Fsymbol(d, a, b, e, c′, c)*Rsymbol(a, d, c′))
+            end)
+        inner′ = TupleTools.setindex(inner, c′, i-1)
         f′ = FusionTree{I}(uncoupled′, coupled′, isdual′, inner′)
-        return fusiontreedict(I)(f′ => R)
+        return fusiontreedict(I)(f′ => coeff)
     elseif FusionStyle(I) isa SimpleFusion
         local newtrees
         for c′ in intersect(a ⊗ d, e ⊗ conj(b))
@@ -864,7 +858,7 @@ function artin_braid(f::FusionTree{I, N}, i; inv::Bool = false) where {I<:Sector
         local newtrees
         for c′ in intersect(a ⊗ d, e ⊗ conj(b))
             Rmat1 = inv ? Rsymbol(d, c, e)' : Rsymbol(c, d, e)
-            Rmat2 = inv ? Rsymbol(d, a, c′) : Rsymbol(a, d, c′)'
+            Rmat2 = inv ? Rsymbol(d, a, c′)' : Rsymbol(a, d, c′)
             Fmat = Fsymbol(d, a, b, e, c′, c)
             μ = vertices[i-1]
             ν = vertices[i]
