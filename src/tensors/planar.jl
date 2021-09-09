@@ -227,7 +227,7 @@ end
 # if lhs is an expression, it contains the existing lhs and thus the index order
 # if lhs is a tuple, the result is a temporary object and the tuple (lind, rind) gives a suggestion for the preferred index order
 function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
-    if rhs isa Symbol
+    if TO.isscalarexpr(rhs)
         return rhs
     elseif TO.isgeneraltensor(rhs)
         if TO.hastraceindices(rhs) && lhs isa Tuple
@@ -321,9 +321,6 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
         args = [_extract_contraction_pairs(a, lhs, pre, temporaries) for
                     a in rhs.args[2:end]]
         return Expr(rhs.head, rhs.args[1], args...)
-    elseif TO.isscalarexpr(rhs)
-        #do nothing?
-        return rhs
     else
         throw(ArgumentError("unknown tensor expression"))
     end
