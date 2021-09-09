@@ -66,8 +66,7 @@ function _conj_to_adjoint(ex::Expr)
 end
 _conj_to_adjoint(ex) = ex
 
-function get_possible_planar_indices(ex::Expr)
-    #@assert TO.istensorexpr(ex)
+function get_possible_planar_indices(ex)
     if !TO.istensorexpr(ex)
         return [[]]
     elseif TO.isgeneraltensor(ex)
@@ -228,7 +227,9 @@ end
 # if lhs is an expression, it contains the existing lhs and thus the index order
 # if lhs is a tuple, the result is a temporary object and the tuple (lind, rind) gives a suggestion for the preferred index order
 function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
-    if TO.isgeneraltensor(rhs)
+    if rhs isa Symbol
+        return rhs
+    elseif TO.isgeneraltensor(rhs)
         if TO.hastraceindices(rhs) && lhs isa Tuple
             s = gensym()
             newlhs = Expr(:typed_vcat, s, Expr(:tuple, lhs[1]...), Expr(:tuple, lhs[2]...))
@@ -404,8 +405,7 @@ function _extract_tensormap_objects2(ex)
             errorstr1 = "incorrect number of input-output indices: ($nl, $nr) instead of "
             errorstr2 = " for $objstr."
             checksize = quote
-                $nlsym = numout($newobj)
-                $nrsym = numin($newobj)
+                $nlsym, $nrsym = numout($newobj), numin($newobj)
                 ($nlsym == $nl && $nrsym == $nr) ||
                     throw(IndexError($errorstr1 * string(($nlsym, $nrsym)) * $errorstr2))
             end
@@ -424,7 +424,7 @@ function _construct_braidingtensors(ex::Expr)
     if TO.isdefinition(ex) || TO.isassignment(ex)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
         if TO.istensorexpr(rhs)
-            list = TO.gettensors(rhs)
+            list = TO.gettensors(_conj_to_adjoint(rhs))
             if TO.isassignment(ex) && TO.istensor(lhs)
                 obj, l, r = TO.decomposetensor(lhs)
                 lhs_as_rhs = Expr(:typed_vcat, Expr(TO.prime, obj), Expr(:tuple, r...), Expr(:tuple, l...))
@@ -434,7 +434,7 @@ function _construct_braidingtensors(ex::Expr)
             return ex
         end
     elseif TO.istensorexpr(ex)
-        list = TO.gettensors(ex)
+        list = TO.gettensors(_conj_to_adjoint(ex))
     else
         return Expr(ex.head, map(_construct_braidingtensors, ex.args)...)
     end
@@ -451,9 +451,9 @@ function _construct_braidingtensors(ex::Expr)
         end
     end
 
-    unresolved = Any[]; # list of indices that we couldn't yet figure out
-    indexmaps = Dict{Any,Any}(); # contains the expression to resolve the space at index indexmaps[i]
-    for (t,construct_expr) in translatebraidings
+    unresolved = Any[] # list of indices that we couldn't yet figure out
+    indexmaps = Dict{Any,Any}() # contains the expression to resolve the space at index indexmaps[i]
+    for (t, construct_expr) in translatebraidings
         obj, leftind, rightind = TO.decomposetensor(t)
         length(leftind) == length(rightind) == 2 ||
             throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
@@ -471,49 +471,49 @@ function _construct_braidingtensors(ex::Expr)
         obj_and_pos2b = _findindex(i2b, list)
 
         if !isnothing(obj_and_pos1a)
-            indexmaps[i1a] = Expr(:call, :space, obj_and_pos1a...);
-            indexmaps[i1b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1a...));
+            indexmaps[i1b] = Expr(:call, :space, obj_and_pos1a...)
+            indexmaps[i1a] = Expr(:call, :space, obj_and_pos1a...)
         elseif !isnothing(obj_and_pos1b)
-            indexmaps[i1a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...));
-            indexmaps[i1b] = Expr(:call, :space, obj_and_pos1b...);
+            indexmaps[i1b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
+            indexmaps[i1a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
         else
-            push!(unresolved,(i1a,i1b));
+            push!(unresolved,(i1a,i1b))
         end
 
         if !isnothing(obj_and_pos2a)
-            indexmaps[i2a] = Expr(:call, :space, obj_and_pos2a...);
-            indexmaps[i2b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2a...))
+            indexmaps[i2b] = Expr(:call, :space, obj_and_pos2a...)
+            indexmaps[i2a] = Expr(:call, :space, obj_and_pos2a...)
         elseif !isnothing(obj_and_pos2b)
+            indexmaps[i2b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
             indexmaps[i2a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
-            indexmaps[i2b] = Expr(:call, :space, obj_and_pos2b...);
         else
-            push!(unresolved,(i2a,i2b));
+            push!(unresolved,(i2a,i2b))
         end
     end
-
-    # very simple loop that tries to resolve as many indices as possible
-    changed = true;
+    # simple loop that tries to resolve as many indices as possible
+    changed = true
     while changed == true
-        changed = false;
-
-        i = 1;
-        while i<=length(unresolved)
-            (i1,i2) = unresolved[i];
+        changed = false
+        i = 1
+        while i <= length(unresolved)
+            (i1, i2) = unresolved[i]
             if i1 in keys(indexmaps)
-                changed = true;
-                indexmaps[i2] = Expr(TO.prime,indexmaps[i1]);
-                deleteat!(unresolved,i);
+                changed = true
+                indexmaps[i2] = indexmaps[i1]
+                deleteat!(unresolved, i)
             elseif i2 in keys(indexmaps)
-                changed = true;
-                indexmaps[i1] = Expr(TO.prime,indexmaps[i2]);
-                deleteat!(unresolved,i);
+                changed = true
+                indexmaps[i1] = indexmaps[i2]
+                deleteat!(unresolved, i)
             else
-                i+=1
+                i += 1
             end
         end
     end
-
-    !isempty(unresolved) && throw(ArgumentError("cannot determine the spaces of indices $(tuple(unresolved...)) for the braiding tensors in $(ex)"));
+    !isempty(unresolved) &&
+        throw(ArgumentError("cannot determine the spaces of indices " *
+                                string(tuple(unresolved...)) *
+                                    "for the braiding tensors in $(ex)"))
 
     pre = Expr(:block)
     for (t, construct_expr) in translatebraidings
@@ -525,10 +525,8 @@ function _construct_braidingtensors(ex::Expr)
             i2b, i1b, = leftind
             i1a, i2a, = rightind
         end
-
-        push!(construct_expr.args, indexmaps[i1a]);
-        push!(construct_expr.args, indexmaps[i2a]);
-
+        push!(construct_expr.args, indexmaps[i1b])
+        push!(construct_expr.args, indexmaps[i2b])
         s = gensym()
         push!(pre.args, Expr(:(=), s, construct_expr))
         ex = TO.replacetensorobjects(ex) do o, l, r
@@ -569,6 +567,9 @@ function _update_temporaries(ex, temporaries)
                 temporaries[i] = newname
             elseif rhs isa Expr && rhs.head == :call && rhs.args[1] == :contract!
                 newname = rhs.args[8]
+                temporaries[i] = newname
+            elseif rhs isa Expr && rhs.head == :call && rhs.args[1] == :trace!
+                newname = rhs.args[6]
                 temporaries[i] = newname
             else
                 @error "lhs = $lhs , rhs = $rhs"
@@ -685,7 +686,7 @@ function reorder_indices(codA, domA, codB, domB, oindA, oindB, p1, p2)
     while length(oindA2) > 0 && indA[1] != oindA2[1]
         indA = _cyclicpermute(indA)
     end
-    # cycle indA to be of the form (cindB2..., reverse(oindB2)...)
+    # cycle indB to be of the form (cindB2..., reverse(oindB2)...)
     while length(oindB2) > 0 && indB[end] != oindB2[1]
         indB = _cyclicpermute(indB)
     end
@@ -709,7 +710,7 @@ function reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1,
     #if oindA or oindB are empty, then reorder indices can only order it correctly up to a cyclic permutation!
     if isempty(oindA2) && !isempty(cindA)
          # isempty(cindA) is a cornercase which I'm not sure if we can encounter
-        hit = cindA[findfirst(==(first(cindB2)), cindB)];
+        hit = cindA[findfirst(==(first(cindB2)), cindB)]
         while hit != first(cindA2)
             cindA2 = _cyclicpermute(cindA2)
         end
