@@ -73,8 +73,9 @@ end
 
 function Base.getindex(b::BraidingTensor{S}) where S
     sectortype(S) == Trivial || throw(SectorMismatch())
-    (V1,V2) = domain(b);
-    return reshape(storagetype(b)(LinearAlgebra.I, dim(V1)*dim(V2), dim(V1)*dim(V2)),(dim(V2),dim(V1),dim(V1),dim(V2)));
+    (V1, V2) = domain(b)
+    d = (dim(V2), dim(V1), dim(V1), dim(V2))
+    return sreshape(StridedView(block(t, Trivial())), d)
 end
 
 @inline function Base.getindex(b::BraidingTensor, f1::FusionTree{I,2}, f2::FusionTree{I,2}) where {I<:Sector}
@@ -90,14 +91,17 @@ end
         d = (dims(V2 ⊗ V1, f1.uncoupled)..., dims(V1 ⊗ V2, f2.uncoupled)...)
         n1 = d[1]*d[2]
         n2 = d[3]*d[4]
-        a1, a2 = f2.uncoupled
         data = fill!(storagetype(b)(undef, (n1, n2)), zero(eltype(b)))
+        a1, a2 = f2.uncoupled
         if f1.uncoupled == (a2, a1)
             braiddict = artin_braid(f2, 1; inv = b.adjoint)
             r = get(braiddict, f1, zero(valtype(braiddict)))
-            data[1:(n1+1):end] .= r # set diagonal
+            si = 1 + d[1]*d[2]*d[3]
+            sj = d[1] + d[1]*d[2]
+            @inbounds for i = 1:d[1], j = 1:d[2]
+                data[(i-1)*si + (j-1)*sj + 1] = r
+            end
         end
-
         return sreshape(StridedView(data), d)
     end
 end
@@ -107,16 +111,16 @@ function Base.copy!(t::TensorMap, b::BraidingTensor)
     space(t) == space(b) || throw(SectorMismatch())
     fill!(t, zero(eltype(t)))
     for (f1, f2) in fusiontrees(t)
-        if f1 == nothing || f2 == nothing
-            _one!(t.data)
-            return t
-        end
-
-        a1, a2 = f2.uncoupled
-        c = f2.coupled
-        f1.uncoupled == (a2, a1) || continue
         data = t[f1, f2]
-        r = artin_braid(f2, 1; inv = b.adjoint)[f1]
+        if sectortype(t) == Trivial
+            r = one(eltype(t))
+        else
+            a1, a2 = f2.uncoupled
+            c = f2.coupled
+            f1.uncoupled == (a2, a1) || continue
+            braiddict = artin_braid(f2, 1; inv = b.adjoint)
+            r = convert(eltype(t), get(braiddict, f1, zero(valtype(braiddict))))
+        end
         for i = 1:size(data, 1), j = 1:size(data, 2)
             data[i, j, j, i] = r
         end
@@ -128,17 +132,41 @@ Base.convert(::Type{TensorMap}, b::BraidingTensor) = copy(b)
 
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
-    return block(copy(b), s) # stopgap awaiting actual implementation
-
-    # V1, V2 = codomain(b)
-    # n = blockdim(V1 ⊗ V2, s)
-    # data = fill!(storagetype(b)(undef, (n, n)), eltype(b))
-    # n == 0 && return data
-    # for (f1, f2) in fusiontrees(b)
-    #     f2.coupled == s || continue
-    #     a1, a2 = f2.uncoupled
-    #
+    (V1, V2) = domain(b)
+    if sectortype(b) == Trivial
+        d1, d2 = dim(V1), dim(V2)
+        n = d1*d2
+        data = fill!(storagetype(b)(undef, (n, n)), zero(eltype(b)))
+        si = 1 + d2*d1*d1
+        sj = d2 + d2*d1
+        @inbounds for i = 1:d2, j = 1:d1
+            data[(i-1)*si + (j-1)*sj + 1] = one(eltype(b))
+        end
+        return data
+    end
+    n = blockdim(domain(b), s)
+    data = fill!(storagetype(b)(undef, (n, n)), zero(eltype(b)))
+    iter = fusiontrees(b) # actually contains information about ranges as well
+    for (f2, r2) in iter.colr[s]
+        for (f1, r1) in iter.rowr[s]
+            a1, a2 = f2.uncoupled
+            d1 = dim(V1, a1)
+            d2 = dim(V2, a2)
+            f1.uncoupled == (a2, a1) || continue
+            braiddict = artin_braid(f2, 1; inv = b.adjoint)
+            r = convert(eltype(b), get(braiddict, f1, zero(valtype(braiddict))))
+            si = 1 + n*d1
+            sj = d2 + n
+            start = first(r1) + (first(r2)-1) * n
+            @inbounds for i = 1:d2, j=1:d1
+                data[(i-1)*si + (j-1)*sj + start] = r
+            end
+        end
+    end
+    return data
 end
+
+blocks(b::BraidingTensor) = blocks(TensorMap(b))
 
 function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
                             β, C::AbstractTensorMap{S},
