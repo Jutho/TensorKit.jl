@@ -100,7 +100,8 @@ end
 
 # Transpose
 LinearAlgebra.transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap,
-                                    p1::IndexTuple, p2::IndexTuple) =
+                            p1::IndexTuple = reverse(domainind(tsrc)),
+                            p2::IndexTuple = reverse(codomainind(tsrc))) =
     add_transpose!(true, tsrc, false, tdst, p1, p2)
 
 function LinearAlgebra.transpose(t::TensorMap{S},

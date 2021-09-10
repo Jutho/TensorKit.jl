@@ -725,15 +725,13 @@ end
 
 function planar_contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                             β, C::AbstractTensorMap{S},
-                            oindA::IndexTuple{N₁}, cindA::IndexTuple,
-                            oindB::IndexTuple{N₂}, cindB::IndexTuple,
+                            oindA::IndexTuple, cindA::IndexTuple,
+                            oindB::IndexTuple, cindB::IndexTuple,
                             p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S, N₁, N₂}
+                            syms::Union{Nothing, NTuple{3, Symbol}} = nothing) where {S}
 
-    codA = codomainind(A)
-    domA = domainind(A)
-    codB = codomainind(B)
-    domB = domainind(B)
+    codA, domA = codomainind(A), domainind(A)
+    codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB =
         reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
 

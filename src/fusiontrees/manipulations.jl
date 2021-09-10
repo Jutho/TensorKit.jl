@@ -65,8 +65,9 @@ function insertat(f1::FusionTree{I}, i, f2::FusionTree{I, 2}) where {I}
     end
     uncoupled′ = TupleTools.insertafter(TupleTools.setindex(uncoupled, b, i), i, (c,))
     isdual′ = TupleTools.insertafter(TupleTools.setindex(isdual, isdualb, i), i, (isdualc,))
-    a = i == 2 ? uncoupled[1] : inner[i-2]
-    d = i == length(f1) ? coupled : inner[i-1]
+    inner_extended = (uncoupled[1], inner..., coupled)
+    a = inner_extended[i-1]
+    d = inner_extended[i]
     e′ = uncoupled[i]
     if FusionStyle(I) isa MultiplicityFreeFusion
         local newtrees
@@ -96,7 +97,7 @@ function insertat(f1::FusionTree{I}, i, f2::FusionTree{I, 2}) where {I}
                 vertices′ = TupleTools.insertafter(vertices′, i-2, (μ,))
                 f′ = FusionTree(uncoupled′, coupled, isdual′, inner′, vertices′)
                 if @isdefined newtrees
-                    push!(newtrees, f′=> coeff)
+                    push!(newtrees, f′ => coeff)
                 else
                     newtrees = fusiontreedict(I)(f′ => coeff)
                 end
@@ -672,8 +673,9 @@ function elementary_trace(f::FusionTree{I, N}, i) where {I<:Sector, N}
     # if trace is zero, return empty dict
     (b == dual(b′) && f.isdual[i] != f.isdual[j]) || return newtrees
     if i < N
-        a = i == 1 ? one(I) : (i == 2 ? f.uncoupled[1] : f.innerlines[i-2])
-        d = i == N-1 ? f.coupled : f.innerlines[i]
+        inner_extended = (one(I), f.uncoupled[1], f.innerlines..., f.coupled)
+        a = inner_extended[i]
+        d = inner_extended[i+2]
         a == d || return newtrees
         uncoupled′ = TupleTools.deleteat(TupleTools.deleteat(f.uncoupled, i+1), i)
         isdual′ = TupleTools.deleteat(TupleTools.deleteat(f.isdual, i+1), i)
