@@ -758,3 +758,172 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     mul!(C, A′, B′, α, β)
     return C
 end
+
+
+macro plansor(ex::Expr)
+    return esc(plansor_parser(ex))
+end
+
+function plansor_parser(ex)
+    in_tensors = TO.getinputtensorobjects(ex);
+    out_tensors = TO.getinputtensorobjects(ex);
+
+    # want the first non-braiding tensor to determine the braidingstyle
+    target_tensor = in_tensors[findfirst(x->x!=:τ,in_tensors)];
+
+    out_target = target_tensor in out_tensors
+    temp_t = out_target ? target_tensor : gensym();
+
+    if !(out_target)
+        ex = TO.replacetensorobjects(ex) do (obj,leftind,rightind)
+            obj == target_tensor ? temp_t : obj
+        end
+    end
+
+    defaultparser = TO.TensorParser();
+    insert!(defaultparser.preprocessors,3,_remove_braidingtensors)
+    default = defaultparser(ex);
+    planar = planar2_parser(ex);
+
+
+    ex = quote
+        if BraidingStyle(sectortype($temp_t)) isa Bosonic
+            $(default)
+        else
+            $(planar)
+        end
+    end
+
+    if !out_target
+        ex = quote
+            @notensor $(temp_t) = $(target_tensor)
+            $(ex)
+        end
+    end
+
+    ex
+end
+
+function _remove_braidingtensors(ex::Expr)
+    outgoing = [];
+
+    if TO.isdefinition(ex) || TO.isassignment(ex)
+        lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
+        if TO.istensorexpr(rhs)
+            list = TO.gettensors(_conj_to_adjoint(rhs))
+            if TO.istensor(lhs)
+                obj, l, r = TO.decomposetensor(lhs)
+                outgoing = [l;r];
+            end
+        else
+            return ex
+        end
+    elseif TO.istensorexpr(ex)
+        list = TO.gettensors(_conj_to_adjoint(ex))
+    else
+        return Expr(ex.head, map(_remove_braidingtensors, ex.args)...)
+    end
+
+    τs = Any[];
+    i = 1;
+    while i <= length(list)
+        t = list[i]
+        if _remove_adjoint(TO.gettensorobject(t)) == :τ
+            push!(τs,t)
+            deleteat!(list, i)
+        else
+            i += 1
+        end
+    end
+
+    indicemaps = Dict{Any,Any}() # contains the expression to resolve the space at index indexmaps[i]
+    for t in τs
+        obj, leftind, rightind = TO.decomposetensor(t)
+        length(leftind) == length(rightind) == 2 ||
+            throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
+        if _is_adjoint(obj)
+            i1b, i2b, = leftind
+            i2a, i1a, = rightind
+        else
+            i2b, i1b, = leftind
+            i1a, i2a, = rightind
+        end
+
+        i1a = get(indicemaps,i1a,i1a);
+        i1b = get(indicemaps,i1b,i1b);
+        i2a = get(indicemaps,i2a,i2a);
+        i2b = get(indicemaps,i2b,i2b);
+
+        obj_and_pos1a = _findindex(i1a, list)
+        obj_and_pos2a = _findindex(i2a, list)
+        obj_and_pos1b = _findindex(i1b, list)
+        obj_and_pos2b = _findindex(i2b, list)
+
+        if i1a in outgoing
+            indicemaps[i1a] = i1a;
+            indicemaps[i1b] = i1a;
+        elseif i1b in outgoing
+            indicemaps[i1a] = i1b;
+            indicemaps[i1b] = i1b;
+        else
+            if i1a isa Int && i1b isa Int
+                indicemaps[i1a] = max(i1a,i1b);
+                indicemaps[i1b] = max(i1a,i1b);
+            else
+                indicemaps[i1a] = i1a;
+                indicemaps[i1b] = i1a;
+            end
+        end
+
+        if i2a in outgoing
+            indicemaps[i2a] = i2a;
+            indicemaps[i2b] = i2a;
+        elseif i2b in outgoing
+            indicemaps[i2a] = i2b;
+            indicemaps[i2b] = i2b;
+        else
+            if i2a isa Int && i2b isa Int
+                indicemaps[i2a] = max(i2a,i2b);
+                indicemaps[i2b] = max(i2a,i2b);
+            else
+                indicemaps[i2a] = i2a;
+                indicemaps[i2b] = i2a;
+            end
+        end
+    end
+
+    # simple loop that tries to simplify the indicemaps (a=>b,b=>c -> a=>c,b=>c)
+    changed = true
+    while changed == true
+        changed = false
+        i = 1
+        for (k,v) in indicemaps
+            if v in keys(indicemaps) && indicemaps[v] != v
+                changed = true;
+                indicemaps[k] = indicemaps[v]
+            end
+        end
+    end
+
+    ex = TO.replaceindices(i -> get(indicemaps,i,i),ex)
+    ex = _purge_braidingtensors!(ex)
+    return ex
+end
+_remove_braidingtensors(x) = x
+
+function _purge_braidingtensors!(ex::Expr)
+    filter!(ex.args) do a
+        !(a isa Expr) || (
+            !(a.args[1] == :τ) &&
+            !(a.head == :call && a.args[1] == :conj && a.args[2] isa Expr &&
+                a.args[2].args[1] == :τ && a.args[2].head in (:typed_vcat,:typed_hcat))
+            )
+    end
+
+    if ex.head == :call && ex.args[1] == :* && length(ex.args) == 2
+        _purge_braidingtensors!(ex.args[2])
+    else
+        Expr(ex.head,map(_purge_braidingtensors!,ex.args)...)
+    end
+end
+_purge_braidingtensors!(x) = x
