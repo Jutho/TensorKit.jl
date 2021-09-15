@@ -766,18 +766,14 @@ end
 
 function plansor_parser(ex)
     in_tensors = TO.getinputtensorobjects(ex);
-    out_tensors = TO.getinputtensorobjects(ex);
+    new_tensors = TO.getnewtensorobjects(ex);
 
     # want the first non-braiding tensor to determine the braidingstyle
     target_tensor = in_tensors[findfirst(x->x!=:τ,in_tensors)];
+    temp_t = gensym();
 
-    out_target = target_tensor in out_tensors
-    temp_t = out_target ? target_tensor : gensym();
-
-    if !(out_target)
-        ex = TO.replacetensorobjects(ex) do (obj,leftind,rightind)
-            obj == target_tensor ? temp_t : obj
-        end
+    ex = TO.replacetensorobjects(ex) do obj,leftind,rightind
+        obj == target_tensor ? temp_t : obj
     end
 
     defaultparser = TO.TensorParser();
@@ -787,6 +783,8 @@ function plansor_parser(ex)
 
 
     ex = quote
+        $(temp_t) = $(target_tensor)
+
         if BraidingStyle(sectortype($temp_t)) isa Bosonic
             $(default)
         else
@@ -794,10 +792,12 @@ function plansor_parser(ex)
         end
     end
 
-    if !out_target
+    if target_tensor in new_tensors
         ex = quote
-            @notensor $(temp_t) = $(target_tensor)
             $(ex)
+
+            $(target_tensor) = $(temp_t)
+            $(new_tensors[end]) # this is - afaik - the curent behaviour for @tensor blocks
         end
     end
 
@@ -836,7 +836,7 @@ function _remove_braidingtensors(ex::Expr)
         end
     end
 
-    indicemaps = Dict{Any,Any}() # contains the expression to resolve the space at index indexmaps[i]
+    indicemaps = Dict{Any,Any}() # to remove the braidingtensors, we need to map certain indices to other indices
     for t in τs
         obj, leftind, rightind = TO.decomposetensor(t)
         length(leftind) == length(rightind) == 2 ||
@@ -911,7 +911,7 @@ function _remove_braidingtensors(ex::Expr)
 end
 _remove_braidingtensors(x) = x
 
-function _purge_braidingtensors!(ex::Expr)
+function _purge_braidingtensors!(ex::Expr) # actually remove the braidingtensors
     filter!(ex.args) do a
         !(a isa Expr) || (
             !(a.args[1] == :τ) &&
@@ -920,7 +920,7 @@ function _purge_braidingtensors!(ex::Expr)
             )
     end
 
-    if ex.head == :call && ex.args[1] == :* && length(ex.args) == 2
+    if ex.head == :call && ex.args[1] == :* && length(ex.args) == 2 # multiplication with only a single argument is (rightfully) seen as invalid syntax
         _purge_braidingtensors!(ex.args[2])
     else
         Expr(ex.head,map(_purge_braidingtensors!,ex.args)...)
