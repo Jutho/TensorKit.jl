@@ -56,7 +56,7 @@ function plansor_parser(ex)
             end))
     if targetobj in newtensors
         push!(ex.args, Expr(:(=), targetobj, targetsym))
-        push!(newtensors[end])
+        push!(ex.args, newtensors[end])
     end
     return ex
 end
