@@ -71,7 +71,7 @@ function _construct_braidingtensors(ex::Expr)
             list = TO.gettensors(_conj_to_adjoint(rhs))
             if TO.isassignment(ex) && TO.istensor(lhs)
                 obj, l, r = TO.decomposetensor(lhs)
-                lhs_as_rhs = Expr(:typed_vcat, _add_adjoint(ojb),
+                lhs_as_rhs = Expr(:typed_vcat, _add_adjoint(obj),
                                     Expr(:tuple, r...), Expr(:tuple, l...))
                 push!(list, lhs_as_rhs)
             end
