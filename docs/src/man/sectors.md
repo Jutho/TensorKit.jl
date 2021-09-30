@@ -888,7 +888,7 @@ for the specific case ``N_1=4`` and ``N_2=3``. We can separate this tree into th
 part ``(b_1⊗b_2)⊗b_3 → c`` and the splitting part ``c→(((a_1⊗a_2)⊗a_3)⊗a_4)``. Given that
 the fusion tree can be considered to be the adjoint of a corresponding splitting tree
 ``c→(b_1⊗b_2)⊗b_3``, we now first consider splitting trees in isolation. A splitting tree
-which goes from one coupled sectors ``c`` to ``N`` uncoupled sectors ``a_1``, ``a_2``, …,
+which goes from one coupled sector ``c`` to ``N`` uncoupled sectors ``a_1``, ``a_2``, …,
 ``a_N`` needs ``N-2`` additional internal sector labels ``e_1``, …, ``e_{N-2}``, and, if
 `FusionStyle(I) isa GenericFusion`, ``N-1`` additional multiplicity labels ``μ_1``,
 …, ``μ_{N-1}``. We henceforth refer to them as vertex labels, as they are associated with
@@ -973,7 +973,7 @@ collect(fusiontrees((s2,s2,s2,s2)))
 Note that `FusionTree` instances are shown (printed) in a way that is valid code to
 reproduce them, a property which also holds for both instances of `Sector` and instances of
 `VectorSpace`. All of those should be displayed in a way that can be copy pasted as valid
-code. Furthermore, we use contact to determine how to print e.g. a sector. In isolation,
+code. Furthermore, we use context to determine how to print e.g. a sector. In isolation,
 `s2` is printed as `(Irrep[SU₂](1/2) ⊠ Irrep[SU₂](1/2))`, however, within the fusion tree,
 it is simply printed as `(1/2, 1/2)`, because it will be converted back into a
 `ProductSector`, namely `Irrep[SU₂] ⊠ Irrep[SU₂]` by the constructor of
@@ -1252,7 +1252,7 @@ section will be completed when the implementation is finished.)
 ## Anyons
 
 There is currently one example of a `Sector` subtype that has anyonic braiding style,
-namely that of the Fibonacci fusion category. It has to (isomorphism classes of) simple
+namely that of the Fibonacci fusion category. It has two (isomorphism classes of) simple
 objects, namely the identity `𝟙` and a non-trivial object known as `τ`, with fusion rules
 `τ ⊗ τ = 𝟙 ⊕ τ`. Let's summarize the topological data
 
