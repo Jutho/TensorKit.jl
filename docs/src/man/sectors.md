@@ -1013,7 +1013,7 @@ braided with the sector at position `i+1` in the fusion tree `f`. The keyword ar
 allows to select the inverse braiding operation, which amounts to replacing the R-matrix
 with its inverse (or thus, adjoint) in the above steps. The result is returned as a
 dictionary with possible output fusion trees as keys and corresponding coefficients as
-value. In the case of `FusionStyle(I) isa UniqueFusion`, their is only one resulting fusion
+value. In the case of `FusionStyle(I) isa UniqueFusion`, there is only one resulting fusion
 tree, with corresponding coefficient a complex phase (which is one for the bosonic
 representation theory of an Abelian group), and the result is a special
 `SingletonDict<:AbstractDict`, a `struct` type defined in TensorKit.jl to hold a single key
