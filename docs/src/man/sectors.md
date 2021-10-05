@@ -110,7 +110,7 @@ There is a graphical representation associated with the fusion tensors and their
 
 As always, we refer to the subsection on [topological data of a unitary fusion category](@ref ss_topologicalfusion) for further details.
 
-Finally, for the implementation, it will be useful to distinguish between an number of
+Finally, for the implementation, it will be useful to distinguish between a number of
 different possibilities regarding the fusion rules. If, for every ``a`` and ``b``, there is
 a unique ``c`` such that ``a ⊗ b = c`` (i.e. ``N^{ab}_{c} = 1`` and ``N^{ab}_{c′} = 0`` for
 all other ``c′``), the category is abelian. Indeed, the representations of a group have this
