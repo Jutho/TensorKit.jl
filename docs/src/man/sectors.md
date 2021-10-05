@@ -193,7 +193,7 @@ way to map the different sector values from and to the standard range 1, 2, …,
 `length(values(I))`. This is used to efficiently represent `GradedSpace`
 objects for this type of sector, as discussed in the next section on
 [Graded spaces](@ref ss_rep). Note that `findindex` acts similar to `Base.indexin`,
-but with the order of the arguments reversed (so that is more similar to `getindex`), and
+but with the order of the arguments reversed (so that it is more similar to `getindex`), and
 returns an `Int` rather than an `Array{0,Union{Int,Nothing}}`.
 
 It is useful to distinguish between three cases with respect to the fusion rules. For irreps
