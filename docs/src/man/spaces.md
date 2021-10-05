@@ -12,7 +12,7 @@ abstract type VectorSpace end
 which is actually a too restricted name. All instances of subtypes of `VectorSpace` will
 represent objects in ``𝕜``-linear monoidal categories, but this can go beyond normal
 vector spaces (i.e. objects in the category ``\mathbf{Vect}``) and even beyond objects of
-``\mathbf{SVect}``. However, in order not to make the remaining discussion to abstract
+``\mathbf{SVect}``. However, in order not to make the remaining discussion too abstract
 or complicated, we will simply refer to subtypes of `VectorSpace` instead of specific
 categories, and to spaces (i.e. `VectorSpace` instances) instead of objects from these
 categories. In particular, we define two abstract subtypes

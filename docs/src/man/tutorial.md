@@ -44,14 +44,14 @@ supertype(CompositeSpace)
 i.e. the tensor product of a number of `CartesianSpace`s is some generic parametric
 `ProductSpace` type, specifically `ProductSpace{CartesianSpace,N}` for the tensor product of `N` instances of `CartesianSpace`.
 
-Tensors are itself vectors (but not `Vector`s), so we can compute linear combinations,
+Tensors are themselves vectors (but not `Vector`s), so we can compute linear combinations,
 provided they live in the same space.
 ```@repl tutorial
 B = Tensor(randn, ℝ^3 * ℝ^2 * ℝ^4);
 C = 0.5*A + 2.5*B
 ```
 
-Given that they are behave as vectors, they also have a scalar product and norm, which they
+Given that they behave as vectors, they also have a scalar product and norm, which they
 inherit from the Euclidean inner product on the individual `ℝ^n` spaces:
 ```@repl tutorial
 scalarBA = dot(B,A)
@@ -262,10 +262,10 @@ dim(V2)
 A = Tensor(randn, V1*V1*V2')
 convert(Array, A)
 ```
-Here, we create a space 5-dimensional space `V1`, which has a three-dimensional subspace
+Here, we create a five-dimensional space `V1`, which has a three-dimensional subspace
 associated with charge 0 (the trivial irrep of ``ℤ₂``) and a two-dimensional subspace with
-charge 1 (the non-trivial irrep). Similar for `V2`, where both subspaces are one-
-dimensional. Representing the tensor as a dense `Array`, we see that it is zero in those
+charge 1 (the non-trivial irrep). Similar for `V2`, where both subspaces are one-dimensional. 
+Representing the tensor as a dense `Array`, we see that it is zero in those
 regions where the charges don't add to zero (modulo 2). Of course, the `Tensor(Map)` type
 in TensorKit.jl won't store these zero blocks, and only stores the non-zero information,
 which we can recognize also in the full `Array` representation.
@@ -366,7 +366,7 @@ TensorKit.jl and will be extended in the near future.
 
 All of these concepts will be explained throughout the remainder of this manual, including
 several details regarding their implementation. However, to just use tensors and their
-manipulations (contractions, factorizations, ...) in higher level algorithms (e.g. tensoer
+manipulations (contractions, factorizations, ...) in higher level algorithms (e.g. tensor
 network algorithms), one does not need to know or understand most of these details, and one
 can immediately refer to the general interface of the `TensorMap` type, discussed on the
 [last page](@ref s_tensors). Adhering to this interface should yield code and algorithms
