@@ -538,7 +538,7 @@ We refer to the source file of [`ProductSector`](@ref) for implementation detail
 
 The symbol `⊠` refers to the
 [Deligne tensor product](https://ncatlab.org/nlab/show/Deligne+tensor+product+of+abelian+categories)
-within the literature on category theory. Indeed, the category of representation of a
+within the literature on category theory. Indeed, the category of representations of a
 product group `G₁ × G₂` corresponds the Deligne tensor product of the categories of
 representations of the two groups separately. But this definition also extends to 𝕜-linear
 categories which are not the representation category of a group. Note that `⊠` also works
