@@ -556,6 +556,13 @@ using any of the provided Julia packages such as
 [BSON.jl](https://github.com/JuliaIO/BSON.jl),
 [JSON.jl](https://github.com/JuliaIO/JSON.jl), ...
 
+Alternatively, the package [JLD2.jl](https://github.com/JuliaIO/JLD2.jl) also provides a way to
+directly read or write the `TensorMaps` into a `jld2` file without converting it into a Dict first. 
+One can do this simply as `@save "example.jld2" t`, then the `TensorMap` variable `t` will be saved
+in file "example.jld2" under the name `:t`. To read the `TensorMap` from the file, one can use
+`@load "example.jld2" t`, then the `TensorMap` saved in "example.jld2" will be loaded into the 
+varialbe `t`.
+
 ## [Vector space and linear algebra operations](@id ss_tensor_linalg)
 
 `AbstractTensorMap` instances `t` represent linear maps, i.e. homomorphisms in a `𝕜`-linear
