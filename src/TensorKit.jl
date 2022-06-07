@@ -65,7 +65,7 @@ export dot, norm, normalize, normalize!, tr
 export mul!, lmul!, rmul!, adjoint!, pinv, axpy!, axpby!
 export leftorth, rightorth, leftnull, rightnull,
         leftorth!, rightorth!, leftnull!, rightnull!,
-        tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
+        tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, teigh, teigh!, exp, exp!,
         isposdef, isposdef!, ishermitian, sylvester
 export braid!, permute!, transpose!, twist!
 export catdomain, catcodomain

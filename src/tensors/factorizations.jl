@@ -255,6 +255,13 @@ eig(t::AbstractTensorMap; kwargs...) = eig!(copy(t); kwargs...)
 eigh(t::AbstractTensorMap; kwargs...) = eigh!(copy(t); kwargs...)
 LinearAlgebra.isposdef(t::AbstractTensorMap) = isposdef!(copy(t))
 
+teigh(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
+    teigh!(permute(t, p1, p2; copy = true); kwargs...)
+
+teigh(t::AbstractTensorMap; trunc::TruncationScheme = NoTruncation(), p::Real = 2) = 
+    teigh!(copy(t); trunc = trunc, p = p)
+
+
 # Orthogonal factorizations (mutation for recycling memory):
 # only correct if Euclidean inner product
 #------------------------------------------------------------------------------------------
@@ -276,6 +283,13 @@ function tsvd!(t::AdjointTensorMap{S};
                 alg::Union{SVD, SDD} = SDD()) where {S<:EuclideanSpace}
     u, s, vt, err = tsvd!(adjoint(t); trunc = trunc, p = p, alg = alg)
     return adjoint(vt), adjoint(s), adjoint(u), err
+end
+
+function teigh!(t::AdjointTensorMap{S};
+                trunc::TruncationScheme = NoTruncation(),
+                p::Real = 2) where {S<:EuclideanSpace}
+    d, v, err = teigh!(adjoint(t); trunc = trunc, p = p)
+    return adjoint(d), adjoint(v), err
 end
 
 function leftorth!(t::TensorMap{<:EuclideanSpace};
@@ -456,6 +470,63 @@ function tsvd!(t::TensorMap{<:EuclideanSpace};
     end
     return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
             TensorMap(Vdata, W←domain(t)), truncerr
+end
+
+function teigh!(t::TensorMap{<:EuclideanSpace};
+                 trunc::TruncationScheme = NoTruncation(),
+                 p::Real = 2)
+    S = spacetype(t)
+    I = sectortype(t)
+    A = storagetype(t)
+    Ar = similarstoragetype(t, real(eltype(t)))
+    Dmdata = SectorDict{I, Ar}() # this will contain the eigen values as matrix
+    Vdata = SectorDict{I, A}()
+    dims = SectorDict{I, Int}()
+    if isempty(blocksectors(t))
+        W = S(dims)
+        truncerr = zero(real(eltype(t)))
+        return TensorMap(Dmdata, W←W), TensorMap(Vdata, domain(t)←W), truncerr
+    end
+    for (c, b) in blocks(t)
+        D, V, = eigen!(Hermitian(b))
+        Vdata[c] = V[:, reverse(1 : size(V, 2))];
+        if @isdefined Ddata # cannot easily infer the type of D, so use this construction
+            Ddata[c] = reverse(D);
+        else
+            Ddata = SectorDict(c => reverse(D))
+        end
+        dims[c] = length(D)
+    end
+    if !isa(trunc, NoTruncation)
+        Ddata, truncerr = _truncate!(Ddata, trunc, p)
+        truncdims = SectorDict{I, Int}()
+        for c in blocksectors(t)
+            truncdim = length(Ddata[c])
+            if truncdim != 0
+                truncdims[c] = truncdim
+                if truncdim != dims[c]
+                    Vdata[c] = Vdata[c][:, 1:truncdim]
+                end
+            else
+                delete!(Vdata, c)
+                delete!(Ddata, c)
+            end
+        end
+        dims = truncdims
+        W = S(dims)
+    else
+        W = S(dims)
+        if length(domain(t)) == 1 && domain(t)[1] ≅ W
+            W = domain(t)[1]
+        elseif length(codomain(t)) == 1 && codomain(t)[1] ≅ W
+            W = codomain(t)[1]
+        end
+        truncerr = abs(zero(eltype(t)))
+    end
+    for (c, D) in Ddata
+        Dmdata[c] = copyto!(similar(D, length(D), length(D)), Diagonal(D))
+    end
+    return TensorMap(Dmdata, W ← W), TensorMap(Vdata, codomain(t) ← W), truncerr
 end
 
 function LinearAlgebra.ishermitian(t::TensorMap)
