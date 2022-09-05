@@ -1,7 +1,7 @@
 name = "TensorKit"
 uuid = "07d1fe3e-3e46-537d-9eac-e9e13d0d4cec"
 authors = ["Jutho Haegeman"]
-version = "0.10.0"
+version = "0.11.0"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -19,4 +19,4 @@ HalfIntegers = "1"
 WignerSymbols = "1,2"
 TensorOperations = "3.2.3"
 LRUCache = "1.0.2"
-julia = "1.4"
+julia = "1.6"

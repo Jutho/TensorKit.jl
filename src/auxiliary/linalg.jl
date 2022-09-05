@@ -2,29 +2,9 @@
 using LinearAlgebra: BlasFloat, Char, BlasInt, LAPACK, LAPACKException,
     DimensionMismatch, SingularException, PosDefException, chkstride1, checksquare,
     triu!
-using LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
-using LinearAlgebra.LAPACK: liblapack, chklapackerror
 
 set_num_blas_threads(n::Integer) = LinearAlgebra.BLAS.set_num_threads(n)
-
-# TODO: Remove once we drop support for Julia 1.5 or less
-function get_num_blas_threads()
-	blas = LinearAlgebra.BLAS.vendor()
-	# Wrap in a try to catch unsupported blas versions
-	if blas == :openblas
-		return ccall((:openblas_get_num_threads, Base.libblas_name), Cint, ())
-	elseif blas == :openblas64
-		return ccall((:openblas_get_num_threads64_, Base.libblas_name), Cint, ())
-	elseif blas == :mkl
-		return ccall((:mkl_get_max_threads, Base.libblas_name), Cint, ())
-	end
-
-	# OSX BLAS looks at an environment variable
-	@static if Sys.isapple()
-		return tryparse(Cint, get(ENV, "VECLIB_MAXIMUM_THREADS", "1"))
-	end
-    error("unknown BLAS")
-end
+get_num_blas_threads(n::Integer) = LinearAlgebra.BLAS.get_num_threads(n)
 
 # TODO: define for CuMatrix if we support this
 function _one!(A::DenseMatrix)
@@ -108,16 +88,6 @@ function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR, QRpos}, atol::
     end
     return Q, R
 end
-# TODO: reconsider the following implementation
-# Unfortunately, geqrfp seems a bit slower than geqrt in the intermediate region
-# around matrix size 100, which is the interesting region. => Investigate and maybe fix
-# function _leftorth!(A::StridedMatrix{<:BlasFloat})
-#     m, n = size(A)
-#     A, τ = geqrfp!(A)
-#     Q = LAPACK.ormqr!('L', 'N', A, τ, eye(eltype(A), m, min(m, n)))
-#     R = triu!(A[1:min(m, n), :])
-#     return Q, R
-# end
 
 function _leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QL, QLpos}, atol::Real)
     iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
@@ -282,6 +252,9 @@ function _svd!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD, SDD})
 end
 
 # TODO: override Julia's eig interface
+# using LinearAlgebra.BLAS: @blasfunc, libblas, BlasReal, BlasComplex
+# using LinearAlgebra.LAPACK: liblapack, chklapackerror
+#
 # eig!(A::StridedMatrix{<:BlasFloat}) = LinAlg.LAPACK.gees!('V', A)
 # function eig!(A::StridedMatrix{T}; permute::Bool=true, scale::Bool=true) where T<:BlasReal
 #     n = size(A, 2)
@@ -312,43 +285,49 @@ end
 #     return Eigen(LAPACK.geevx!(permute ? (scale ? 'B' : 'P') : (scale ? 'S' : 'N'), 'N', 'V', 'N', A)[[2,4]]...)
 # end
 #
-#
 # eigfact!(A::RealHermSymComplexHerm{<:BlasReal, <:StridedMatrix}) = Eigen(LAPACK.syevr!('V', 'A', A.uplo, A.data, 0.0, 0.0, 0, 0, -1.0)...)
 #
-#
-#
-# Modified / missing Lapack wrappers
-#------------------------------------
-# geqrfp!: computes qrpos factorization, missing in Base
-geqrfp!(A::StridedMatrix{<:BlasFloat}) =
-    ((m, n) = size(A); geqrfp!(A, similar(A, min(m, n))))
+# TODO: reconsider the following implementation
+# Unfortunately, geqrfp seems a bit slower than geqrt in the intermediate region
+# around matrix size 100, which is the interesting region. => Investigate and maybe fix
+# function _leftorth!(A::StridedMatrix{<:BlasFloat})
+#     m, n = size(A)
+#     A, τ = geqrfp!(A)
+#     Q = LAPACK.ormqr!('L', 'N', A, τ, eye(eltype(A), m, min(m, n)))
+#     R = triu!(A[1:min(m, n), :])
+#     return Q, R
+# end
 
-for (geqrfp, elty, relty) in
-    ((:dgeqrfp_, :Float64, :Float64), (:sgeqrfp_, :Float32, :Float32),
-        (:zgeqrfp_, :ComplexF64, :Float64), (:cgeqrfp_, :ComplexF32, :Float32))
-    @eval begin
-        function geqrfp!(A::StridedMatrix{$elty}, tau::StridedVector{$elty})
-            chkstride1(A, tau)
-            m, n  = size(A)
-            if length(tau) != min(m, n)
-                throw(DimensionMismatch("tau has length $(length(tau)), but needs length $(min(m, n))"))
-            end
-            work  = Vector{$elty}(1)
-            lwork = BlasInt(-1)
-            info  = Ref{BlasInt}()
-            for i = 1:2                # first call returns lwork as work[1]
-                ccall((@blasfunc($geqrfp), liblapack), Nothing,
-                      (Ptr{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ptr{BlasInt},
-                       Ptr{$elty}, Ptr{$elty}, Ptr{BlasInt}, Ptr{BlasInt}),
-                      Ref(m), Ref(n), A, Ref(max(1, stride(A, 2))),
-                      tau, work, Ref(lwork), info)
-                chklapackerror(info[])
-                if i == 1
-                    lwork = BlasInt(real(work[1]))
-                    resize!(work, lwork)
-                end
-            end
-            A, tau
-        end
-    end
-end
+# geqrfp!: computes qrpos factorization, missing in Base
+# geqrfp!(A::StridedMatrix{<:BlasFloat}) =
+#     ((m, n) = size(A); geqrfp!(A, similar(A, min(m, n))))
+#
+# for (geqrfp, elty, relty) in
+#     ((:dgeqrfp_, :Float64, :Float64), (:sgeqrfp_, :Float32, :Float32),
+#         (:zgeqrfp_, :ComplexF64, :Float64), (:cgeqrfp_, :ComplexF32, :Float32))
+#     @eval begin
+#         function geqrfp!(A::StridedMatrix{$elty}, tau::StridedVector{$elty})
+#             chkstride1(A, tau)
+#             m, n  = size(A)
+#             if length(tau) != min(m, n)
+#                 throw(DimensionMismatch("tau has length $(length(tau)), but needs length $(min(m, n))"))
+#             end
+#             work  = Vector{$elty}(1)
+#             lwork = BlasInt(-1)
+#             info  = Ref{BlasInt}()
+#             for i = 1:2                # first call returns lwork as work[1]
+#                 ccall((@blasfunc($geqrfp), liblapack), Nothing,
+#                       (Ptr{BlasInt}, Ptr{BlasInt}, Ptr{$elty}, Ptr{BlasInt},
+#                        Ptr{$elty}, Ptr{$elty}, Ptr{BlasInt}, Ptr{BlasInt}),
+#                       Ref(m), Ref(n), A, Ref(max(1, stride(A, 2))),
+#                       tau, work, Ref(lwork), info)
+#                 chklapackerror(info[])
+#                 if i == 1
+#                     lwork = BlasInt(real(work[1]))
+#                     resize!(work, lwork)
+#                 end
+#             end
+#             A, tau
+#         end
+#     end
+# end
