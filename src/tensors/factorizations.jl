@@ -23,8 +23,8 @@ Base.@deprecate(
         trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD, SDD} = SDD())
         -> U, S, V, ϵ
 
-Compute the (possibly truncated)) singular value decomposition such that
-`norm(permute(t, leftind, rightind) - U * S *V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
+Compute the (possibly truncated) singular value decomposition such that
+`norm(permute(t, leftind, rightind) - U * S * V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in
@@ -39,7 +39,7 @@ case a truncated singular value decomposition will be computed. Choices are:
     vector space is no larger than `χ`;
 *   `truncspace(V)`: truncates such that the dimension of the internal vector space is
     smaller than that of `V` in any sector.
-*   `trunbelow(χ::Real)`: truncates such that every singular value is larger then `χ` ;
+*   `truncbelow(χ::Real)`: truncates such that every singular value is larger then `χ` ;
 
 The method `tsvd` also returns the truncation error `ϵ`, computed as the `p` norm of the
 singular values that were truncated.
