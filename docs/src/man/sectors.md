@@ -110,7 +110,7 @@ There is a graphical representation associated with the fusion tensors and their
 
 As always, we refer to the subsection on [topological data of a unitary fusion category](@ref ss_topologicalfusion) for further details.
 
-Finally, for the implementation, it will be useful to distinguish between an number of
+Finally, for the implementation, it will be useful to distinguish between a number of
 different possibilities regarding the fusion rules. If, for every ``a`` and ``b``, there is
 a unique ``c`` such that ``a ⊗ b = c`` (i.e. ``N^{ab}_{c} = 1`` and ``N^{ab}_{c′} = 0`` for
 all other ``c′``), the category is abelian. Indeed, the representations of a group have this
@@ -181,7 +181,7 @@ Note that an instance of the singleton type `SectorValues{I}` is obtained as `va
 A new sector `I<:Sector` should define
 ```julia
 Base.iterate(::SectorValues{I}[, state]) = ...
-Base.IteratorSize(::Type{SectorValues{I}}) = # HasLenght() or IsInfinite()
+Base.IteratorSize(::Type{SectorValues{I}}) = # HasLength() or IsInfinite()
 # if previous function returns HasLength():
 Base.length(::SectorValues{I}) = ...
 Base.getindex(::SectorValues{I}, i::Int) = ...
@@ -193,7 +193,7 @@ way to map the different sector values from and to the standard range 1, 2, …,
 `length(values(I))`. This is used to efficiently represent `GradedSpace`
 objects for this type of sector, as discussed in the next section on
 [Graded spaces](@ref ss_rep). Note that `findindex` acts similar to `Base.indexin`,
-but with the order of the arguments reversed (so that is more similar to `getindex`), and
+but with the order of the arguments reversed (so that it is more similar to `getindex`), and
 returns an `Int` rather than an `Array{0,Union{Int,Nothing}}`.
 
 It is useful to distinguish between three cases with respect to the fusion rules. For irreps
@@ -237,7 +237,7 @@ struct Bosonic <: SymmetricBraiding end
 struct Fermionic <: SymmetricBraiding end
 struct Anyonic <: BraidingStyle end
 ```
-New sector types `I<:Sector` should then indicate which fusion style they have by defining
+New sector types `I<:Sector` should then indicate which braiding style they have by defining
 `BraidingStyle(::Type{})`. Note that `Bosonic()` braiding does not mean that all
 permutations are trivial and ``R^{ab}_c = 1``, but that ``R^{ab}_c R^{ba}_c = 1``. For
 example, for the irreps of ``\mathsf{SU}_2``, the R-symbol associated with the fusion of
@@ -538,7 +538,7 @@ We refer to the source file of [`ProductSector`](@ref) for implementation detail
 
 The symbol `⊠` refers to the
 [Deligne tensor product](https://ncatlab.org/nlab/show/Deligne+tensor+product+of+abelian+categories)
-within the literature on category theory. Indeed, the category of representation of a
+within the literature on category theory. Indeed, the category of representations of a
 product group `G₁ × G₂` corresponds the Deligne tensor product of the categories of
 representations of the two groups separately. But this definition also extends to 𝕜-linear
 categories which are not the representation category of a group. Note that `⊠` also works
@@ -888,7 +888,7 @@ for the specific case ``N_1=4`` and ``N_2=3``. We can separate this tree into th
 part ``(b_1⊗b_2)⊗b_3 → c`` and the splitting part ``c→(((a_1⊗a_2)⊗a_3)⊗a_4)``. Given that
 the fusion tree can be considered to be the adjoint of a corresponding splitting tree
 ``c→(b_1⊗b_2)⊗b_3``, we now first consider splitting trees in isolation. A splitting tree
-which goes from one coupled sectors ``c`` to ``N`` uncoupled sectors ``a_1``, ``a_2``, …,
+which goes from one coupled sector ``c`` to ``N`` uncoupled sectors ``a_1``, ``a_2``, …,
 ``a_N`` needs ``N-2`` additional internal sector labels ``e_1``, …, ``e_{N-2}``, and, if
 `FusionStyle(I) isa GenericFusion`, ``N-1`` additional multiplicity labels ``μ_1``,
 …, ``μ_{N-1}``. We henceforth refer to them as vertex labels, as they are associated with
@@ -973,7 +973,7 @@ collect(fusiontrees((s2,s2,s2,s2)))
 Note that `FusionTree` instances are shown (printed) in a way that is valid code to
 reproduce them, a property which also holds for both instances of `Sector` and instances of
 `VectorSpace`. All of those should be displayed in a way that can be copy pasted as valid
-code. Furthermore, we use contact to determine how to print e.g. a sector. In isolation,
+code. Furthermore, we use context to determine how to print e.g. a sector. In isolation,
 `s2` is printed as `(Irrep[SU₂](1/2) ⊠ Irrep[SU₂](1/2))`, however, within the fusion tree,
 it is simply printed as `(1/2, 1/2)`, because it will be converted back into a
 `ProductSector`, namely `Irrep[SU₂] ⊠ Irrep[SU₂]` by the constructor of
@@ -1013,7 +1013,7 @@ braided with the sector at position `i+1` in the fusion tree `f`. The keyword ar
 allows to select the inverse braiding operation, which amounts to replacing the R-matrix
 with its inverse (or thus, adjoint) in the above steps. The result is returned as a
 dictionary with possible output fusion trees as keys and corresponding coefficients as
-value. In the case of `FusionStyle(I) isa UniqueFusion`, their is only one resulting fusion
+value. In the case of `FusionStyle(I) isa UniqueFusion`, there is only one resulting fusion
 tree, with corresponding coefficient a complex phase (which is one for the bosonic
 representation theory of an Abelian group), and the result is a special
 `SingletonDict<:AbstractDict`, a `struct` type defined in TensorKit.jl to hold a single key
@@ -1252,7 +1252,7 @@ section will be completed when the implementation is finished.)
 ## Anyons
 
 There is currently one example of a `Sector` subtype that has anyonic braiding style,
-namely that of the Fibonacci fusion category. It has to (isomorphism classes of) simple
+namely that of the Fibonacci fusion category. It has two (isomorphism classes of) simple
 objects, namely the identity `𝟙` and a non-trivial object known as `τ`, with fusion rules
 `τ ⊗ τ = 𝟙 ⊕ τ`. Let's summarize the topological data
 
