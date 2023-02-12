@@ -18,9 +18,9 @@ function cached_permute(sym::Symbol, t::TensorMap{S},
     end
 end
 
-function cached_permute(sym::Symbol, t::AdjointTensorMap{S},
+function cached_permute(sym::Symbol, t::AdjointTensorMap,
                             p1::IndexTuple,  p2::IndexTuple=();
-                            copy::Bool = false) where {S, N₁, N₂}
+                            copy::Bool = false)
     p1′ = adjointtensorindices(t, p2)
     p2′ = adjointtensorindices(t, p1)
     adjoint(cached_permute(sym, adjoint(t), p1′, p2′; copy = copy))
