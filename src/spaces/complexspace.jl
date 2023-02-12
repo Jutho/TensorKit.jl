@@ -1,13 +1,13 @@
 """
-    struct ComplexSpace <: EuclideanSpace{ℂ}
+    struct ComplexSpace <: ElementarySpace{ℂ}
 
 A standard complex vector space ℂ^d with Euclidean inner product and no additional
 structure. It is completely characterised by its dimension and whether its the normal space
 or its dual (which is canonically isomorphic to the conjugate space).
 """
-struct ComplexSpace <: EuclideanSpace{ℂ}
-  d::Int
-  dual::Bool
+struct ComplexSpace <: ElementarySpace{ℂ}
+    d::Int
+    dual::Bool
 end
 ComplexSpace(d::Integer = 0; dual = false) = ComplexSpace(Int(d), dual)
 function ComplexSpace(dim::Pair; dual = false)
@@ -29,6 +29,8 @@ function ComplexSpace(dims::AbstractDict; kwargs...)
     end
 end
 
+InnerProductStyle(::Type{ComplexSpace}) = EuclideanProduct()
+
 # convenience constructor
 Base.getindex(::ComplexNumbers) = ComplexSpace
 Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)
@@ -42,17 +44,23 @@ Base.axes(V::ComplexSpace) = Base.OneTo(dim(V))
 Base.conj(V::ComplexSpace) = ComplexSpace(dim(V), !isdual(V))
 
 Base.oneunit(::Type{ComplexSpace}) = ComplexSpace(1)
-⊕(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
-    ComplexSpace(dim(V1)+dim(V2), isdual(V1)) :
-    throw(SpaceMismatch("Direct sum of a vector space and its dual does not exist"))
-fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d*V2.d)
+function ⊕(V1::ComplexSpace, V2::ComplexSpace)
+    return isdual(V1) == isdual(V2) ?
+           ComplexSpace(dim(V1) + dim(V2), isdual(V1)) :
+           throw(SpaceMismatch("Direct sum of a vector space and its dual does not exist"))
+end
+fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d * V2.d)
 flip(V::ComplexSpace) = dual(V)
 
-infimum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
-    ComplexSpace(min(dim(V1), dim(V2)), isdual(V1)) :
-    throw(SpaceMismatch("Infimum of space and dual space does not exist"))
-supremum(V1::ComplexSpace, V2::ComplexSpace) = isdual(V1) == isdual(V2) ?
-    ComplexSpace(max(dim(V1), dim(V2)), isdual(V1)) :
-    throw(SpaceMismatch("Supremum of space and dual space does not exist"))
+function infimum(V1::ComplexSpace, V2::ComplexSpace)
+    return isdual(V1) == isdual(V2) ?
+           ComplexSpace(min(dim(V1), dim(V2)), isdual(V1)) :
+           throw(SpaceMismatch("Infimum of space and dual space does not exist"))
+end
+function supremum(V1::ComplexSpace, V2::ComplexSpace)
+    return isdual(V1) == isdual(V2) ?
+           ComplexSpace(max(dim(V1), dim(V2)), isdual(V1)) :
+           throw(SpaceMismatch("Supremum of space and dual space does not exist"))
+end
 
 Base.show(io::IO, V::ComplexSpace) = print(io, isdual(V) ? "(ℂ^$(V.d))'" : "ℂ^$(V.d)")

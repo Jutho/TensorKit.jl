@@ -1,11 +1,11 @@
 """
-    struct CartesianSpace <: EuclideanSpace{ℝ}
+    struct CartesianSpace <: ElementarySpace{ℝ}
 
 A real Euclidean space `ℝ^d`, which is therefore self-dual. `CartesianSpace` has no
 additonal structure and is completely characterised by its dimension `d`. This is the
 vector space that is implicitly assumed in most of matrix algebra.
 """
-struct CartesianSpace <: EuclideanSpace{ℝ}
+struct CartesianSpace <: ElementarySpace{ℝ}
     d::Int
 end
 CartesianSpace(d::Integer = 0; dual = false) = CartesianSpace(Int(d))
@@ -27,6 +27,10 @@ function CartesianSpace(dims::AbstractDict; kwargs...)
         throw(SectorMismatch(msg))
     end
 end
+
+InnerProductStyle(::Type{CartesianSpace}) = EuclideanProduct()
+
+isdual(V::CartesianSpace) = false
 
 # convenience constructor
 Base.getindex(::RealNumbers) = CartesianSpace

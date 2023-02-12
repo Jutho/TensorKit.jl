@@ -115,7 +115,6 @@ that this is different from `one(V::S)`, which returns the empty product space
 """
 Base.oneunit(V::ElementarySpace) = oneunit(typeof(V))
 
-
 """
     ⊕(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
 
@@ -125,7 +124,6 @@ spaces `V1`, `V2`, ... Note that all the individual spaces should have the same 
 """
 function ⊕ end
 ⊕(V1, V2, V3, V4...) = ⊕(⊕(V1, V2), V3, V4...)
-
 
 """
     ⊗(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
@@ -174,30 +172,27 @@ For `field(V)==ℝ`, `conj(V) == V`. It is assumed that `typeof(V) == typeof(con
 """
 Base.conj(V::ElementarySpace{ℝ}) = V
 
-"""
-    abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
+# trait to describe the inner product type of vector spaces
+abstract type InnerProductStyle end
+struct NoInnerProduct <: InnerProductStyle end # no inner product
 
-Abstract type for denoting vector spaces with an inner product, thus a canonical mapping from
-`dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This mapping
-is provided by the metric, but no further support for working with metrics is currently
-implemented.
-"""
-abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
+abstract type HasInnerProduct <: InnerProductStyle end # inner product defined
+struct EuclideanProduct <: HasInnerProduct end # euclidean inner product
 
 """
-    abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end
+    InnerProductStyle(V::VectorSpace) -> ::InnerProductStyle
+    InnerProductStyle(S::Type{<:VectorSpace}) -> ::InnerProductStyle
 
-Abstract type for denoting real or complex spaces with a standard Euclidean inner product
-(i.e. orthonormal basis, and the metric is identity), such that the dual space is naturally
-isomorphic to the conjugate space `dual(V) == conj(V)` (in the complex case) or even to
-the space itself `dual(V) == V` (in the real case), also known as the category of
-finite-dimensional Hilbert spaces ``FdHilb``. In the language of categories, this subtype
-represents dagger or unitary categories, and support an adjoint operation.
+Return the type of inner product for vector spaces, which can be either
+*   `NoInnerProduct()`: no mapping from `dual(V)` to `conj(V)`, i.e. no metric
+*   subtype of `HasInnerProduct`: a metric exists, but no further support is implemented.
+*   `EuclideanProduct()`: the metric is the identity, such that dual and conjugate spaces are isomorphic.
 """
-abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end # 𝕜 should be ℝ or ℂ
+InnerProductStyle(V::VectorSpace) = InnerProductStyle(typeof(V))
+InnerProductStyle(::Type{<:VectorSpace}) = NoInnerProduct()
 
-dual(V::EuclideanSpace) = conj(V)
-isdual(V::EuclideanSpace{ℝ}) = false
+dual(V::VectorSpace) = dual(InnerProductStyle(V), V)
+dual(::EuclideanProduct, V::VectorSpace) = conj(V)
 
 """
     sectortype(a) -> Type{<:Sector}
@@ -248,9 +243,11 @@ vector spaces of a homogeneous type `S<:ElementarySpace{𝕜}`.
 """
 abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
+InnerProductStyle(::Type{<:CompositeSpace{S}}) where {S} = InnerProductStyle(S)
+
 spacetype(S::Type{<:ElementarySpace}) = S
 spacetype(V::ElementarySpace) = typeof(V) # = spacetype(typeof(V))
-spacetype(::Type{<:CompositeSpace{S}}) where S = S
+spacetype(::Type{<:CompositeSpace{S}}) where {S} = S
 spacetype(V::CompositeSpace) = spacetype(typeof(V)) # = spacetype(typeof(V))
 
 field(P::Type{<:CompositeSpace}) = field(spacetype(P))

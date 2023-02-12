@@ -1,5 +1,5 @@
 """
-    struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
+    struct GradedSpace{I<:Sector, D} <: ElementarySpace{ℂ}
         dims::D
         dual::Bool
     end
@@ -24,7 +24,7 @@ and should typically be of no concern.
 The concrete type `GradedSpace{I,D}` with correct `D` can be obtained as `Vect[I]`, or if
 `I == Irrep[G]` for some `G<:Group`, as `Rep[G]`.
 """
-struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
+struct GradedSpace{I<:Sector,D} <: ElementarySpace{ℂ}
     dims::D
     dual::Bool
 end
@@ -78,20 +78,26 @@ Base.hash(V::GradedSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
 
 # Corresponding methods:
 # properties
-dim(V::GradedSpace) =
-    reduce(+, dim(V, c) * dim(c) for c in sectors(V); init = zero(dim(one(sectortype(V)))))
+InnerProductStyle(::Type{<:GradedSpace}) = EuclideanProduct()
+function dim(V::GradedSpace)
+    return reduce(+, dim(V, c) * dim(c) for c in sectors(V);
+                  init=zero(dim(one(sectortype(V)))))
+end
+function dim(V::GradedSpace{I,<:AbstractDict}, c::I) where {I<:Sector}
+    return get(V.dims, isdual(V) ? dual(c) : c, 0)
+end
+function dim(V::GradedSpace{I,<:Tuple}, c::I) where {I<:Sector}
+    return V.dims[findindex(values(I), isdual(V) ? dual(c) : c)]
+end
 
-dim(V::GradedSpace{I,<:AbstractDict}, c::I) where {I<:Sector} =
-    get(V.dims, isdual(V) ? dual(c) : c, 0)
-dim(V::GradedSpace{I,<:Tuple}, c::I) where {I<:Sector} =
-    V.dims[findindex(values(I), isdual(V) ? dual(c) : c)]
-
-sectors(V::GradedSpace{I,<:AbstractDict}) where {I<:Sector} =
-    SectorSet{I}(s->isdual(V) ? dual(s) : s, keys(V.dims))
-sectors(V::GradedSpace{I,NTuple{N,Int}}) where {I<:Sector, N} =
-    SectorSet{I}(Iterators.filter(n->V.dims[n]!=0, 1:N)) do n
-        isdual(V) ? dual(values(I)[n]) : values(I)[n]
+function sectors(V::GradedSpace{I,<:AbstractDict}) where {I<:Sector}
+    return SectorSet{I}(s -> isdual(V) ? dual(s) : s, keys(V.dims))
+end
+function sectors(V::GradedSpace{I,NTuple{N,Int}}) where {I<:Sector,N}
+    SectorSet{I}(Iterators.filter(n -> V.dims[n] != 0, 1:N)) do n
+        return isdual(V) ? dual(values(I)[n]) : values(I)[n]
     end
+end
 
 hassector(V::GradedSpace{I}, s::I) where {I<:Sector} = dim(V, s) != 0
 
