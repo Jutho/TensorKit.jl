@@ -560,7 +560,7 @@ end
 function LinearAlgebra.isposdef!(t::TensorMap)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`isposdef` requires domain and codomain to be the same"))
-    spacetype(t) <: EuclideanSpace || return false
+    InnerProductStyle(spacetype(t)) === EuclideanProduct() || return false
     for (c, b) in blocks(t)
         isposdef!(b) || return false
     end
