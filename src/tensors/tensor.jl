@@ -139,42 +139,65 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
     F₂ = fusiontreetype(I, N₂)
     rowr = SectorDict{I, FusionTreeDict{F₁, UnitRange{Int}}}()
     colr = SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}()
-    blockiterator = blocksectors(codom ← dom)
-    for c in blockiterator
-        rowrc = FusionTreeDict{F₁, UnitRange{Int}}()
-        colrc = FusionTreeDict{F₂, UnitRange{Int}}()
-        offset1 = 0
-        for s1 in sectors(codom)
+    rowdims = SectorDict{I, Int}()
+    coldims = SectorDict{I, Int}()
+    if N₁ == 0 || N₂ == 0
+        blocksectoriterator = (one(I),)
+    elseif N₂ <= N₁
+        blocksectoriterator = blocksectors(dom)
+    else
+        blocksectoriterator = blocksectors(codom)
+    end
+    for s1 in sectors(codom)
+        for c in blocksectoriterator
+            offset1 = get!(rowdims, c, 0)
+            rowrc = get!(rowr, c) do
+                FusionTreeDict{F₁, UnitRange{Int}}()
+            end
             for f1 in fusiontrees(s1, c, map(isdual, codom.spaces))
                 r = (offset1 + 1):(offset1 + dim(codom, s1))
                 push!(rowrc, f1 => r)
                 offset1 = last(r)
             end
+            rowdims[c] = offset1
         end
-        offset2 = 0
-        for s2 in sectors(dom)
+    end
+    for s2 in sectors(dom)
+        for c in blocksectoriterator
+            offset2 = get!(coldims, c, 0)
+            colrc = get!(colr, c) do
+                FusionTreeDict{F₂, UnitRange{Int}}()
+            end
             for f2 in fusiontrees(s2, c, map(isdual, dom.spaces))
                 r = (offset2 + 1):(offset2 + dim(dom, s2))
                 push!(colrc, f2 => r)
                 offset2 = last(r)
             end
+            coldims[c] = offset2
         end
-        (haskey(data, c) && size(data[c]) == (offset1, offset2)) ||
+    end
+    for c in blocksectoriterator
+        dim1 = get!(rowdims, c, 0)
+        dim2 = get!(coldims, c, 0)
+        if dim1 == 0 || dim2 == 0
+            delete!(rowr, c)
+            delete!(colr, c)
+        else
+            (haskey(data, c) && size(data[c]) == (dim1, dim2)) ||
             throw(DimensionMismatch())
-        push!(rowr, c=>rowrc)
-        push!(colr, c=>colrc)
+        end
     end
     if !isreal(I) && eltype(valtype(data)) <: Real
         b = valtype(data)(undef, (0,0))
         V = typeof(complex(b))
         K = keytype(data)
-        data2 = SectorDict{K,V}((c=>complex(data[c])) for c in blockiterator)
+        data2 = SectorDict{K,V}((c=>complex(data[c])) for c in blocksectoriterator)
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, I, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     else
         V = valtype(data)
         K = keytype(data)
-        data2 = SectorDict{K,V}((c=>data[c]) for c in blockiterator)
+        data2 = SectorDict{K,V}((c=>data[c]) for c in blocksectoriterator)
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, I, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     end
@@ -202,30 +225,52 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
         data = SectorDict{I,A}()
         rowr = SectorDict{I, FusionTreeDict{F₁, UnitRange{Int}}}()
         colr = SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}()
-        for c in blocksectors(codom ← dom)
-            rowrc = FusionTreeDict{F₁, UnitRange{Int}}()
-            colrc = FusionTreeDict{F₂, UnitRange{Int}}()
-            offset1 = 0
-            for s1 in sectors(codom)
+        rowdims = SectorDict{I, Int}()
+        coldims = SectorDict{I, Int}()
+        if N₁ == 0 || N₂ == 0
+            blocksectoriterator = (one(I),)
+        elseif N₂ <= N₁
+            blocksectoriterator = blocksectors(dom)
+        else
+            blocksectoriterator = blocksectors(codom)
+        end
+        for s1 in sectors(codom)
+            for c in blocksectoriterator
+                offset1 = get!(rowdims, c, 0)
+                rowrc = get!(rowr, c) do
+                    FusionTreeDict{F₁, UnitRange{Int}}()
+                end
                 for f1 in fusiontrees(s1, c, map(isdual, codom.spaces))
                     r = (offset1 + 1):(offset1 + dim(codom, s1))
                     push!(rowrc, f1 => r)
                     offset1 = last(r)
                 end
+                rowdims[c] = offset1
             end
-            dim1 = offset1
-            offset2 = 0
-            for s2 in sectors(dom)
+        end
+        for s2 in sectors(dom)
+            for c in blocksectoriterator
+                offset2 = get!(coldims, c, 0)
+                colrc = get!(colr, c) do
+                    FusionTreeDict{F₂, UnitRange{Int}}()
+                end
                 for f2 in fusiontrees(s2, c, map(isdual, dom.spaces))
                     r = (offset2 + 1):(offset2 + dim(dom, s2))
                     push!(colrc, f2 => r)
                     offset2 = last(r)
                 end
+                coldims[c] = offset2
             end
-            dim2 = offset2
-            push!(data, c=>f((dim1, dim2)))
-            push!(rowr, c=>rowrc)
-            push!(colr, c=>colrc)
+        end
+        for c in blocksectoriterator
+            dim1 = get!(rowdims, c, 0)
+            dim2 = get!(coldims, c, 0)
+            if dim1 == 0 || dim2 == 0
+                delete!(rowr, c)
+                delete!(colr, c)
+            else
+                data[c] = f((dim1, dim2))
+            end
         end
         return TensorMap{S, N₁, N₂, I, SectorDict{I,A}, F₁, F₂}(data, codom, dom, rowr, colr)
     end

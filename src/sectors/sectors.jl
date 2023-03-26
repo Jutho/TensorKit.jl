@@ -119,6 +119,7 @@ Note that every element `c` should appear at most once, fusion degeneracies (if
 `FusionStyle(I) == GenericFusion()`) should be accessed via `Nsymbol(a, b, c)`.
 """
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
+⊗(I::Sector) = (I,)
 
 """
     Nsymbol(a::I, b::I, c::I) where {I<:Sector} -> Integer
