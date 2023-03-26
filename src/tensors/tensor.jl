@@ -191,13 +191,13 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
         b = valtype(data)(undef, (0,0))
         V = typeof(complex(b))
         K = keytype(data)
-        data2 = SectorDict{K,V}((c=>complex(data[c])) for c in blocksectoriterator)
+        data2 = SectorDict{K,V}((c=>complex(data[c])) for c in keys(rowr))
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, I, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     else
         V = valtype(data)
         K = keytype(data)
-        data2 = SectorDict{K,V}((c=>data[c]) for c in blocksectoriterator)
+        data2 = SectorDict{K,V}((c=>data[c]) for c in keys(rowr))
         A = typeof(data2)
         return TensorMap{S, N₁, N₂, I, A, F₁, F₂}(data2, codom, dom, rowr, colr)
     end
