@@ -168,7 +168,7 @@ end
 
 blocks(b::BraidingTensor) = blocks(TensorMap(b))
 
-function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
+function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
                             β, C::AbstractTensorMap{S},
                             oindA::IndexTuple{2}, cindA::IndexTuple{2},
                             oindB::IndexTuple, cindB::IndexTuple{2},
@@ -214,7 +214,7 @@ function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
     end
     return C
 end
-function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
+function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
                             β, C::AbstractTensorMap{S},
                             oindA::IndexTuple, cindA::IndexTuple{2},
                             oindB::IndexTuple{2}, cindB::IndexTuple{2},
@@ -259,7 +259,7 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
     C
 end
 
-function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
+function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
                             β, C::AbstractTensorMap{S},
                             oindA::IndexTuple{0}, cindA::IndexTuple{4},
                             oindB::IndexTuple, cindB::IndexTuple{4},
@@ -327,7 +327,7 @@ function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
     return C
 end
 
-function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
+function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
                             β, C::AbstractTensorMap{S},
                             oindA::IndexTuple, cindA::IndexTuple{4},
                             oindB::IndexTuple{0}, cindB::IndexTuple{4},
@@ -395,7 +395,7 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
     return C
 end
 
-function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
+function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
                             β, C::AbstractTensorMap{S},
                             oindA::IndexTuple{1}, cindA::IndexTuple{3},
                             oindB::IndexTuple, cindB::IndexTuple{3},
@@ -457,7 +457,7 @@ function planar_contract!(α, A::BraidingTensor, B::AbstractTensorMap{S},
     return C
 end
 
-function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor,
+function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
                             β, C::AbstractTensorMap{S},
                             oindA::IndexTuple, cindA::IndexTuple{3},
                             oindB::IndexTuple{1}, cindB::IndexTuple{3},
