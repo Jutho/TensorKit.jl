@@ -12,11 +12,25 @@ WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
 LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 
+[extras]
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+SUNRepresentations = "1a50b95c-7aac-476d-a9ce-2bfc675fc617"
+TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TestExtras = "5ed8adda-3752-4e41-b88a-e8b09835ee3a"
+WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
+
+[targets]
+test = ["Combinatorics", "HalfIntegers", "LinearAlgebra", "Random", "SUNRepresentations", "TensorKit", "TensorOperations", "Test", "TestExtras", "WignerSymbols"]
+
 [compat]
 Strided = "1.0.1"
 TupleTools = "1.1"
 HalfIntegers = "1"
 WignerSymbols = "1,2"
-TensorOperations = "3.2.3"
+TensorOperations = "4"
 LRUCache = "1.0.2"
-julia = "1.6"
+julia = "1.6 - 1"
