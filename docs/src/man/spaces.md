@@ -103,40 +103,35 @@ struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
 end
 ```
 
-We furthermore define the abstract type
+We furthermore define the trait types
 ```julia
-abstract type InnerProductSpace{𝕜} <: ElementarySpace{𝕜} end
+abstract type InnerProductStyle end
+struct NoInnerProduct <: InnerProductStyle end
+abstract type HasInnerProduct <: InnerProductStyle end
+struct EuclideanProduct <: HasInnerProduct end
 ```
-to contain all vector spaces `V` which have an inner product and thus a canonical mapping
-from `dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise). This
-mapping is provided by the metric, but no further support for working with metrics is
+to denote for a vector space `V` whether it has an inner product and thus a canonical
+mapping from `dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise).
+This mapping is provided by the metric, but no further support for working with metrics is
 currently implemented.
 
-Finally there is
+The `EuclideanProduct` has the natural isomorphisms `dual(V) == V` (for `𝕜 == ℝ`)
+or `dual(V) == conj(V)` (for ` 𝕜 == ℂ`).
+In the language of the previous section on [categories](@ref s_categories), this trait represents [dagger or unitary categories](@ref ss_adjoints), and these vector spaces support an `adjoint` operation.
+
+In particular, the two concrete types
 ```julia
-abstract type EuclideanSpace{𝕜} <: InnerProductSpace{𝕜} end
-```
-to contain all spaces `V` with a standard Euclidean inner product (i.e. where the metric is
-the identity). These spaces have the natural isomorphisms `dual(V) == V` (for `𝕜 == ℝ`)
-or `dual(V) == conj(V)` (for ` 𝕜 == ℂ`). In the language of the previous section on
-[categories](@ref s_categories), this subtype represents
-[dagger or unitary categories](@ref ss_adjoints), and support an `adjoint` operation. In
-particular, we have two concrete types
-```julia
-struct CartesianSpace <: EuclideanSpace{ℝ}
+struct CartesianSpace <: ElementarySpace{ℝ}
     d::Int
 end
-struct ComplexSpace <: EuclideanSpace{ℂ}
+struct ComplexSpace <: ElementarySpace{ℂ}
   d::Int
   dual::Bool
 end
 ```
-to represent the Euclidean spaces $ℝ^d$ or $ℂ^d$ without further inner structure. They can
-be created using the syntax `CartesianSpace(d) == ℝ^d == ℝ[d]` and
-`ComplexSpace(d) == ℂ^d == ℂ[d]`, or
-`ComplexSpace(d, true) == ComplexSpace(d; dual = true) == (ℂ^d)' == ℂ[d]'` for the
-dual space of the latter. Note that the brackets are required because of the precedence
-rules, since `d' == d` for `d::Integer`.
+represent the Euclidean spaces $ℝ^d$ or $ℂ^d$ without further inner structure.
+They can be created using the syntax `CartesianSpace(d) == ℝ^d == ℝ[d]` and `ComplexSpace(d) == ℂ^d == ℂ[d]`, or `ComplexSpace(d, true) == ComplexSpace(d; dual = true) == (ℂ^d)' == ℂ[d]'` for the dual space of the latter.
+Note that the brackets are required because of the precedence rules, since `d' == d` for `d::Integer`.
 
 Some examples:
 ```@repl tensorkit
@@ -149,12 +144,15 @@ dual(ℂ^5) == (ℂ^5)' == conj(ℂ^5) == ComplexSpace(5; dual = true)
 typeof(ℝ^3)
 spacetype(ℝ^3)
 spacetype(ℝ[])
+InnerProductStyle(ℝ^3)
+InnerProductStyle(ℂ^5)
 ```
+
 Note that `ℝ[]` and `ℂ[]` are synonyms for `CartesianSpace` and `ComplexSpace` respectively,
 such that yet another syntax is e.g. `ℂ[](d)`. This is not very useful in itself, and is
 motivated by its generalization to `GradedSpace`. We refer to the subsection on
 [graded spaces](@ref s_rep) on the [next page](@ref s_sectorsrepfusion) for further
-information about `GradedSpace`, which is another subtype of `EuclideanSpace{ℂ}`
+information about `GradedSpace`, which is another subtype of `ElementarySpace{ℂ}`
 with an inner structure corresponding to the irreducible representations of a group, or more
 generally, the simple objects of a fusion category.
 
@@ -279,7 +277,7 @@ For completeness, we also export the strict comparison operators `≺` and `≻`
 ```
 However, as we expect these to be less commonly used, no ASCII alternative is provided.
 
-In the context of `spacetype(V) <: EuclideanSpace`, `V1 ≾ V2` implies that there exists
+In the context of `InnerProductStyle(V) <: EuclideanProduct`, `V1 ≾ V2` implies that there exists
 isometries ``W:V1 → V2`` such that ``W^† ∘ W = \mathrm{id}_{V1}``, while `V1 ≅ V2` implies
 that there exist unitaries ``U:V1→V2`` such that ``U^† ∘ U = \mathrm{id}_{V1}`` and
 ``U ∘ U^† = \mathrm{id}_{V2}``.

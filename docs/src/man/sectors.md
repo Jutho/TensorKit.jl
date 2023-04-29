@@ -647,9 +647,9 @@ as illustrated below.
 We have introduced `Sector` subtypes as a way to label the irreps or sectors in the
 decomposition ``V = ⨁_a ℂ^{n_a} ⊗ R_{a}``. To actually represent such spaces, we now also
 introduce a corresponding type `GradedSpace`, which is a subtype of
-`EuclideanSpace{ℂ}`, i.e.
+`ElementarySpace{ℂ}`, i.e.
 ```julia
-struct GradedSpace{I<:Sector, D} <: EuclideanSpace{ℂ}
+struct GradedSpace{I<:Sector, D} <: ElementarySpace{ℂ}
     dims::D
     dual::Bool
 end

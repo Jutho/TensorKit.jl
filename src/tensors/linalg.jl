@@ -68,7 +68,7 @@ and error will be thrown. When they are isomorphic, there is no canonical choice
 specific isomorphism, but the current choice is such that
 `isomorphism(cod, dom) == inv(isomorphism(dom, cod))`.
 
-See also [`unitary`](@ref) when `InnerProductStyle(spacetype(cod)) === EuclideanProduct()`.
+See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanProduct()`.
 """
 isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
 isomorphism(P::TensorMapSpace) = isomorphism(codomain(P), domain(P))
@@ -217,7 +217,7 @@ end
 # inner product and norm only valid for spaces with Euclidean inner product
 function LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap)
     space(t1) == space(t2) || throw(SpaceMismatch())
-    InnerProductStyle(spacetype(t1)) === EuclideanProduct() ||
+    InnerProductStyle(t1) === EuclideanProduct() ||
         throw(ArgumentError("dot requires Euclidean inner product"))
     T = promote_type(eltype(t1), eltype(t2))
     s = zero(T)
@@ -228,7 +228,7 @@ function LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap)
 end
 
 function LinearAlgebra.norm(t::AbstractTensorMap, p::Real = 2)
-    InnerProductStyle(spacetype(t)) === EuclideanProduct() ||
+    InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("norm requires Euclidean inner product"))
     return _norm(blocks(t), p, float(zero(real(eltype(t)))))
 end

@@ -11,8 +11,6 @@ Field
 VectorSpace
 ElementarySpace
 GeneralSpace
-InnerProductSpace
-EuclideanSpace
 CartesianSpace
 ComplexSpace
 GradedSpace

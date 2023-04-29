@@ -28,12 +28,10 @@ V = ℝ^3
 typeof(V)
 V == CartesianSpace(3)
 supertype(CartesianSpace)
-supertype(EuclideanSpace)
-supertype(InnerProductSpace)
 supertype(ElementarySpace)
 ```
 i.e. `ℝ^n` can also be created without Unicode using the longer syntax `CartesianSpace(n)`.
-It is subtype of `EuclideanSpace{ℝ}`, a space with a standard (Euclidean) inner product
+It is subtype of `ElementarySpace{ℝ}`, with a standard (Euclidean) inner product
 over the real numbers. Furthermore,
 ```@repl tutorial
 W = ℝ^3 ⊗ ℝ^2 ⊗ ℝ^4

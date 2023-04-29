@@ -391,17 +391,18 @@ can use the method `u = isomorphism([A::Type{<:DenseMatrix}, ] codomain, domain)
 will explicitly check that the domain and codomain are isomorphic, and return an error
 otherwise. Again, an optional first argument can be given to specify the specific type of
 `DenseMatrix` that is currently used to store the rather trivial data of this tensor. If
-`spacetype(u) <: EuclideanSpace`, the same result can be obtained with the method `u =
-unitary([A::Type{<:DenseMatrix}, ] codomain, domain)`. Note that reversing the domain and
-codomain yields the inverse morphism, which in the case of `EuclideanSpace` coincides with
-the adjoint morphism, i.e. `isomorphism(A, domain, codomain) == adjoint(u) == inv(u)`, where
-`inv` and `adjoint` will be further discussed [below](@ref ss_tensor_linalg). Finally, if
-two spaces `V1` and `V2` are such that `V2` can be embedded in `V1`, i.e. there exists an
-inclusion with a left inverse, and furthermore they represent tensor products of some
-`EuclideanSpace`, the function `w = isometry([A::Type{<:DenseMatrix}, ], V1, V2)` creates
-one specific isometric embedding, such that `adjoint(w)*w == id(V2)` and `w*adjoint(w)` is
-some hermitian idempotent (a.k.a. orthogonal projector) acting on `V1`. An error will be
-thrown if such a map cannot be constructed for the given domain and codomain.
+`InnerProductStyle(u) <: EuclideanProduct`, the same result can be obtained with the method
+`u = unitary([A::Type{<:DenseMatrix}, ] codomain, domain)`. Note that reversing the domain
+and codomain yields the inverse morphism, which in the case of `EuclideanProduct` coincides
+with the adjoint morphism, i.e. `isomorphism(A, domain, codomain) == adjoint(u) == inv(u)`,
+where `inv` and `adjoint` will be further discussed [below](@ref ss_tensor_linalg).
+Finally, if two spaces `V1` and `V2` are such that `V2` can be embedded in `V1`, i.e. there
+exists an inclusion with a left inverse, and furthermore they represent tensor products of
+some `ElementarySpace` with `EuclideanProduct`, the function
+`w = isometry([A::Type{<:DenseMatrix}, ], V1, V2)` creates one specific isometric
+embedding, such that `adjoint(w) * w == id(V2)` and `w * adjoint(w)` is some hermitian
+idempotent (a.k.a. orthogonal projector) acting on `V1`. An error will be thrown if such a
+map cannot be constructed for the given domain and codomain.
 
 Let's conclude this section with some examples with `GradedSpace`.
 ```@repl tensors
@@ -575,7 +576,7 @@ can only exist if the domain and codomain are isomorphic, which can e.g. be chec
 `t2`, we can use the syntax `t1\t2` or `t2/t1`. However, this syntax also accepts instances
 `t1` whose domain and codomain are not isomorphic, and then amounts to `pinv(t1)`, the
 Moore-Penrose pseudoinverse. This, however, is only really justified as minimizing the
-least squares problem if `spacetype(t) <: EuclideanSpace`.
+least squares problem if `InnerProductStyle(t) <: EuclideanProduct`.
 
 `AbstractTensorMap` instances behave themselves as vectors (i.e. they are `𝕜`-linear) and
 so they can be multiplied by scalars and, if they live in the same space, i.e. have the same
@@ -588,30 +589,29 @@ operations, TensorKit.jl reexports a number of efficient in-place methods from
 `lmul!` and `rmul!` (for `y ← α*y` and `y ← y*α`, which is typically the same) and `mul!`,
 which can also be used for out-of-place scalar multiplication `y ← α*x`.
 
-For `t::AbstractTensorMap{S}` where `S<:EuclideanSpace`, henceforth referred to as
-a `(Abstract)EuclideanTensorMap`, we can compute `norm(t)`, and for two such instances, the
-inner product `dot(t1, t2)`, provided `t1` and `t2` have the same domain and codomain.
-Furthermore, there is `normalize(t)` and `normalize!(t)` to return a scaled version of `t`
-with unit norm. These operations should also exist for `S<:InnerProductSpace`, but requires
-an interface for defining a custom inner product in these spaces. Currently, there is no
-concrete subtype of `InnerProductSpace` that is not a subtype of `EuclideanSpace`. In
-particular, `CartesianSpace`, `ComplexSpace` and `GradedSpace` are all subtypes
-of `EuclideanSpace`.
+For `t::AbstractTensorMap{S}` where `InnerProductStyle(S) <: EuclideanProduct`, we can
+compute `norm(t)`, and for two such instances, the inner product `dot(t1, t2)`, provided
+`t1` and `t2` have the same domain and codomain. Furthermore, there is `normalize(t)` and
+`normalize!(t)` to return a scaled version of `t` with unit norm. These operations should
+also exist for  `InnerProductStyle(S) <: HasInnerProduct`, but require an interface for
+defining a custom inner product in these spaces. Currently, there is no concrete subtype of
+`HasInnerProduct` that is not an `EuclideanProduct`. In particular, `CartesianSpace`,
+`ComplexSpace` and `GradedSpace` all have `InnerProductStyle(V) <: EuclideanProduct`.
 
-With instances `t::AbstractEuclideanTensorMap` there is associated an adjoint operation,
-given by `adjoint(t)` or simply `t'`, such that `domain(t') == codomain(t)` and
-`codomain(t') == domain(t)`. Note that for an instance `t::TensorMap{S,N₁,N₂}`, `t'` is
-simply stored in a wrapper called `AdjointTensorMap{S,N₂,N₁}`, which is another subtype of
-`AbstractTensorMap`. This should be mostly unvisible to the user, as all methods should work
-for this type as well. It can be hard to reason about the index order of `t'`, i.e. index
-`i` of `t` appears in `t'` at index position `j = TensorKit.adjointtensorindex(t, i)`,
-where the latter method is typically not necessary and hence unexported. There is also a
-plural `TensorKit.adjointtensorindices` to convert multiple indices at once. Note that,
-because the adjoint interchanges domain and codomain, we have
-`space(t', j) == space(t, i)'`.
+With tensors that have `InnerProductStyle(t) <: EuclideanProduct` there is associated an
+adjoint operation, given by `adjoint(t)` or simply `t'`, such that
+`domain(t') == codomain(t)` and `codomain(t') == domain(t)`. Note that for an instance
+`t::TensorMap{S,N₁,N₂}`, `t'` is simply stored in a wrapper called
+`AdjointTensorMap{S,N₂,N₁}`, which is another subtype of `AbstractTensorMap`. This should
+be mostly unvisible to the user, as all methods should work for this type as well. It can
+be hard to reason about the index order of `t'`, i.e. index `i` of `t` appears in `t'` at
+index position `j = TensorKit.adjointtensorindex(t, i)`, where the latter method is
+typically not necessary and hence unexported. There is also a plural
+`TensorKit.adjointtensorindices` to convert multiple indices at once. Note that, because
+the adjoint interchanges domain and codomain, we have `space(t', j) == space(t, i)'`.
 
 `AbstractTensorMap` instances can furthermore be tested for exact (`t1 == t2`) or
-approximate (`t1 ≈ t2`) equality, though the latter requires `norm` can be computed.
+approximate (`t1 ≈ t2`) equality, though the latter requires that `norm` can be computed.
 
 When tensor map instances are endomorphisms, i.e. they have the same domain and codomain,
 there is a multiplicative identity which can be obtained as `one(t)` or `one!(t)`, where the
@@ -798,8 +798,8 @@ inverse, to split a given index into two or more indices. For a plain tensor (i.
 data. However, this represents only one possibility, as there is no canonically unique way
 to embed the tensor product of two spaces `V₁ ⊗ V₂` in a new space `V = fuse(V₁⊗V₂)`. Such a
 mapping can always be accompagnied by a basis transform. However, one particular choice is
-created by the function `isomorphism`, or for `EuclideanSpace` spaces, `unitary`. Hence, we
-can join or fuse two indices of a tensor by first constructing
+created by the function `isomorphism`, or for `EuclideanProduct` spaces, `unitary`.
+Hence, we can join or fuse two indices of a tensor by first constructing
 `u = unitary(fuse(space(t, i) ⊗ space(t, j)), space(t, i) ⊗ space(t, j))` and then
 contracting this map with indices `i` and `j` of `t`, as explained in the section on
 [contracting tensors](@ref ss_tensor_contraction). Note, however, that a typical algorithm
@@ -851,7 +851,7 @@ U, Σ, Vʰ, ϵ = tsvd(t; trunc = notrunc(), p::Real = 2,
 ```
 
 This computes a (possibly truncated) singular value decomposition of
-`t::TensorMap{S,N₁,N₂}` (with `S<:EuclideanSpace`), such that
+`t::TensorMap{S,N₁,N₂}` (with `InnerProductStyle(t)<:EuclideanProduct`), such that
 `norm(t - U*Σ*Vʰ) ≈ ϵ`, where `U::TensorMap{S,N₁,1}`, `S::TensorMap{S,1,1}`,
 `Vʰ::TensorMap{S,1,N₂}` and `ϵ::Real`. `U` is an isometry, i.e. `U'*U` approximates the
 identity, whereas `U*U'` is an idempotent (squares to itself). The same holds for
