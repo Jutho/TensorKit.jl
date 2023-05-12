@@ -275,11 +275,7 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
             A = block(tA, c)
             B = block(tB, c)
             C = block(tC, c)
-            if isbitstype(eltype(A)) && isbitstype(eltype(B)) && isbitstype(eltype(C))
-                @unsafe_strided A B C mul!(C, A, B, α, β)
-            else
-                mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
-            end
+            mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
         elseif β != one(β)
             rmul!(block(tC, c), β)
         end
