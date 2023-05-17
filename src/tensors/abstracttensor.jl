@@ -10,7 +10,7 @@ of vector spaces of type `S<:IndexSpace`. An `AbstractTensorMap` maps from
 an input space of type `ProductSpace{S, N₂}` to an output space of type
 `ProductSpace{S, N₁}`.
 """
-abstract type AbstractTensorMap{S<:IndexSpace, N₁, N₂} end
+abstract type AbstractTensorMap{S<:IndexSpace,N₁,N₂} end
 """
     AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
 
@@ -20,18 +20,20 @@ of type `ProductSpace{S, N}`, built from elementary spaces of type `S<:IndexSpac
 An `AbstractTensor{S, N}` is actually a special case `AbstractTensorMap{S, N, 0}`,
 i.e. a tensor map with only a non-trivial output space.
 """
-const AbstractTensor{S<:IndexSpace, N} = AbstractTensorMap{S, N, 0}
+const AbstractTensor{S<:IndexSpace,N} = AbstractTensorMap{S,N,0}
 
 # tensor characteristics
 Base.eltype(T::Type{<:AbstractTensorMap}) = eltype(storagetype(T))
-similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T} =
-    Core.Compiler.return_type(similar, Tuple{storagetype(TT), Type{T}})
+function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
+    return Core.Compiler.return_type(similar, Tuple{storagetype(TT),Type{T}})
+end
 
 storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
 similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
 Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
 spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
 sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
+InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
 field(t::AbstractTensorMap) = field(typeof(t))
 numout(t::AbstractTensorMap) = numout(typeof(t))
 numin(t::AbstractTensorMap) = numin(typeof(t))
@@ -39,10 +41,13 @@ numind(t::AbstractTensorMap) = numind(typeof(t))
 
 spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
 sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
+function InnerProductStyle(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace}
+    return InnerProductStyle(S)
+end
 field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
-numout(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₁
-numin(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₂
-numind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} = N₁ + N₂
+numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁
+numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₂
+numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁ + N₂
 
 const order = numind
 
@@ -56,22 +61,27 @@ space(t::AbstractTensorMap, i::Int) = space(t)[i]
 dim(t::AbstractTensorMap) = dim(space(t))
 
 # some index manipulation utilities
-codomainind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
-    ntuple(n->n, N₁)
-domainind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
-    ntuple(n-> N₁+n, N₂)
-allind(::Type{<:AbstractTensorMap{<:IndexSpace, N₁, N₂}}) where {N₁, N₂} =
-    ntuple(n->n, N₁+N₂)
+function codomainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂}
+    return ntuple(n -> n, N₁)
+end
+function domainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂}
+    return ntuple(n -> N₁ + n, N₂)
+end
+function allind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂}
+    return ntuple(n -> n, N₁ + N₂)
+end
 
 codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
 domainind(t::AbstractTensorMap) = domainind(typeof(t))
 allind(t::AbstractTensorMap) = allind(typeof(t))
 
-adjointtensorindex(t::AbstractTensorMap{<:IndexSpace, N₁, N₂}, i) where {N₁, N₂} =
-    ifelse(i<=N₁, N₂+i, i-N₁)
+function adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂}
+    return ifelse(i <= N₁, N₂ + i, i - N₁)
+end
 
-adjointtensorindices(t::AbstractTensorMap, indices::IndexTuple) =
-    map(i->adjointtensorindex(t, i), indices)
+function adjointtensorindices(t::AbstractTensorMap, indices::IndexTuple)
+    return map(i -> adjointtensorindex(t, i), indices)
+end
 
 # Equality and approximality
 #----------------------------
@@ -92,10 +102,11 @@ function Base.hash(t::AbstractTensorMap, h::UInt)
 end
 
 function Base.isapprox(t1::AbstractTensorMap, t2::AbstractTensorMap;
-                atol::Real=0, rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
+                       atol::Real=0,
+                       rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
     d = norm(t1 - t2)
     if isfinite(d)
-        return d <= max(atol, rtol*max(norm(t1), norm(t2)))
+        return d <= max(atol, rtol * max(norm(t1), norm(t2)))
     else
         return false
     end
@@ -104,7 +115,7 @@ end
 # Conversion to Array:
 #----------------------
 # probably not optimized for speed, only for checking purposes
-function Base.convert(::Type{Array}, t::AbstractTensorMap{S, N₁, N₂}) where {S, N₁, N₂}
+function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂}
     I = sectortype(t)
     if I === Trivial
         convert(Array, t[])
@@ -119,7 +130,8 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S, N₁, N₂}) where 
             sz2 = size(F2)
             d1 = TupleTools.front(sz1)
             d2 = TupleTools.front(sz2)
-            F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end])*reshape(F2, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
+            F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end]) *
+                        reshape(F2, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
             if !(@isdefined A)
                 if eltype(F) <: Complex
                     T = complex(float(eltype(t)))

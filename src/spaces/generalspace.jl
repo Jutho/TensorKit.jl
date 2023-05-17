@@ -28,10 +28,10 @@ isconj(V::GeneralSpace) = V.conj
 
 Base.axes(V::GeneralSpace) = Base.OneTo(dim(V))
 
-dual(V::GeneralSpace{𝕜}) where {𝕜} =
-    GeneralSpace{𝕜}(dim(V), !isdual(V), isconj(V))
-Base.conj(V::GeneralSpace{𝕜}) where {𝕜} =
-    GeneralSpace{𝕜}(dim(V), isdual(V), !isconj(V))
+InnerProductStyle(::Type{<:GeneralSpace}) = NoInnerProduct()
+
+dual(V::GeneralSpace{𝕜}) where {𝕜} = GeneralSpace{𝕜}(dim(V), !isdual(V), isconj(V))
+Base.conj(V::GeneralSpace{𝕜}) where {𝕜} = GeneralSpace{𝕜}(dim(V), isdual(V), !isconj(V))
 
 function Base.show(io::IO, V::GeneralSpace{𝕜}) where {𝕜}
     if isconj(V)

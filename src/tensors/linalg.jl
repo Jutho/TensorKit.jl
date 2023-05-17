@@ -68,7 +68,7 @@ and error will be thrown. When they are isomorphic, there is no canonical choice
 specific isomorphism, but the current choice is such that
 `isomorphism(cod, dom) == inv(isomorphism(dom, cod))`.
 
-See also [`unitary`](@ref) when `spacetype(cod) isa EuclideanSpace`.
+See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanProduct()`.
 """
 isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
 isomorphism(P::TensorMapSpace) = isomorphism(codomain(P), domain(P))
@@ -85,50 +85,60 @@ function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:
     return t
 end
 
-const EuclideanTensorSpace = TensorSpace{<:EuclideanSpace}
-const EuclideanTensorMapSpace = TensorMapSpace{<:EuclideanSpace}
-const AbstractEuclideanTensorMap = AbstractTensorMap{<:EuclideanTensorSpace}
-const EuclideanTensorMap = TensorMap{<:EuclideanTensorSpace}
-
 """
     unitary([A::Type{<:DenseMatrix} = Matrix{Float64},] cod::VectorSpace, dom::VectorSpace)
     -> TensorMap
 
 Return a `t::TensorMap` that implements a specific unitary isomorphism between the codomain
-`cod` and the domain `dom`, for which `spacetype(dom)` (`== spacetype(cod)`) must be a
-subtype of `EuclideanSpace`. Furthermore, `storagetype(t)` can optionally be chosen to be
+`cod` and the domain `dom`, for which `spacetype(dom)` (`== spacetype(cod)`) must have an
+inner product. Furthermore, `storagetype(t)` can optionally be chosen to be
 of type `A`. If the two spaces do not allow for such an isomorphism, and are thus not
 isomorphic, and error will be thrown. When they are isomorphic, there is no canonical choice
 for a specific isomorphism, but the current choice is such that
 `unitary(cod, dom) == inv(unitary(dom, cod)) = adjoint(unitary(dom, cod))`.
 """
-unitary(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) = isomorphism(cod, dom)
-unitary(P::EuclideanTensorMapSpace) = isomorphism(P)
-unitary(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) = isomorphism(A, P)
-unitary(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
-    isomorphism(A, cod, dom)
+function unitary(cod::TensorSpace{S}, dom::TensorSpace{S}) where {S}
+    InnerProductStyle(S) === EuclideanProduct() || 
+        throw(ArgumentError("unitary requires inner product spaces"))
+    return isomorphism(cod, dom)
+end
+function unitary(P::TensorMapSpace{S}) where {S}
+    InnerProductStyle(S) === EuclideanProduct() ||
+        throw(ArgumentError("unitary requires inner product spaces"))
+    return isomorphism(P)
+end
+function unitary(A::Type{<:DenseMatrix}, P::TensorMapSpace{S}) where {S}
+    InnerProductStyle(S) === EuclideanProduct() ||
+        throw(ArgumentError("unitary requires inner product spaces"))
+    return isomorphism(A, P)
+end
+function unitary(A::Type{<:DenseMatrix}, cod::TensorSpace{S}, dom::TensorSpace{S}) where {S}
+    InnerProductStyle(S) === EuclideanProduct() ||
+        throw(ArgumentError("unitary requires inner product spaces"))
+    return isomorphism(A, cod, dom)
+end
 
 """
     isometry([A::Type{<:DenseMatrix} = Matrix{Float64},] cod::VectorSpace, dom::VectorSpace)
     -> TensorMap
 
 Return a `t::TensorMap` that implements a specific isometry that embeds the domain `dom`
-into the codomain `cod`, and which requires that `spacetype(dom)` (`== spacetype(cod)`) is
-a subtype of `EuclideanSpace`. An isometry `t` is such that its adjoint `t'` is the left
+into the codomain `cod`, and which requires that `spacetype(dom)` (`== spacetype(cod)`) has
+an Euclidean inner product. An isometry `t` is such that its adjoint `t'` is the left
 inverse of `t`, i.e. `t'*t = id(dom)`, while `t*t'` is some idempotent endomorphism of
 `cod`, i.e. it squares to itself. When `dom` and `cod` do not allow for such an isometric
 inclusion, an error will be thrown.
 """
-isometry(cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
-    isometry(Matrix{Float64}, cod, dom)
-isometry(P::EuclideanTensorMapSpace) = isometry(codomain(P), domain(P))
-isometry(A::Type{<:DenseMatrix}, P::EuclideanTensorMapSpace) =
-    isometry(A, codomain(P), domain(P))
-isometry(A::Type{<:DenseMatrix}, cod::EuclideanTensorSpace, dom::EuclideanTensorSpace) =
+isometry(cod::TensorSpace, dom::TensorSpace) = isometry(Matrix{Float64}, cod, dom)
+isometry(P::TensorMapSpace) = isometry(codomain(P), domain(P))
+isometry(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isometry(A, codomain(P), domain(P))
+isometry(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
     isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
 function isometry(::Type{A},
                     cod::ProductSpace{S},
-                    dom::ProductSpace{S}) where {A<:DenseMatrix, S<:EuclideanSpace}
+                    dom::ProductSpace{S}) where {A<:DenseMatrix, S<:ElementarySpace}
+    InnerProductStyle(S) === EuclideanProduct() ||
+        throw(ArgumentError("isometries require Euclidean inner product"))
     dom ≾ cod || throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
     t = TensorMap(s->A(undef, s), cod, dom)
     for (c, b) in blocks(t)
@@ -159,8 +169,10 @@ function Base.fill!(t::AbstractTensorMap, value::Number)
     end
     return t
 end
-function LinearAlgebra.adjoint!(tdst::AbstractEuclideanTensorMap,
-                                tsrc::AbstractEuclideanTensorMap)
+function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
+                                tsrc::AbstractTensorMap)
+    spacetype(tdst) === spacetype(tsrc) && InnerProductStyle(tdst) === EuclideanProduct() ||
+        throw(ArgumentError("adjoint! requires Euclidean inner product spacetype"))
     space(tdst) == adjoint(space(tsrc)) || throw(SpaceMismatch())
     for c in blocksectors(tdst)
         adjoint!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
@@ -203,8 +215,10 @@ function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap,
 end
 
 # inner product and norm only valid for spaces with Euclidean inner product
-function LinearAlgebra.dot(t1::AbstractEuclideanTensorMap, t2::AbstractEuclideanTensorMap)
+function LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap)
     space(t1) == space(t2) || throw(SpaceMismatch())
+    InnerProductStyle(t1) === EuclideanProduct() ||
+        throw(ArgumentError("dot requires Euclidean inner product"))
     T = promote_type(eltype(t1), eltype(t2))
     s = zero(T)
     for c in blocksectors(t1)
@@ -213,8 +227,11 @@ function LinearAlgebra.dot(t1::AbstractEuclideanTensorMap, t2::AbstractEuclidean
     return s
 end
 
-LinearAlgebra.norm(t::AbstractEuclideanTensorMap, p::Real = 2) =
-    _norm(blocks(t), p, float(zero(real(eltype(t)))))
+function LinearAlgebra.norm(t::AbstractTensorMap, p::Real = 2)
+    InnerProductStyle(t) === EuclideanProduct() ||
+        throw(ArgumentError("norm requires Euclidean inner product"))
+    return _norm(blocks(t), p, float(zero(real(eltype(t)))))
+end
 function _norm(blockiter, p::Real, init::Real)
     if p == Inf
         return mapreduce(max, blockiter; init = init) do (c, b)
@@ -477,8 +494,8 @@ function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where S
 end
 
 # deligne product of tensors
-function ⊠(t1::AbstractTensorMap{<:EuclideanSpace{ℂ}},
-            t2::AbstractTensorMap{<:EuclideanSpace{ℂ}})
+function ⊠(t1::AbstractTensorMap{<:ElementarySpace{ℂ}},
+            t2::AbstractTensorMap{<:ElementarySpace{ℂ}})
     S1 = spacetype(t1)
     I1 = sectortype(S1)
     S2 = spacetype(t2)

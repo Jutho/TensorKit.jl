@@ -17,7 +17,8 @@ export Fermion, FermionParity, FermionNumber, FermionSpin
 export FibonacciAnyon
 export IsingAnyon
 
-export VectorSpace, Field, ElementarySpace, InnerProductSpace, EuclideanSpace # abstract vector spaces
+export VectorSpace, Field, ElementarySpace # abstract vector spaces
+export InnerProductStyle, NoInnerProduct, HasInnerProduct, EuclideanProduct
 export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace # concrete spaces
 export ZNSpace, Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
 export Vect, Rep # space constructors

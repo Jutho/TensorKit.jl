@@ -16,7 +16,11 @@ codomain(W::HomSpace) = W.codomain
 domain(W::HomSpace) = W.domain
 
 dual(W::HomSpace) = HomSpace(dual(W.domain), dual(W.codomain))
-Base.adjoint(W::HomSpace{<:EuclideanSpace}) = HomSpace(W.domain, W.codomain)
+function Base.adjoint(W::HomSpace{S}) where {S}
+    InnerProductStyle(S) === EuclideanProduct() ||
+        throw(ArgumentError("adjoint requires Euclidean inner product"))
+    return HomSpace(W.domain, W.codomain)
+end
 
 Base.hash(W::HomSpace, h::UInt) = hash(domain(W), hash(codomain(W), h))
 Base.:(==)(W1::HomSpace, W2::HomSpace) =

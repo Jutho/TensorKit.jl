@@ -51,8 +51,8 @@ end
     @test eval(Meta.parse(sprint(show, typeof(V)))) == typeof(V)
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
-    @test isa(V, InnerProductSpace)
-    @test isa(V, EuclideanSpace)
+    @test isa(InnerProductStyle(V), HasInnerProduct)
+    @test isa(InnerProductStyle(V), EuclideanProduct)
     @test isa(V, CartesianSpace)
     @test !isdual(V)
     @test !isdual(V')
@@ -94,8 +94,8 @@ end
     @test eval(Meta.parse(sprint(show, typeof(V)))) == typeof(V)
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
-    @test isa(V, InnerProductSpace)
-    @test isa(V, EuclideanSpace)
+    @test isa(InnerProductStyle(V), HasInnerProduct)
+    @test isa(InnerProductStyle(V), EuclideanProduct)
     @test isa(V, ComplexSpace)
     @test !isdual(V)
     @test isdual(V')
@@ -151,8 +151,8 @@ end
     @test TensorKit.isconj(conj(V'))
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
-    @test !isa(V, InnerProductSpace)
-    @test !isa(V, EuclideanSpace)
+    @test !isa(InnerProductStyle(V), HasInnerProduct)
+    @test !isa(InnerProductStyle(V), EuclideanProduct)
     @test @constinferred(hash(V)) == hash(deepcopy(V)) != hash(V')
     @test @constinferred(dual(V)) != @constinferred(conj(V)) != V
     @test @constinferred(field(V)) == ℂ
@@ -206,8 +206,8 @@ end
     @test eval(Meta.parse(sprint(show, W))) == W
     @test isa(V, VectorSpace)
     @test isa(V, ElementarySpace)
-    @test isa(V, InnerProductSpace)
-    @test isa(V, EuclideanSpace)
+    @test isa(InnerProductStyle(V), HasInnerProduct)
+    @test isa(InnerProductStyle(V), EuclideanProduct)
     @test isa(V, GradedSpace)
     @test isa(V, GradedSpace{I})
     @test @constinferred(dual(V)) == @constinferred(conj(V)) == @constinferred(adjoint(V)) != V
