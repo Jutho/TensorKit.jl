@@ -1,57 +1,51 @@
-struct Fermion{P,I<:Sector} <: Sector
-    sector::I
-    function Fermion{P,I}(sector::I) where {P, I<:Sector}
-        @assert BraidingStyle(I) isa Bosonic
-        return new{P,I}(sector)
-    end
+struct FermionParity <: Sector
+    sector::Z2Irrep
 end
-Fermion{P}(sector::I) where {P, I<:Sector} = Fermion{P,I}(sector)
-Fermion{P,I}(sector) where {P, I<:Sector} = Fermion{P,I}(convert(I, sector))
-Base.convert(::Type{Fermion{P,I}}, a::Fermion{P,I}) where {P, I<:Sector} = a
-Base.convert(::Type{Fermion{P,I}}, a) where {P, I<:Sector} = Fermion{P,I}(convert(I, a))
+const fℤ₂ = FermionParity
+fermionparity(f::FermionParity) = isodd(f.sector.n)
 
-fermionparity(f::Fermion{P}) where P = P(f.sector)
+Base.convert(::Type{FermionParity}, a::FermionParity) = a
+Base.convert(::Type{FermionParity}, a) = FermionParity(a)
 
-Base.IteratorSize(::Type{SectorValues{Fermion{P,I}}}) where {P, I<:Sector} =
-    Base.IteratorSize(SectorValues{I})
-Base.length(::SectorValues{Fermion{P,I}}) where {P, I<:Sector} = length(values(I))
-function Base.iterate(::SectorValues{Fermion{P, I}}) where {P, I<:Sector}
-    next = iterate(values(I))
+Base.IteratorSize(::Type{SectorValues{FermionParity}}) =
+    Base.IteratorSize(SectorValues{Z2Irrep})
+Base.length(::SectorValues{FermionParity}) = length(values(Z2Irrep))
+function Base.iterate(::SectorValues{FermionParity})
+    next = iterate(values(Z2Irrep))
     @assert next !== nothing
     value, state = next
-    return Fermion{P}(value), state
+    return FermionParity(value), state
 end
-function Base.iterate(::SectorValues{Fermion{P, I}}, state) where {P, I<:Sector}
-    next = iterate(values(I), state)
+
+function Base.iterate(::SectorValues{FermionParity}, state)
+    next = iterate(values(Z2Irrep), state)
     if next === nothing
         return nothing
     else
         value, state = next
-        return Fermion{P}(value), state
+        return FermionParity(value), state
     end
 end
-Base.getindex(::SectorValues{Fermion{P, I}}, i) where {P, I<:Sector} =
-    Fermion{P}(values(I)[i])
-findindex(::SectorValues{Fermion{P, I}}, f::Fermion{P, I}) where {P, I<:Sector} =
-    findindex(values(I), f.sector)
+Base.getindex(::SectorValues{FermionParity}, i) = FermionParity(values(Z2Irrep)[i])
+findindex(::SectorValues{FermionParity}, f::FermionParity) = findindex(values(Z2Irrep), f.sector)
 
-Base.one(::Type{Fermion{P, I}}) where {P, I<:Sector} = Fermion{P}(one(I))
-Base.conj(f::Fermion{P}) where {P} = Fermion{P}(conj(f.sector))
+Base.one(::Type{FermionParity}) = FermionParity(one(Z2Irrep))
+Base.conj(f::FermionParity) = FermionParity(conj(f.sector))
 
-dim(f::Fermion) = dim(f.sector)
+dim(f::FermionParity) = dim(f.sector)
 
-FusionStyle(::Type{<:Fermion{<:Any,I}}) where {I<:Sector} = FusionStyle(I)
-BraidingStyle(::Type{<:Fermion}) = Fermionic()
-Base.isreal(::Type{Fermion{<:Any,I}}) where {I<:Sector} = isreal(I)
+FusionStyle(::Type{FermionParity}) = FusionStyle(Z2Irrep)
+BraidingStyle(::Type{FermionParity}) = Fermionic()
+Base.isreal(::Type{FermionParity}) = isreal(Z2Irrep)
 
-⊗(a::F, b::F) where {F<:Fermion} = SectorSet{F}(a.sector ⊗ b.sector)
+⊗(a::FermionParity, b::FermionParity) = SectorSet{FermionParity}(a.sector ⊗ b.sector)
 
-Nsymbol(a::F, b::F, c::F) where {F<:Fermion} = Nsymbol(a.sector, b.sector, c.sector)
+Nsymbol(a::FermionParity, b::FermionParity, c::FermionParity) = Nsymbol(a.sector, b.sector, c.sector)
 
-Fsymbol(a::F, b::F, c::F, d::F, e::F, f::F) where {F<:Fermion} =
+Fsymbol(a::F, b::F, c::F, d::F, e::F, f::F) where {F<:FermionParity} =
     Fsymbol(a.sector, b.sector, c.sector, d.sector, e.sector, f.sector)
 
-function Rsymbol(a::F, b::F, c::F) where {F<:Fermion}
+function Rsymbol(a::F, b::F, c::F) where {F<:FermionParity}
     if fermionparity(a) && fermionparity(b)
         return -Rsymbol(a.sector, b.sector, c.sector)
     else
@@ -59,34 +53,19 @@ function Rsymbol(a::F, b::F, c::F) where {F<:Fermion}
     end
 end
 
-twist(a::Fermion) = ifelse(fermionparity(a), -1, +1)*twist(a.sector)
+twist(a::FermionParity) = ifelse(fermionparity(a), -1, +1) * twist(a.sector)
 
-type_repr(::Type{Fermion{P,I}}) where {P, I<:Sector} = "Fermion{$P, " * type_repr(I) * "}"
+type_repr(::Type{FermionParity}) = "FermionParity"
 
-function Base.show(io::IO, a::Fermion{P, I}) where {P, I<:Sector}
-    if get(io, :typeinfo, nothing) !== Fermion{P, I}
+function Base.show(io::IO, a::FermionParity)
+    if get(io, :typeinfo, nothing) !== FermionParity
         print(io, type_repr(typeof(a)), "(")
     end
-    print(IOContext(io, :typeinfo => I), a.sector)
-    if get(io, :typeinfo, nothing) !== Fermion{P, I}
+    print(IOContext(io, :typeinfo => Z2Irrep), a.sector)
+    if get(io, :typeinfo, nothing) !== FermionParity
         print(io, ")")
     end
 end
 
-Base.hash(f::Fermion, h::UInt) = hash(f.sector, h)
-Base.isless(a::F, b::F) where {F<:Fermion} = isless(a.sector, b.sector)
-
-_fermionparity(a::Z2Irrep) = isodd(a.n)
-_fermionnumber(a::U1Irrep) = isodd(convert(Int, a.charge))
-_fermionspin(a::SU2Irrep) = isodd(twice(a.j))
-
-const FermionParity = Fermion{_fermionparity, Z2Irrep}
-const FermionNumber = Fermion{_fermionnumber, U1Irrep}
-const FermionSpin = Fermion{_fermionspin, SU2Irrep}
-const fℤ₂ = FermionParity
-const fU₁ = FermionNumber
-const fSU₂ = FermionSpin
-
-type_repr(::Type{FermionParity}) = "FermionParity"
-type_repr(::Type{FermionNumber}) = "FermionNumber"
-type_repr(::Type{FermionSpin}) = "FermionSpin"
+Base.hash(f::FermionParity, h::UInt) = hash(f.sector, h)
+Base.isless(a::FermionParity, b::FermionParity) = isless(a.sector, b.sector)
