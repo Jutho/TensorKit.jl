@@ -88,7 +88,8 @@ using TupleTools: StaticLength
 
 using Strided
 
-using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon
+using VectorInterface
+using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon, IndexTuple, Index2Tuple, linearize
 const TO = TensorOperations
 
 using LRUCache
@@ -111,7 +112,7 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                         Diagonal, Hermitian
 import Base.Meta
 
-const IndexTuple{N} = NTuple{N, Int}
+# const IndexTuple{N} = NTuple{N, Int}
 
 # Auxiliary files
 #-----------------
