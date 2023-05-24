@@ -75,12 +75,16 @@ codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
 domainind(t::AbstractTensorMap) = domainind(typeof(t))
 allind(t::AbstractTensorMap) = allind(typeof(t))
 
-function adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂}
+function adjointtensorindex(::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂}
     return ifelse(i <= N₁, N₂ + i, i - N₁)
 end
 
 function adjointtensorindices(t::AbstractTensorMap, indices::IndexTuple)
     return map(i -> adjointtensorindex(t, i), indices)
+end
+
+function adjointtensorindices(t::AbstractTensorMap, p::Index2Tuple)
+    return adjointtensorindices(t, p[1]), adjointtensorindices(t, p[2])
 end
 
 # Equality and approximality
