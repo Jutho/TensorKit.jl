@@ -3,9 +3,8 @@ using TestExtras
 using Random
 using TensorKit
 using Combinatorics
-using TensorKit: ProductSector, fusiontensor
+using TensorKit: ProductSector, fusiontensor, pentagon_equation, hexagon_equation
 using TensorOperations
-TensorOperations.disable_cache() # avoids memory overflow during CI?
 using Base.Iterators: take, product
 using SUNRepresentations: SUNIrrep
 const SU3Irrep = SUNIrrep{3}

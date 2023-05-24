@@ -174,13 +174,13 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I, 2}) where {I}
         Xtemp = X
         X = similar(Xtemp)
         Za = convert(A, FusionTree((a,), a, (isduala,), ()))
-        TO.contract!(1, Za, :N, Xtemp, :N, 0, X, (1,), (2,), (2, 3), (1,), (1,2,3))
+        TO.tensorcontract!(X, ((1,2,3), ()), Za, ((1,), (2,)), :N, Xtemp, ((1,), (2,3)), :N, true, false)
     end
     if isdualb
         Xtemp = X
         X = similar(Xtemp)
         Zb = convert(A, FusionTree((b,), b, (isdualb,), ()))
-        TO.contract!(1, Zb, :N, Xtemp, :N, 0, X, (1,), (2,), (1, 3), (2,), (2,1,3))
+        TO.tensorcontract!(X, ((2, 1, 3), ()), Zb, ((1,), (2,)), :N, Xtemp, ((2,), (1, 3)), :N, true, false)
     end
     return X
 end
@@ -198,9 +198,7 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I,N}) where {I,N}
     d1 = size(C1)
     X = similar(C1, (d1[1], d1[2], Base.tail(dtail)...))
     trivialtuple = ntuple(identity, Val(N))
-    TO.contract!(1, C1, :N, Ctail, :N, 0, X,
-                    (1,2), (3,), Base.tail(trivialtuple), (1,), (trivialtuple..., N+1))
-    return X
+    return TO.tensorcontract!(X, ((trivialtuple..., N+1), ()), C1, ((1,2), (3,)), :N, Ctail, ((1,), Base.tail(trivialtuple)), :N, true, false)
 end
 
 # Show methods

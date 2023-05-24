@@ -4,13 +4,23 @@ authors = ["Jutho Haegeman"]
 version = "0.10.1"
 
 [deps]
+HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
+LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Strided = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
-TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
-HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
-WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
-LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
+TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
+VectorInterface = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
+WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
+
+[compat]
+HalfIntegers = "1"
+LRUCache = "1.0.2"
+Strided = "2"
+TensorOperations = "4"
+TupleTools = "1.1"
+WignerSymbols = "1,2"
+julia = "1.6 - 1"
 
 [extras]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
@@ -24,13 +34,4 @@ TestExtras = "5ed8adda-3752-4e41-b88a-e8b09835ee3a"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [targets]
-test = ["Combinatorics", "HalfIntegers", "LinearAlgebra", "Random", "SUNRepresentations", "TensorKit", "TensorOperations", "Test", "TestExtras", "WignerSymbols"]
-
-[compat]
-Strided = "1.0.1"
-TupleTools = "1.1"
-HalfIntegers = "1"
-WignerSymbols = "1,2"
-TensorOperations = "4"
-LRUCache = "1.0.2"
-julia = "1.6 - 1"
+test = ["Combinatorics", "HalfIntegers", "LinearAlgebra", "Random", "SUNRepresentations", "TensorOperations", "Test", "TestExtras", "WignerSymbols"]
