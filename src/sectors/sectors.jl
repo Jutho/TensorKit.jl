@@ -68,9 +68,11 @@ Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
 
 Base.IteratorSize(::Type{SectorValues{Trivial}}) = HasLength()
 Base.length(::SectorValues{Trivial}) = 1
-Base.iterate(::SectorValues{Trivial}, i = false) = return i ? nothing : (Trivial(), true)
-Base.getindex(::SectorValues{Trivial}, i::Int) = i == 1 ? Trivial() :
-    throw(BoundsError(values(Trivial), i))
+Base.iterate(::SectorValues{Trivial}, i=false) = return i ? nothing : (Trivial(), true)
+function Base.getindex(::SectorValues{Trivial}, i::Int)
+    return i == 1 ? Trivial() :
+           throw(BoundsError(values(Trivial), i))
+end
 findindex(::SectorValues{Trivial}, c::Trivial) = 1
 
 """
@@ -99,9 +101,10 @@ which case it is complex).
 function Base.isreal(I::Type{<:Sector})
     u = one(I)
     if BraidingStyle(I) isa HasBraiding
-        return (eltype(Fsymbol(u, u, u, u, u, u))<:Real) && (eltype(Rsymbol(u, u, u))<:Real)
+        return (eltype(Fsymbol(u, u, u, u, u, u)) <: Real) &&
+               (eltype(Rsymbol(u, u, u)) <: Real)
     else
-        return (eltype(Fsymbol(u, u, u, u, u, u))<:Real)
+        return (eltype(Fsymbol(u, u, u, u, u, u)) <: Real)
     end
 end
 Base.isreal(::Type{Trivial}) = true
@@ -139,7 +142,7 @@ struct SimpleFusion <: MultipleFusion # multiple fusion but multiplicity free
 end
 struct GenericFusion <: MultipleFusion # multiple fusion with multiplicities
 end
-const MultiplicityFreeFusion = Union{UniqueFusion, SimpleFusion}
+const MultiplicityFreeFusion = Union{UniqueFusion,SimpleFusion}
 
 """
     FusionStyle(a::Sector) -> ::FusionStyle
@@ -223,8 +226,9 @@ fusion output occurs only once and `k == 1`, the default is to suppress vertex l
 setting them equal to `nothing`. For `FusionStyle(I) == GenericFusion()`, the default is to
 just use `k`, unless a specialized method is provided.
 """
-vertex_ind2label(k::Int, a::I, b::I, c::I) where {I<:Sector}=
-    _ind2label(FusionStyle(I), k::Int, a::I, b::I, c::I)
+function vertex_ind2label(k::Int, a::I, b::I, c::I) where {I<:Sector}
+    return _ind2label(FusionStyle(I), k::Int, a::I, b::I, c::I)
+end
 _ind2label(::UniqueFusion, k, a, b, c) = nothing
 _ind2label(::SimpleFusion, k, a, b, c) = nothing
 _ind2label(::GenericFusion, k, a, b, c) = k
@@ -255,9 +259,9 @@ function dim(a::Sector)
     if FusionStyle(a) isa UniqueFusion
         1
     elseif FusionStyle(a) isa SimpleFusion
-        abs(1/Fsymbol(a, conj(a), a, a, one(a), one(a)))
+        abs(1 / Fsymbol(a, conj(a), a, a, one(a), one(a)))
     else
-        abs(1/Fsymbol(a, conj(a), a, a, one(a), one(a))[1])
+        abs(1 / Fsymbol(a, conj(a), a, a, one(a), one(a))[1])
     end
 end
 sqrtdim(a::Sector) = (FusionStyle(a) isa UniqueFusion) ? 1 : sqrt(dim(a))
@@ -281,7 +285,7 @@ end
 
 Return the twist of a sector `a`
 """
-twist(a::Sector) = sum(dim(b)/dim(a)*tr(Rsymbol(a,a,b)) for b in a ⊗ a)
+twist(a::Sector) = sum(dim(b) / dim(a) * tr(Rsymbol(a, a, b)) for b in a ⊗ a)
 
 """
     Bsymbol(a::I, b::I, c::I) where {I<:Sector}
@@ -299,21 +303,22 @@ number. Otherwise it is a square matrix with row and column size
 """
 function Bsymbol(a::I, b::I, c::I) where {I<:Sector}
     if FusionStyle(I) isa UniqueFusion || FusionStyle(I) isa SimpleFusion
-        (sqrtdim(a)*sqrtdim(b)*isqrtdim(c))*Fsymbol(a, b, dual(b), a, c, one(a))
+        (sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) * Fsymbol(a, b, dual(b), a, c, one(a))
     else
-        reshape((sqrtdim(a)*sqrtdim(b)*isqrtdim(c))*Fsymbol(a, b, dual(b), a, c, one(a)),
-            (Nsymbol(a, b, c), Nsymbol(c, dual(b), a)))
+        reshape((sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) *
+                Fsymbol(a, b, dual(b), a, c, one(a)),
+                (Nsymbol(a, b, c), Nsymbol(c, dual(b), a)))
     end
 end
 
 # Not necessary
 function Asymbol(a::I, b::I, c::I) where {I<:Sector}
     if FusionStyle(I) isa UniqueFusion || FusionStyle(I) isa SimpleFusion
-        (sqrtdim(a)*sqrtdim(b)*isqrtdim(c))*
-            conj(frobeniusschur(a)*Fsymbol(dual(a), a, b, b, one(a), c))
+        (sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) *
+        conj(frobeniusschur(a) * Fsymbol(dual(a), a, b, b, one(a), c))
     else
-        reshape((sqrtdim(a)*sqrtdim(b)*isqrtdim(c))*
-                    conj(frobeniusschur(a)*Fsymbol(dual(a), a, b, b, one(a), c)),
+        reshape((sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) *
+                conj(frobeniusschur(a) * Fsymbol(dual(a), a, b, b, one(a), c)),
                 (Nsymbol(a, b, c), Nsymbol(dual(a), c, b)))
     end
 end
@@ -356,19 +361,82 @@ braids are in fact equivalent to crossings (i.e. braiding twice is an identity:
 BraidingStyle(a::Sector) = BraidingStyle(typeof(a))
 BraidingStyle(::Type{Trivial}) = Bosonic()
 
+# Pentagon and Hexagon equations
+#-------------------------------------------------------------------------------
+# Consistency equations for F- and R-symbols
+function pentagon_equation(a::I, b::I, c::I, d::I; kwargs...) where {I<:Sector}
+    for f in ⊗(a, b), h in ⊗(c, d)
+        for g in ⊗(f, c), i in ⊗(b, h)
+            for e in intersect(⊗(g, d), ⊗(a, i))
+                if FusionStyle(I) isa MultiplicityFreeFusion
+                    p1 = Fsymbol(f, c, d, e, g, h) * Fsymbol(a, b, h, e, f, i)
+                    p2 = zero(p1)
+                    for j in ⊗(b, c)
+                        p2 += Fsymbol(a, b, c, g, f, j) *
+                              Fsymbol(a, j, d, e, g, i) *
+                              Fsymbol(b, c, d, i, j, h)
+                    end
+                else
+                    @tensor p1[λ, μ, ν, κ, ρ, σ] := Fsymbol(f, c, d, e, g, h)[λ, μ, ν, τ] *
+                                                    Fsymbol(a, b, h, e, f, i)[κ, τ, ρ, σ]
+                    p2 = zero(p1)
+                    for j in ⊗(b, c)
+                        @tensor p2[λ, μ, ν, κ, ρ, σ] += Fsymbol(a, b, c, g, f, j)[κ, λ, α,
+                                                                                  β] *
+                                                        Fsymbol(a, j, d, e, g, i)[β, μ, τ,
+                                                                                  σ] *
+                                                        Fsymbol(b, c, d, i, j, h)[α, τ, ν,
+                                                                                  ρ]
+                    end
+                end
+                isapprox(p1, p2; kwargs...) || return false
+            end
+        end
+    end
+    return true
+end
+
+function hexagon_equation(a::I, b::I, c::I; kwargs...) where {I<:Sector}
+    for e in ⊗(c, a), f in ⊗(c, b)
+        for d in intersect(⊗(e, b), ⊗(a, f))
+            if FusionStyle(I) isa MultiplicityFreeFusion
+                p1 = Rsymbol(a, c, e) * Fsymbol(a, c, b, d, e, f) * Rsymbol(b, c, f)
+                p2 = zero(p1)
+                for g in ⊗(a, b)
+                    p2 += Fsymbol(c, a, b, d, e, g) * Rsymbol(g, c, d) *
+                          Fsymbol(a, b, c, d, g, f)
+                end
+            else
+                @tensor p1[α, β, μ, ν] := Rsymbol(a, c, e)[α, λ] *
+                                          Fsymbol(a, c, b, d, e, f)[λ, β, γ, ν] *
+                                          Rsymbol(b, c, f)[γ, μ]
+                p2 = zero(p1)
+                for g in ⊗(a, b)
+                    @tensor p2[α, β, μ, ν] += Fsymbol(c, a, b, d, e, g)[α, β, δ,
+                                                                        σ] *
+                                              Rsymbol(g, c, d)[σ, ψ] *
+                                              Fsymbol(a, b, c, d, g, f)[δ, ψ, μ, ν]
+                end
+            end
+            isapprox(p1, p2; kwargs...) || return false
+        end
+    end
+    return true
+end
+
 # SectorSet:
 #-------------------------------------------------------------------------------
 # Custum generator to represent sets of sectors with type inference
-struct SectorSet{I<:Sector, F, S}
+struct SectorSet{I<:Sector,F,S}
     f::F
     set::S
 end
-SectorSet{I}(::Type{F}, set::S) where {I<:Sector, F, S} = SectorSet{I, Type{F}, S}(F, set)
-SectorSet{I}(f::F, set::S) where {I<:Sector, F, S} = SectorSet{I, F, S}(f, set)
+SectorSet{I}(::Type{F}, set::S) where {I<:Sector,F,S} = SectorSet{I,Type{F},S}(F, set)
+SectorSet{I}(f::F, set::S) where {I<:Sector,F,S} = SectorSet{I,F,S}(f, set)
 SectorSet{I}(set) where {I<:Sector} = SectorSet{I}(identity, set)
 
 Base.IteratorEltype(::Type{<:SectorSet}) = HasEltype()
-Base.IteratorSize(::Type{SectorSet{I, F, S}}) where {I<:Sector, F, S} = Base.IteratorSize(S)
+Base.IteratorSize(::Type{SectorSet{I,F,S}}) where {I<:Sector,F,S} = Base.IteratorSize(S)
 
 Base.eltype(::SectorSet{I}) where {I<:Sector} = I
 Base.length(s::SectorSet) = length(s.set)
