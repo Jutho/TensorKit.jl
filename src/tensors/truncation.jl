@@ -192,7 +192,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p = 2)
 end
 
 # Combine truncations
-struct MultipleTruncation{T<:Tuple{Vararg{<:TruncationScheme}}} <: TruncationScheme
+struct MultipleTruncation{T<:Tuple{Vararg{TruncationScheme}}} <: TruncationScheme
     truncations::T
 end
 Base.:&(a::MultipleTruncation, b::MultipleTruncation) =
@@ -207,7 +207,7 @@ function _truncate!(v, trunc::MultipleTruncation, p::Real = 2)
     v, truncerrs = __truncate!(v, trunc.truncations, p)
     return v, norm(truncerrs, p)
 end
-function __truncate!(v, trunc::Tuple{Vararg{<:TruncationScheme}}, p::Real = 2)
+function __truncate!(v, trunc::Tuple{Vararg{TruncationScheme}}, p::Real = 2)
     v, truncerr1 = _truncate!(v, first(trunc), p)
     v, truncerrtail = __truncate!(v, tail(trunc), p)
     return v, (truncerr1, truncerrtail...)
