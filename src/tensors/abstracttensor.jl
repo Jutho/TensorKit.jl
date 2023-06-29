@@ -107,7 +107,7 @@ end
 
 function Base.isapprox(t1::AbstractTensorMap, t2::AbstractTensorMap;
                        atol::Real=0,
-                       rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
+                       rtol::Real=Base.rtoldefault(scalartype(t1), scalartype(t2), atol))
     d = norm(t1 - t2)
     if isfinite(d)
         return d <= max(atol, rtol * max(norm(t1), norm(t2)))
