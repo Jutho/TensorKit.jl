@@ -548,7 +548,7 @@ end
 #---------------------------
 Base.convert(::Type{TensorMap}, t::TensorMap) = t
 Base.convert(::Type{TensorMap}, t::AbstractTensorMap) =
-    copy!(TensorMap(undef, eltype(t), codomain(t), domain(t)), t)
+    copy!(TensorMap(undef, scalartype(t), codomain(t), domain(t)), t)
 
 function Base.convert(T::Type{TensorMap{S,N₁,N₂,I,A,F1,F2}},
                         t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂,I,A,F1,F2}

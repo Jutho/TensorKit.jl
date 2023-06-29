@@ -2,22 +2,23 @@
 #---------------
 Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
 
-Base.:-(t::AbstractTensorMap) = mul!(similar(t), t, -one(eltype(t)))
+Base.:-(t::AbstractTensorMap) = mul!(similar(t), t, -one(scalartype(t)))
 function Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    T = promote_type(eltype(t1), eltype(t2))
+    T = promote_type(scalartype(t1), scalartype(t2))
     return axpy!(one(T), t2, copy!(similar(t1, T), t1))
 end
 function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    T = promote_type(eltype(t1), eltype(t2))
+    T = promote_type(scalartype(t1), scalartype(t2))
     return axpy!(-one(T), t2, copy!(similar(t1, T), t1))
 end
 
-Base.:*(t::AbstractTensorMap, α::Number) =
-    mul!(similar(t, promote_type(eltype(t), typeof(α))), t, α)
+function Base.:*(t::AbstractTensorMap, α::Number)
+    return mul!(similar(t, promote_type(scalartype(t), typeof(α))), t, α)
+end
 Base.:*(α::Number, t::AbstractTensorMap) =
-    mul!(similar(t, promote_type(eltype(t), typeof(α))), α, t)
-Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(eltype(t))/α)
-Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(eltype(t))/α)
+    mul!(similar(t, promote_type(scalartype(t), typeof(α))), α, t)
+Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(scalartype(t))/α)
+Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t))/α)
 
 LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real = 2) = rmul!(t, inv(norm(t, p)))
 LinearAlgebra.normalize(t::AbstractTensorMap, p::Real = 2) =
@@ -219,7 +220,7 @@ function LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap)
     space(t1) == space(t2) || throw(SpaceMismatch())
     InnerProductStyle(t1) === EuclideanProduct() ||
         throw(ArgumentError("dot requires Euclidean inner product"))
-    T = promote_type(eltype(t1), eltype(t2))
+    T = promote_type(scalartype(t1), scalartype(t2))
     s = zero(T)
     for c in blocksectors(t1)
         s += convert(T, dim(c)) * dot(block(t1, c), block(t2, c))
@@ -230,7 +231,7 @@ end
 function LinearAlgebra.norm(t::AbstractTensorMap, p::Real = 2)
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("norm requires Euclidean inner product"))
-    return _norm(blocks(t), p, float(zero(real(eltype(t)))))
+    return _norm(blocks(t), p, float(zero(real(scalartype(t)))))
 end
 function _norm(blockiter, p::Real, init::Real)
     if p == Inf
