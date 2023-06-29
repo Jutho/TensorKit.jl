@@ -324,12 +324,12 @@ end
 
 function scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace}
     return dim(codomain(t)) == dim(domain(t)) == 1 ?
-           first(blocks(t))[2][1, 1] : throw(SpaceMismatch())
+           first(blocks(t))[2][1, 1] : throw(DimensionMismatch())
 end
 
 TO.tensorscalar(t::AbstractTensorMap) = scalar(t)
 
-function TO.tensoradd!(tdst::AbstractTensorMap{S}{S},
+function TO.tensoradd!(tdst::AbstractTensorMap{S},
                        tsrc::AbstractTensorMap{S}, pA::Index2Tuple,
                        conjA::Symbol, α::Number, β::Number) where {S}
     if conjA == :N
@@ -464,19 +464,19 @@ function TO.tensorcontract!(C::AbstractTensorMap{S,N₁,N₂},
     # return tC
 end
 
-function TO.tensoradd_type(TC, ::AbstractTensorMap{S}, ::Index2Tuple{N₁,N₂},
+function TO.tensoradd_type(TC, ::Index2Tuple{N₁,N₂}, ::AbstractTensorMap{S},
                            ::Symbol) where {S,N₁,N₂}
     return tensormaptype(S, N₁, N₂, TC)
 end
 
-function TO.tensoradd_structure(A::AbstractTensorMap{S}, pA::Index2Tuple{N₁,N₂},
+function TO.tensoradd_structure(pC::Index2Tuple{N₁,N₂}, A::AbstractTensorMap{S},
                                 conjA::Symbol) where {S,N₁,N₂}
     if conjA == :N
-        cod = ProductSpace{S,N₁}(space.(Ref(A), pA[1]))
-        dom = ProductSpace{S,N₂}(dual.(space.(Ref(A), pA[2])))
+        cod = ProductSpace{S,N₁}(space.(Ref(A), pC[1]))
+        dom = ProductSpace{S,N₂}(dual.(space.(Ref(A), pC[2])))
         return dom → cod
     else
-        return TO.tensoradd_structure(adjoint(A), adjointtensorindices(A, pA), :N)
+        return TO.tensoradd_structure(adjoint(A), adjointtensorindices(A, pC), :N)
     end
 end
 
