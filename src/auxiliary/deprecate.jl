@@ -1,20 +1,3 @@
-Base.@deprecate min(V1::ElementarySpace, V2::ElementarySpace) infimum(V1, V2)
-Base.@deprecate max(V1::ElementarySpace, V2::ElementarySpace) supremum(V1, V2)
-Base.@deprecate(infinum(V1, V2...), infimum(V1, V2...))
-
-Base.@deprecate(fusiontreetype(::Type{I}, ::StaticLength{N}) where {I<:Sector, N},
-    fusiontreetype(I, N))
-
-abstract type RepresentationSpace{I<:Sector} end
-Base.@deprecate(RepresentationSpace(args...), GradedSpace(args...))
-Base.@deprecate(RepresentationSpace{I}(args...) where {I}, Vect[I](args...))
-
-Base.@deprecate(×(a::Sector, b::Sector), ⊠(a,b))
-
-Base.@deprecate(
-    permuteind(t::TensorMap, p1::IndexTuple, p2::IndexTuple=(); copy::Bool = false),
-    permute(t, p1, p2; copy = copy))
-
 @noinline function Base.getindex(::ComplexNumbers, I::Type{<:Group})
     S = Rep[I]
     if repr(S) == "GradedSpace[Irrep[$I]]"

@@ -50,7 +50,7 @@ export fℤ₂, fU₁, fSU₂
 export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps
-export domain, codomain, numind, numout, numin, spacetype, storagetype, eltype
+export domain, codomain, numind, numout, numin, spacetype, storagetype, scalartype
 export domainind, codomainind, allind
 export tensormaptype
 export blocksectors, blockdim, block, blocks
@@ -61,8 +61,11 @@ export randuniform, randnormal, randisometry, randhaar
 # special purpose constructors
 export zero, one, one!, id, isomorphism, unitary, isometry
 
-# tensor algebra and factorizations
-export dot, norm, normalize, normalize!, tr
+# reexport most of VectorInterface and some more tensor algebra
+export zerovector, zerovector!, zerovector!!, scale, scale!, scale!!, add, add!, add!!
+export inner, dot, norm, normalize, normalize!, tr
+
+# factorizations
 export mul!, lmul!, rmul!, adjoint!, pinv, axpy!, axpby!
 export leftorth, rightorth, leftnull, rightnull,
         leftorth!, rightorth!, leftnull!, rightnull!,
