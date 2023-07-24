@@ -177,15 +177,13 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
         cod = codomain(tsrc)
         dom = domain(tsrc)
         n = length(cod)
-        pdata = (p1..., p2...)
-        TO._trace!(α, tsrc[], β, tdst[], pdata, q1, q2)
+        TO.tensortrace!(tdst[], (p1, p2), tsrc[], (q1, q2), :N, α, β)
         # elseif FusionStyle(I) isa UniqueFusion
         # TODO: is it worth multithreading UniqueFusion case for traces?
     else
         cod = codomain(tsrc)
         dom = domain(tsrc)
         n = length(cod)
-        pdata = (p1..., p2...)
         if iszero(β)
             fill!(tdst, β)
         elseif β != 1
@@ -204,8 +202,7 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
                             coeff *= twist(g1.uncoupled[i])
                         end
                     end
-                    TO._trace!(α * coeff, tsrc[f1, f2], true, tdst[f1′′, f2′′], pdata, q1,
-                               q2)
+                    TO.tensortrace!(tdst[f1′′, f2′′], (p1, p2), tsrc[f1, f2], (q1, q2), :N, α*coeff, true)
                 end
             end
         end
