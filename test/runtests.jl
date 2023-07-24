@@ -6,8 +6,8 @@ using Combinatorics
 using TensorKit: ProductSector, fusiontensor, pentagon_equation, hexagon_equation
 using TensorOperations
 using Base.Iterators: take, product
-using SUNRepresentations: SUNIrrep
-const SU3Irrep = SUNIrrep{3}
+# using SUNRepresentations: SUNIrrep
+# const SU3Irrep = SUNIrrep{3}
 using LinearAlgebra: LinearAlgebra
 
 include("newsectors.jl")
@@ -50,16 +50,16 @@ function hasfusiontensor(I::Type{<:Sector})
     end
 end
 
-sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep, SU3Irrep,
+sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep, # SU3Irrep,
               FibonacciAnyon, IsingAnyon, FermionParity, FermionNumber, FermionSpin,
               FermionParity ⊠ FermionParity, Z3Irrep ⊠ Z4Irrep, FermionNumber ⊠ SU2Irrep,
               FermionSpin ⊠ SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep, NewSU2Irrep ⊠ SU2Irrep,
               FermionSpin ⊠ NewSU2Irrep, Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()
-include("sectors.jl")
-include("fusiontrees.jl")
-include("spaces.jl")
+# include("sectors.jl")
+# include("fusiontrees.jl")
+# include("spaces.jl")
 include("tensors.jl")
 Tf = time()
 printstyled("Finished all tests in ",

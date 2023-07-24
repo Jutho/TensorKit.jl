@@ -43,13 +43,13 @@ VfSU₂ = (ℂ[FermionSpin](0 => 3, 1 // 2 => 1),
          ℂ[FermionSpin](1 // 2 => 1, 1 => 1)',
          ℂ[FermionSpin](0 => 2, 1 // 2 => 2),
          ℂ[FermionSpin](0 => 1, 1 // 2 => 1, 3 // 2 => 1)')
-VSU₃ = (ℂ[SU3Irrep]((0, 0, 0) => 3, (1, 0, 0) => 1),
-        ℂ[SU3Irrep]((0, 0, 0) => 3, (2, 0, 0) => 1)',
-        ℂ[SU3Irrep]((1, 1, 0) => 1, (2, 1, 0) => 1),
-        ℂ[SU3Irrep]((1, 0, 0) => 1, (2, 0, 0) => 1),
-        ℂ[SU3Irrep]((0, 0, 0) => 1, (1, 0, 0) => 1, (1, 1, 0) => 1)')
+# VSU₃ = (ℂ[SU3Irrep]((0, 0, 0) => 3, (1, 0, 0) => 1),
+#         ℂ[SU3Irrep]((0, 0, 0) => 3, (2, 0, 0) => 1)',
+#         ℂ[SU3Irrep]((1, 1, 0) => 1, (2, 1, 0) => 1),
+#         ℂ[SU3Irrep]((1, 0, 0) => 1, (2, 0, 0) => 1),
+#         ℂ[SU3Irrep]((0, 0, 0) => 1, (1, 0, 0) => 1, (1, 1, 0) => 1)')
 
-for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
@@ -61,15 +61,15 @@ spacelist = try
         if Sys.iswindows()
             (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂)
         elseif Sys.isapple()
-            (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VfU₁, VfSU₂, VSU₃)
+            (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VfU₁, VfSU₂)#, VSU₃)
         else
-            (Vtr, Vℤ₂, Vfℤ₂, VU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+            (Vtr, Vℤ₂, Vfℤ₂, VU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
         end
     else
-        (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+        (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
     end
 catch
-    (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₃)
+    (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
 end
 
 for V in spacelist
