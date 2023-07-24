@@ -151,11 +151,11 @@ Base.hash(P::ProductSpace, h::UInt) = hash(P.spaces, h)
 
 # Default construction from product of spaces
 #---------------------------------------------
-⊗(V1::S, V2::S) where {S<:ElementarySpace}= ProductSpace((V1, V2))
-⊗(P1::ProductSpace{S}, V2::S) where {S<:ElementarySpace} =
-    ProductSpace(tuple(P1.spaces..., V2))
-⊗(V1::S, P2::ProductSpace{S}) where {S<:ElementarySpace} =
-    ProductSpace(tuple(V1, P2.spaces...))
+⊗(V₁::S, V₂::S) where {S<:ElementarySpace}= ProductSpace((V₁, V₂))
+⊗(P1::ProductSpace{S}, V₂::S) where {S<:ElementarySpace} =
+    ProductSpace(tuple(P1.spaces..., V₂))
+⊗(V₁::S, P2::ProductSpace{S}) where {S<:ElementarySpace} =
+    ProductSpace(tuple(V₁, P2.spaces...))
 ⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace} =
     ProductSpace(tuple(P1.spaces..., P2.spaces...))
 ⊗(P::ProductSpace{S, 0}, ::ProductSpace{S, 0}) where {S<:ElementarySpace} = P

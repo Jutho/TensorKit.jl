@@ -44,22 +44,22 @@ Base.axes(V::ComplexSpace) = Base.OneTo(dim(V))
 Base.conj(V::ComplexSpace) = ComplexSpace(dim(V), !isdual(V))
 
 Base.oneunit(::Type{ComplexSpace}) = ComplexSpace(1)
-function ⊕(V1::ComplexSpace, V2::ComplexSpace)
-    return isdual(V1) == isdual(V2) ?
-           ComplexSpace(dim(V1) + dim(V2), isdual(V1)) :
+function ⊕(V₁::ComplexSpace, V₂::ComplexSpace)
+    return isdual(V₁) == isdual(V₂) ?
+           ComplexSpace(dim(V₁) + dim(V₂), isdual(V₁)) :
            throw(SpaceMismatch("Direct sum of a vector space and its dual does not exist"))
 end
-fuse(V1::ComplexSpace, V2::ComplexSpace) = ComplexSpace(V1.d * V2.d)
+fuse(V₁::ComplexSpace, V₂::ComplexSpace) = ComplexSpace(V₁.d * V₂.d)
 flip(V::ComplexSpace) = dual(V)
 
-function infimum(V1::ComplexSpace, V2::ComplexSpace)
-    return isdual(V1) == isdual(V2) ?
-           ComplexSpace(min(dim(V1), dim(V2)), isdual(V1)) :
+function infimum(V₁::ComplexSpace, V₂::ComplexSpace)
+    return isdual(V₁) == isdual(V₂) ?
+           ComplexSpace(min(dim(V₁), dim(V₂)), isdual(V₁)) :
            throw(SpaceMismatch("Infimum of space and dual space does not exist"))
 end
-function supremum(V1::ComplexSpace, V2::ComplexSpace)
-    return isdual(V1) == isdual(V2) ?
-           ComplexSpace(max(dim(V1), dim(V2)), isdual(V1)) :
+function supremum(V₁::ComplexSpace, V₂::ComplexSpace)
+    return isdual(V₁) == isdual(V₂) ?
+           ComplexSpace(max(dim(V₁), dim(V₂)), isdual(V₁)) :
            throw(SpaceMismatch("Supremum of space and dual space does not exist"))
 end
 

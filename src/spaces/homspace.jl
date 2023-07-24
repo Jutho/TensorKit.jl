@@ -23,8 +23,8 @@ function Base.adjoint(W::HomSpace{S}) where {S}
 end
 
 Base.hash(W::HomSpace, h::UInt) = hash(domain(W), hash(codomain(W), h))
-Base.:(==)(W1::HomSpace, W2::HomSpace) =
-    (W1.codomain == W2.codomain) && (W1.domain == W2.domain)
+Base.:(==)(W₁::HomSpace, W₂::HomSpace) =
+    (W₁.codomain == W₂.codomain) && (W₁.domain == W₂.domain)
 
 spacetype(W::HomSpace) = spacetype(typeof(W))
 sectortype(W::HomSpace) = sectortype(typeof(W))

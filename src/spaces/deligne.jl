@@ -12,50 +12,50 @@ The Deligne tensor product also works in the type domain and for sectors and ten
 group representations, we have `Rep[G₁] ⊠ Rep[G₂] == Rep[G₁ × G₂]`, i.e. these are the
 natural representation spaces of the direct product of two groups.
 """
-⊠(V1::VectorSpace, V2::VectorSpace) = (V1 ⊠ one(V2)) ⊗ (one(V1) ⊠ V2)
+⊠(V₁::VectorSpace, V₂::VectorSpace) = (V₁ ⊠ one(V₂)) ⊗ (one(V₁) ⊠ V₂)
 
 # define deligne products with empty tensor product: just add a trivial sector of the type of the empty space to each of the sectors in the non-empty space
-function ⊠(V::GradedSpace, P0::ProductSpace{<:ElementarySpace{ℂ},0})
-    I1 = sectortype(V)
-    I2 = sectortype(P0)
-    return Vect[I1 ⊠ I2](ifelse(isdual(V), dual(c), c) ⊠ one(I2) => dim(V, c) for c in sectors(V); dual = isdual(V))
+function ⊠(V::GradedSpace, P₀::ProductSpace{<:ElementarySpace{ℂ},0})
+    I₁ = sectortype(V)
+    I₂ = sectortype(P₀)
+    return Vect[I₁ ⊠ I₂](ifelse(isdual(V), dual(c), c) ⊠ one(I₂) => dim(V, c) for c in sectors(V); dual = isdual(V))
 end
 
-function ⊠(P0::ProductSpace{<:ElementarySpace{ℂ},0}, V::GradedSpace)
-    I1 = sectortype(P0)
-    I2 = sectortype(V)
-    return Vect[I1 ⊠ I2](one(I1) ⊠ ifelse(isdual(V), dual(c), c) => dim(V, c) for c in sectors(V); dual = isdual(V))
+function ⊠(P₀::ProductSpace{<:ElementarySpace{ℂ},0}, V::GradedSpace)
+    I₁ = sectortype(P₀)
+    I₂ = sectortype(V)
+    return Vect[I₁ ⊠ I₂](one(I₁) ⊠ ifelse(isdual(V), dual(c), c) => dim(V, c) for c in sectors(V); dual = isdual(V))
 end
 
-function ⊠(V::ComplexSpace, P0::ProductSpace{<:ElementarySpace{ℂ},0})
-    I2 = sectortype(P0)
-    return Vect[I2](one(I2) => dim(V); dual = isdual(V))
+function ⊠(V::ComplexSpace, P₀::ProductSpace{<:ElementarySpace{ℂ},0})
+    I₂ = sectortype(P₀)
+    return Vect[I₂](one(I₂) => dim(V); dual = isdual(V))
 end
 
-function ⊠(P0::ProductSpace{<:ElementarySpace{ℂ},0}, V::ComplexSpace)
-    I1 = sectortype(P0)
-    return Vect[I1](one(I1) => dim(V); dual = isdual(V))
+function ⊠(P₀::ProductSpace{<:ElementarySpace{ℂ},0}, V::ComplexSpace)
+    I₁ = sectortype(P₀)
+    return Vect[I₁](one(I₁) => dim(V); dual = isdual(V))
 end
 
 function ⊠(P::ProductSpace{<:ElementarySpace{ℂ},0},
-           P0::ProductSpace{<:ElementarySpace{ℂ},0})
-    I1 = sectortype(P)
-    I2 = sectortype(P0)
-    return one(Vect[I1 ⊠ I2])
+           P₀::ProductSpace{<:ElementarySpace{ℂ},0})
+    I₁ = sectortype(P)
+    I₂ = sectortype(P₀)
+    return one(Vect[I₁ ⊠ I₂])
 end
 
-function ⊠(P::ProductSpace{<:ElementarySpace{ℂ}}, P0::ProductSpace{<:ElementarySpace{ℂ},0})
-    I1 = sectortype(P)
-    I2 = sectortype(P0)
-    S = Vect[I1 ⊠ I2]
+function ⊠(P::ProductSpace{<:ElementarySpace{ℂ}}, P₀::ProductSpace{<:ElementarySpace{ℂ},0})
+    I₁ = sectortype(P)
+    I₂ = sectortype(P₀)
+    S = Vect[I₁ ⊠ I₂]
     N = length(P)
-    return ProductSpace{S,N}(map(V->V ⊠ P0, tuple(P...)))
+    return ProductSpace{S,N}(map(V->V ⊠ P₀, tuple(P...)))
 end
 
-function ⊠(P0::ProductSpace{<:ElementarySpace{ℂ},0}, P::ProductSpace{<:ElementarySpace{ℂ}})
-    I1 = sectortype(P0)
-    I2 = sectortype(P)
-    S = Vect[I1 ⊠ I2]
+function ⊠(P₀::ProductSpace{<:ElementarySpace{ℂ},0}, P::ProductSpace{<:ElementarySpace{ℂ}})
+    I₁ = sectortype(P₀)
+    I₂ = sectortype(P)
+    S = Vect[I₁ ⊠ I₂]
     N = length(P)
-    return ProductSpace{S,N}(map(V->P0 ⊠ V, tuple(P...)))
+    return ProductSpace{S,N}(map(V->P₀ ⊠ V, tuple(P...)))
 end

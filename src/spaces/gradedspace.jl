@@ -105,8 +105,8 @@ Base.conj(V::GradedSpace) = typeof(V)(V.dims, !V.dual)
 isdual(V::GradedSpace) = V.dual
 
 # equality / comparison
-Base.:(==)(V1::GradedSpace, V2::GradedSpace) =
-    sectortype(V1) == sectortype(V2) && (V1.dims == V2.dims) && V1.dual == V2.dual
+Base.:(==)(V₁::GradedSpace, V₂::GradedSpace) =
+    sectortype(V₁) == sectortype(V₂) && (V₁.dims == V₂.dims) && V₁.dual == V₂.dual
 
 # axes
 Base.axes(V::GradedSpace) = Base.OneTo(dim(V))
@@ -124,16 +124,16 @@ Base.oneunit(S::Type{<:GradedSpace{I}}) where {I<:Sector} = S(one(I)=>1)
 # TODO: the following methods can probably be implemented more efficiently for
 # `FiniteGradedSpace`, but we don't expect them to be used often in hot loops, so
 # these generic definitions (which are still quite efficient) are good for now.
-function ⊕(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
-    dual1 = isdual(V1)
-    dual1 == isdual(V2) ||
+function ⊕(V₁::GradedSpace{I}, V₂::GradedSpace{I}) where {I<:Sector}
+    dual1 = isdual(V₁)
+    dual1 == isdual(V₂) ||
         throw(SpaceMismatch("Direct sum of a vector space and a dual space does not exist"))
     dims = SectorDict{I, Int}()
-    for c in union(sectors(V1), sectors(V2))
+    for c in union(sectors(V₁), sectors(V₂))
         cout = ifelse(dual1, dual(c), c)
-        dims[cout] = dim(V1, c) + dim(V2, c)
+        dims[cout] = dim(V₁, c) + dim(V₂, c)
     end
-    return typeof(V1)(dims; dual = dual1)
+    return typeof(V₁)(dims; dual = dual1)
 end
 
 function flip(V::GradedSpace{I}) where {I<:Sector}
@@ -144,29 +144,29 @@ function flip(V::GradedSpace{I}) where {I<:Sector}
     end
 end
 
-function fuse(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
+function fuse(V₁::GradedSpace{I}, V₂::GradedSpace{I}) where {I<:Sector}
     dims = SectorDict{I, Int}()
-    for a in sectors(V1), b in sectors(V2)
+    for a in sectors(V₁), b in sectors(V₂)
         for c in a ⊗ b
-            dims[c] = get(dims, c, 0) + Nsymbol(a, b, c)*dim(V1, a)*dim(V2, b)
+            dims[c] = get(dims, c, 0) + Nsymbol(a, b, c)*dim(V₁, a)*dim(V₂, b)
         end
     end
-    return typeof(V1)(dims)
+    return typeof(V₁)(dims)
 end
 
-function infimum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
-    if V1.dual == V2.dual
-        typeof(V1)(c=>min(dim(V1, c), dim(V2, c)) for c in
-            union(sectors(V1), sectors(V2)), dual = V1.dual)
+function infimum(V₁::GradedSpace{I}, V₂::GradedSpace{I}) where {I<:Sector}
+    if V₁.dual == V₂.dual
+        typeof(V₁)(c=>min(dim(V₁, c), dim(V₂, c)) for c in
+            union(sectors(V₁), sectors(V₂)), dual = V₁.dual)
     else
         throw(SpaceMismatch("Infimum of space and dual space does not exist"))
     end
 end
 
-function supremum(V1::GradedSpace{I}, V2::GradedSpace{I}) where {I<:Sector}
-    if V1.dual == V2.dual
-        typeof(V1)(c=>max(dim(V1, c), dim(V2, c)) for c in
-            union(sectors(V1), sectors(V2)), dual = V1.dual)
+function supremum(V₁::GradedSpace{I}, V₂::GradedSpace{I}) where {I<:Sector}
+    if V₁.dual == V₂.dual
+        typeof(V₁)(c=>max(dim(V₁, c), dim(V₂, c)) for c in
+            union(sectors(V₁), sectors(V₂)), dual = V₁.dual)
     else
         throw(SpaceMismatch("Supremum of space and dual space does not exist"))
     end
