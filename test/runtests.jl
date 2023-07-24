@@ -57,9 +57,9 @@ sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irre
               FermionSpin ⊠ NewSU2Irrep, Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()
-# include("sectors.jl")
-# include("fusiontrees.jl")
-# include("spaces.jl")
+include("sectors.jl")
+include("fusiontrees.jl")
+include("spaces.jl")
 include("tensors.jl")
 Tf = time()
 printstyled("Finished all tests in ",
