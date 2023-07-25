@@ -13,7 +13,7 @@ function cached_permute(sym::Symbol, t::TensorMap{S},
     end
     # general case
     @inbounds begin
-        tp = TO.cached_similar_from_indices(sym, eltype(t), p1, p2, t, :N)
+        tp = TO.cached_similar_from_indices(sym, scalartype(t), p1, p2, t, :N)
         return add!(true, t, false, tp, p1, p2)
     end
 end
@@ -309,7 +309,7 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
         else
             p1′ = ntuple(identity, N₁)
             p2′ = N₁ .+ ntuple(identity, N₂)
-            TC = eltype(C)
+            TC = scalartype(C)
             C′ = TO.cached_similar_from_indices(syms[3], TC, oindA, oindB, p1′, p2′, A, B,
                                                 :N, :N)
             mul!(C′, A′, B′)
@@ -506,5 +506,3 @@ end
 function TO.tensoralloc(ttype::Type{<:AbstractTensorMap}, structure, istemp=false)
     return TensorMap(undef, scalartype(ttype), structure)
 end
-
-VectorInterface.scalartype(T::Type{<:AbstractTensorMap}) = eltype(T)

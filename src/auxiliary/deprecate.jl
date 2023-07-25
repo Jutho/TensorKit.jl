@@ -57,3 +57,7 @@ function Base.getindex(::ComplexNumbers, d::Int)
     @warn "`ℂ[d]` is deprecated, use `ℂ^d` or `ComplexSpace(d)`." maxlog = 1
     return ℂ^d
 end
+
+import Base: eltype
+@deprecate eltype(T::Type{<:AbstractTensorMap}) scalartype(T)
+@deprecate eltype(t::AbstractTensorMap) scalartype(t)

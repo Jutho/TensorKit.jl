@@ -19,15 +19,16 @@ struct TensorMap{S<:IndexSpace, N₁, N₂, I<:Sector, A<:Union{<:DenseMatrix,Se
                 colr::SectorDict{I,FusionTreeDict{F₂,UnitRange{Int}}}) where
                     {S<:IndexSpace, N₁, N₂, I<:Sector, A<:SectorDict{I,<:DenseMatrix},
                      F₁<:FusionTree{I,N₁}, F₂<:FusionTree{I,N₂}}
-        eltype(valtype(data)) ⊆ field(S) ||
-            @warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))", maxlog=1)
+        T = scalartype(valtype(data))
+        T ⊆ field(S) || @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog=1)
         new{S, N₁, N₂, I, A, F₁, F₂}(data, codom, dom, rowr, colr)
     end
     function TensorMap{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data::A,
                 codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where
                     {S<:IndexSpace, N₁, N₂, A<:DenseMatrix}
-        eltype(data) ⊆ field(S) ||
-            @warn("eltype(data) = $(eltype(data)) ⊈ $(field(S)))", maxlog=1)
+        T = scalartype(data)
+        T ⊆ field(S) ||
+            @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog=1)
         new{S, N₁, N₂, Trivial, A, Nothing, Nothing}(data, codom, dom)
     end
 end
@@ -109,8 +110,8 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
         if norm(basis*lhs - rhs) > tol
             throw(ArgumentError("Data has non-zero elements at incompatible positions"))
         end
-        if eltype(lhs) != eltype(t)
-            t2 = TensorMap(zeros, promote_type(eltype(lhs), eltype(t)), codom, dom)
+        if eltype(lhs) != scalartype(t)
+            t2 = TensorMap(zeros, promote_type(eltype(lhs), scalartype(t)), codom, dom)
         else
             t2 = t
         end
@@ -362,7 +363,7 @@ Base.similar(t::AbstractTensorMap{S}, P::TensorSpace{S}) where {S} =
     Tensor(d->storagetype(t)(undef, d), P)
 
 function Base.complex(t::AbstractTensorMap)
-    if eltype(t) <: Complex
+    if scalartype(t) <: Complex
         return t
     elseif t.data isa AbstractArray
         return TensorMap(complex(t.data), codomain(t), domain(t))

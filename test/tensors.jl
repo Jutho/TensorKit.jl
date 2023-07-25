@@ -85,7 +85,7 @@ for V in spacelist
         for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
             t = Tensor(zeros, T, W)
             @test @constinferred(hash(t)) == hash(deepcopy(t))
-            @test eltype(t) == T
+            @test scalartype(t) == T
             @test norm(t) == 0
             @test codomain(t) == W
             @test space(t) == (W ← one(W))
@@ -119,7 +119,7 @@ for V in spacelist
         W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
         for T in (Float32, ComplexF64)
             t = TensorMap(rand, T, W)
-            @test eltype(t) == T
+            @test scalartype(t) == T
             @test space(t) == W
             @test space(t') == W'
             @test dim(t) == dim(space(t))
@@ -337,10 +337,11 @@ for V in spacelist
             # Test both a normal tensor and an adjoint one.
             ts = (Tensor(rand, T, W), Tensor(rand, T, W)')
             for t in ts
-                @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(),
-                                                          TensorKit.QL(), TensorKit.QLpos(),
-                                                          TensorKit.Polar(), TensorKit.SVD(),
-                                                          TensorKit.SDD())
+                @testset "leftorth with $alg" for alg in
+                                                  (TensorKit.QR(), TensorKit.QRpos(),
+                                                   TensorKit.QL(), TensorKit.QLpos(),
+                                                   TensorKit.Polar(), TensorKit.SVD(),
+                                                   TensorKit.SDD())
                     Q, R = @constinferred leftorth(t, (3, 4, 2), (1, 5); alg=alg)
                     QdQ = Q' * Q
                     @test QdQ ≈ one(QdQ)
@@ -389,10 +390,11 @@ for V in spacelist
             end
             @testset "empty tensor" begin
                 t = TensorMap(randn, T, V1 ⊗ V2, typeof(V1)())
-                @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QRpos(),
-                                                          TensorKit.QL(), TensorKit.QLpos(),
-                                                          TensorKit.Polar(), TensorKit.SVD(),
-                                                          TensorKit.SDD())
+                @testset "leftorth with $alg" for alg in
+                                                  (TensorKit.QR(), TensorKit.QRpos(),
+                                                   TensorKit.QL(), TensorKit.QLpos(),
+                                                   TensorKit.Polar(), TensorKit.SVD(),
+                                                   TensorKit.SDD())
                     Q, R = @constinferred leftorth(t; alg=alg)
                     @test Q == t
                     @test dim(Q) == dim(R) == 0

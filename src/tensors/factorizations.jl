@@ -134,7 +134,7 @@ leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
     rightnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple;
                 alg::OrthogonalFactorizationAlgorithm = LQ(),
                 atol::Real = 0.0,
-                rtol::Real = eps(real(float(one(eltype(t)))))*iszero(atol)) -> N
+                rtol::Real = eps(real(float(one(scalartype(t)))))*iszero(atol)) -> N
 
 Create orthonormal basis for the orthogonal complement of the support of the indices in
 `rightind`, such that `permute(t, leftind, rightind)*N' = 0`.
@@ -208,7 +208,7 @@ eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 The function `eigh` assumes that the linear map is hermitian and `D` and `V` tensors with
-the same `eltype` as `t`. See `eig` and `eigen` for non-hermitian tensors. Hermiticity
+the same `scalartype` as `t`. See `eig` and `eigen` for non-hermitian tensors. Hermiticity
 requires that the tensor acts on inner product spaces, and the current implementation
 requires `InnerProductStyle(t) === EuclideanProduct()`.
 
@@ -302,9 +302,9 @@ end
 
 function leftorth!(t::TensorMap;
                    alg::Union{QR,QRpos,QL,QLpos,SVD,SDD,Polar}=QRpos(),
-                   atol::Real=zero(float(real(eltype(t)))),
-                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                              eps(real(float(one(eltype(t))))) * iszero(atol))
+                   atol::Real=zero(float(real(scalartype(t)))),
+                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                              eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("leftorth! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
@@ -339,9 +339,9 @@ end
 
 function leftnull!(t::TensorMap;
                    alg::Union{QR,QRpos,SVD,SDD}=QRpos(),
-                   atol::Real=zero(float(real(eltype(t)))),
-                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                              eps(real(float(one(eltype(t))))) * iszero(atol))
+                   atol::Real=zero(float(real(scalartype(t)))),
+                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                              eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("leftnull! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
@@ -364,9 +364,9 @@ end
 
 function rightorth!(t::TensorMap;
                     alg::Union{LQ,LQpos,RQ,RQpos,SVD,SDD,Polar}=LQpos(),
-                    atol::Real=zero(float(real(eltype(t)))),
-                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                               eps(real(float(one(eltype(t))))) * iszero(atol))
+                    atol::Real=zero(float(real(scalartype(t)))),
+                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                               eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("rightorth! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
@@ -401,9 +401,9 @@ end
 
 function rightnull!(t::TensorMap;
                     alg::Union{LQ,LQpos,SVD,SDD}=LQpos(),
-                    atol::Real=zero(float(real(eltype(t)))),
-                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                               eps(real(float(one(eltype(t))))) * iszero(atol))
+                    atol::Real=zero(float(real(scalartype(t)))),
+                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                               eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("rightnull! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
@@ -433,14 +433,14 @@ function tsvd!(t::TensorMap;
     S = spacetype(t)
     I = sectortype(t)
     A = storagetype(t)
-    Ar = similarstoragetype(t, real(eltype(t)))
+    Ar = similarstoragetype(t, real(scalartype(t)))
     Udata = SectorDict{I, A}()
     Σmdata = SectorDict{I, Ar}() # this will contain the singular values as matrix
     Vdata = SectorDict{I, A}()
     dims = SectorDict{sectortype(t), Int}()
     if isempty(blocksectors(t))
         W = S(dims)
-        truncerr = zero(real(eltype(t)))
+        truncerr = zero(real(scalartype(t)))
         return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
                     TensorMap(Vdata, W←domain(t)), truncerr
     end
@@ -481,7 +481,7 @@ function tsvd!(t::TensorMap;
         elseif length(codomain(t)) == 1 && codomain(t)[1] ≅ W
             W = codomain(t)[1]
         end
-        truncerr = abs(zero(eltype(t)))
+        truncerr = abs(zero(scalartype(t)))
     end
     for (c, Σ) in Σdata
         Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
@@ -509,7 +509,7 @@ function eigh!(t::TensorMap; kwargs...)
     S = spacetype(t)
     I = sectortype(t)
     A = storagetype(t)
-    Ar = similarstoragetype(t, real(eltype(t)))
+    Ar = similarstoragetype(t, real(scalartype(t)))
     Ddata = SectorDict{I, Ar}()
     Vdata = SectorDict{I, A}()
     dims = SectorDict{I, Int}()
@@ -533,7 +533,7 @@ function eig!(t::TensorMap; kwargs...)
         throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
     S = spacetype(t)
     I = sectortype(t)
-    T = complex(eltype(t))
+    T = complex(scalartype(t))
     Ac = similarstoragetype(t, T)
     Ddata = SectorDict{I, Ac}()
     Vdata = SectorDict{I, Ac}()

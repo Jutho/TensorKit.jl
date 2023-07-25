@@ -23,22 +23,6 @@ i.e. a tensor map with only a non-trivial output space.
 const AbstractTensor{S<:IndexSpace,N} = AbstractTensorMap{S,N,0}
 
 # tensor characteristics
-Base.eltype(T::Type{<:AbstractTensorMap}) = eltype(storagetype(T))
-function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
-    return Core.Compiler.return_type(similar, Tuple{storagetype(TT),Type{T}})
-end
-
-storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
-similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
-Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
-spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
-sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
-InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
-field(t::AbstractTensorMap) = field(typeof(t))
-numout(t::AbstractTensorMap) = numout(typeof(t))
-numin(t::AbstractTensorMap) = numin(typeof(t))
-numind(t::AbstractTensorMap) = numind(typeof(t))
-
 spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
 sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
 function InnerProductStyle(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace}
@@ -48,6 +32,21 @@ field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
 numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁
 numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₂
 numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁ + N₂
+
+function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
+    return Core.Compiler.return_type(similar, Tuple{storagetype(TT),Type{T}})
+end
+
+spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
+sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
+InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
+field(t::AbstractTensorMap) = field(typeof(t))
+numout(t::AbstractTensorMap) = numout(typeof(t))
+numin(t::AbstractTensorMap) = numin(typeof(t))
+numind(t::AbstractTensorMap) = numind(typeof(t))
+
+storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
+similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
 
 const order = numind
 
@@ -138,11 +137,11 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
                         reshape(F₂, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
             if !(@isdefined A)
                 if eltype(F) <: Complex
-                    T = complex(float(eltype(t)))
+                    T = complex(float(scalartype(t)))
                 elseif eltype(F) <: Integer
-                    T = eltype(t)
+                    T = scalartype(t)
                 else
-                    T = float(eltype(t))
+                    T = float(scalartype(t))
                 end
                 A = fill(zero(T), (dims(cod)..., dims(dom)...))
             end

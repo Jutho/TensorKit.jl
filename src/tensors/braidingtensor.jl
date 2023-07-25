@@ -91,7 +91,7 @@ end
         d = (dims(V2 ⊗ V1, f₁.uncoupled)..., dims(V1 ⊗ V2, f₂.uncoupled)...)
         n1 = d[1]*d[2]
         n2 = d[3]*d[4]
-        data = fill!(storagetype(b)(undef, (n1, n2)), zero(eltype(b)))
+        data = fill!(storagetype(b)(undef, (n1, n2)), zero(scalartype(b)))
         a1, a2 = f₂.uncoupled
         if f₁.uncoupled == (a2, a1)
             braiddict = artin_braid(f₂, 1; inv = b.adjoint)
@@ -109,17 +109,17 @@ end
 Base.copy(b::BraidingTensor) = copy!(similar(b), b)
 function Base.copy!(t::TensorMap, b::BraidingTensor)
     space(t) == space(b) || throw(SectorMismatch())
-    fill!(t, zero(eltype(t)))
+    fill!(t, zero(scalartype(t)))
     for (f₁, f₂) in fusiontrees(t)
         data = t[f₁, f₂]
         if sectortype(t) == Trivial
-            r = one(eltype(t))
+            r = one(scalartype(t))
         else
             a1, a2 = f₂.uncoupled
             c = f₂.coupled
             f₁.uncoupled == (a2, a1) || continue
             braiddict = artin_braid(f₂, 1; inv = b.adjoint)
-            r = convert(eltype(t), get(braiddict, f₁, zero(valtype(braiddict))))
+            r = convert(scalartype(t), get(braiddict, f₁, zero(valtype(braiddict))))
         end
         for i = 1:size(data, 1), j = 1:size(data, 2)
             data[i, j, j, i] = r
@@ -136,16 +136,16 @@ function block(b::BraidingTensor, s::Sector)
     if sectortype(b) == Trivial
         d1, d2 = dim(V1), dim(V2)
         n = d1*d2
-        data = fill!(storagetype(b)(undef, (n, n)), zero(eltype(b)))
+        data = fill!(storagetype(b)(undef, (n, n)), zero(scalartype(b)))
         si = 1 + d2*d1*d1
         sj = d2 + d2*d1
         @inbounds for i = 1:d2, j = 1:d1
-            data[(i-1)*si + (j-1)*sj + 1] = one(eltype(b))
+            data[(i-1)*si + (j-1)*sj + 1] = one(scalartype(b))
         end
         return data
     end
     n = blockdim(domain(b), s)
-    data = fill!(storagetype(b)(undef, (n, n)), zero(eltype(b)))
+    data = fill!(storagetype(b)(undef, (n, n)), zero(scalartype(b)))
     iter = fusiontrees(b) # actually contains information about ranges as well
     for (f₂, r2) in iter.colr[s]
         for (f₁, r1) in iter.rowr[s]
@@ -154,7 +154,7 @@ function block(b::BraidingTensor, s::Sector)
             d2 = dim(V2, a2)
             f₁.uncoupled == (a2, a1) || continue
             braiddict = artin_braid(f₂, 1; inv = b.adjoint)
-            r = convert(eltype(b), get(braiddict, f₁, zero(valtype(braiddict))))
+            r = convert(scalartype(b), get(braiddict, f₁, zero(valtype(braiddict))))
             si = 1 + n*d1
             sj = d2 + n
             start = first(r1) + (first(r2)-1) * n
@@ -521,6 +521,6 @@ end
 
 has_shared_permute(t::BraidingTensor, args...) = false
 function cached_permute(sym::Symbol, t::BraidingTensor, p1, p2; copy=false)
-    tp = TO.cached_similar_from_indices(sym, eltype(t), p1, p2, t, :N)
+    tp = TO.cached_similar_from_indices(sym, scalartype(t), p1, p2, t, :N)
     return add!(true, t, false, tp, p1, p2)
 end
