@@ -47,7 +47,7 @@ end
                                           β, tdst::AbstractTensorMap{S,N₁,N₂},
                                           p1::IndexTuple{N₁},
                                           p2::IndexTuple{N₂}) where {S,N₁,N₂}
-    return _add!(α, tsrc, β, tdst, p1, p2, (f1, f2) -> permute(f1, f2, p1, p2))
+    return _add!(α, tsrc, β, tdst, p1, p2, (f₁, f₂) -> permute(f₁, f₂, p1, p2))
 end
 @propagate_inbounds function add_braid!(α, tsrc::AbstractTensorMap{S},
                                         β, tdst::AbstractTensorMap{S,N₁,N₂},
@@ -60,13 +60,13 @@ end
     levels1 = TupleTools.getindices(levels, codomainind(tsrc))
     levels2 = TupleTools.getindices(levels, domainind(tsrc))
     return _add!(α, tsrc, β, tdst, p1, p2,
-                 (f1, f2) -> braid(f1, f2, levels1, levels2, p1, p2))
+                 (f₁, f₂) -> braid(f₁, f₂, levels1, levels2, p1, p2))
 end
 @propagate_inbounds function add_transpose!(α, tsrc::AbstractTensorMap{S},
                                             β, tdst::AbstractTensorMap{S,N₁,N₂},
                                             p1::IndexTuple{N₁},
                                             p2::IndexTuple{N₂}) where {S,N₁,N₂}
-    return _add!(α, tsrc, β, tdst, p1, p2, (f1, f2) -> transpose(f1, f2, p1, p2))
+    return _add!(α, tsrc, β, tdst, p1, p2, (f₁, f₂) -> transpose(f₁, f₂, p1, p2))
 end
 
 function _add!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N₁,N₂},
@@ -108,14 +108,14 @@ function _add_abelian_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTen
     if Threads.nthreads() > 1
         nstridedthreads = Strided.get_num_threads()
         Strided.set_num_threads(1)
-        Threads.@sync for (f1, f2) in fusiontrees(tsrc)
-            Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2,
+        Threads.@sync for (f₁, f₂) in fusiontrees(tsrc)
+            Threads.@spawn _addabelianblock!(α, tsrc, β, tdst, p1, p2, f₁, f₂,
                                              fusiontreemap)
         end
         Strided.set_num_threads(nstridedthreads)
     else # debugging is easier this way
-        for (f1, f2) in fusiontrees(tsrc)
-            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f1, f2, fusiontreemap)
+        for (f₁, f₂) in fusiontrees(tsrc)
+            _addabelianblock!(α, tsrc, β, tdst, p1, p2, f₁, f₂, fusiontreemap)
         end
     end
     return nothing
@@ -124,13 +124,13 @@ end
 function _addabelianblock!(α, tsrc::AbstractTensorMap,
                            β, tdst::AbstractTensorMap,
                            p1::IndexTuple, p2::IndexTuple,
-                           f1::FusionTree, f2::FusionTree,
+                           f₁::FusionTree, f₂::FusionTree,
                            fusiontreemap)
     cod = codomain(tsrc)
     dom = domain(tsrc)
-    (f1′, f2′), coeff = first(fusiontreemap(f1, f2))
+    (f₁′, f₂′), coeff = first(fusiontreemap(f₁, f₂))
     pdata = (p1..., p2...)
-    @inbounds axpby!(α * coeff, permutedims(tsrc[f1, f2], pdata), β, tdst[f1′, f2′])
+    @inbounds axpby!(α * coeff, permutedims(tsrc[f₁, f₂], pdata), β, tdst[f₁′, f₂′])
 end
 
 function _add_general_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTensorMap,
@@ -144,9 +144,9 @@ function _add_general_kernel!(α, tsrc::AbstractTensorMap, β, tdst::AbstractTen
     elseif β != 1
         mul!(tdst, β, tdst)
     end
-    for (f1, f2) in fusiontrees(tsrc)
-        for ((f1′, f2′), coeff) in fusiontreemap(f1, f2)
-            @inbounds axpy!(α * coeff, permutedims(tsrc[f1, f2], pdata), tdst[f1′, f2′])
+    for (f₁, f₂) in fusiontrees(tsrc)
+        for ((f₁′, f₂′), coeff) in fusiontreemap(f₁, f₂)
+            @inbounds axpy!(α * coeff, permutedims(tsrc[f₁, f₂], pdata), tdst[f₁′, f₂′])
         end
     end
     return nothing
@@ -191,10 +191,10 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
         end
         r1 = (p1..., q1...)
         r2 = (p2..., q2...)
-        for (f1, f2) in fusiontrees(tsrc)
-            for ((f1′, f2′), coeff) in permute(f1, f2, r1, r2)
-                f1′′, g1 = split(f1′, N₁)
-                f2′′, g2 = split(f2′, N₂)
+        for (f₁, f₂) in fusiontrees(tsrc)
+            for ((f₁′, f₂′), coeff) in permute(f₁, f₂, r1, r2)
+                f₁′′, g1 = split(f₁′, N₁)
+                f₂′′, g2 = split(f₂′, N₂)
                 if g1 == g2
                     coeff *= dim(g1.coupled) / dim(g1.uncoupled[1])
                     for i in 2:length(g1.uncoupled)
@@ -202,7 +202,7 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
                             coeff *= twist(g1.uncoupled[i])
                         end
                     end
-                    TO.tensortrace!(tdst[f1′′, f2′′], (p1, p2), tsrc[f1, f2], (q1, q2), :N, α*coeff, true)
+                    TO.tensortrace!(tdst[f₁′′, f₂′′], (p1, p2), tsrc[f₁, f₂], (q1, q2), :N, α*coeff, true)
                 end
             end
         end

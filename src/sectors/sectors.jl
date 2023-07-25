@@ -242,7 +242,7 @@ vertex_labeltype(I::Type{<:Sector}) = typeof(vertex_ind2label(1, one(I), one(I),
 
 # combine fusion properties of tensor products of sectors
 Base.:&(f::F, ::F) where {F<:FusionStyle} = f
-Base.:&(f1::FusionStyle, f2::FusionStyle) = f2 & f1
+Base.:&(f₁::FusionStyle, f₂::FusionStyle) = f₂ & f₁
 
 Base.:&(::SimpleFusion, ::UniqueFusion) = SimpleFusion()
 Base.:&(::GenericFusion, ::UniqueFusion) = GenericFusion()

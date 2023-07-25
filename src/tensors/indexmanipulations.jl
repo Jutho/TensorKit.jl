@@ -141,10 +141,10 @@ function twist!(t::AbstractTensorMap, i::Int; inv::Bool = false)
     end
     BraidingStyle(sectortype(t)) == Bosonic() && return t
     N₁ = numout(t)
-    for (f1, f2) in fusiontrees(t)
-        θ = i <= N₁ ? twist(f1.uncoupled[i]) : twist(f2.uncoupled[i-N₁])
+    for (f₁, f₂) in fusiontrees(t)
+        θ = i <= N₁ ? twist(f₁.uncoupled[i]) : twist(f₂.uncoupled[i-N₁])
         inv && (θ = θ')
-        rmul!(t[f1, f2], θ)
+        rmul!(t[f₁, f₂], θ)
     end
     return t
 end

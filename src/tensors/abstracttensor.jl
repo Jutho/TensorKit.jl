@@ -127,15 +127,15 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
         cod = codomain(t)
         dom = domain(t)
         local A
-        for (f1, f2) in fusiontrees(t)
-            F1 = convert(Array, f1)
-            F2 = convert(Array, f2)
-            sz1 = size(F1)
-            sz2 = size(F2)
+        for (f₁, f₂) in fusiontrees(t)
+            F₁ = convert(Array, f₁)
+            F₂ = convert(Array, f₂)
+            sz1 = size(F₁)
+            sz2 = size(F₂)
             d1 = TupleTools.front(sz1)
             d2 = TupleTools.front(sz2)
-            F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end]) *
-                        reshape(F2, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
+            F = reshape(reshape(F₁, TupleTools.prod(d1), sz1[end]) *
+                        reshape(F₂, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
             if !(@isdefined A)
                 if eltype(F) <: Complex
                     T = complex(float(eltype(t)))
@@ -146,8 +146,8 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
                 end
                 A = fill(zero(T), (dims(cod)..., dims(dom)...))
             end
-            Aslice = StridedView(A)[axes(cod, f1.uncoupled)..., axes(dom, f2.uncoupled)...]
-            axpy!(1, StridedView(_kron(convert(Array, t[f1, f2]), F)), Aslice)
+            Aslice = StridedView(A)[axes(cod, f₁.uncoupled)..., axes(dom, f₂.uncoupled)...]
+            axpy!(1, StridedView(_kron(convert(Array, t[f₁, f₂]), F)), Aslice)
         end
         return A
     end

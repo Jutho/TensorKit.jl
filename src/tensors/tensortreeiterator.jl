@@ -42,26 +42,26 @@ function Base.iterate(it::TensorKeyIterator)
         rownext = iterate(rowit)
         colnext = iterate(colit)
     end
-    (f1, r1), rowstate = rownext
-    (f2, r2), colstate = colnext
+    (f₁, r1), rowstate = rownext
+    (f₂, r2), colstate = colnext
 
-    return (f1, f2), (f2, i, rowstate, colstate)
+    return (f₁, f₂), (f₂, i, rowstate, colstate)
 end
 function Base.iterate(it::TensorKeyIterator, state)
-    (f2, i, rowstate, colstate) = state
+    (f₂, i, rowstate, colstate) = state
     rowit, colit = it.rowr.values[i], it.colr.values[i]
     rownext = iterate(rowit, rowstate)
     if rownext !== nothing
-        (f1, r1), rowstate = rownext
-        return (f1, f2), (f2, i, rowstate, colstate)
+        (f₁, r1), rowstate = rownext
+        return (f₁, f₂), (f₂, i, rowstate, colstate)
     end
     colnext = iterate(colit, colstate)
     if colnext !== nothing
         rownext = iterate(rowit) # should not be nothing
         @assert rownext !== nothing
-        (f1, r1), rowstate = rownext
-        (f2, r2), colstate = colnext
-        return (f1, f2), (f2, i, rowstate, colstate)
+        (f₁, r1), rowstate = rownext
+        (f₂, r2), colstate = colnext
+        return (f₁, f₂), (f₂, i, rowstate, colstate)
     end
     while true
         if rownext === nothing
@@ -76,8 +76,8 @@ function Base.iterate(it::TensorKeyIterator, state)
         rownext = iterate(rowit)
         colnext = iterate(colit)
     end
-    (f1, r1), rowstate = rownext
-    (f2, r2), colstate = colnext
+    (f₁, r1), rowstate = rownext
+    (f₂, r2), colstate = colnext
 
-    return (f1, f2), (f2, i, rowstate, colstate)
+    return (f₁, f₂), (f₂, i, rowstate, colstate)
 end

@@ -59,12 +59,12 @@ _tailsector(x::ProductSector) = ProductSector(tail(x.sectors))
 function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
     heads = map(_firstsector, (a, b, c, d, e, f))
     tails = map(_tailsector, (a, b, c, d, e, f))
-    f1 = Fsymbol(heads...)
-    f2 = Fsymbol(tails...)
-    if f1 isa Number || f2 isa Number
-        f1 * f2
+    f₁ = Fsymbol(heads...)
+    f₂ = Fsymbol(tails...)
+    if f₁ isa Number || f₂ isa Number
+        f₁ * f₂
     else
-        _kron(f1, f2)
+        _kron(f₁, f₂)
     end
 end
 Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector{<:Tuple{Sector}}} =

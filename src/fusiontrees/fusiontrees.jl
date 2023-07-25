@@ -113,25 +113,25 @@ function Base.hash(f::FusionTree{I}, h::UInt) where {I}
     end
     return h
 end
-function Base.isequal(f1::FusionTree{I, N}, f2::FusionTree{I, N}) where {I<:Sector, N}
-    f1.coupled == f2.coupled || return false
+function Base.isequal(f₁::FusionTree{I, N}, f₂::FusionTree{I, N}) where {I<:Sector, N}
+    f₁.coupled == f₂.coupled || return false
     @inbounds for i = 1:N
-        f1.uncoupled[i] == f2.uncoupled[i] || return false
-        f1.isdual[i] == f2.isdual[i] || return false
+        f₁.uncoupled[i] == f₂.uncoupled[i] || return false
+        f₁.isdual[i] == f₂.isdual[i] || return false
     end
     if FusionStyle(I) isa MultipleFusion
         @inbounds for i=1:N-2
-            f1.innerlines[i] == f2.innerlines[i] || return false
+            f₁.innerlines[i] == f₂.innerlines[i] || return false
         end
     end
     if FusionStyle(I) isa GenericFusion
         @inbounds for i=1:N-1
-            f1.vertices[i] == f2.vertices[i] || return false
+            f₁.vertices[i] == f₂.vertices[i] || return false
         end
     end
     return true
 end
-Base.isequal(f1::FusionTree, f2::FusionTree) = false
+Base.isequal(f₁::FusionTree, f₂::FusionTree) = false
 
 
 # Facilitate getting correct fusion tree types
@@ -191,9 +191,9 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I,N}) where {I,N}
     ftail = FusionTree(tailout, f.coupled, isdualout,
                         Base.tail(f.innerlines), Base.tail(f.vertices))
     Ctail = convert(A, ftail)
-    f1 = FusionTree((f.uncoupled[1], f.uncoupled[2]), f.innerlines[1],
+    f₁ = FusionTree((f.uncoupled[1], f.uncoupled[2]), f.innerlines[1],
                     (f.isdual[1], f.isdual[2]), (), (f.vertices[1],))
-    C1 = convert(A, f1)
+    C1 = convert(A, f₁)
     dtail = size(Ctail)
     d1 = size(C1)
     X = similar(C1, (d1[1], d1[2], Base.tail(dtail)...))

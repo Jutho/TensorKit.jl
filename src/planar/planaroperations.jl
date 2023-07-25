@@ -30,9 +30,9 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N�
     end
     
     pdata = linearize(pC)
-    for (f1, f2) in fusiontrees(A)
-        for ((f1′, f2′), coeff) in planar_trace(f1, f2, pC..., pA...)
-            TO._trace!(α * coeff, A[f1, f2], true, C[f1′, f2′], pdata, pA...)
+    for (f₁, f₂) in fusiontrees(A)
+        for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, pC..., pA...)
+            TO._trace!(α * coeff, A[f₁, f₂], true, C[f₁′, f₂′], pdata, pA...)
         end
     end
     return C
@@ -94,9 +94,9 @@ end
 #         rmul!(tdst, β)
 #     end
 #     pdata = (p1..., p2...)
-#     for (f1, f2) in fusiontrees(tsrc)
-#         for ((f1′, f2′), coeff) in planar_trace(f1, f2, p1, p2, q1, q2)
-#             TO._trace!(α * coeff, tsrc[f1, f2], true, tdst[f1′, f2′], pdata, q1, q2)
+#     for (f₁, f₂) in fusiontrees(tsrc)
+#         for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p1, p2, q1, q2)
+#             TO._trace!(α * coeff, tsrc[f₁, f₂], true, tdst[f₁′, f₂′], pdata, q1, q2)
 #         end
 #     end
 #     return tdst

@@ -154,9 +154,9 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
             rowrc = get!(rowr, c) do
                 FusionTreeDict{F₁, UnitRange{Int}}()
             end
-            for f1 in fusiontrees(s1, c, map(isdual, codom.spaces))
+            for f₁ in fusiontrees(s1, c, map(isdual, codom.spaces))
                 r = (offset1 + 1):(offset1 + dim(codom, s1))
-                push!(rowrc, f1 => r)
+                push!(rowrc, f₁ => r)
                 offset1 = last(r)
             end
             rowdims[c] = offset1
@@ -168,9 +168,9 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
             colrc = get!(colr, c) do
                 FusionTreeDict{F₂, UnitRange{Int}}()
             end
-            for f2 in fusiontrees(s2, c, map(isdual, dom.spaces))
+            for f₂ in fusiontrees(s2, c, map(isdual, dom.spaces))
                 r = (offset2 + 1):(offset2 + dim(dom, s2))
-                push!(colrc, f2 => r)
+                push!(colrc, f₂ => r)
                 offset2 = last(r)
             end
             coldims[c] = offset2
@@ -240,9 +240,9 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
                 rowrc = get!(rowr, c) do
                     FusionTreeDict{F₁, UnitRange{Int}}()
                 end
-                for f1 in fusiontrees(s1, c, map(isdual, codom.spaces))
+                for f₁ in fusiontrees(s1, c, map(isdual, codom.spaces))
                     r = (offset1 + 1):(offset1 + dim(codom, s1))
-                    push!(rowrc, f1 => r)
+                    push!(rowrc, f₁ => r)
                     offset1 = last(r)
                 end
                 rowdims[c] = offset1
@@ -254,9 +254,9 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
                 colrc = get!(colr, c) do
                     FusionTreeDict{F₂, UnitRange{Int}}()
                 end
-                for f2 in fusiontrees(s2, c, map(isdual, dom.spaces))
+                for f₂ in fusiontrees(s2, c, map(isdual, dom.spaces))
                     r = (offset2 + 1):(offset2 + dim(dom, s2))
-                    push!(colrc, f2 => r)
+                    push!(colrc, f₂ => r)
                     offset2 = last(r)
                 end
                 coldims[c] = offset2
@@ -435,34 +435,34 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
         c2 == c1 || throw(SectorMismatch("Not a valid sector for this tensor"))
         hassector(codomain(t), s1) && hassector(domain(t), s2)
     end
-    f1 = FusionTree(s1, c1, map(isdual, tuple(codomain(t)...)))
-    f2 = FusionTree(s2, c1, map(isdual, tuple(domain(t)...)))
+    f₁ = FusionTree(s1, c1, map(isdual, tuple(codomain(t)...)))
+    f₂ = FusionTree(s2, c1, map(isdual, tuple(domain(t)...)))
     @inbounds begin
-        return t[f1,f2]
+        return t[f₁,f₂]
     end
 end
 @propagate_inbounds Base.getindex(t::TensorMap, sectors::Tuple) =
     t[map(sectortype(t), sectors)]
 
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
-        f1::FusionTree{I,N₁}, f2::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+        f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
 
-    c = f1.coupled
+    c = f₁.coupled
     @boundscheck begin
-        c == f2.coupled || throw(SectorMismatch())
-        haskey(t.rowr[c], f1) || throw(SectorMismatch())
-        haskey(t.colr[c], f2) || throw(SectorMismatch())
+        c == f₂.coupled || throw(SectorMismatch())
+        haskey(t.rowr[c], f₁) || throw(SectorMismatch())
+        haskey(t.colr[c], f₂) || throw(SectorMismatch())
     end
     @inbounds begin
-        d = (dims(codomain(t), f1.uncoupled)..., dims(domain(t), f2.uncoupled)...)
-        return sreshape(StridedView(t.data[c])[t.rowr[c][f1], t.colr[c][f2]], d)
+        d = (dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...)
+        return sreshape(StridedView(t.data[c])[t.rowr[c][f₁], t.colr[c][f₂]], d)
     end
 end
 @propagate_inbounds Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,I},
                                     v,
-                                    f1::FusionTree{I,N₁},
-                                    f2::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector} =
-                                    copy!(getindex(t, f1, f2), v)
+                                    f₁::FusionTree{I,N₁},
+                                    f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector} =
+                                    copy!(getindex(t, f₁, f₂), v)
 
 # For a tensor with trivial symmetry, allow no argument indexing
 @inline Base.getindex(t::TrivialTensorMap) =
@@ -502,15 +502,15 @@ function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
         Base.print_array(io, t[])
         println(io)
     elseif FusionStyle(sectortype(S)) isa UniqueFusion
-        for (f1,f2) in fusiontrees(t)
-            println(io, "* Data for sector ", f1.uncoupled, " ← ", f2.uncoupled, ":")
-            Base.print_array(io, t[f1,f2])
+        for (f₁,f₂) in fusiontrees(t)
+            println(io, "* Data for sector ", f₁.uncoupled, " ← ", f₂.uncoupled, ":")
+            Base.print_array(io, t[f₁,f₂])
             println(io)
         end
     else
-        for (f1,f2) in fusiontrees(t)
-            println(io, "* Data for fusiontree ", f1, " ← ", f2, ":")
-            Base.print_array(io, t[f1,f2])
+        for (f₁,f₂) in fusiontrees(t)
+            println(io, "* Data for fusiontree ", f₁, " ← ", f₂, ":")
+            Base.print_array(io, t[f₁,f₂])
             println(io)
         end
     end
@@ -550,8 +550,8 @@ Base.convert(::Type{TensorMap}, t::TensorMap) = t
 Base.convert(::Type{TensorMap}, t::AbstractTensorMap) =
     copy!(TensorMap(undef, scalartype(t), codomain(t), domain(t)), t)
 
-function Base.convert(T::Type{TensorMap{S,N₁,N₂,I,A,F1,F2}},
-                        t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂,I,A,F1,F2}
+function Base.convert(T::Type{TensorMap{S,N₁,N₂,I,A,F₁,F₂}},
+                        t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂,I,A,F₁,F₂}
     if typeof(t) == T
         return t
     else
