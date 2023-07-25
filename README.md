@@ -1,4 +1,7 @@
-<img src="https://github.com/Jutho/TensorKit.jl/blob/master/docs/src/assets/logo.svg" width="150">
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Jutho/TensorKit.jl/blob/master/docs/src/assets/logo-dark.svg">
+    <img alt="TensorKit.jl logo" src="https://github.com/Jutho/TensorKit.jl/blob/master/docs/src/assets/logo.svg" width="150">
+</picture>
 
 # TensorKit.jl
 
