@@ -63,7 +63,6 @@ _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} =
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} =
     product(map(sectors, P.spaces)...)
 
-
 """
     hassector(P::ProductSpace{S, N}, s::NTuple{N, sectortype(S)}) where {S<:ElementarySpace}
     -> Bool
@@ -129,11 +128,31 @@ function blocksectors(P::ProductSpace{S, N}) where {S, N}
 end
 
 """
+    hasblock(P::ProductSpace, c::Sector)
+
+Query whether a coupled sector `c` appears with nonzero dimension in `P`, i.e. whether
+`blockdim(P, c) > 0`.
+
+See also [`blockdim`](@ref) and [`blocksectors`](@ref).
+"""
+function hasblock(P::ProductSpace, c::Sector)
+    sectortype(P) == typeof(c) || throw(SectorMismatch())
+    for s in sectors(P)
+        if !isempty(fusiontrees(s, c))
+            return true
+        end
+    end
+    return false
+end
+
+"""
     blockdim(P::ProductSpace, c::Sector)
 
 Return the total dimension of a coupled sector `c` in the product space, by summing over
 all `dim(P, s)` for all tuples of sectors `s::NTuple{N, <:Sector}` that can fuse to  `c`,
 counted with the correct multiplicity (i.e. number of ways in which `s` can fuse to `c`).
+
+See also [`hasblock`](@ref) and [`blocksectors`](@ref).
 """
 function blockdim(P::ProductSpace, c::Sector)
     sectortype(P) == typeof(c) || throw(SectorMismatch())
@@ -190,7 +209,7 @@ fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
     insertunit(P::ProductSpace, i::Int = length(P)+1; dual = false, conj = false)
 
 For `P::ProductSpace{S,N}`, this adds an extra tensor product factor at position
-`1 <= i <= N+1` (last position by default) which is just a the `S`-equivalent of the
+`1 <= i <= N+1` (last position by default) which is just the `S`-equivalent of the
 underlying field of scalars, i.e. `oneunit(S)`. With the keyword arguments, one can choose
 to insert the conjugated or dual space instead, which are all isomorphic to the field of
 scalars.
