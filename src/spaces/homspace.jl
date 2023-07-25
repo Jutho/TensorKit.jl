@@ -8,7 +8,7 @@ Represents the linear space of morphisms with codomain of type `P1` and domain o
 Note that HomSpace is not a subtype of VectorSpace, i.e. we restrict the latter to denote
 certain categories and their objects, and keep HomSpace distinct.
 """
-struct HomSpace{S<:ElementarySpace, P1<:CompositeSpace{S}, P2<:CompositeSpace{S}}
+struct HomSpace{S<:ElementarySpace,P1<:CompositeSpace{S},P2<:CompositeSpace{S}}
     codomain::P1
     domain::P2
 end
@@ -23,29 +23,33 @@ function Base.adjoint(W::HomSpace{S}) where {S}
 end
 
 Base.hash(W::HomSpace, h::UInt) = hash(domain(W), hash(codomain(W), h))
-Base.:(==)(W₁::HomSpace, W₂::HomSpace) =
-    (W₁.codomain == W₂.codomain) && (W₁.domain == W₂.domain)
+function Base.:(==)(W₁::HomSpace, W₂::HomSpace)
+    return (W₁.codomain == W₂.codomain) && (W₁.domain == W₂.domain)
+end
 
 spacetype(W::HomSpace) = spacetype(typeof(W))
 sectortype(W::HomSpace) = sectortype(typeof(W))
 field(W::HomSpace) = field(typeof(W))
 
-spacetype(::Type{<:HomSpace{S}}) where S = S
+spacetype(::Type{<:HomSpace{S}}) where {S} = S
 field(L::Type{<:HomSpace}) = field(spacetype(L))
 sectortype(L::Type{<:HomSpace}) = sectortype(spacetype(L))
 
-const TensorSpace{S<:ElementarySpace} = Union{S, ProductSpace{S}}
-const TensorMapSpace{S<:ElementarySpace, N₁, N₂} =
-    HomSpace{S, ProductSpace{S, N₁}, ProductSpace{S, N₂}}
+const TensorSpace{S<:ElementarySpace} = Union{S,ProductSpace{S}}
+const TensorMapSpace{S<:ElementarySpace,N₁,N₂} = HomSpace{S,ProductSpace{S,N₁},
+                                                          ProductSpace{S,N₂}}
 
-Base.getindex(W::TensorMapSpace{<:IndexSpace, N₁, N₂}, i) where {N₁, N₂} =
-    i <= N₁ ? codomain(W)[i] : dual(domain(W)[i-N₁])
+function Base.getindex(W::TensorMapSpace{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂}
+    return i <= N₁ ? codomain(W)[i] : dual(domain(W)[i - N₁])
+end
 
-→(dom::TensorSpace{S}, codom::TensorSpace{S}) where {S<:ElementarySpace} =
-    HomSpace(ProductSpace(codom), ProductSpace(dom))
+function →(dom::TensorSpace{S}, codom::TensorSpace{S}) where {S<:ElementarySpace}
+    return HomSpace(ProductSpace(codom), ProductSpace(dom))
+end
 
-←(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:ElementarySpace} =
-    HomSpace(ProductSpace(codom), ProductSpace(dom))
+function ←(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:ElementarySpace}
+    return HomSpace(ProductSpace(codom), ProductSpace(dom))
+end
 
 function Base.show(io::IO, W::HomSpace)
     if length(W.codomain) == 1

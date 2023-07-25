@@ -18,23 +18,25 @@ natural representation spaces of the direct product of two groups.
 function ⊠(V::GradedSpace, P₀::ProductSpace{<:ElementarySpace{ℂ},0})
     I₁ = sectortype(V)
     I₂ = sectortype(P₀)
-    return Vect[I₁ ⊠ I₂](ifelse(isdual(V), dual(c), c) ⊠ one(I₂) => dim(V, c) for c in sectors(V); dual = isdual(V))
+    return Vect[I₁ ⊠ I₂](ifelse(isdual(V), dual(c), c) ⊠ one(I₂) => dim(V, c)
+                         for c in sectors(V); dual=isdual(V))
 end
 
 function ⊠(P₀::ProductSpace{<:ElementarySpace{ℂ},0}, V::GradedSpace)
     I₁ = sectortype(P₀)
     I₂ = sectortype(V)
-    return Vect[I₁ ⊠ I₂](one(I₁) ⊠ ifelse(isdual(V), dual(c), c) => dim(V, c) for c in sectors(V); dual = isdual(V))
+    return Vect[I₁ ⊠ I₂](one(I₁) ⊠ ifelse(isdual(V), dual(c), c) => dim(V, c)
+                         for c in sectors(V); dual=isdual(V))
 end
 
 function ⊠(V::ComplexSpace, P₀::ProductSpace{<:ElementarySpace{ℂ},0})
     I₂ = sectortype(P₀)
-    return Vect[I₂](one(I₂) => dim(V); dual = isdual(V))
+    return Vect[I₂](one(I₂) => dim(V); dual=isdual(V))
 end
 
 function ⊠(P₀::ProductSpace{<:ElementarySpace{ℂ},0}, V::ComplexSpace)
     I₁ = sectortype(P₀)
-    return Vect[I₁](one(I₁) => dim(V); dual = isdual(V))
+    return Vect[I₁](one(I₁) => dim(V); dual=isdual(V))
 end
 
 function ⊠(P::ProductSpace{<:ElementarySpace{ℂ},0},
@@ -49,7 +51,7 @@ function ⊠(P::ProductSpace{<:ElementarySpace{ℂ}}, P₀::ProductSpace{<:Eleme
     I₂ = sectortype(P₀)
     S = Vect[I₁ ⊠ I₂]
     N = length(P)
-    return ProductSpace{S,N}(map(V->V ⊠ P₀, tuple(P...)))
+    return ProductSpace{S,N}(map(V -> V ⊠ P₀, tuple(P...)))
 end
 
 function ⊠(P₀::ProductSpace{<:ElementarySpace{ℂ},0}, P::ProductSpace{<:ElementarySpace{ℂ}})
@@ -57,5 +59,5 @@ function ⊠(P₀::ProductSpace{<:ElementarySpace{ℂ},0}, P::ProductSpace{<:Ele
     I₂ = sectortype(P)
     S = Vect[I₁ ⊠ I₂]
     N = length(P)
-    return ProductSpace{S,N}(map(V->P₀ ⊠ V, tuple(P...)))
+    return ProductSpace{S,N}(map(V -> P₀ ⊠ V, tuple(P...)))
 end

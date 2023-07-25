@@ -15,20 +15,25 @@ end
 function Base.:*(t::AbstractTensorMap, α::Number)
     return mul!(similar(t, promote_type(scalartype(t), typeof(α))), t, α)
 end
-Base.:*(α::Number, t::AbstractTensorMap) =
-    mul!(similar(t, promote_type(scalartype(t), typeof(α))), α, t)
-Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(scalartype(t))/α)
-Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t))/α)
+function Base.:*(α::Number, t::AbstractTensorMap)
+    return mul!(similar(t, promote_type(scalartype(t), typeof(α))), α, t)
+end
+Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(scalartype(t)) / α)
+Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t)) / α)
 
-LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real = 2) = rmul!(t, inv(norm(t, p)))
-LinearAlgebra.normalize(t::AbstractTensorMap, p::Real = 2) =
-    mul!(similar(t), t, inv(norm(t, p)))
+LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real=2) = rmul!(t, inv(norm(t, p)))
+function LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2)
+    return mul!(similar(t), t, inv(norm(t, p)))
+end
 
-Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) =
-    mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)), codomain(t1)←domain(t2)), t1, t2)
+function Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    return mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)),
+                        codomain(t1) ← domain(t2)), t1, t2)
+end
 Base.exp(t::AbstractTensorMap) = exp!(copy(t))
-Base.:^(t::AbstractTensorMap, p::Integer) =
-    p < 0 ? Base.power_by_squaring(inv(t), -p) : Base.power_by_squaring(t, p)
+function Base.:^(t::AbstractTensorMap, p::Integer)
+    return p < 0 ? Base.power_by_squaring(inv(t), -p) : Base.power_by_squaring(t, p)
+end
 
 # Special purpose constructors
 #------------------------------
@@ -54,8 +59,9 @@ Construct the identity endomorphism on space `space`, i.e. return a `t::TensorMa
 """
 id(A, V::ElementarySpace) = id(A, ProductSpace(V))
 id(V::VectorSpace) = id(Matrix{Float64}, V)
-id(::Type{A}, P::ProductSpace) where {A<:DenseMatrix} =
-    one!(TensorMap(s->A(undef, s), P, P))
+function id(::Type{A}, P::ProductSpace) where {A<:DenseMatrix}
+    return one!(TensorMap(s -> A(undef, s), P, P))
+end
 
 """
     isomorphism([A::Type{<:DenseMatrix} = Matrix{Float64},]
@@ -73,13 +79,15 @@ See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanProduct()`.
 """
 isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
 isomorphism(P::TensorMapSpace) = isomorphism(codomain(P), domain(P))
-isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace) =
-    isomorphism(A, codomain(P), domain(P))
-isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
-    isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
+function isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace)
+    return isomorphism(A, codomain(P), domain(P))
+end
+function isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace)
+    return isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
+end
 function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:DenseMatrix}
     cod ≅ dom || throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
-    t = TensorMap(s->A(undef, s), cod, dom)
+    t = TensorMap(s -> A(undef, s), cod, dom)
     for (c, b) in blocks(t)
         _one!(b)
     end
@@ -99,7 +107,7 @@ for a specific isomorphism, but the current choice is such that
 `unitary(cod, dom) == inv(unitary(dom, cod)) = adjoint(unitary(dom, cod))`.
 """
 function unitary(cod::TensorSpace{S}, dom::TensorSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() || 
+    InnerProductStyle(S) === EuclideanProduct() ||
         throw(ArgumentError("unitary requires inner product spaces"))
     return isomorphism(cod, dom)
 end
@@ -133,15 +141,17 @@ inclusion, an error will be thrown.
 isometry(cod::TensorSpace, dom::TensorSpace) = isometry(Matrix{Float64}, cod, dom)
 isometry(P::TensorMapSpace) = isometry(codomain(P), domain(P))
 isometry(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isometry(A, codomain(P), domain(P))
-isometry(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace) =
-    isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
+function isometry(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace)
+    return isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
+end
 function isometry(::Type{A},
-                    cod::ProductSpace{S},
-                    dom::ProductSpace{S}) where {A<:DenseMatrix, S<:ElementarySpace}
+                  cod::ProductSpace{S},
+                  dom::ProductSpace{S}) where {A<:DenseMatrix,S<:ElementarySpace}
     InnerProductStyle(S) === EuclideanProduct() ||
         throw(ArgumentError("isometries require Euclidean inner product"))
-    dom ≾ cod || throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
-    t = TensorMap(s->A(undef, s), cod, dom)
+    dom ≾ cod ||
+        throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
+    t = TensorMap(s -> A(undef, s), cod, dom)
     for (c, b) in blocks(t)
         _one!(b)
     end
@@ -151,9 +161,8 @@ end
 # In-place methods
 #------------------
 import Base: copyto!
-Base.@deprecate(
-    copyto!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap),
-    copy!(tdst, tsrc))
+Base.@deprecate(copyto!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap),
+                copy!(tdst, tsrc))
 
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
 # Copy, adjoint! and fill:
@@ -207,7 +216,7 @@ function LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTens
     return t2
 end
 function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap,
-                                β::Number, t2::AbstractTensorMap)
+                              β::Number, t2::AbstractTensorMap)
     space(t1) == space(t2) || throw(SpaceMismatch())
     for c in blocksectors(t1)
         axpby!(α, StridedView(block(t1, c)), β, StridedView(block(t2, c)))
@@ -228,27 +237,28 @@ function LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap)
     return s
 end
 
-function LinearAlgebra.norm(t::AbstractTensorMap, p::Real = 2)
+function LinearAlgebra.norm(t::AbstractTensorMap, p::Real=2)
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("norm requires Euclidean inner product"))
     return _norm(blocks(t), p, float(zero(real(scalartype(t)))))
 end
 function _norm(blockiter, p::Real, init::Real)
     if p == Inf
-        return mapreduce(max, blockiter; init = init) do (c, b)
-            isempty(b) ? init : oftype(init, LinearAlgebra.normInf(b))
+        return mapreduce(max, blockiter; init=init) do (c, b)
+            return isempty(b) ? init : oftype(init, LinearAlgebra.normInf(b))
         end
     elseif p == 2
-        return sqrt(mapreduce(+, blockiter; init = init) do (c, b)
-            isempty(b) ? init : oftype(init, dim(c)*LinearAlgebra.norm2(b)^2)
-        end)
+        return sqrt(mapreduce(+, blockiter; init=init) do (c, b)
+                        return isempty(b) ? init :
+                               oftype(init, dim(c) * LinearAlgebra.norm2(b)^2)
+                    end)
     elseif p == 1
-        return mapreduce(+, blockiter; init = init) do (c, b)
-            isempty(b) ? init : oftype(init, dim(c)*sum(abs, b))
+        return mapreduce(+, blockiter; init=init) do (c, b)
+            return isempty(b) ? init : oftype(init, dim(c) * sum(abs, b))
         end
     elseif p > 0
-        s = mapreduce(+, blockiter; init = init) do (c, b)
-            isempty(b) ? init : oftype(init, dim(c)*LinearAlgebra.normp(b, p)^p)
+        s = mapreduce(+, blockiter; init=init) do (c, b)
+            return isempty(b) ? init : oftype(init, dim(c) * LinearAlgebra.normp(b, p)^p)
         end
         return s^inv(oftype(s, p))
     else
@@ -261,14 +271,15 @@ end
 function LinearAlgebra.tr(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("Trace of a tensor only exist when domain == codomain"))
-    return sum(dim(c)*tr(b) for (c, b) in blocks(t))
+    return sum(dim(c) * tr(b) for (c, b) in blocks(t))
 end
 
 # TensorMap multiplication:
 function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
-                            tB::AbstractTensorMap, α = true, β = false)
-    if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) && domain(tA) == codomain(tB))
+                            tB::AbstractTensorMap, α=true, β=false)
+    if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) &&
+         domain(tA) == codomain(tB))
         throw(SpaceMismatch())
     end
     for c in blocksectors(tC)
@@ -293,24 +304,24 @@ function Base.inv(t::AbstractTensorMap)
             throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
     end
     if sectortype(t) === Trivial
-        return TensorMap(inv(block(t, Trivial())), domain(t)←codomain(t))
+        return TensorMap(inv(block(t, Trivial())), domain(t) ← codomain(t))
     else
         data = empty(t.data)
         for (c, b) in blocks(t)
             data[c] = inv(b)
         end
-        return TensorMap(data, domain(t)←codomain(t))
+        return TensorMap(data, domain(t) ← codomain(t))
     end
 end
 function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
     if sectortype(t) === Trivial
-        return TensorMap(pinv(block(t, Trivial()); kwargs...), domain(t)←codomain(t))
+        return TensorMap(pinv(block(t, Trivial()); kwargs...), domain(t) ← codomain(t))
     else
         data = empty(t.data)
         for (c, b) in blocks(t)
             data[c] = pinv(b; kwargs...)
         end
-        return TensorMap(data, domain(t)←codomain(t))
+        return TensorMap(data, domain(t) ← codomain(t))
     end
 end
 function Base.:(\)(t1::AbstractTensorMap, t2::AbstractTensorMap)
@@ -318,11 +329,12 @@ function Base.:(\)(t1::AbstractTensorMap, t2::AbstractTensorMap)
         throw(SpaceMismatch("non-matching codomains in t1 \\ t2"))
     if sectortype(t1) === Trivial
         data = block(t1, Trivial()) \ block(t2, Trivial())
-        return TensorMap(data, domain(t1)←domain(t2))
+        return TensorMap(data, domain(t1) ← domain(t2))
     else
         cod = codomain(t1)
-        data = SectorDict(c=>block(t1, c) \ block(t2, c) for c in blocksectors(codomain(t1)))
-        return TensorMap(data, domain(t1)←domain(t2))
+        data = SectorDict(c => block(t1, c) \ block(t2, c)
+                          for c in blocksectors(codomain(t1)))
+        return TensorMap(data, domain(t1) ← domain(t2))
     end
 end
 function Base.:(/)(t1::AbstractTensorMap, t2::AbstractTensorMap)
@@ -330,10 +342,11 @@ function Base.:(/)(t1::AbstractTensorMap, t2::AbstractTensorMap)
         throw(SpaceMismatch("non-matching domains in t1 / t2"))
     if sectortype(t1) === Trivial
         data = block(t1, Trivial()) / block(t2, Trivial())
-        return TensorMap(data, codomain(t1)←codomain(t2))
+        return TensorMap(data, codomain(t1) ← codomain(t2))
     else
-        data = SectorDict(c=>block(t1, c) / block(t2, c) for c in blocksectors(domain(t1)))
-        return TensorMap(data, codomain(t1)←codomain(t2))
+        data = SectorDict(c => block(t1, c) / block(t2, c)
+                          for c in blocksectors(domain(t1)))
+        return TensorMap(data, codomain(t1) ← codomain(t2))
     end
 end
 
@@ -349,14 +362,14 @@ end
 
 # Sylvester equation with TensorMap objects:
 function LinearAlgebra.sylvester(A::AbstractTensorMap,
-                                    B::AbstractTensorMap,
-                                    C::AbstractTensorMap)
+                                 B::AbstractTensorMap,
+                                 C::AbstractTensorMap)
     (codomain(A) == domain(A) == codomain(C) && codomain(B) == domain(B) == domain(C)) ||
         throw(SpaceMismatch())
     cod = domain(A)
     dom = codomain(B)
     sylABC(c) = sylvester(block(A, c), block(B, c), block(C, c))
-    data = SectorDict(c=>sylABC(c) for c in blocksectors(cod ← dom))
+    data = SectorDict(c => sylABC(c) for c in blocksectors(cod ← dom))
     return TensorMap(data, cod ← dom)
 end
 
@@ -378,9 +391,9 @@ for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asi
             return TensorMap(data, codomain(t), domain(t))
         else
             if scalartype(t) <: Real
-                datadict = SectorDict{I, T}(c=>real($f(b)) for (c, b) in blocks(t))
+                datadict = SectorDict{I,T}(c => real($f(b)) for (c, b) in blocks(t))
             else
-                datadict = SectorDict{I, T}(c=>$f(b) for (c, b) in blocks(t))
+                datadict = SectorDict{I,T}(c => $f(b) for (c, b) in blocks(t))
             end
             return TensorMap(datadict, codomain(t), domain(t))
         end
@@ -398,14 +411,15 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
             data::T = $f(block(t, Trivial()))
             return TensorMap(data, codomain(t), domain(t))
         else
-            datadict = SectorDict{I, T}(c=>$f(b) for (c, b) in blocks(t))
+            datadict = SectorDict{I,T}(c => $f(b) for (c, b) in blocks(t))
             return TensorMap(datadict, codomain(t), domain(t))
         end
     end
 end
 
 # concatenate tensors
-function catdomain(t1::AbstractTensorMap{S, N₁, 1}, t2::AbstractTensorMap{S, N₁, 1}) where {S, N₁}
+function catdomain(t1::AbstractTensorMap{S,N₁,1},
+                   t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
     codomain(t1) == codomain(t2) || throw(SpaceMismatch())
 
     V1, = domain(t1)
@@ -421,7 +435,8 @@ function catdomain(t1::AbstractTensorMap{S, N₁, 1}, t2::AbstractTensorMap{S, N
     end
     return t
 end
-function catcodomain(t1::AbstractTensorMap{S, 1, N₂}, t2::AbstractTensorMap{S, 1, N₂}) where {S, N₂}
+function catcodomain(t1::AbstractTensorMap{S,1,N₂},
+                     t2::AbstractTensorMap{S,1,N₂}) where {S,N₂}
     domain(t1) == domain(t2) || throw(SpaceMismatch())
 
     V1, = codomain(t1)
@@ -446,7 +461,7 @@ Compute the tensor product between two `AbstractTensorMap` instances, which resu
 new `TensorMap` instance whose codomain is `codomain(t1) ⊗ codomain(t2)` and whose domain
 is `domain(t1) ⊗ domain(t2)`.
 """
-function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where S
+function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where {S}
     cod1, cod2 = codomain(t1), codomain(t2)
     dom1, dom2 = domain(t1), domain(t2)
     cod = cod1 ⊗ cod2
@@ -468,7 +483,7 @@ function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where S
                 c2 = f2l.coupled # = f2r.coupled
                 for c in c1 ⊗ c2
                     degeneracyiter = FusionStyle(c) isa GenericFusion ?
-                                        (1:Nsymbol(c1, c2, c)) : (nothing,)
+                                     (1:Nsymbol(c1, c2, c)) : (nothing,)
                     for μ in degeneracyiter
                         for (fl, coeff1) in merge(f1l, f2l, c, μ)
                             for (fr, coeff2) in merge(f1r, f2r, c, μ)
@@ -492,18 +507,18 @@ end
 
 # deligne product of tensors
 function ⊠(t1::AbstractTensorMap{<:ElementarySpace{ℂ}},
-            t2::AbstractTensorMap{<:ElementarySpace{ℂ}})
+           t2::AbstractTensorMap{<:ElementarySpace{ℂ}})
     S1 = spacetype(t1)
     I1 = sectortype(S1)
     S2 = spacetype(t2)
     I2 = sectortype(S2)
     codom1 = codomain(t1) ⊠ one(S2)
     dom1 = domain(t1) ⊠ one(S2)
-    data1 = SectorDict{I1 ⊠ I2, storagetype(t1)}(c ⊠ one(I2) => b for (c,b) in blocks(t1))
+    data1 = SectorDict{I1 ⊠ I2,storagetype(t1)}(c ⊠ one(I2) => b for (c, b) in blocks(t1))
     t1′ = TensorMap(data1, codom1, dom1)
     codom2 = one(S1) ⊠ codomain(t2)
     dom2 = one(S1) ⊠ domain(t2)
-    data2 = SectorDict{I1 ⊠ I2, storagetype(t2)}(one(I1) ⊠ c => b for (c,b) in blocks(t2))
+    data2 = SectorDict{I1 ⊠ I2,storagetype(t2)}(one(I1) ⊠ c => b for (c, b) in blocks(t2))
     t2′ = TensorMap(data2, codom2, dom2)
     return t1′ ⊗ t2′
 end

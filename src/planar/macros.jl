@@ -14,14 +14,14 @@ function planar_parser(ex::Expr)
     push!(parser.preprocessors, _construct_braidingtensors)
     treebuilder = parser.contractiontreebuilder
     treesorter = parser.contractiontreesorter
-    push!(parser.preprocessors, ex->TO.processcontractions(ex, treebuilder, treesorter))
-    push!(parser.preprocessors, ex->_check_planarity(ex))
+    push!(parser.preprocessors, ex -> TO.processcontractions(ex, treebuilder, treesorter))
+    push!(parser.preprocessors, ex -> _check_planarity(ex))
     temporaries = Vector{Symbol}()
-    push!(parser.preprocessors, ex->_decompose_planar_contractions(ex, temporaries))
+    push!(parser.preprocessors, ex -> _decompose_planar_contractions(ex, temporaries))
 
     pop!(parser.postprocessors) # remove TO.addtensoroperations
-    push!(parser.postprocessors, ex->_update_temporaries(ex, temporaries))
-    push!(parser.postprocessors, ex->_annotate_temporaries(ex, temporaries))
+    push!(parser.postprocessors, ex -> _update_temporaries(ex, temporaries))
+    push!(parser.postprocessors, ex -> _annotate_temporaries(ex, temporaries))
     push!(parser.postprocessors, _add_modules)
     return parser(ex)
 end
@@ -35,11 +35,11 @@ function plansor_parser(ex)
     newtensors = TO.getnewtensorobjects(ex)
 
     # find the first non-braiding tensor to determine the braidingstyle
-    targetobj = inputtensors[findfirst(x->x != :τ, inputtensors)]
+    targetobj = inputtensors[findfirst(x -> x != :τ, inputtensors)]
     targetsym = gensym()
 
     ex = TO.replacetensorobjects(ex) do obj, leftind, rightind
-        obj == targetobj ? targetsym : obj
+        return obj == targetobj ? targetsym : obj
     end
 
     defaultparser = TO.TensorParser()
@@ -50,10 +50,10 @@ function plansor_parser(ex)
     ex = Expr(:block)
     push!(ex.args, Expr(:(=), targetsym, targetobj))
     push!(ex.args, :(if BraidingStyle(sectortype($targetsym)) isa Bosonic
-                $(defaultex)
-            else
-                $(planarex)
-            end))
+                         $(defaultex)
+                     else
+                         $(planarex)
+                     end))
     if targetobj in newtensors
         push!(ex.args, Expr(:(=), targetobj, targetsym))
         push!(ex.args, newtensors[end])

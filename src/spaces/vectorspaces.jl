@@ -150,9 +150,10 @@ individual spaces `V₁`, `V₂`, ..., or the spaces contained in `P`.
 """
 function fuse end
 fuse(V::ElementarySpace) = V
-fuse(V₁::VectorSpace, V₂::VectorSpace, V₃::VectorSpace...) =
-    fuse(fuse(fuse(V₁), fuse(V₂)), V₃...)
-    # calling fuse on V₁ and V₂ will allow these to be `ProductSpace`
+function fuse(V₁::VectorSpace, V₂::VectorSpace, V₃::VectorSpace...)
+    return fuse(fuse(fuse(V₁), fuse(V₂)), V₃...)
+end
+# calling fuse on V₁ and V₂ will allow these to be `ProductSpace`
 
 """
     flip(V::S) where {S<:ElementarySpace} -> S
@@ -220,7 +221,7 @@ Base.IteratorEltype(::TrivialOrEmptyIterator) = Base.HasEltype()
 Base.isempty(V::TrivialOrEmptyIterator) = V.isempty
 Base.length(V::TrivialOrEmptyIterator) = isempty(V) ? 0 : 1
 Base.eltype(::TrivialOrEmptyIterator) = Trivial
-function Base.iterate(V::TrivialOrEmptyIterator, state = true)
+function Base.iterate(V::TrivialOrEmptyIterator, state=true)
     return isempty(V) == state ? nothing : (Trivial(), false)
 end
 
@@ -230,8 +231,9 @@ end
 Return an iterator over the different sectors of `V`.
 """
 sectors(V::ElementarySpace) = TrivialOrEmptyIterator(dim(V) == 0)
-dim(V::ElementarySpace, ::Trivial) =
-    sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())
+function dim(V::ElementarySpace, ::Trivial)
+    return sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())
+end
 
 # Composite vector spaces
 #-------------------------
@@ -352,7 +354,7 @@ such that `V ≾ V₁`, `V ≾ V₂`, ... and no other `W ≻ V` has this proper
 that all arguments have the same value of `isdual( )`, and also the return value `V` will
 have the same value.
 """
-infimum(V₁::S, V₂::S, V₃::S...) where S<:ElementarySpace = infimum(infimum(V₁, V₂), V₃...)
+infimum(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} = infimum(infimum(V₁, V₂), V₃...)
 
 """
     supremum(V₁::ElementarySpace, V₂::ElementarySpace, V₃::ElementarySpace...)
@@ -362,4 +364,6 @@ such that `V ≿ V₁`, `V ≿ V₂`, ... and no other `W ≺ V` has this proper
 that all arguments have the same value of `isdual( )`, and also the return value `V` will
 have the same value.
 """
-supremum(V₁::S, V₂::S, V₃::S...) where S<:ElementarySpace = supremum(supremum(V₁, V₂), V₃...)
+function supremum(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace}
+    return supremum(supremum(V₁, V₂), V₃...)
+end

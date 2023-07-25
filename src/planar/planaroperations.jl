@@ -10,7 +10,7 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N�
     if BraidingStyle(sectortype(S)) == Bosonic()
         return tensortrace!(C, pC, A, pA, conjA, α, β)
     end
-    
+
     @boundscheck begin
         all(i -> space(A, pC[1][i]) == space(C, i), 1:N₁) ||
             throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
@@ -22,13 +22,13 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N�
             throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
                     q1 = $(q1), q2 = $(q2)"))
     end
-    
+
     if iszero(β)
         fill!(C, β)
     elseif β != 1
         rmul!(C, β)
     end
-    
+
     pdata = linearize(pC)
     for (f₁, f₂) in fusiontrees(A)
         for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, pC..., pA...)
@@ -39,18 +39,20 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N�
 end
 
 function planarcontract!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N₂},
-                      A::AbstractTensorMap{S}, pA::Index2Tuple, B::AbstractTensorMap{S}, pB::Index2Tuple, α, β) where {S,N₁,N₂}
+                         A::AbstractTensorMap{S}, pA::Index2Tuple, B::AbstractTensorMap{S},
+                         pB::Index2Tuple, α, β) where {S,N₁,N₂}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
-    oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, pA..., pB[2], pB[1], pC...)
-    
+    oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, pA..., pB[2],
+                                                 pB[1], pC...)
+
     if oindA == codA && cindA == domA
         A′ = A
     else
         A′ = TO.tensoralloc_add(scalartype(A), (oindA, cindA), A, :N)
         add_transpose!(true, A, false, A′, oindA, cindA)
     end
-    
+
     if cindB == codB && oindB == domB
         B′ = B
     else
@@ -58,7 +60,7 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁
         add_transpose!(true, B, false, B′, cindB, oindB)
     end
     mul!(C, A′, B′, α, β)
-    
+
     return C
 end
 

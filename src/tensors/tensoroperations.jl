@@ -202,7 +202,8 @@ function trace!(α, tsrc::AbstractTensorMap{S}, β, tdst::AbstractTensorMap{S,N�
                             coeff *= twist(g1.uncoupled[i])
                         end
                     end
-                    TO.tensortrace!(tdst[f₁′′, f₂′′], (p1, p2), tsrc[f₁, f₂], (q1, q2), :N, α*coeff, true)
+                    TO.tensortrace!(tdst[f₁′′, f₂′′], (p1, p2), tsrc[f₁, f₂], (q1, q2),
+                                    :N, α * coeff, true)
                 end
             end
         end
@@ -421,24 +422,24 @@ function TO.tensorcontract!(C::AbstractTensorMap{S,N₁,N₂},
     p = linearize(pC)
     pl = ntuple(n -> p[n], N₁)
     pr = ntuple(n -> p[N₁ + n], N₂)
-    
+
     if conjA == :C
         pA = adjointtensorindices(A, pA)
         A = A'
     elseif conjA != :N
         throw(ArgumentError("unknown conjugation flag $conjA"))
     end
-    
+
     if conjB == :C
         pB = adjointtensorindices(B, pB)
         B = B'
     elseif conjB != :N
         throw(ArgumentError("unknown conjugation flag $conjB"))
     end
-    
+
     contract!(α, A, B, β, C, pA[1], pA[2], pB[2], pB[1], pl, pr)
     return C
-    
+
     # if conjA == :N && conjB == :N
     #     contract!(α, tA, tB, β, tC, pA[1], pA[2], pB[2], pB[1], pl, pr)
     # elseif conjA == :N && conjB == :C
@@ -487,12 +488,12 @@ function TO.tensorcontract_structure(pC::Index2Tuple{N₁,N₂},
                                      A::AbstractTensorMap{S}, pA::Index2Tuple,
                                      conjA, B::AbstractTensorMap,
                                      pB::Index2Tuple, conjB) where {S,N₁,N₂}
-    spaces1 = conjA == :N ? space.(Ref(A), pA[1]) : 
-        space.(Ref(A'), adjointtensorindices(A, pA[1]))
+    spaces1 = conjA == :N ? space.(Ref(A), pA[1]) :
+              space.(Ref(A'), adjointtensorindices(A, pA[1]))
     spaces2 = conjB == :N ? space.(Ref(B), pB[2]) :
-        space.(Ref(B'), adjointtensorindices(B, pB[2]))
+              space.(Ref(B'), adjointtensorindices(B, pB[2]))
     spaces = (spaces1..., spaces2...)
-    
+
     cod = ProductSpace{S,N₁}(getindex.(Ref(spaces), pC[1]))
     dom = ProductSpace{S,N₂}(dual.(getindex.(Ref(spaces), pC[2])))
     return dom → cod

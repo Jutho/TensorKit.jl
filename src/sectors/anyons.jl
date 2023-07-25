@@ -12,14 +12,15 @@ struct FibonacciAnyon <: Sector
     isone::Bool
     function FibonacciAnyon(s::Symbol)
         s in (:I, :τ, :tau) || throw(ArgumentError("Unknown FibonacciAnyon $s."))
-        new(s === :I)
+        return new(s === :I)
     end
 end
 
 Base.IteratorSize(::Type{SectorValues{FibonacciAnyon}}) = HasLength()
 Base.length(::SectorValues{FibonacciAnyon}) = 2
-Base.iterate(::SectorValues{FibonacciAnyon}, i = 0) =
-    i == 0 ? (FibonacciAnyon(:I), 1) : (i == 1 ? (FibonacciAnyon(:τ), 2) : nothing)
+function Base.iterate(::SectorValues{FibonacciAnyon}, i=0)
+    return i == 0 ? (FibonacciAnyon(:I), 1) : (i == 1 ? (FibonacciAnyon(:τ), 2) : nothing)
+end
 function Base.getindex(S::SectorValues{FibonacciAnyon}, i)
     if i == 1
         return FibonacciAnyon(:I)
@@ -52,7 +53,7 @@ Base.IteratorSize(::Type{FibonacciIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{FibonacciIterator}) = Base.HasEltype()
 Base.length(iter::FibonacciIterator) = (isone(iter.a) || isone(iter.b)) ? 1 : 2
 Base.eltype(::Type{FibonacciIterator}) = FibonacciAnyon
-function Base.iterate(iter::FibonacciIterator, state = 1)
+function Base.iterate(iter::FibonacciIterator, state=1)
     I = FibonacciAnyon(:I)
     τ = FibonacciAnyon(:τ)
     if state == 1 # first iteration
@@ -67,8 +68,9 @@ function Base.iterate(iter::FibonacciIterator, state = 1)
     end
 end
 
-Nsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon) =
-    isone(a) + isone(b) + isone(c) != 2 # zero if one tau and two ones
+function Nsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon)
+    return isone(a) + isone(b) + isone(c) != 2
+end # zero if one tau and two ones
 
 function Fsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon,
                  d::FibonacciAnyon, e::FibonacciAnyon, f::FibonacciAnyon)
@@ -81,11 +83,11 @@ function Fsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon,
     τ = FibonacciAnyon(:τ)
     if a == b == c == d == τ
         if e == f == I
-            return +1/_goldenratio
+            return +1 / _goldenratio
         elseif e == f == τ
-            return -1/_goldenratio
+            return -1 / _goldenratio
         else
-            return +1/sqrt(_goldenratio)
+            return +1 / sqrt(_goldenratio)
         end
     else
         return one(_goldenratio)
@@ -93,18 +95,18 @@ function Fsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon,
 end
 
 function Rsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon)
-    Nsymbol(a, b, c) || return 0*cis(0π/1)
+    Nsymbol(a, b, c) || return 0 * cis(0π / 1)
     if isone(a) || isone(b)
-        return cis(0π/1)
+        return cis(0π / 1)
     else
-        return isone(c) ? cis(4π/5) : cis(-3π/5)
+        return isone(c) ? cis(4π / 5) : cis(-3π / 5)
     end
 end
 
 function Base.show(io::IO, a::FibonacciAnyon)
     s = isone(a) ? ":I" : ":τ"
     return get(io, :typeinfo, nothing) === FibonacciAnyon ?
-        print(io, s) : print(io, "FibonacciAnyon(", s, ")")
+           print(io, s) : print(io, "FibonacciAnyon(", s, ")")
 end
 
 Base.hash(a::FibonacciAnyon, h::UInt) = hash(a.isone, h)
@@ -128,7 +130,7 @@ struct IsingAnyon <: Sector
         if !(s in (:I, :σ, :ψ))
             throw(ValueError("Unknown IsingAnyon $s."))
         end
-        new(s)
+        return new(s)
     end
 end
 
@@ -136,7 +138,7 @@ const all_isinganyons = (IsingAnyon(:I), IsingAnyon(:σ), IsingAnyon(:ψ))
 
 Base.IteratorSize(::Type{SectorValues{IsingAnyon}}) = HasLength()
 Base.length(::SectorValues{IsingAnyon}) = length(all_isinganyons)
-Base.iterate(::SectorValues{IsingAnyon}, i = 1) = iterate(all_isinganyons, i)
+Base.iterate(::SectorValues{IsingAnyon}, i=1) = iterate(all_isinganyons, i)
 Base.getindex(S::SectorValues{IsingAnyon}, i) = getindex(all_isinganyons, i)
 
 function findindex(::SectorValues{IsingAnyon}, a::IsingAnyon)
@@ -171,7 +173,7 @@ function Base.length(iter::IsingIterator)
     return (iter.a == σ && iter.b == σ) ? 2 : 1
 end
 
-function Base.iterate(iter::IsingIterator, state = 1)
+function Base.iterate(iter::IsingIterator, state=1)
     I, σ, ψ = all_isinganyons
     if state == 1 # first iteration
         iter.a == I && return (iter.b, 2)
@@ -194,8 +196,7 @@ function Nsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon)
             || (c == I && a == b)
             || (a == σ && b == σ && c == ψ)
             || (a == σ && b == ψ && c == σ)
-            || (a == ψ && b == σ && c == σ)
-           )
+            || (a == ψ && b == σ && c == σ))
 end
 
 function Fsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon,
@@ -207,9 +208,9 @@ function Fsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon,
     I, σ, ψ = all_isinganyons
     if a == b == c == d == σ
         if e == f == ψ
-            return -1.0/sqrt(2.0)
+            return -1.0 / sqrt(2.0)
         else
-            return 1.0/sqrt(2.0)
+            return 1.0 / sqrt(2.0)
         end
     end
     if e == f == σ
@@ -227,14 +228,14 @@ function Rsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon)
     I, σ, ψ = all_isinganyons
     if c == I
         if b == a == σ
-            return cis(-π/8)
+            return cis(-π / 8)
         elseif b == a == ψ
             return complex(-1.0)
         end
     elseif c == σ && (a == σ && b == ψ || a == ψ && b == σ)
         return -1.0im
     elseif c == ψ && a == b == σ
-        return cis(3π/8)
+        return cis(3π / 8)
     end
     return complex(1.0)
 end
