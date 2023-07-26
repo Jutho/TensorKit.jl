@@ -121,6 +121,7 @@ import Base.Meta
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/dicts.jl")
+include("auxiliary/iterators.jl")
 include("auxiliary/linalg.jl")
 include("auxiliary/random.jl")
 

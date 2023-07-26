@@ -72,7 +72,7 @@ See also [`hasblock`](@ref).
 """
 function blocksectors(W::HomSpace)
     sectortype(W) === Trivial &&
-        return TrivialOrEmptyIterator(dim(domain(W)) == 0 || dim(codomain(W)) == 0)
+        return OneOrNoneIterator(dim(domain(W)) != 0 && dim(codomain(W)) != 0, Trivial())
 
     codom = codomain(W)
     dom = domain(W)

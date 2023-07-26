@@ -60,7 +60,7 @@ tensormaptype(S, N₁, N₂ = 0) = tensormaptype(S, N₁, N₂, Float64)
 codomain(t::TensorMap) = t.codom
 domain(t::TensorMap) = t.dom
 
-blocksectors(t::TrivialTensorMap) = TrivialOrEmptyIterator(dim(t) == 0)
+blocksectors(t::TrivialTensorMap) = OneOrNoneIterator(dim(t) != 0, Trivial())
 blocksectors(t::TensorMap) = keys(t.data)
 
 storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where
@@ -88,14 +88,14 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
         t = TensorMap(zeros, eltype(data), codom, dom)
         ta = convert(Array, t)
         l = length(ta)
-        basis = zeros(eltype(ta), (l, dim(t)))
-        qdims = zeros(real(eltype(ta)), (dim(t),))
+        dimt = dim(t)
+        basis = zeros(eltype(ta), (l, dimt))
+        qdims = zeros(real(eltype(ta)), (dimt,))
         i = 1
         for (c,b) in blocks(t)
             for k = 1:length(b)
                 b[k] = 1
-                copyto!(view(basis, :, i), reshape(convert(Array, t), (l,)))
-                # TODO: change this to `copy!` once we drop support for Julia 1.4
+                copy!(view(basis, :, i), reshape(convert(Array, t), (l,)))
                 qdims[i] = dim(c)
                 b[k] = 0
                 i += 1
@@ -142,13 +142,7 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
     colr = SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}()
     rowdims = SectorDict{I, Int}()
     coldims = SectorDict{I, Int}()
-    if N₁ == 0 || N₂ == 0
-        blocksectoriterator = (one(I),)
-    elseif N₂ <= N₁
-        blocksectoriterator = blocksectors(dom)
-    else
-        blocksectoriterator = blocksectors(codom)
-    end
+    blocksectoriterator = blocksectors(codom ← dom)
     for s1 in sectors(codom)
         for c in blocksectoriterator
             offset1 = get!(rowdims, c, 0)
@@ -228,13 +222,7 @@ function TensorMap(f, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) wh
         colr = SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}()
         rowdims = SectorDict{I, Int}()
         coldims = SectorDict{I, Int}()
-        if N₁ == 0 || N₂ == 0
-            blocksectoriterator = (one(I),)
-        elseif N₂ <= N₁
-            blocksectoriterator = blocksectors(dom)
-        else
-            blocksectoriterator = blocksectors(codom)
-        end
+        blocksectoriterator = blocksectors(codom ← dom)
         for s1 in sectors(codom)
             for c in blocksectoriterator
                 offset1 = get!(rowdims, c, 0)
@@ -337,12 +325,8 @@ Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
 
 # Efficient copy constructors
 #-----------------------------
-function Base.copy(t::TrivialTensorMap{S, N₁, N₂, A}) where {S, N₁, N₂, A}
-    return TrivialTensorMap{S, N₁, N₂, A}(copy(t.data), t.codom, t.dom)
-end
-function Base.copy(t::TensorMap{S, N₁, N₂, I, A, F₁, F₂}) where {S, N₁, N₂, I, A, F₁, F₂}
-    return TensorMap{S, N₁, N₂, I, A, F₁, F₂}(deepcopy(t.data), t.codom, t.dom, t.rowr, t.colr)
-end
+Base.copy(t::TrivialTensorMap) = typeof(t)(copy(t.data), t.codom, t.dom)
+Base.copy(t::TensorMap) = typeof(t)(deepcopy(t.data), t.codom, t.dom, t.rowr, t.colr)
 
 # Similar
 #---------

@@ -288,8 +288,7 @@ end
     @test @constinferred(dims(P)) == map(dim, (V1, V2, V3, V4))
     @test @constinferred(dim(P)) == prod(dim, (V1, V2, V3, V4))
     @test @constinferred(dim(P, 2)) == dim(V2)
-    @test @constinferred(sectors(P)) ==
-          (mapreduce(sectors, (a, b) -> tuple(a..., b...), (V1, V2, V3, V4)),)
+    @test first(@constinferred(sectors(P))) == (Trivial(), Trivial(), Trivial(), Trivial())
     cube(x) = x^3
     @test @constinferred(cube(V1)) == V1 ⊗ V1 ⊗ V1
     N = 3
@@ -297,7 +296,8 @@ end
     @test P^2 == P ⊗ P
     @test @constinferred(dims(P, first(sectors(P)))) == dims(P)
     @test ((@constinferred blocksectors(P))...,) == (Trivial(),)
-    @test (blocksectors(P ⊗ ℂ^0)...,) == ()
+    @test isempty(blocksectors(P ⊗ ℂ^0))
+    @test isempty(@constinferred(sectors(P ⊗ ℂ^0)))
     @test @constinferred(blockdim(P, first(blocksectors(P)))) == dim(P)
     @test Base.IteratorEltype(P) == Base.IteratorEltype(typeof(P)) ==
           Base.IteratorEltype(P.spaces)

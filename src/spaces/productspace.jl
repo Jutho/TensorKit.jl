@@ -59,7 +59,7 @@ Return an iterator over all possible combinations of sectors (represented as an
 """
 sectors(P::ProductSpace) = _sectors(P, sectortype(P))
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{Trivial}) where {N} =
-    (ntuple(n->Trivial(), N),) # speed up sectors for ungraded spaces
+    OneOrNoneIterator(dim(P) != 0, ntuple(n->Trivial(), N))
 _sectors(P::ProductSpace{<:ElementarySpace, N}, ::Type{<:Sector}) where {N} =
     product(map(sectors, P.spaces)...)
 
@@ -106,7 +106,7 @@ that make up the `ProductSpace` instance.
 function blocksectors(P::ProductSpace{S, N}) where {S, N}
     I = sectortype(S)
     if I == Trivial
-        return TrivialOrEmptyIterator(dim(P) == 0)
+        return OneOrNoneIterator(dim(P) != 0, Trivial())
     end
     bs = Vector{I}()
     if N == 0
