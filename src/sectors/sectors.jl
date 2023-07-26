@@ -135,7 +135,7 @@ Nsymbol(::Trivial, ::Trivial, ::Trivial) = true
 
 # trait to describe the fusion of superselection sectors
 abstract type FusionStyle end
-struct UniqueFusion <: FusionStyle # unique fusion output when fusion two sectors
+struct UniqueFusion <: FusionStyle # unique fusion output when fusing two sectors
 end
 abstract type MultipleFusion <: FusionStyle end
 struct SimpleFusion <: MultipleFusion # multiple fusion but multiplicity free
