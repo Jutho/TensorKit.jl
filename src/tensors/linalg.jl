@@ -150,11 +150,6 @@ end
 
 # In-place methods
 #------------------
-import Base: copyto!
-Base.@deprecate(
-    copyto!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap),
-    copy!(tdst, tsrc))
-
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
 # Copy, adjoint! and fill:
 function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
@@ -181,52 +176,21 @@ function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
     return tdst
 end
 
-# Basic vector space methods: addition and scalar multiplication
-LinearAlgebra.rmul!(t::AbstractTensorMap, α::Number) = mul!(t, t, α)
-LinearAlgebra.lmul!(α::Number, t::AbstractTensorMap) = mul!(t, α, t)
+# Basic vector space methods: recycle VectorInterface implementation
+LinearAlgebra.rmul!(t::AbstractTensorMap, α::Number) = scale!(t, α)
+LinearAlgebra.lmul!(α::Number, t::AbstractTensorMap) = scale!(t, α)
 
-function LinearAlgebra.mul!(t1::AbstractTensorMap, t2::AbstractTensorMap, α::Number)
-    space(t1) == space(t2) || throw(SpaceMismatch())
-    for c in blocksectors(t1)
-        mul!(StridedView(block(t1, c)), StridedView(block(t2, c)), α)
-    end
-    return t1
-end
-function LinearAlgebra.mul!(t1::AbstractTensorMap, α::Number, t2::AbstractTensorMap)
-    space(t1) == space(t2) || throw(SpaceMismatch())
-    for c in blocksectors(t1)
-        mul!(StridedView(block(t1, c)), α, StridedView(block(t2, c)))
-    end
-    return t1
-end
-function LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTensorMap)
-    space(t1) == space(t2) || throw(SpaceMismatch())
-    for c in blocksectors(t1)
-        axpy!(α, StridedView(block(t1, c)), StridedView(block(t2, c)))
-    end
-    return t2
-end
-function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap,
-                                β::Number, t2::AbstractTensorMap)
-    space(t1) == space(t2) || throw(SpaceMismatch())
-    for c in blocksectors(t1)
-        axpby!(α, StridedView(block(t1, c)), β, StridedView(block(t2, c)))
-    end
-    return t2
-end
+LinearAlgebra.mul!(t1::AbstractTensorMap, t2::AbstractTensorMap, α::Number) = scale!(t1, t2, α)  
+LinearAlgebra.mul!(t1::AbstractTensorMap, α::Number, t2::AbstractTensorMap) = scale!(t1, t2, α)
+
+# TODO: remove VectorInterface namespace when we renamed TensorKit.add!
+LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTensorMap) =
+    VectorInterface.add!(t2, t1, α)
+LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap, β::Number, t2::AbstractTensorMap) =
+    VectorInterface.add!(t2, t1, α, β)
 
 # inner product and norm only valid for spaces with Euclidean inner product
-function LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    space(t1) == space(t2) || throw(SpaceMismatch())
-    InnerProductStyle(t1) === EuclideanProduct() ||
-        throw(ArgumentError("dot requires Euclidean inner product"))
-    T = promote_type(scalartype(t1), scalartype(t2))
-    s = zero(T)
-    for c in blocksectors(t1)
-        s += convert(T, dim(c)) * dot(block(t1, c), block(t2, c))
-    end
-    return s
-end
+LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap) = inner(t1, t2)
 
 function LinearAlgebra.norm(t::AbstractTensorMap, p::Real = 2)
     InnerProductStyle(t) === EuclideanProduct() ||
@@ -264,7 +228,7 @@ function LinearAlgebra.tr(t::AbstractTensorMap)
     return sum(dim(c)*tr(b) for (c, b) in blocks(t))
 end
 
-# TensorMap multiplication:
+# TensorMap multiplication
 function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
                             tB::AbstractTensorMap, α = true, β = false)
