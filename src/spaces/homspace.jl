@@ -71,12 +71,35 @@ end
 Return an iterator over the different unique coupled sector labels, i.e. the intersection
 of the different fusion outputs that can be obtained by fusing the sectors present in the
 domain, as well as from the codomain.
+
+See also [`hasblock`](@ref).
 """
 function blocksectors(W::HomSpace)
     sectortype(W) === Trivial &&
-        return TrivialOrEmptyIterator(dim(domain(W)) == 0 || dim(codomain(W)) == 0)
-    return intersect(blocksectors(codomain(W)), blocksectors(domain(W)))
+        return OneOrNoneIterator(dim(domain(W)) != 0 && dim(codomain(W)) != 0, Trivial())
+
+    codom = codomain(W)
+    dom = domain(W)
+    N₁ = length(codom)
+    N₂ = length(dom)
+    I = sectortype(W)
+    if N₁ == 0 || N₂ == 0
+        return (one(I),)
+    elseif N₂ <= N₁
+        return filter!(c->hasblock(codom, c), collect(blocksectors(dom)))
+    else
+        return filter!(c->hasblock(dom, c), collect(blocksectors(codom)))
+    end
 end
+
+"""
+    hasblock(W::HomSpace, c::Sector)
+
+Query whether a coupled sector `c` appears in both the codomain and domain of `W`.
+
+See also [`blocksectors`](@ref).
+"""
+hasblock(W::HomSpace, c::Sector) =  hasblock(codomain(W), c) && hasblock(domain(W), c)
 
 """
     dim(W::HomSpace)

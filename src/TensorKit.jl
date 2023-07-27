@@ -122,6 +122,7 @@ import Base.Meta
 #-----------------
 include("auxiliary/auxiliary.jl")
 include("auxiliary/dicts.jl")
+include("auxiliary/iterators.jl")
 include("auxiliary/linalg.jl")
 include("auxiliary/random.jl")
 
@@ -141,7 +142,7 @@ struct SectorMismatch{S<:Union{Nothing,String}} <: TensorException
 end
 SectorMismatch() = SectorMismatch{Nothing}(nothing)
 Base.show(io::IO, ::SectorMismatch{Nothing}) = print(io, "SectorMismatch()")
-Base.show(io::IO, e::SectorMismatch) = print(io, "SectorMismatch(", e.message, ")")
+Base.show(io::IO, e::SectorMismatch) = print(io, "SectorMismatch(\"", e.message, "\")")
 
 # Exception type for all errors related to vector space mismatch
 struct SpaceMismatch{S<:Union{Nothing,String}} <: TensorException
@@ -149,7 +150,7 @@ struct SpaceMismatch{S<:Union{Nothing,String}} <: TensorException
 end
 SpaceMismatch() = SpaceMismatch{Nothing}(nothing)
 Base.show(io::IO, ::SpaceMismatch{Nothing}) = print(io, "SpaceMismatch()")
-Base.show(io::IO, e::SpaceMismatch) = print(io, "SpaceMismatch(", e.message, ")")
+Base.show(io::IO, e::SpaceMismatch) = print(io, "SpaceMismatch(\"", e.message, "\")")
 
 # Exception type for all errors related to invalid tensor index specification.
 struct IndexError{S<:Union{Nothing,String}} <: TensorException

@@ -213,24 +213,12 @@ dimension, i.e. `dim(V, a) > 0`.
 hassector(V::ElementarySpace, ::Trivial) = dim(V) != 0
 Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
 
-struct TrivialOrEmptyIterator
-    isempty::Bool
-end
-Base.IteratorSize(::TrivialOrEmptyIterator) = Base.HasLength()
-Base.IteratorEltype(::TrivialOrEmptyIterator) = Base.HasEltype()
-Base.isempty(V::TrivialOrEmptyIterator) = V.isempty
-Base.length(V::TrivialOrEmptyIterator) = isempty(V) ? 0 : 1
-Base.eltype(::TrivialOrEmptyIterator) = Trivial
-function Base.iterate(V::TrivialOrEmptyIterator, state=true)
-    return isempty(V) == state ? nothing : (Trivial(), false)
-end
-
 """
     sectors(V::ElementarySpace)
 
 Return an iterator over the different sectors of `V`.
 """
-sectors(V::ElementarySpace) = TrivialOrEmptyIterator(dim(V) == 0)
+sectors(V::ElementarySpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
 function dim(V::ElementarySpace, ::Trivial)
     return sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())
 end
