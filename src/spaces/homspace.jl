@@ -86,9 +86,9 @@ function blocksectors(W::HomSpace)
     if N₁ == 0 || N₂ == 0
         return (one(I),)
     elseif N₂ <= N₁
-        return filter!(c->hasblock(codom, c), collect(blocksectors(dom)))
+        return filter!(c -> hasblock(codom, c), collect(blocksectors(dom)))
     else
-        return filter!(c->hasblock(dom, c), collect(blocksectors(codom)))
+        return filter!(c -> hasblock(dom, c), collect(blocksectors(codom)))
     end
 end
 
@@ -99,7 +99,7 @@ Query whether a coupled sector `c` appears in both the codomain and domain of `W
 
 See also [`blocksectors`](@ref).
 """
-hasblock(W::HomSpace, c::Sector) =  hasblock(codomain(W), c) && hasblock(domain(W), c)
+hasblock(W::HomSpace, c::Sector) = hasblock(codomain(W), c) && hasblock(domain(W), c)
 
 """
     dim(W::HomSpace)

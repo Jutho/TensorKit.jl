@@ -198,10 +198,13 @@ function LinearAlgebra.mul!(t1::AbstractTensorMap, α::Number, t2::AbstractTenso
 end
 
 # TODO: remove VectorInterface namespace when we renamed TensorKit.add!
-LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTensorMap) =
-    VectorInterface.add!(t2, t1, α)
-LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap, β::Number, t2::AbstractTensorMap) =
-    VectorInterface.add!(t2, t1, α, β)
+function LinearAlgebra.axpy!(α::Number, t1::AbstractTensorMap, t2::AbstractTensorMap)
+    return VectorInterface.add!(t2, t1, α)
+end
+function LinearAlgebra.axpby!(α::Number, t1::AbstractTensorMap, β::Number,
+                              t2::AbstractTensorMap)
+    return VectorInterface.add!(t2, t1, α, β)
+end
 
 # inner product and norm only valid for spaces with Euclidean inner product
 LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap) = inner(t1, t2)

@@ -368,7 +368,8 @@ function Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S}) where {T
         colr, coldims = _buildblockstructure(domain(P), blocksectoriterator)
     end
     M = similarstoragetype(t, T)
-    data = SectorDict{I,M}(c => M(undef, (rowdims[c], coldims[c])) for c in blocksectoriterator)
+    data = SectorDict{I,M}(c => M(undef, (rowdims[c], coldims[c]))
+                           for c in blocksectoriterator)
     A = typeof(data)
     return TensorMap{S,N₁,N₂,I,A,F₁,F₂}(data, codomain(P), domain(P), rowr, colr)
 end

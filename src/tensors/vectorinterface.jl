@@ -15,9 +15,9 @@ VectorInterface.zerovector!!(t::AbstractTensorMap) = zerovector!(t)
 
 # scale, scale! & scale!!
 #-------------------------
-VectorInterface.scale(t::TensorMap, α::ONumber) = _isone(α) ? t : t * α 
+VectorInterface.scale(t::TensorMap, α::ONumber) = _isone(α) ? t : t * α
 function VectorInterface.scale!(t::AbstractTensorMap, α::ONumber)
-    for (c,b) in blocks(t)
+    for (c, b) in blocks(t)
         scale!(b, α)
     end
     return t
@@ -51,19 +51,22 @@ end
 # add, add! & add!!
 #-------------------
 # TODO: remove VectorInterface from calls to `add!` when `TensorKit.add!` is renamed
-function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap, α::ONumber=_one, β::ONumber=_one)
+function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap, α::ONumber=_one,
+                             β::ONumber=_one)
     space(ty) == space(tx) || throw(SpaceMismatch())
     T = promote_type(scalartype(ty), scalartype(tx), typeof(α), typeof(β))
     return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
 end
-function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::ONumber=_one, β::ONumber=_one)
+function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::ONumber=_one,
+                              β::ONumber=_one)
     space(ty) == space(tx) || throw(SpaceMismatch())
     for c in blocksectors(tx)
         VectorInterface.add!(block(ty, c), block(tx, c), α, β)
     end
     return ty
 end
-function VectorInterface.add!!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::ONumber=_one, β::ONumber=_one)
+function VectorInterface.add!!(ty::AbstractTensorMap, tx::AbstractTensorMap,
+                               α::ONumber=_one, β::ONumber=_one)
     T = scalartype(ty)
     if promote_type(T, typeof(α), typeof(β), scalartype(tx)) <: T
         return VectorInterface.add!(ty, tx, α, β)
