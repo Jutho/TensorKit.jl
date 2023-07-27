@@ -92,7 +92,9 @@ using TupleTools: StaticLength
 using Strided
 
 using VectorInterface
-using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon, IndexTuple, Index2Tuple, linearize
+
+using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon
+using TensorOperations: IndexTuple, Index2Tuple, linearize, Backend
 const TO = TensorOperations
 
 using LRUCache
