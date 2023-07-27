@@ -78,7 +78,7 @@ for V in spacelist
     println("---------------------------------------")
     println("Tensors with symmetry: $Istr")
     println("---------------------------------------")
-    global ti = time()
+    @timedtestset "Tensors with symmetry: $Istr" verbose=true begin
     V1, V2, V3, V4, V5 = V
     @timedtestset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
@@ -579,11 +579,7 @@ for V in spacelist
             @test t ≈ t′
         end
     end
-    global tf = time()
-    printstyled("Finished tensor tests with symmetry $Istr in ",
-                string(round(tf - ti; sigdigits=3)),
-                " seconds."; bold=true, color=Base.info_color())
-    println()
+end
 end
 
 @timedtestset "Deligne tensor product: test via conversion" begin
