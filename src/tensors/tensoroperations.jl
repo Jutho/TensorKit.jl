@@ -22,7 +22,10 @@ end
 
 TO.tensorscalar(t::AbstractTensorMap) = scalar(t)
 
-_canonicalize(p::Index2Tuple{N₁,N₂}, ::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂} = p
+function _canonicalize(p::Index2Tuple{N₁,N₂},
+                       ::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂}
+    return p
+end
 function _canonicalize(p::Index2Tuple, ::AbstractTensorMap)
     p′ = linearize(p)
     p₁ = TupleTools.getindices(p′, codomainind(t))
@@ -127,8 +130,8 @@ end
 
 function TO.tensorcontract_structure(pC::Index2Tuple{N₁,N₂},
                                      A::AbstractTensorMap{S}, pA::Index2Tuple, conjA,
-                                     B::AbstractTensorMap{S}, pB::Index2Tuple, conjB) where {S,N₁,N₂}
-    
+                                     B::AbstractTensorMap{S}, pB::Index2Tuple,
+                                     conjB) where {S,N₁,N₂}
     spaces1 = TO.flag2op(conjA).(space.(Ref(A), pA[1]))
     spaces2 = TO.flag2op(conjB).(space.(Ref(B), pB[2]))
     spaces = (spaces1..., spaces2...)
