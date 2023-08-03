@@ -478,8 +478,7 @@ function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where {S}
 end
 
 # deligne product of tensors
-function ⊠(t1::AbstractTensorMap{<:ElementarySpace{ℂ}},
-           t2::AbstractTensorMap{<:ElementarySpace{ℂ}})
+function ⊠(t1::AbstractTensorMap, t2::AbstractTensorMap)
     S1 = spacetype(t1)
     I1 = sectortype(S1)
     S2 = spacetype(t2)
