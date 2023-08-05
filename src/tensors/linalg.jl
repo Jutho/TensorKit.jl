@@ -177,8 +177,8 @@ function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
 end
 
 # Basic vector space methods: recycle VectorInterface implementation
-LinearAlgebra.rmul!(t::AbstractTensorMap, α::Number) = scale!(t, α)
-LinearAlgebra.lmul!(α::Number, t::AbstractTensorMap) = scale!(t, α)
+LinearAlgebra.rmul!(t::AbstractTensorMap, α::Number) = iszero(α) ? zerovector!(t) : scale!(t, α)
+LinearAlgebra.lmul!(α::Number, t::AbstractTensorMap) = iszero(α) ? zerovector!(t) : scale!(t, α)
 
 LinearAlgebra.mul!(t1::AbstractTensorMap, t2::AbstractTensorMap, α::Number) = scale!(t1, t2, α)  
 LinearAlgebra.mul!(t1::AbstractTensorMap, α::Number, t2::AbstractTensorMap) = scale!(t1, t2, α)

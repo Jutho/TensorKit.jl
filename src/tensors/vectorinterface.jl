@@ -10,7 +10,12 @@ VectorInterface.scalartype(T::Type{<:AbstractTensorMap}) = scalartype(storagetyp
 function VectorInterface.zerovector(t::AbstractTensorMap, ::Type{S}) where {S<:Number}
     return zero!(similar(t, S))
 end
-VectorInterface.zerovector!(t::AbstractTensorMap) = zero!(t)
+function VectorInterface.zerovector!(t::AbstractTensorMap)
+    for (c, b) in blocks(t)
+        zerovector!(b)
+    end
+    return t
+end
 VectorInterface.zerovector!!(t::AbstractTensorMap) = zerovector!(t)
 
 # scale, scale! & scale!!

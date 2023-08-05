@@ -1,6 +1,7 @@
 # planar versions of tensor operations add!, trace! and contract!
-function planaradd!(C::AbstractTensorMap{S,N₁,N₂}, A::AbstractTensorMap{S},
-                    pA::Index2Tuple{N₁,N₂}, α, β) where {S,N₁,N₂}
+function planaradd!(C::AbstractTensorMap{S,N₁,N₂}, pA::Index2Tuple{N₁,N₂}, 
+                    A::AbstractTensorMap{S},
+                    α, β) where {S,N₁,N₂}
     return add_transpose!(α, A, β, C, pA...)
 end
 

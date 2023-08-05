@@ -194,6 +194,7 @@ include("tensors/braidingtensor.jl")
 # # Planar macros and related functionality
 # #-----------------------------------------
 @nospecialize
+using Base.Meta: isexpr
 include("planar/analyzers.jl")
 include("planar/preprocessors.jl")
 include("planar/postprocessors.jl")

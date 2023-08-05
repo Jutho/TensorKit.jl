@@ -2,16 +2,17 @@
 @noinline not_planar_err(ex) = throw(ArgumentError("not a planar diagram expression: $ex"))
 
 # Preprocessors used by `@planar` and `@plansor`
-function _conj_to_adjoint(ex::Expr)
-    if ex.head == :call && ex.args[1] == :conj && TO.istensor(ex.args[2])
+function _conj_to_adjoint(ex)
+    if isexpr(ex, :call) && ex.args[1] == :conj && TO.istensor(ex.args[2])
         obj, leftind, rightind = TO.decomposetensor(ex.args[2])
         return Expr(:typed_vcat, Expr(TO.prime, obj),
                         Expr(:tuple, rightind...), Expr(:tuple, leftind...))
-    else
+    elseif ex isa Expr
         return Expr(ex.head, [_conj_to_adjoint(a) for a in ex.args]...)
+    else
+        return ex
     end
 end
-_conj_to_adjoint(ex) = ex
 
 # replacement of TensorOperations functionality:
 # adds checks for matching number of domain and codomain indices
@@ -26,8 +27,8 @@ function _extract_tensormap_objects(ex)
     @assert !any(_is_adjoint, newtensors)
     existingtensors = unique!(vcat(inputtensors, outputtensors))
     alltensors = unique!(vcat(existingtensors, newtensors))
-    tensordict = Dict{Any,Any}(a => gensym() for a in alltensors)
-    pre = Expr(:block, [Expr(:(=), tensordict[a], a) for a in existingtensors]...)
+    tensordict = Dict{Any,Any}(a => gensym(string(a)) for a in alltensors if !(a isa Symbol))
+    pre = Expr(:block, [Expr(:(=), tensordict[a], a) for a in existingtensors if !(a isa Symbol)]...)
     pre2 = Expr(:block)
     ex = TO.replacetensorobjects(ex) do obj, leftind, rightind
         _is_adj = _is_adjoint(obj)
@@ -46,20 +47,20 @@ function _extract_tensormap_objects(ex)
             errorstr2 = " for $objstr."
             checksize = quote
                 $nlsym, $nrsym = numout($newobj), numin($newobj)
-                ($nlsym == $nl && $nrsym == $nr) ||
+                (numout($newobj) == $nl && $numin($newobj)== $nr) ||
                     throw(IndexError($errorstr1 * string(($nlsym, $nrsym)) * $errorstr2))
             end
             push!(pre2.args, checksize)
         end
         return _is_adj ? _add_adjoint(newobj) : newobj
     end
-    post = Expr(:block, [Expr(:(=), a, tensordict[a]) for a in newtensors]...)
+    post = Expr(:block, [Expr(:(=), a, tensordict[a]) for a in newtensors if !(a isa Symbol)]...)
     pre = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), pre)
     pre2 = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), pre2)
     post = Expr(:macrocall, Symbol("@notensor"), LineNumberNode(@__LINE__, Symbol(@__FILE__)), post)
     return Expr(:block, pre, pre2, ex, post)
 end
-_is_adjoint(ex) = isa(ex, Expr) && ex.head == TO.prime
+_is_adjoint(ex) = isexpr(ex, TO.prime)
 _remove_adjoint(ex) = _is_adjoint(ex) ? ex.args[1] : ex
 _add_adjoint(ex) = Expr(TO.prime, ex)
 
@@ -188,7 +189,8 @@ end
 _construct_braidingtensors(x) = x
 
 # used by non-planar parser of `@plansor`: remove explicit braiding tensors
-function _remove_braidingtensors(ex::Expr)
+function _remove_braidingtensors(ex)
+    ex isa Expr || return ex
     outgoing = []
 
     if TO.isdefinition(ex) || TO.isassignment(ex)
@@ -293,11 +295,11 @@ function _remove_braidingtensors(ex::Expr)
     ex = TO.replaceindices(i -> get(indexmap, i, i), ex)
     return _purge_braidingtensors(ex)
 end
-_remove_braidingtensors(x) = x
 
-function _purge_braidingtensors(ex::Expr) # actually remove the braidingtensors
+function _purge_braidingtensors(ex) # actually remove the braidingtensors
+    ex isa Expr || return ex
     args = collect(filter(ex.args) do a
-        if a isa Expr && a.head == :call && a.args[1] == :conj
+        if isexpr(a, :call) && a.args[1] == :conj
             a = a.args[2]
         end
         if a isa Expr && TO.istensor(a) && _remove_adjoint(TO.gettensorobject(a)) == :τ
@@ -310,16 +312,17 @@ function _purge_braidingtensors(ex::Expr) # actually remove the braidingtensors
     end)
 
     # multiplication with only a single argument is (rightfully) seen as invalid syntax
-    if ex.head == :call && args[1] == :* && length(args) == 2
+    if isexpr(ex, :call) && args[1] == :* && length(args) == 2
         return _purge_braidingtensors(args[2])
     else
         return Expr(ex.head, map(_purge_braidingtensors, args)...)
     end
 end
-_purge_braidingtensors(x) = x
 
-function _check_planarity(ex::Expr)
-    if ex.head == :macrocall && ex.args[1] == Symbol("@notensor")
+function _check_planarity(ex)
+    ex isa Expr || return ex
+    if isexpr(ex, :macrocall) && ex.args[1] == Symbol("@notensor")
+        return ex
     elseif TO.isassignment(ex) || TO.isdefinition(ex)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
         if TO.istensorexpr(rhs)
@@ -341,13 +344,12 @@ function _check_planarity(ex::Expr)
     end
     return ex
 end
-_check_planarity(ex) = ex
 
 # decompose contraction trees in order to fix index order of temporaries
 # to ensure that planarity is guaranteed
 _decompose_planar_contractions(ex, temporaries) = ex
 function _decompose_planar_contractions(ex::Expr, temporaries)
-    if ex.head == :macrocall && ex.args[1] == Symbol("@notensor")
+    if isexpr(ex, :macrocall) && ex.args[1] == Symbol("@notensor")
         return ex
     end
     if TO.isassignment(ex) || TO.isdefinition(ex)
@@ -365,13 +367,9 @@ function _decompose_planar_contractions(ex::Expr, temporaries)
         rhs = _extract_contraction_pairs(ex, (Any[], Any[]), pre, temporaries)
         return Expr(:block, pre..., rhs)
     end
-    if ex.head == :block
+    if isexpr(ex, :block)
         return Expr(ex.head,
                     [_decompose_planar_contractions(a, temporaries) for a in ex.args]...)
-    end
-    if ex.head == :for || ex.head == :function
-        return Expr(ex.head, ex.args[1],
-                        _decompose_planar_contractions(ex.args[2], temporaries))
     end
     return ex
 end
@@ -392,8 +390,8 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
         else
             return rhs
         end
-    elseif rhs.head == :call && rhs.args[1] == :*
-        @assert length(rhs.args) == 3
+    elseif isexpr(rhs, :call) && rhs.args[1] == :*
+        # @assert length(rhs.args) == 3 # has already been checked in _check_planarity
 
         if lhs isa Expr
             _, leftind, rightind = TO.decomposetensor(lhs)
@@ -417,7 +415,7 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
             isempty(rhs_inds) || break
         end
         ind1, ind2, oind1, oind2, cind1, cind2 = only(rhs_inds) # inds_rhs should hold exactly one match
-        if all(in(leftind), oind2) && all(in(rightind), oind1) # reverse order
+        if all(in(leftind), oind2) || all(in(rightind), oind1) # reverse order
             a1 = _extract_contraction_pairs(rhs.args[3], (oind2, reverse(cind2)), pre, temporaries)
             a2 = _extract_contraction_pairs(rhs.args[2], (cind1, reverse(oind1)), pre, temporaries)
             oind1, oind2 = oind2, oind1
@@ -426,6 +424,7 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
             a1 = _extract_contraction_pairs(rhs.args[2], (oind1, reverse(cind1)), pre, temporaries)
             a2 = _extract_contraction_pairs(rhs.args[3], (cind2, reverse(oind2)), pre, temporaries)
         end
+        # @show a1, a2, oind1, oind2
 
         if TO.isscalarexpr(a1) || TO.isscalarexpr(a2)
             rhs = Expr(:call, :*, a1, a2)
@@ -437,7 +436,7 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
             return newlhs
         end
 
-        # note that index order in _extract... is only a suggestion, now we have actual index order
+        # note that index order in `lhs` is only a suggestion, now we have actual index order
         _, l1, r1, = TO.decomposegeneraltensor(a1)
         _, l2, r2, = TO.decomposegeneraltensor(a2)
         if all(in(r1), oind1) && all(in(l2), oind2) # reverse order
@@ -445,6 +444,7 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
             ind1, ind2 = ind2, ind1
             oind1, oind2 = oind2, oind1
         end
+        # @show a1, a2, oind1, oind2
         if lhs isa Tuple
             rhs = Expr(:call, :*, a1, a2)
             s = gensym()
@@ -457,9 +457,6 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
             if leftind == oind1 && rightind == reverse(oind2)
                 rhs = Expr(:call, :*, a1, a2)
                 return rhs
-            elseif leftind == oind2 && rightind == reverse(oind1) # probably this can not happen anymore
-                rhs = Expr(:call, :*, a2, a1)
-                return rhs
             else
                 rhs = Expr(:call, :*, a1, a2)
                 s = gensym()
@@ -470,7 +467,7 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
                 return newlhs
             end
         end
-    elseif rhs.head == :call && rhs.args[1] ∈ (:+, :-)
+    elseif isexpr(rhs, :call) && rhs.args[1] ∈ (:+, :-)
         args = [_extract_contraction_pairs(a, lhs, pre, temporaries) for
                     a in rhs.args[2:end]]
         return Expr(rhs.head, rhs.args[1], args...)
