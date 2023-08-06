@@ -1,3 +1,7 @@
+# Construct a list of all the ways in which the open indices of a tensor expression can be
+# given a planar (cyclic) ordering. The list contains a representative for all inequivalent
+# classes of planar orderings, where two orderings are equivalent if they are related by a
+# cyclic permutation of the indices.
 function get_possible_planar_indices(ex)
     if !TO.istensorexpr(ex)
         return [[]]
@@ -5,7 +9,7 @@ function get_possible_planar_indices(ex)
         _, leftind, rightind = TO.decomposegeneraltensor(ex)
         ind = planar_unique2(vcat(leftind, reverse(rightind)))
         return length(ind) == length(unique(ind)) ? Any[ind] : Any[]
-    elseif ex.head == :call && (ex.args[1] == :+ || ex.args[1] == :-)
+    elseif isexpr(ex, :call) && (ex.args[1] == :+ || ex.args[1] == :-)
         inds = get_possible_planar_indices(ex.args[2])
         keep = fill(true, length(inds))
         for i in 3:length(ex.args)
@@ -20,8 +24,9 @@ function get_possible_planar_indices(ex)
             any(keep) || break # give up early if keep is all false
         end
         return inds[keep]
-    elseif ex.head == :call && ex.args[1] == :*
-        @assert length(ex.args) == 3
+    elseif isexpr(ex, :call) && ex.args[1] == :*
+        length(ex.args) == 3 ||
+            error("unexpected error occured: contraction should have been decomposed into tree by now")
         inds1 = get_possible_planar_indices(ex.args[2])
         inds2 = get_possible_planar_indices(ex.args[3])
         inds = Any[]
@@ -36,7 +41,11 @@ function get_possible_planar_indices(ex)
     end
 end
 
-# remove double indices (trace indices) from cyclic set
+# Remove double indices (trace indices) from cyclic set, but only if the trace can be
+# performed planarly. This requires that any two indices to be traced are only separated by
+# other indices that are themselves also to be traced amongst each other. Hence, there is
+# an innermost pair of indices to be traced, which can thus be removed first, and then the
+# process can be repeated until no more indices can be traced.
 function planar_unique2(allind)
     oind = collect(allind)
     removing = true
@@ -57,7 +66,10 @@ function planar_unique2(allind)
     return oind
 end
 
-# remove intersection (contraction indices) from two cyclic sets
+# Remove intersection (contraction indices) from two cyclic sets, again only if the
+# contraction can be performed planarly. This requires that all contraction indices of both
+# tensors are adjacent, and that they appear in opposite order in the two sets (which should
+# be interpreted in the cyclic sense).
 function possible_planar_complements(ind1, ind2)
     # quick return path
     (isempty(ind1) || isempty(ind2)) && return Any[(ind1, ind2, Any[], Any[])]

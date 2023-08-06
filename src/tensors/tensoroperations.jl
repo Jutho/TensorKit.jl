@@ -5,12 +5,12 @@ function TO.tensorstructure(t::AbstractTensorMap, iA::Int, conjA::Symbol)
     return conjA == :N ? space(t, iA) : conj(space(t, iA))
 end
 
-function TO.tensoralloc(ttype::Type{<:AbstractTensorMap}, structure, istemp=false,
-                        backend::Backend...)
-    M = storagetype(ttype)
-    return TensorMap(structure) do d
-        return TO.tensoralloc(M, d, istemp, backend...)
+function TO.tensoralloc(::Type{TT}, structure, istemp=false,
+                        backend::Backend...) where {TT<:AbstractTensorMap}
+    function blockallocator(d)
+        return TO.tensoralloc(storagetype(TT), d, istemp, backend...)
     end
+    return TensorMap(blockallocator, structure)
 end
 
 function TO.tensorfree!(t::AbstractTensorMap, backend::Backend...)
@@ -34,8 +34,8 @@ function _canonicalize(p::Index2Tuple, ::AbstractTensorMap)
 end
 
 # tensoradd!
-function TO.tensoradd!(C::AbstractTensorMap{S},
-                       A::AbstractTensorMap{S}, pC::Index2Tuple, conjA::Symbol,
+function TO.tensoradd!(C::AbstractTensorMap{S}, pC::Index2Tuple,
+                       A::AbstractTensorMap{S}, conjA::Symbol,
                        α::Number, β::Number, backend::Backend...) where {S}
     if conjA == :N
         A′ = A
@@ -47,7 +47,7 @@ function TO.tensoradd!(C::AbstractTensorMap{S},
         throw(ArgumentError("unknown conjugation flag $conjA"))
     end
     # TODO: novel syntax for tensoradd!?
-    # tensoradd!(C, A′, pC′, α, β, backend...)
+    # tensoradd!(C, pC′, A′, α, β, backend...)
     add!(α, A′, β, C, pC′[1], pC′[2])
     return C
 end
@@ -65,7 +65,7 @@ function TO.tensoradd_structure(pC::Index2Tuple{N₁,N₂},
         dom = ProductSpace{S,N₂}(dual.(space.(Ref(A), pC[2])))
         return dom → cod
     else
-        return TO.tensoradd_structure(adjoint(A), adjointtensorindices(A, pC), :N)
+        return TO.tensoradd_structure(adjointtensorindices(A, pC), adjoint(A), :N)
     end
 end
 
