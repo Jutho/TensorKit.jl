@@ -99,6 +99,21 @@ end
         @tensor contractcheck=true y2[-1 -2; -3 -4] := GL[-1 7; 6] * x2[6 5; 1 3] * O[7 -2; 5 4] * O[4 -4; 3 2] * GR[1 2; -3]
         @planar y2′[-1 -2; -3 -4] := GL′[-1 7; 6] * x2′[6 5; 1 3] * O′[7 -2; 5 4] * O′[4 -4; 3 2] * GR′[1 2; -3]
         @test force_planar(y2) ≈ y2′
+        
+        # transfer matrix
+        # ----------------
+        v = TensorMap(randn, T, Vmps ← Vmps)
+        v′ = force_planar(v)
+        @tensor ρ[-1; -2] := x[-1 2; 1] * conj(x[-2 2; 3]) * v[1; 3]
+        @planar ρ′[-1; -2] := x′[-1 2; 1] * conj(x′[-2 2; 3]) * v′[1; 3]
+        @test force_planar(ρ) ≈ ρ′
+        
+        @tensor ρ2[-1 -2; -3] := GL[1 -2; 3] * x[3 2; -3] * conj(x[1 2; -1])
+        @plansor ρ3[-1 -2; -3] := GL[1 2; 4] * x[4 5; -3] * τ[2 3; 5 -2] * conj(x[1 3; -1])
+        @planar ρ2′[-1 -2; -3] := GL′[1 2; 4] * x′[4 5; -3] * τ[2 3; 5 -2] *
+                                  conj(x′[1 3; -1])
+        @test force_planar(ρ2) ≈ ρ2′
+        @test ρ2 ≈ ρ3
     end
     
     @testset "MERA networks" begin
