@@ -145,6 +145,8 @@ function TO.checkcontractible(tA::AbstractTensorMap{S}, iA::Int, conjA::Symbol,
     return nothing
 end
 
+TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
+
 #----------------
 # IMPLEMENTATONS
 #----------------
