@@ -62,7 +62,7 @@ function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap, α::O
     return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::ONumber=_one, β::ONumber=_one)
-    space(ty) == space(tx) || throw(SpaceMismatch())
+    space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     for c in blocksectors(tx)
         VectorInterface.add!(block(ty, c), block(tx, c), α, β)
     end
