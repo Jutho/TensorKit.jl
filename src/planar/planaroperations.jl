@@ -1,17 +1,17 @@
 # planar versions of tensor operations add!, trace! and contract!
-function planaradd!(C::AbstractTensorMap{S,N₁,N₂}, pA::Index2Tuple{N₁,N₂}, 
+function planaradd!(C::AbstractTensorMap{S,N₁,N₂}, p::Index2Tuple{N₁,N₂},
                     A::AbstractTensorMap{S},
-                    α, β) where {S,N₁,N₂}
-    return add_transpose!(α, A, β, C, pA...)
+                    α, β, backend::Backend...) where {S,N₁,N₂}
+    return add_transpose!(C, A, p, α, β, backend...)
 end
 
-function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N₂},
-                      A::AbstractTensorMap{S}, pA::Index2Tuple{N₃,N₃},
-                      α, β) where {S,N₁,N₂,N₃}
+function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, p::Index2Tuple{N₁,N₂},
+                      A::AbstractTensorMap{S}, q::Index2Tuple{N₃,N₃},
+                      α, β, backend::Backend...) where {S,N₁,N₂,N₃}
     if BraidingStyle(sectortype(S)) == Bosonic()
-        return tensortrace!(C, pC, A, pA, conjA, α, β)
+        return trace_permute!(C, A, p, q, α, β, backend...)
     end
-    
+
     @boundscheck begin
         all(i -> space(A, pC[1][i]) == space(C, i), 1:N₁) ||
             throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
@@ -23,43 +23,47 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N�
             throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
                     q1 = $(q1), q2 = $(q2)"))
     end
-    
+
     if iszero(β)
         fill!(C, β)
-    elseif β != 1
+    elseif !isone(β)
         rmul!(C, β)
     end
-    
     pdata = linearize(pC)
     for (f₁, f₂) in fusiontrees(A)
-        for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, pC..., pA...)
-            TO._trace!(α * coeff, A[f₁, f₂], true, C[f₁′, f₂′], pdata, pA...)
+        for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p..., q...)
+            TO.tensortrace!(C[f₁′, f₂′], p, A[f₁, f₂], q, α * coeff, true, backend...)
         end
     end
     return C
 end
 
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N₂},
-                      A::AbstractTensorMap{S}, pA::Index2Tuple, B::AbstractTensorMap{S}, pB::Index2Tuple, α, β) where {S,N₁,N₂}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂}, pAB::Index2Tuple{N₁,N₂},
+                         A::AbstractTensorMap{S}, pA::Index2Tuple, B::AbstractTensorMap{S},
+                         pB::Index2Tuple, α, β, backend::Backend...) where {S,N₁,N₂}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
-    oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, pA..., pB[2], pB[1], pC...)
-    
+    oindA, cindA = pA
+    cindB, oindB = pB
+    oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, pAB...)
+
     if oindA == codA && cindA == domA
         A′ = A
     else
-        A′ = TO.tensoralloc_add(scalartype(A), (oindA, cindA), A, :N)
-        add_transpose!(true, A, false, A′, oindA, cindA)
+        A′ = TO.tensoralloc_add(scalartype(A), (oindA, cindA), A, :N, true)
+        add_transpose!(A′, A, (oindA, cindA), true, false, backend...)
     end
-    
+
     if cindB == codB && oindB == domB
         B′ = B
     else
-        B′ = TensorOperations.tensoralloc_add(scalartype(B), (cindB, oindB), B, :N)
-        add_transpose!(true, B, false, B′, cindB, oindB)
+        B′ = TensorOperations.tensoralloc_add(scalartype(B), (cindB, oindB), B, :N, true)
+        add_transpose!(B′, B, (cindB, oindB), true, false, backend...)
     end
     mul!(C, A′, B′, α, β)
-    
+    (oindA == codA && cindA == domA) || TO.tensorfree!(A′)
+    (cindB == codB && oindB == domB) || TO.tensorfree!(B′)
+
     return C
 end
 
