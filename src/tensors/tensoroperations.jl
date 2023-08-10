@@ -136,6 +136,15 @@ function TO.tensorcontract_structure(pC::Index2Tuple{N₁,N₂},
     return dom → cod
 end
 
+function TO.checkcontractible(tA::AbstractTensorMap{S}, iA::Int, conjA::Symbol,
+                              tB::AbstractTensorMap{S}, iB::Int, conjB::Symbol, label) where {S}
+    sA = TO.tensorstructure(tA, iA, conjA)'
+    sB = TO.tensorstructure(tB, iB, conjB)
+    sA == sB ||
+        throw(SpaceMismatch("incompatible spaces for $label: $sA ≠ $sB"))
+    return nothing
+end
+
 #----------------
 # IMPLEMENTATONS
 #----------------
