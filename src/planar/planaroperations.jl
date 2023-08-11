@@ -1,25 +1,32 @@
 # planar versions of tensor operations add!, trace! and contract!
-function planaradd!(C::AbstractTensorMap{S,N₁,N₂}, p::Index2Tuple{N₁,N₂},
+function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
                     A::AbstractTensorMap{S},
-                    α, β, backend::Backend...) where {S,N₁,N₂}
+                    p::Index2Tuple{N₁,N₂},
+                    α,
+                    β,
+                    backend::Backend...) where {S,N₁,N₂}
     return add_transpose!(C, A, p, α, β, backend...)
 end
 
-function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, p::Index2Tuple{N₁,N₂},
-                      A::AbstractTensorMap{S}, q::Index2Tuple{N₃,N₃},
-                      α, β, backend::Backend...) where {S,N₁,N₂,N₃}
+function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, 
+                      A::AbstractTensorMap{S},
+                      p::Index2Tuple{N₁,N₂},
+                      q::Index2Tuple{N₃,N₃},
+                      α,
+                      β,
+                      backend::Backend...) where {S,N₁,N₂,N₃}
     if BraidingStyle(sectortype(S)) == Bosonic()
         return trace_permute!(C, A, p, q, α, β, backend...)
     end
 
     @boundscheck begin
-        all(i -> space(A, pC[1][i]) == space(C, i), 1:N₁) ||
+        all(i -> space(A, p[1][i]) == space(C, i), 1:N₁) ||
             throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
                     C = $(codomain(C))←$(domain(C)), p1 = $(p1), p2 = $(p2)"))
-        all(i -> space(A, pC[2][i]) == space(C, N₁ + i), 1:N₂) ||
+        all(i -> space(A, p[2][i]) == space(C, N₁ + i), 1:N₂) ||
             throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
                     C = $(codomain(C))←$(domain(C)), p1 = $(p1), p2 = $(p2)"))
-        all(i -> space(A, pA[1][i]) == dual(space(A, pA[2][i])), 1:N₃) ||
+        all(i -> space(A, q[1][i]) == dual(space(A, q[2][i])), 1:N₃) ||
             throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
                     q1 = $(q1), q2 = $(q2)"))
     end
@@ -29,19 +36,24 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂}, p::Index2Tuple{N₁,N�
     elseif !isone(β)
         rmul!(C, β)
     end
-    pdata = linearize(pC)
     for (f₁, f₂) in fusiontrees(A)
         for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p..., q...)
-            TO.tensortrace!(C[f₁′, f₂′], p, A[f₁, f₂], q, α * coeff, true, backend...)
+            TO.tensortrace!(C[f₁′, f₂′], p, A[f₁, f₂], q, :N, α * coeff, true, backend...)
         end
     end
     return C
 end
 
 
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂}, pAB::Index2Tuple{N₁,N₂},
-                         A::AbstractTensorMap{S}, pA::Index2Tuple, B::AbstractTensorMap{S},
-                         pB::Index2Tuple, α, β, backend::Backend...) where {S,N₁,N₂}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂}, 
+                         A::AbstractTensorMap{S},
+                         pA::Index2Tuple,
+                         B::AbstractTensorMap{S},
+                         pB::Index2Tuple,
+                         pAB::Index2Tuple{N₁,N₂},
+                         α,
+                         β,
+                         backend::Backend...) where {S,N₁,N₂}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA = pA

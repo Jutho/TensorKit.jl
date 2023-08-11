@@ -216,15 +216,15 @@ end
 # TODO: contraction with either A or B a rank (1, 1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
-function contract!(C::AbstractTensorMap{S,N₁,N₂},
-                    A::AbstractTensorMap{S}, pA::Index2Tuple,
-                    B::AbstractTensorMap{S}, pB::Index2Tuple,
-                    pAB::Index2Tuple{N₁,N₂},
-                    α::Number, β::Number, backend...) where {S,N₁,N₂}
+function contract!(C::AbstractTensorMap{S},
+                    A::AbstractTensorMap{S}, (oindA, cindA)::Index2Tuple{N₁,N₃},
+                    B::AbstractTensorMap{S}, (cindB, oindB)::Index2Tuple{N₃,N₂},
+                    (p₁, p₂)::Index2Tuple,
+                    α::Number, β::Number, backend...) where {S,N₁,N₂,N₃}
 
     # find optimal contraction scheme
     hsp = has_shared_permute
-    ipC = TupleTools.invperm(linearize(pAB))
+    ipC = TupleTools.invperm((p₁..., p₂...))
     oindAinC = TupleTools.getindices(ipC, ntuple(n -> n, N₁))
     oindBinC = TupleTools.getindices(ipC, ntuple(n -> n + N₁, N₂))
 
@@ -239,32 +239,32 @@ function contract!(C::AbstractTensorMap{S,N₁,N₂},
     dA, dB, dC = dim(A), dim(B), dim(C)
 
     # keep order A en B, check possibilities for cind
-    memcost1 = memcost2 = dC * (!hsp(C, oindAinC, oindBinC))
-    memcost1 += dA * (!hsp(A, oindA, cindA′)) +
-                dB * (!hsp(B, cindB′, oindB))
-    memcost2 += dA * (!hsp(A, oindA, cindA′′)) +
-                dB * (!hsp(B, cindB′′, oindB))
+    memcost1 = memcost2 = dC * (!hsp(C, (oindAinC, oindBinC)))
+    memcost1 += dA * (!hsp(A, (oindA, cindA′))) +
+                dB * (!hsp(B, (cindB′, oindB)))
+    memcost2 += dA * (!hsp(A, (oindA, cindA′′))) +
+                dB * (!hsp(B, (cindB′′, oindB)))
 
     # reverse order A en B, check possibilities for cind
-    memcost3 = memcost4 = dC * (!hsp(C, oindBinC, oindAinC))
-    memcost3 += dB * (!hsp(B, oindB, cindB′)) +
-                dA * (!hsp(A, cindA′, oindA))
-    memcost4 += dB * (!hsp(B, oindB, cindB′′)) +
-                dA * (!hsp(A, cindA′′, oindA))
+    memcost3 = memcost4 = dC * (!hsp(C, (oindBinC, oindAinC)))
+    memcost3 += dB * (!hsp(B, (oindB, cindB′))) +
+                dA * (!hsp(A, (cindA′, oindA)))
+    memcost4 += dB * (!hsp(B, (oindB, cindB′′))) +
+                dA * (!hsp(A, (cindA′′, oindA)))
 
     if min(memcost1, memcost2) <= min(memcost3, memcost4)
         if memcost1 <= memcost2
-            return _contract!(α, A, B, β, C, oindA, cindA′, oindB, cindB′, p₁, p₂, syms)
+            return _contract!(α, A, B, β, C, oindA, cindA′, oindB, cindB′, p₁, p₂)
         else
-            return _contract!(α, A, B, β, C, oindA, cindA′′, oindB, cindB′′, p₁, p₂, syms)
+            return _contract!(α, A, B, β, C, oindA, cindA′′, oindB, cindB′′, p₁, p₂)
         end
     else
         p1′ = map(n -> ifelse(n > N₁, n - N₁, n + N₂), p₁)
         p2′ = map(n -> ifelse(n > N₁, n - N₁, n + N₂), p₂)
         if memcost3 <= memcost4
-            return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′, syms)
+            return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′)
         else
-            return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′, syms)
+            return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′)
         end
     end
 end
@@ -273,8 +273,7 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     β, C::AbstractTensorMap{S},
                     oindA::IndexTuple{N₁}, cindA::IndexTuple,
                     oindB::IndexTuple{N₂}, cindB::IndexTuple,
-                    p₁::IndexTuple, p₂::IndexTuple,
-                    syms::Union{Nothing,NTuple{3,Symbol}}=nothing) where {S,N₁,N₂}
+                    p₁::IndexTuple, p₂::IndexTuple) where {S,N₁,N₂}
     if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
         throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
     end
@@ -286,8 +285,8 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
             end
         end
     end
-    A′ = permute(A, oindA, cindA; copy=copyA)
-    B′ = permute(B, cindB, oindB)
+    A′ = permute(A, (oindA, cindA); copy=copyA)
+    B′ = permute(B, (cindB, oindB))
     if BraidingStyle(sectortype(S)) isa Fermionic
         for i in domainind(A′)
             if !isdual(space(A′, i))
@@ -298,12 +297,12 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     ipC = TupleTools.invperm((p₁..., p₂...))
     oindAinC = TupleTools.getindices(ipC, ntuple(n -> n, N₁))
     oindBinC = TupleTools.getindices(ipC, ntuple(n -> n + N₁, N₂))
-    if has_shared_permute(C, oindAinC, oindBinC)
-        C′ = permute(C, oindAinC, oindBinC)
+    if has_shared_permute(C, (oindAinC, oindBinC))
+        C′ = permute(C, (oindAinC, oindBinC))
         mul!(C′, A′, B′, α, β)
     else
         C′ = A′ * B′
-        add!(α, C′, β, C, p₁, p₂)
+        add_permute!(C, C′, (p₁, p₂), α, β)
     end
     return C
 end
