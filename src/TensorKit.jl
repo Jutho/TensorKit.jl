@@ -118,8 +118,6 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      Diagonal, Hermitian
 import Base.Meta
 
-# const IndexTuple{N} = NTuple{N, Int}
-
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
@@ -205,5 +203,11 @@ include("planar/planaroperations.jl")
 
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")
+
+# Extensions
+# ----------
+function __init__()
+    @require_extensions
+end
 
 end
