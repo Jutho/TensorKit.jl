@@ -36,7 +36,7 @@ function permute(t::TensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂};
     if !copy
         if p₁ === codomainind(t) && p₂ === domainind(t)
             return t
-        elseif has_shared_permute(t, p)
+        elseif has_shared_permute(t, (p₁, p₂))
             return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
         end
     end
