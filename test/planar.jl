@@ -13,13 +13,13 @@ function force_planar(V::GradedSpace)
 end
 force_planar(V::ProductSpace) = mapreduce(force_planar, ⊗, V)
 function force_planar(tsrc::TensorMap{ComplexSpace})
-    tdst = TensorMap(undef, eltype(tsrc),
+    tdst = TensorMap(undef, scalartype(tsrc),
                      force_planar(codomain(tsrc)) ← force_planar(domain(tsrc)))
     copyto!(blocks(tdst)[PlanarTrivial()], blocks(tsrc)[Trivial()])
     return tdst
 end
 function force_planar(tsrc::TensorMap{<:GradedSpace})
-    tdst = TensorMap(undef, eltype(tsrc),
+    tdst = TensorMap(undef, scalartype(tsrc),
                      force_planar(codomain(tsrc)) ← force_planar(domain(tsrc)))
     for (c, b) in blocks(tsrc)
         copyto!(blocks(tdst)[c ⊠ PlanarTrivial()], b)
@@ -33,10 +33,10 @@ end
         C = TensorMap(randn, (ℂ^5)' ⊗ (ℂ^6)' ← ℂ^4 ⊗ (ℂ^3)' ⊗ (ℂ^2)')
         A′ = force_planar(A)
         C′ = force_planar(C)
-        pC = ((4, 3), (5, 2, 1))
+        p = ((4, 3), (5, 2, 1))
 
-        @test force_planar(tensoradd!(C, pC, A, :N, true, true)) ≈
-              planaradd!(C′, pC, A′, true, true)
+        @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
+              planaradd!(C′, A′, p, true, true)
     end
 
     @testset "planartrace" begin
@@ -44,11 +44,11 @@ end
         C = TensorMap(randn, (ℂ^5)' ⊗ ℂ^3 ← ℂ^4)
         A′ = force_planar(A)
         C′ = force_planar(C)
-        pA = ((1,), (3,))
-        pC = ((4, 2), (5,))
+        p = ((4, 2), (5,))
+        q = ((1,), (3,))
 
-        @test force_planar(tensortrace!(C, pC, A, pA, :N, true, true)) ≈
-              planartrace!(C′, pC, A′, pA, true, true)
+        @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
+              planartrace!(C′, A′, p, q, true, true)
     end
     
     @testset "planarcontract" begin
@@ -62,10 +62,10 @@ end
         
         pA = ((1, 3, 4), (5, 2))
         pB = ((2, 4), (1, 3))
-        pC = ((3, 2, 1), (4, 5))
+        pAB = ((3, 2, 1), (4, 5))
         
-        @test force_planar(tensorcontract!(C, pC, A, pA, :N, B, pB, :N, true, true)) ≈
-            planarcontract!(C′, pC, A′, pA, B′, pB, true, true)
+        @test force_planar(tensorcontract!(C, pAB, A, pA, :N, B, pB, :N, true, true)) ≈
+            planarcontract!(C′, A′, pA, B′, pB, pAB, true, true)
     end
 end
 

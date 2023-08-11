@@ -193,9 +193,9 @@ for V in spacelist
             for p in permutations(1:5)
                 p1 = ntuple(n -> p[n], k)
                 p2 = ntuple(n -> p[k + n], 5 - k)
-                t2 = @constinferred permute(t, p1, p2)
+                t2 = @constinferred permute(t, (p1, p2))
                 @test norm(t2) ≈ norm(t)
-                t2′ = permute(t′, p1, p2)
+                t2′ = permute(t′, (p1, p2))
                 @test dot(t2′, t2) ≈ dot(t′, t) ≈ dot(transpose(t2′), transpose(t2))
             end
         end
@@ -208,7 +208,7 @@ for V in spacelist
                 for p in permutations(1:5)
                     p1 = ntuple(n -> p[n], k)
                     p2 = ntuple(n -> p[k + n], 5 - k)
-                    t2 = permute(t, p1, p2)
+                    t2 = permute(t, (p1, p2))
                     a2 = convert(Array, t2)
                     @test a2 ≈ permutedims(convert(Array, t), (p1..., p2...))
                     @test convert(Array, transpose(t2)) ≈ permutedims(a2, (5, 4, 3, 2, 1))
@@ -218,7 +218,7 @@ for V in spacelist
     end
     @timedtestset "Full trace: test self-consistency" begin
         t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1')
-        t2 = permute(t, (1, 2), (4, 3))
+        t2 = permute(t, ((1, 2), (4, 3)))
         s = @constinferred tr(t2)
         @test conj(s) ≈ tr(t2')
         if !isdual(V1)
@@ -345,7 +345,7 @@ for V in spacelist
                     Q, R = @constinferred leftorth(t, (3, 4, 2), (1, 5); alg=alg)
                     QdQ = Q' * Q
                     @test QdQ ≈ one(QdQ)
-                    @test Q * R ≈ permute(t, (3, 4, 2), (1, 5))
+                    @test Q * R ≈ permute(t, ((3, 4, 2), (1, 5)))
                     if alg isa Polar
                         @test isposdef(R)
                         @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'
@@ -356,7 +356,7 @@ for V in spacelist
                     N = @constinferred leftnull(t, (3, 4, 2), (1, 5); alg=alg)
                     NdN = N' * N
                     @test NdN ≈ one(NdN)
-                    @test norm(N' * permute(t, (3, 4, 2), (1, 5))) < 100 * eps(norm(t))
+                    @test norm(N' * permute(t, ((3, 4, 2), (1, 5)))) < 100 * eps(norm(t))
                 end
                 @testset "rightorth with $alg" for alg in
                                                    (TensorKit.RQ(), TensorKit.RQpos(),
@@ -366,7 +366,7 @@ for V in spacelist
                     L, Q = @constinferred rightorth(t, (3, 4), (2, 1, 5); alg=alg)
                     QQd = Q * Q'
                     @test QQd ≈ one(QQd)
-                    @test L * Q ≈ permute(t, (3, 4), (2, 1, 5))
+                    @test L * Q ≈ permute(t, ((3, 4), (2, 1, 5)))
                     if alg isa Polar
                         @test isposdef(L)
                         @test domain(L) == codomain(L) == space(t, 3) ⊗ space(t, 4)
@@ -377,7 +377,7 @@ for V in spacelist
                     M = @constinferred rightnull(t, (3, 4), (2, 1, 5); alg=alg)
                     MMd = M * M'
                     @test MMd ≈ one(MMd)
-                    @test norm(permute(t, (3, 4), (2, 1, 5)) * M') < 100 * eps(norm(t))
+                    @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') < 100 * eps(norm(t))
                 end
                 @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
                     U, S, V = @constinferred tsvd(t, (3, 4, 2), (1, 5); alg=alg)
@@ -385,7 +385,7 @@ for V in spacelist
                     @test UdU ≈ one(UdU)
                     VVd = V * V'
                     @test VVd ≈ one(VVd)
-                    @test U * S * V ≈ permute(t, (3, 4, 2), (1, 5))
+                    @test U * S * V ≈ permute(t, ((3, 4, 2), (1, 5)))
                 end
             end
             @testset "empty tensor" begin
@@ -436,7 +436,7 @@ for V in spacelist
                 VdV = V' * V
                 VdV = (VdV + VdV') / 2
                 @test isposdef(VdV)
-                t2 = permute(t, (1, 3), (2, 4))
+                t2 = permute(t, ((1, 3), (2, 4)))
                 @test t2 * V ≈ V * D
                 @test !isposdef(t2) # unlikely for non-hermitian map
                 t2 = (t2 + t2')

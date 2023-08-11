@@ -68,7 +68,7 @@ function has_shared_permute(t::TensorMap, (p₁, p₂)::Index2Tuple)
         return false
     end
 end
-function has_shared_permute(t::AdjointTensorMap, p₁, p₂)
+function has_shared_permute(t::AdjointTensorMap, (p₁, p₂)::Index2Tuple)
     p₁′ = adjointtensorindices(t, p₂)
     p₂′ = adjointtensorindices(t, p₁)
     return has_shared_permute(t', (p₁′, p₂′))
