@@ -84,7 +84,7 @@ function TO.tensortrace!(C::AbstractTensorMap{S}, p::Index2Tuple,
     end
     # TODO: novel syntax for tensortrace?
     # tensortrace!(C, pC′, A′, qA′, α, β, backend...)
-    trace!(C, A′, p′, q′, α, β, backend...)
+    trace_permute!(C, A′, p′, q′, α, β, backend...)
     return C
 end
 
@@ -153,9 +153,9 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 
 # Trace implementation
 #----------------------
-function trace!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S},
+function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S},
                 (p₁, p₂)::Index2Tuple{N₁,N₂}, (q₁, q₂)::Index2Tuple{N₃,N₃},
-                backend...) where {S,N₁,N₂,N₃}
+                α, β, backend...) where {S,N₁,N₂,N₃}
     if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
         throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
     end

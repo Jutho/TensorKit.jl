@@ -11,7 +11,7 @@ struct BraidingTensor{S<:IndexSpace, A} <: AbstractTensorMap{S, 2, 2}
     V1::S
     V2::S
     adjoint::Bool
-    function BraidingTensor(V1::S, V2::S, adjoint::Bool = false, ::Type{A} = Matrix{ComplexF64}) where
+    function BraidingTensor{S,A}(V1::S, V2::S, adjoint::Bool = false) where
                 {S<:IndexSpace, A<:DenseMatrix}
         for a in sectors(V1)
             for b in sectors(V2)
@@ -23,6 +23,13 @@ struct BraidingTensor{S<:IndexSpace, A} <: AbstractTensorMap{S, 2, 2}
         end
         return new{S,A}(V1, V2, adjoint)
         # partial construction: only construct rowr and colr when needed
+    end
+end
+function BraidingTensor(V1::S, V2::S, adjoint::Bool = false) where {S<:IndexSpace}
+    if BraidingStyle(sectortype(S)) isa SymmetricBraiding
+        return BraidingTensor{S, Matrix{Float64}}(V1, V2, adjoint)
+    else
+        return BraidingTensor{S, Matrix{ComplexF64}}(V1, V2, adjoint)
     end
 end
 
@@ -168,12 +175,14 @@ end
 
 blocks(b::BraidingTensor) = blocks(TensorMap(b))
 
-function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
-                            β, C::AbstractTensorMap{S},
-                            oindA::IndexTuple{2}, cindA::IndexTuple{2},
-                            oindB::IndexTuple, cindB::IndexTuple{2},
-                            p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S}
+function planar_contract!(C::AbstractTensorMap{S},
+                          A::BraidingTensor{S},
+                          (oindA, cindA)::Index2Tuple{2,2},
+                          B::AbstractTensorMap{S},
+                          (cindB, oindB)::Index2Tuple{2,<:Any},
+                          (p1, p2)::Index2Tuple,
+                          α::Number, β::Number,
+                          backends...) where {S}
 
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
@@ -214,12 +223,15 @@ function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
     end
     return C
 end
-function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
-                            β, C::AbstractTensorMap{S},
-                            oindA::IndexTuple, cindA::IndexTuple{2},
-                            oindB::IndexTuple{2}, cindB::IndexTuple{2},
-                            p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S}
+function planar_contract!(C::AbstractTensorMap{S},
+                            A::AbstractTensorMap{S},
+                            (oindA, cindA)::Index2Tuple{<:Any,2},
+                            B::BraidingTensor{S},
+                            (cindB, oindB)::Index2Tuple{2,2},
+                            (p1, p2)::Index2Tuple,
+                            α::Number, β::Number,
+                            backends...) where {S}
+
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB =
@@ -259,13 +271,15 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
     C
 end
 
-function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
-                            β, C::AbstractTensorMap{S},
-                            oindA::IndexTuple{0}, cindA::IndexTuple{4},
-                            oindB::IndexTuple, cindB::IndexTuple{4},
-                            p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S}
-
+function planar_contract!(C::AbstractTensorMap{S},
+                          A::BraidingTensor{S},
+                          (oindA, cindA)::Index2Tuple{0,4},
+                          B::AbstractTensorMap{S},
+                          (cindB, oindB)::Index2Tuple{4,<:Any},
+                          (p1, p2)::Index2Tuple,
+                          α::Number, β::Number,
+                          backends...) where {S}
+    
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB =
@@ -327,13 +341,15 @@ function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
     return C
 end
 
-function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
-                            β, C::AbstractTensorMap{S},
-                            oindA::IndexTuple, cindA::IndexTuple{4},
-                            oindB::IndexTuple{0}, cindB::IndexTuple{4},
-                            p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S}
-
+function planar_contract!(C::AbstractTensorMap{S},
+                          A::AbstractTensorMap{S},
+                          (oindA, cindA)::Index2Tuple{0,4},
+                          B::BraidingTensor{S},
+                          (cindB, oindB)::Index2Tuple{4,<:Any},
+                          (p1, p2)::Index2Tuple,
+                          α::Number, β::Number,
+                          backends...) where {S}
+    
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB =
@@ -395,13 +411,14 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
     return C
 end
 
-function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
-                            β, C::AbstractTensorMap{S},
-                            oindA::IndexTuple{1}, cindA::IndexTuple{3},
-                            oindB::IndexTuple, cindB::IndexTuple{3},
-                            p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S}
-
+function planar_contract!(C::AbstractTensorMap{S},
+                          A::BraidingTensor{S},
+                          (oindA, cindA)::Index2Tuple{1,3},
+                          B::AbstractTensorMap{S},
+                          (cindB, oindB)::Index2Tuple{1,<:Any},
+                          (p1, p2)::Index2Tuple,
+                          α::Number, β::Number,
+                          backends...) where {S}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB =
@@ -457,13 +474,15 @@ function planar_contract!(α, A::BraidingTensor{S}, B::AbstractTensorMap{S},
     return C
 end
 
-function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
-                            β, C::AbstractTensorMap{S},
-                            oindA::IndexTuple, cindA::IndexTuple{3},
-                            oindB::IndexTuple{1}, cindB::IndexTuple{3},
-                            p1::IndexTuple, p2::IndexTuple,
-                            syms::Union{Nothing, NTuple{3, Symbol}}) where {S}
-
+function planar_contract!(C::AbstractTensorMap{S},
+                          A::AbstractTensorMap{S},
+                          (oindA, cindA)::Index2Tuple{<:Any,3},
+                          B::BraidingTensor{S},
+                          (cindB, oindB)::Index2Tuple{3,1},
+                          (p1, p2)::Index2Tuple,
+                          α::Number, β::Number,
+                          backends...) where {S}
+    
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB =
@@ -520,7 +539,3 @@ function planar_contract!(α, A::AbstractTensorMap{S}, B::BraidingTensor{S},
 end
 
 has_shared_permute(t::BraidingTensor, args...) = false
-function cached_permute(sym::Symbol, t::BraidingTensor, p1, p2; copy=false)
-    tp = TO.cached_similar_from_indices(sym, scalartype(t), p1, p2, t, :N)
-    return add!(true, t, false, tp, p1, p2)
-end
