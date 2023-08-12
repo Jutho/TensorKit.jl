@@ -22,7 +22,7 @@ end
 
 function ChainRulesCore.rrule(::typeof(convert), ::Type{<:Array}, t::AbstractTensorMap)
     function convert_pullback(Δt)
-        spacetype(t) <: ComplexSpace || 
+        spacetype(t) <: ComplexSpace ||
             error("currently only implemented or ComplexSpace spacetypes")
         ∂d = TensorMap(Δt, codomain(t), domain(t))
         return NoTangent(), NoTangent(), ∂d
@@ -86,8 +86,6 @@ end
 # Factorizations
 # --------------
 
-
-
 function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kwargs...)
     T = eltype(t)
 
@@ -140,7 +138,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kw
 
         return NoTangent(), ∂t, fill(NoTangent(), length(kwargs))...
     end
-    
+
     return (U, S, V), tsvd_pullback
 end
 
@@ -155,24 +153,25 @@ end
 function ChainRulesCore.rrule(::typeof(leftorth!), t; alg=QRpos())
     alg isa TensorKit.QR || alg isa TensorKit.QRpos || error("only QR and QRpos supported")
     Q, R = leftorth(t; alg)
-    
+
     function leftorth_pullback((ΔQ, ΔR))
         ∂t = similar(t)
         ΔR = ΔR isa ZeroTangent ? zero(R) : ΔR
         ΔQ = ΔQ isa ZeroTangent ? zero(Q) : ΔQ
-        
+
         if sectortype(t) === Trivial
             copyto!(∂t.data, qr_pullback(t.data, Q.data, R.data, ΔQ.data, ΔR.data))
         else
             for (c, b) in blocks(∂t)
-                copyto!(b, qr_pullback(block(t, c), block(Q, c), block(R, c),
-                        block(ΔQ, c), block(ΔR, c)))
+                copyto!(b,
+                        qr_pullback(block(t, c), block(Q, c), block(R, c),
+                                    block(ΔQ, c), block(ΔR, c)))
             end
         end
-        
+
         return NoTangent(), ∂t
     end
-    
+
     return (Q, R), leftorth_pullback
 end
 
@@ -197,7 +196,7 @@ function ChainRulesCore.rrule(::typeof(rightorth!), tensor; alg=LQpos())
 
         return NoTangent(), ∂t
     end
-    
+
     return (L, Q), rightorth_pullback
 end
 
@@ -221,27 +220,28 @@ qr_pullback(A, Q, R, ::Nothing, ::Nothing) = nothing
 function qr_pullback(A, Q, R, ΔQ, ΔR)
     M = qr_rank(R)
     N = size(R, 2)
-    
+
     q = view(Q, :, 1:M)
     Δq = isnothing(ΔQ) ? nothing : view(ΔQ, :, 1:M)
-    
+
     r = view(R, 1:M, :)
     Δr = isnothing(ΔR) ? nothing : view(ΔR, 1:M, :)
-    
+
     N == M && return qr_pullback_fullrank(q, r, Δq, Δr)
-    
-    B = view(A, :, M+1:N)
+
+    B = view(A, :, (M + 1):N)
     U = view(r, :, 1:M)
-    
+
     if !isnothing(ΔR)
-        ΔD = view(Δr, :, M+1:N)
-        ΔA = qr_pullback_fullrank(q, U, !isnothing(Δq) ? Δq + B * ΔD' : B * ΔD', view(Δr, :, 1:M))
+        ΔD = view(Δr, :, (M + 1):N)
+        ΔA = qr_pullback_fullrank(q, U, !isnothing(Δq) ? Δq + B * ΔD' : B * ΔD',
+                                  view(Δr, :, 1:M))
         ΔB = q * ΔD
     else
         ΔA = qr_pullback_fullrank(q, U, Δq, nothing)
         ΔB = zero(B)
     end
-    
+
     return hcat(ΔA, ΔB)
 end
 
@@ -249,29 +249,29 @@ lq_pullback(A, L, Q, ::Nothing, ::Nothing) = nothing
 function lq_pullback(A, L, Q, ΔL, ΔQ)
     M = lq_rqnk(L)
     N = size(L, 1)
-    
+
     l = view(L, :, 1:M)
     Δl = isnothing(ΔL) ? nothing : view(ΔL, :, 1:M)
     q = view(Q, 1:M, :)
     Δq = isnothing(ΔQ) ? nothing : view(ΔQ, 1:M, :)
-    
+
     N == M && return lq_pullback_fullrank(l, q, Δl, Δq)
-    
-    B = view(A, M+1:N, :)
+
+    B = view(A, (M + 1):N, :)
     U = view(l, 1:M, :)
-    
+
     if !isnothing(ΔL)
-        ΔD = view(Δl, M+1:N, :)
-        ΔA = lq_pullback_fullrank(U, q, view(Δl, 1:M, :), !isnothing(Δq) ? Δq + ΔD' * B : ΔD' * B)
+        ΔD = view(Δl, (M + 1):N, :)
+        ΔA = lq_pullback_fullrank(U, q, view(Δl, 1:M, :),
+                                  !isnothing(Δq) ? Δq + ΔD' * B : ΔD' * B)
         ΔB = ΔD * q
     else
         ΔA = lq_pullback_fullrank(U, q, nothing, Δq)
         ΔB = zero(B)
     end
-    
+
     return vcat(ΔA, ΔB)
 end
-
 
 qr_pullback_fullrank(Q, R, ::Nothing, ::Nothing) = nothing
 function qr_pullback_fullrank(Q, R, ΔQ, ::Nothing)
@@ -284,7 +284,7 @@ function qr_pullback_fullrank(Q, R, ::Nothing, ΔR)
 end
 function qr_pullback_fullrank(Q, R, ΔQ, ΔR)
     b = ΔQ + q * copyltu(R * ΔR' - ΔQ' * Q)
-        return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
+    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
 end
 
 lq_pullback_fullrank(L, Q, ::Nothing, ::Nothing) = nothing
@@ -337,6 +337,5 @@ function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{TensorMap},
                               t::Dict{Symbol,Any})
     return convert(TensorMap, t), v -> (NoTangent(), NoTangent(), convert(Dict, v))
 end
-
 
 end
