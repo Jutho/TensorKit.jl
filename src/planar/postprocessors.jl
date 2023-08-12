@@ -5,13 +5,13 @@
 # to correct for this by adding the `istemp = true` flag.
 function _annotate_temporaries(ex, temporaries)
     if isexpr(ex, :(=)) && isexpr(ex.args[2], :call) &&
-            ex.args[2].args[1] ∈ (:tensoralloc_add, :tensoralloc_contract)
+       ex.args[2].args[1] ∈ (:tensoralloc_add, :tensoralloc_contract)
         lhs = ex.args[1]
         i = findfirst(==(lhs), temporaries)
         if i !== nothing
             rhs = ex.args[2]
             # add `istemp = true` flag
-            newrhs = Expr(:call, rhs.args[1:end-1]..., true)
+            newrhs = Expr(:call, rhs.args[1:(end - 1)]..., true)
             return Expr(:(=), lhs, newrhs)
         end
     elseif ex isa Expr
@@ -40,7 +40,7 @@ function _free_temporaries(ex, temporaries)
                 push!(newargs, Expr(:call, :tensorfree!, t))
                 push!(newargs, lhs)
             else
-                newargs = insert!(newargs, i+1, Expr(:call, :tensorfree!, t))
+                newargs = insert!(newargs, i + 1, Expr(:call, :tensorfree!, t))
             end
         end
         return Expr(:block, newargs...)
@@ -53,7 +53,9 @@ end
 # NOTE: work around a somewhat unfortunate interface choice in TensorOperations, which we will correct in the future.
 _planaradd!(C, p, A, α, β, backend...) = planaradd!(C, A, p, α, β, backend...)
 _planartrace!(C, p, A, q, α, β, backend...) = planartrace!(C, A, p, q, α, β, backend...)
-_planarcontract!(C, pAB, A, pA, B, pB, α, β, backend...) = planarcontract!(C, A, pA, B, pB, pAB, α, β, backend...)
+function _planarcontract!(C, pAB, A, pA, B, pB, α, β, backend...)
+    return planarcontract!(C, A, pA, B, pB, pAB, α, β, backend...)
+end
 # TODO: replace _planarmethod with planarmethod in everything below
 const _PLANAR_OPERATIONS = (:_planaradd!, :_planartrace!, :_planarcontract!)
 

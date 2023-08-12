@@ -137,7 +137,8 @@ function TO.tensorcontract_structure(pC::Index2Tuple{N₁,N₂},
 end
 
 function TO.checkcontractible(tA::AbstractTensorMap{S}, iA::Int, conjA::Symbol,
-                              tB::AbstractTensorMap{S}, iB::Int, conjB::Symbol, label) where {S}
+                              tB::AbstractTensorMap{S}, iB::Int, conjB::Symbol,
+                              label) where {S}
     sA = TO.tensorstructure(tA, iA, conjA)'
     sB = TO.tensorstructure(tB, iB, conjB)
     sA == sB ||
@@ -153,9 +154,13 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 
 # Trace implementation
 #----------------------
-function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S},
-                (p₁, p₂)::Index2Tuple{N₁,N₂}, (q₁, q₂)::Index2Tuple{N₃,N₃},
-                α, β, backend...) where {S,N₁,N₂,N₃}
+function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂},
+                        tsrc::AbstractTensorMap{S},
+                        (p₁, p₂)::Index2Tuple{N₁,N₂},
+                        (q₁, q₂)::Index2Tuple{N₃,N₃},
+                        α::Number,
+                        β::Number,
+                        backend::Backend...) where {S,N₁,N₂,N₃}
     if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
         throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
     end
@@ -217,10 +222,14 @@ end
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
 function contract!(C::AbstractTensorMap{S},
-                    A::AbstractTensorMap{S}, (oindA, cindA)::Index2Tuple{N₁,N₃},
-                    B::AbstractTensorMap{S}, (cindB, oindB)::Index2Tuple{N₃,N₂},
-                    (p₁, p₂)::Index2Tuple,
-                    α::Number, β::Number, backend...) where {S,N₁,N₂,N₃}
+                   A::AbstractTensorMap{S},
+                   (oindA, cindA)::Index2Tuple{N₁,N₃},
+                   B::AbstractTensorMap{S},
+                   (cindB, oindB)::Index2Tuple{N₃,N₂},
+                   (p₁, p₂)::Index2Tuple,
+                   α::Number,
+                   β::Number,
+                   backend::Backend...) where {S,N₁,N₂,N₃}
 
     # find optimal contraction scheme
     hsp = has_shared_permute
@@ -269,6 +278,7 @@ function contract!(C::AbstractTensorMap{S},
     end
 end
 
+# TODO: also transform _contract! into new interface, and add backend support
 function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
                     β, C::AbstractTensorMap{S},
                     oindA::IndexTuple{N₁}, cindA::IndexTuple,

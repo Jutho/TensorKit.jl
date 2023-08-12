@@ -4,7 +4,7 @@ macro planar(args::Vararg{Expr})
 
     planarexpr = args[end]
     kwargs = TO.parse_tensor_kwargs(args[1:(end - 1)])
-    parser = planarparser(planarexpr, kwargs... )
+    parser = planarparser(planarexpr, kwargs...)
 
     return esc(parser(planarexpr))
 end
@@ -17,8 +17,8 @@ function planarparser(planarexpr, kwargs...)
     push!(parser.preprocessors, _extract_tensormap_objects)
 
     temporaries = Vector{Symbol}()
-    push!(parser.postprocessors, ex->_annotate_temporaries(ex, temporaries))
-    push!(parser.postprocessors, ex->_free_temporaries(ex, temporaries))
+    push!(parser.postprocessors, ex -> _annotate_temporaries(ex, temporaries))
+    push!(parser.postprocessors, ex -> _free_temporaries(ex, temporaries))
     push!(parser.postprocessors, _insert_planar_operations)
 
     for kw in kwargs
@@ -28,7 +28,8 @@ function planarparser(planarexpr, kwargs...)
             isexpr(val, :tuple) ||
                 throw(ArgumentError("Invalid use of `order`, should be `order=(...,)`"))
             indexorder = map(normalizeindex, val.args)
-            parser.contractiontreebuilder = network -> TO.indexordertree(network, indexorder)
+            parser.contractiontreebuilder = network -> TO.indexordertree(network,
+                                                                         indexorder)
 
         elseif name == :contractcheck
             val isa Bool ||
@@ -66,11 +67,12 @@ function planarparser(planarexpr, kwargs...)
     treebuilder = parser.contractiontreebuilder
     treesorter = parser.contractiontreesorter
     costcheck = parser.contractioncostcheck
-    push!(parser.preprocessors, ex->TO.processcontractions(ex, treebuilder, treesorter, costcheck))
+    push!(parser.preprocessors,
+          ex -> TO.processcontractions(ex, treebuilder, treesorter, costcheck))
     parser.contractioncostcheck = nothing
-    push!(parser.preprocessors, ex->_check_planarity(ex))
-    push!(parser.preprocessors, ex->_decompose_planar_contractions(ex, temporaries))
-    
+    push!(parser.preprocessors, ex -> _check_planarity(ex))
+    push!(parser.preprocessors, ex -> _decompose_planar_contractions(ex, temporaries))
+
     return parser
 end
 
@@ -87,11 +89,11 @@ function _plansor(expr, kwargs...)
     newtensors = TO.getnewtensorobjects(expr)
 
     # find the first non-braiding tensor to determine the braidingstyle
-    targetobj = inputtensors[findfirst(x->x != :τ, inputtensors)]
+    targetobj = inputtensors[findfirst(x -> x != :τ, inputtensors)]
     if !isa(targetobj, Symbol)
         targetsym = gensym(string(targetobj))
         expr = TO.replacetensorobjects(expr) do obj, leftind, rightind
-            obj == targetobj ? targetsym : obj
+            return obj == targetobj ? targetsym : obj
         end
         args = Any[(:($targetsym = $targetobj))]
     else
@@ -105,7 +107,9 @@ function _plansor(expr, kwargs...)
     tensorex = tparser(expr)
     planarex = pparser(expr)
 
-    push!(args, Expr(:if, :(BraidingStyle(sectortype($targetsym)) isa Bosonic), tensorex, planarex))
+    push!(args,
+          Expr(:if, :(BraidingStyle(sectortype($targetsym)) isa Bosonic), tensorex,
+               planarex))
     if !isa(targetobj, Symbol) && targetobj ∈ newtensors
         push!(args, :($targetobj = $targetsym))
     end
