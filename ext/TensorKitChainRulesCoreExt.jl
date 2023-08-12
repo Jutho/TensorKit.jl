@@ -152,84 +152,171 @@ function _elementwise_mult(a::AbstractTensorMap, b::AbstractTensorMap)
     return dst
 end
 
-function ChainRulesCore.rrule(::typeof(leftorth!), t, 
-
-function ChainRulesCore.rrule(::typeof(leftorth), t, leftind=codomainind(t),
-                              rightind=domainind(t); alg=QRpos())
+function ChainRulesCore.rrule(::typeof(leftorth!), t; alg=QRpos())
     alg isa TensorKit.QR || alg isa TensorKit.QRpos || error("only QR and QRpos supported")
+    Q, R = leftorth(t; alg)
     
-    (permuted, permback) = ChainRulesCore.rrule(permute, t, leftind, rightind)
-    Q, R = leftorth(permuted; alg=alg)
-
-    if alg isa TensorKit.QR || alg isa TensorKit.QRpos
-        pullback = v -> backwards_leftorth_qr(permuted, Q, R, v[1], v[2])
-    else
-        pullback = v -> @assert false
+    function leftorth_pullback((ΔQ, ΔR))
+        ∂t = similar(t)
+        ΔR = ΔR isa ZeroTangent ? zero(R) : ΔR
+        ΔQ = ΔQ isa ZeroTangent ? zero(Q) : ΔQ
+        
+        if sectortype(t) === Trivial
+            copyto!(∂t.data, qr_pullback(t.data, Q.data, R.data, ΔQ.data, ΔR.data))
+        else
+            for (c, b) in blocks(∂t)
+                copyto!(b, qr_pullback(block(t, c), block(Q, c), block(R, c),
+                        block(ΔQ, c), block(ΔR, c)))
+            end
+        end
+        
+        return NoTangent(), ∂t
     end
     
-    return (Q, R),
-           v -> (NoTangent(), permback(pullback(v))[2], NoTangent(), NoTangent(),
-                 NoTangent())
+    return (Q, R), leftorth_pullback
 end
 
-function backwards_leftorth_qr(A, q, r, dq, dr)
-    out = similar(A)
-    dr = dr isa ZeroTangent ? zero(r) : dr
-    dq = dq isa ZeroTangent ? zero(q) : dq
+function ChainRulesCore.rrule(::typeof(rightorth!), tensor; alg=LQpos())
+    alg isa TensorKit.LQ || alg isa TensorKit.LQpos || error("only LQ and LQpos supported")
+    L, Q = rightorth(tensor; alg)
 
-    if sectortype(A) == Trivial
-        copyto!(out.data, qr_back(A.data, q.data, r.data, dq.data, dr.data))
-    else
-        for b in keys(blocks(A))
-            cA = A[b]
-            cq = q[b]
-            cr = r[b]
-            cdq = dq[b]
-            cdr = dr[b]
+    function rightorth_pullback((ΔL, ΔQ))
+        ∂t = similar(t)
+        ΔL = ΔL isa ZeroTangent ? zero(L) : ΔL
+        ΔQ = ΔQ isa ZeroTangent ? zero(Q) : ΔQ
 
-            copyto!(out[b], qr_back(cA, cq, cr, cdq, cdr))
+        if sectortype(t) === Trivial
+            copyto!(∂t.data, lq_pullback(t.data, Q.data, L.data, ΔQ.data, ΔL.data))
+        else
+            for (c, b) in blocks(∂t)
+                copyto!(b,
+                        lq_pullback(block(t, c), block(Q, c), block(L, c),
+                                    block(ΔQ, c), block(ΔL, c)))
+            end
+        end
+
+        return NoTangent(), ∂t
+    end
+    
+    return (L, Q), rightorth_pullback
+end
+
+"""
+    copyltu!(A::AbstractMatrix)
+
+Copy the conjugated lower triangular part of `A` to the upper triangular part.
+"""
+function copyltu!(A::AbstractMatrix)
+    m, n = size(A)
+    for i in axes(A, 1)
+        A[i, i] = real(A[i, i])
+        @inbounds for j in (i + 1):n
+            A[i, j] = conj(A[j, i])
         end
     end
-    #@show norm(A),norm(dq),norm(dr),norm(out)
-    return out
+    return A
 end
 
-function ChainRulesCore.rrule(::typeof(rightorth), tensor, leftind=codomainind(tensor),
-                              rightind=domainind(tensor); alg=LQpos())
-    (permuted, permback) = ChainRulesCore.rrule(permute, tensor, leftind, rightind)
-    (l, q) = rightorth(permuted; alg=alg)
-
-    if alg isa TensorKit.LQ || alg isa TensorKit.LQpos
-        pullback = v -> backwards_rightorth_lq(permuted, l, q, v[1], v[2])
+qr_pullback(A, Q, R, ::Nothing, ::Nothing) = nothing
+function qr_pullback(A, Q, R, ΔQ, ΔR)
+    M = qr_rank(R)
+    N = size(R, 2)
+    
+    q = view(Q, :, 1:M)
+    Δq = isnothing(ΔQ) ? nothing : view(ΔQ, :, 1:M)
+    
+    r = view(R, 1:M, :)
+    Δr = isnothing(ΔR) ? nothing : view(ΔR, 1:M, :)
+    
+    N == M && return qr_pullback_fullrank(q, r, Δq, Δr)
+    
+    B = view(A, :, M+1:N)
+    U = view(r, :, 1:M)
+    
+    if !isnothing(ΔR)
+        ΔD = view(Δr, :, M+1:N)
+        ΔA = qr_pullback_fullrank(q, U, !isnothing(Δq) ? Δq + B * ΔD' : B * ΔD', view(Δr, :, 1:M))
+        ΔB = q * ΔD
     else
-        pullback = v -> @assert false
+        ΔA = qr_pullback_fullrank(q, U, Δq, nothing)
+        ΔB = zero(B)
     end
-
-    return (l, q),
-           v -> (NoTangent(), permback(pullback(v))[2], NoTangent(), NoTangent(),
-                 NoTangent())
+    
+    return hcat(ΔA, ΔB)
 end
 
-function backwards_rightorth_lq(A, l, q, dl, dq)
-    out = similar(A)
-    dl = dl isa ZeroTangent ? zero(l) : dl
-    dq = dq isa ZeroTangent ? zero(q) : dq
-
-    if sectortype(A) == Trivial
-        copyto!(out.data, lq_back(A.data, l.data, q.data, dl.data, dq.data))
+lq_pullback(A, L, Q, ::Nothing, ::Nothing) = nothing
+function lq_pullback(A, L, Q, ΔL, ΔQ)
+    M = lq_rqnk(L)
+    N = size(L, 1)
+    
+    l = view(L, :, 1:M)
+    Δl = isnothing(ΔL) ? nothing : view(ΔL, :, 1:M)
+    q = view(Q, 1:M, :)
+    Δq = isnothing(ΔQ) ? nothing : view(ΔQ, 1:M, :)
+    
+    N == M && return lq_pullback_fullrank(l, q, Δl, Δq)
+    
+    B = view(A, M+1:N, :)
+    U = view(l, 1:M, :)
+    
+    if !isnothing(ΔL)
+        ΔD = view(Δl, M+1:N, :)
+        ΔA = lq_pullback_fullrank(U, q, view(Δl, 1:M, :), !isnothing(Δq) ? Δq + ΔD' * B : ΔD' * B)
+        ΔB = ΔD * q
     else
-        for b in keys(blocks(A))
-            cA = A[b]
-            cl = l[b]
-            cq = q[b]
-            cdl = dl[b]
-            cdq = dq[b]
-
-            copyto!(out[b], lq_back(cA, cl, cq, cdl, cdq))
-        end
+        ΔA = lq_pullback_fullrank(U, q, nothing, Δq)
+        ΔB = zero(B)
     end
-    #@show norm(A),norm(l),norm(q),norm(out)
-    return out
+    
+    return vcat(ΔA, ΔB)
+end
+
+
+qr_pullback_fullrank(Q, R, ::Nothing, ::Nothing) = nothing
+function qr_pullback_fullrank(Q, R, ΔQ, ::Nothing)
+    b = ΔQ + q * copyltu!(-ΔQ' * Q)
+    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
+end
+function qr_pullback_fullrank(Q, R, ::Nothing, ΔR)
+    b = q * copyltu!(R * ΔR)
+    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
+end
+function qr_pullback_fullrank(Q, R, ΔQ, ΔR)
+    b = ΔQ + q * copyltu(R * ΔR' - ΔQ' * Q)
+        return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
+end
+
+lq_pullback_fullrank(L, Q, ::Nothing, ::Nothing) = nothing
+function lq_pullback_fullrank(L, Q, ΔL, ::Nothing)
+    b = copyltu!(L' * ΔL) * Q
+    return LinearAlgebra.LAPACK.trtrs!('L', 'N', 'N', L, b)
+end
+function lq_pullback_fullrank(L, Q, ::Nothing, ΔQ)
+    b = copyltu!(-ΔQ * Q') + ΔQ
+    return LinearAlgebra.LAPACK.trtrs!('L', 'N', 'N', L, b)
+end
+function lq_pullback_fullrank(L, Q, ΔL, ΔQ)
+    b = copyltu!(L' * ΔL - ΔQ * Q') + ΔQ
+    return LinearAlgebra.LAPACK.trtrs!('L', 'N', 'N', L, b)
+end
+
+function qr_rank(r::AbstractMatrix)
+    Base.require_one_based_indexing(r)
+    r₀ = r[1, 1]
+    for i in axes(r, 1)
+        abs(r[i, i] / r₀) < 1e-12 && return i - 1
+    end
+    return size(r, 1)
+end
+
+function lq_rank(l::AbstractMatrix)
+    Base.require_one_based_indexing(r)
+    l₀ = l[1, 1]
+    for i in axes(l, 2)
+        abs(l[i, i] / l₀) < 1e-12 && return i - 1
+    end
+    return size(l, 2)
 end
 
 function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{Dict}, t::AbstractTensorMap)
