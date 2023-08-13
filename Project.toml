@@ -20,7 +20,8 @@ Strided = "2"
 TensorOperations = "4.0.2"
 TupleTools = "1.1"
 WignerSymbols = "1,2"
-julia = "1.6 - 1"
+julia = "1.6"
+VectorInterface = "0.2"
 
 [extras]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
