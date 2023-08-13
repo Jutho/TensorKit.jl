@@ -6,13 +6,16 @@ struct ProductSector{T<:SectorTuple} <: Sector
     sectors::T
 end
 _sectors(::Type{Tuple{}}) = ()
-Base.@pure _sectors(::Type{T}) where {T<:SectorTuple} =
-    (Base.tuple_type_head(T),  _sectors(Base.tuple_type_tail(T))...)
+Base.@pure function _sectors(::Type{T}) where {T<:SectorTuple}
+    return (Base.tuple_type_head(T), _sectors(Base.tuple_type_tail(T))...)
+end
 
-Base.IteratorSize(::Type{SectorValues{ProductSector{T}}}) where {T<:SectorTuple} =
-    Base.IteratorSize(Base.Iterators.product(map(values, _sectors(T))...))
-Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple} =
-    map(s->length(values(s)), _sectors(T))
+function Base.IteratorSize(::Type{SectorValues{ProductSector{T}}}) where {T<:SectorTuple}
+    return Base.IteratorSize(Base.Iterators.product(map(values, _sectors(T))...))
+end
+function Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple}
+    return map(s -> length(values(s)), _sectors(T))
+end
 Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
 
 function Base.iterate(::SectorValues{ProductSector{T}}, args...) where {T<:SectorTuple}
@@ -24,22 +27,27 @@ end
 function Base.getindex(P::SectorValues{ProductSector{T}}, i::Int) where {T<:SectorTuple}
     Base.IteratorSize(P) isa IsInfinite &&
         throw(ArgumentError("cannot index into infinite product sector"))
-    ProductSector{T}(getindex.(values.(_sectors(T)), Tuple(CartesianIndices(size(P))[i])))
+    return ProductSector{T}(getindex.(values.(_sectors(T)),
+                                      Tuple(CartesianIndices(size(P))[i])))
 end
-function findindex(P::SectorValues{ProductSector{T}}, c::ProductSector{T}) where
-                                                                    {T<:SectorTuple}
+function findindex(P::SectorValues{ProductSector{T}},
+                   c::ProductSector{T}) where
+         {T<:SectorTuple}
     Base.IteratorSize(P) isa IsInfinite &&
         throw(ArgumentError("cannot index into infinite product sector"))
-    LinearIndices(size(P))[CartesianIndex(findindex.(values.(_sectors(T)), c.sectors))]
+    return LinearIndices(size(P))[CartesianIndex(findindex.(values.(_sectors(T)),
+                                                            c.sectors))]
 end
 
 ProductSector{T}(args...) where {T<:SectorTuple} = ProductSector{T}(args)
-Base.convert(::Type{ProductSector{T}}, t::Tuple) where {T<:SectorTuple} =
-    ProductSector{T}(convert(T, t))
+function Base.convert(::Type{ProductSector{T}}, t::Tuple) where {T<:SectorTuple}
+    return ProductSector{T}(convert(T, t))
+end
 
-Base.one(::Type{ProductSector{T}}) where {I<:Sector, T<:Tuple{I}} = ProductSector((one(I),))
-Base.one(::Type{ProductSector{T}}) where {I<:Sector, T<:Tuple{I, Vararg{Sector}}} =
-    one(I) ⊠ one(ProductSector{Base.tuple_type_tail(T)})
+Base.one(::Type{ProductSector{T}}) where {I<:Sector,T<:Tuple{I}} = ProductSector((one(I),))
+function Base.one(::Type{ProductSector{T}}) where {I<:Sector,T<:Tuple{I,Vararg{Sector}}}
+    return one(I) ⊠ one(ProductSector{Base.tuple_type_tail(T)})
+end
 
 Base.conj(p::ProductSector) = ProductSector(map(conj, p.sectors))
 function ⊗(p1::P, p2::P) where {P<:ProductSector}
@@ -50,8 +58,9 @@ function ⊗(p1::P, p2::P) where {P<:ProductSector}
     end
 end
 
-Nsymbol(a::P, b::P, c::P) where {P<:ProductSector} =
-    prod(map(Nsymbol, a.sectors, b.sectors, c.sectors))
+function Nsymbol(a::P, b::P, c::P) where {P<:ProductSector}
+    return prod(map(Nsymbol, a.sectors, b.sectors, c.sectors))
+end
 
 _firstsector(x::ProductSector) = x.sectors[1]
 _tailsector(x::ProductSector) = ProductSector(tail(x.sectors))
@@ -67,8 +76,10 @@ function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
         _kron(f₁, f₂)
     end
 end
-Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector{<:Tuple{Sector}}} =
-    Fsymbol(map(_firstsector, (a, b, c, d, e, f))...)
+function Fsymbol(a::P, b::P, c::P, d::P, e::P,
+                 f::P) where {P<:ProductSector{<:Tuple{Sector}}}
+    return Fsymbol(map(_firstsector, (a, b, c, d, e, f))...)
+end
 
 function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
     heads = map(_firstsector, (a, b, c))
@@ -81,8 +92,9 @@ function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector}
         _kron(r1, r2)
     end
 end
-Rsymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
-    Rsymbol(map(_firstsector, (a, b, c))...)
+function Rsymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}}
+    return Rsymbol(map(_firstsector, (a, b, c))...)
+end
 
 function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
     heads = map(_firstsector, (a, b, c))
@@ -95,8 +107,9 @@ function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector}
         _kron(b1, b2)
     end
 end
-Bsymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
-    Bsymbol(map(_firstsector, (a, b, c))...)
+function Bsymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}}
+    return Bsymbol(map(_firstsector, (a, b, c))...)
+end
 
 function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
     heads = map(_firstsector, (a, b, c))
@@ -109,27 +122,32 @@ function Asymbol(a::P, b::P, c::P) where {P<:ProductSector}
         _kron(a1, a2)
     end
 end
-Asymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
-    Asymbol(map(_firstsector, (a, b, c))...)
+function Asymbol(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}}
+    return Asymbol(map(_firstsector, (a, b, c))...)
+end
 
 frobeniusschur(p::ProductSector) = prod(map(frobeniusschur, p.sectors))
 
 function fusiontensor(a::P, b::P, c::P) where {P<:ProductSector}
-    return _kron(fusiontensor(map(_firstsector, (a,b,c))...),
-                    fusiontensor(map(_tailsector, (a,b,c))...))
+    return _kron(fusiontensor(map(_firstsector, (a, b, c))...),
+                 fusiontensor(map(_tailsector, (a, b, c))...))
 end
 
-fusiontensor(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}} =
-    fusiontensor(map(_firstsector, (a,b,c))...)
+function fusiontensor(a::P, b::P, c::P) where {P<:ProductSector{<:Tuple{Sector}}}
+    return fusiontensor(map(_firstsector, (a, b, c))...)
+end
 
-FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
-    Base.:&(map(FusionStyle, _sectors(T))...)
-BraidingStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple} =
-    Base.:&(map(BraidingStyle, _sectors(T))...)
+function FusionStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple}
+    return Base.:&(map(FusionStyle, _sectors(T))...)
+end
+function BraidingStyle(::Type{<:ProductSector{T}}) where {T<:SectorTuple}
+    return Base.:&(map(BraidingStyle, _sectors(T))...)
+end
 Base.isreal(::Type{<:ProductSector{T}}) where {T<:SectorTuple} = _isreal(T)
 _isreal(::Type{Tuple{}}) = true
-_isreal(T::Type{<:SectorTuple}) =
-    isreal(Base.tuple_type_head(T)) && _isreal(Base.tuple_type_tail(T))
+function _isreal(T::Type{<:SectorTuple})
+    return isreal(Base.tuple_type_head(T)) && _isreal(Base.tuple_type_tail(T))
+end
 
 fermionparity(P::ProductSector) = mapreduce(fermionparity, xor, P.sectors)
 
@@ -137,8 +155,9 @@ dim(p::ProductSector) = *(dim.(p.sectors)...)
 
 Base.isequal(p1::ProductSector, p2::ProductSector) = isequal(p1.sectors, p2.sectors)
 Base.hash(p::ProductSector, h::UInt) = hash(p.sectors, h)
-Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T} =
-    isless(reverse(p1.sectors), reverse(p2.sectors))
+function Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T}
+    return isless(reverse(p1.sectors), reverse(p2.sectors))
+end
 
 # Default construction from tensor product of sectors
 #-----------------------------------------------------
@@ -164,41 +183,43 @@ group representations, we have `Irrep[G₁] ⊠ Irrep[G₂] == Irrep[G₁ × G�
 ⊠(p1::ProductSector, s2::Sector) = ProductSector(tuple(p1.sectors..., s2))
 ⊠(s1::Trivial, p2::ProductSector) = p2
 ⊠(s1::Sector, p2::ProductSector) = ProductSector(tuple(s1, p2.sectors...))
-⊠(p1::ProductSector, p2::ProductSector) =
-    ProductSector(tuple(p1.sectors..., p2.sectors...))
+⊠(p1::ProductSector, p2::ProductSector) = ProductSector(tuple(p1.sectors..., p2.sectors...))
 
 # grow types from the left using Base.tuple_type_cons
 ⊠(I1::Type{Trivial}, I2::Type{Trivial}) = Trivial
 ⊠(I1::Type{Trivial}, I2::Type{<:Sector}) = I2
 ⊠(I1::Type{<:Sector}, I2::Type{<:Trivial}) = I1
-⊠(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1, I2}}
+⊠(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1,I2}}
 
 ⊠(I1::Type{<:ProductSector}, I2::Type{Trivial}) = I1
 ⊠(I1::Type{<:ProductSector}, I2::Type{<:Sector}) = I1 ⊠ ProductSector{Tuple{I2}}
 
 ⊠(::Type{Trivial}, P::Type{ProductSector{T}}) where {T<:SectorTuple} = P
-⊠(I::Type{<:Sector}, ::Type{ProductSector{T}}) where {T<:SectorTuple} =
-    ProductSector{Base.tuple_type_cons(I, T)}
+function ⊠(I::Type{<:Sector}, ::Type{ProductSector{T}}) where {T<:SectorTuple}
+    return ProductSector{Base.tuple_type_cons(I, T)}
+end
 
-⊠(::Type{ProductSector{Tuple{I}}},
-    ::Type{ProductSector{T}}) where {I<:Sector, T<:SectorTuple} =
-    ProductSector{Base.tuple_type_cons(I, T)}
+function ⊠(::Type{ProductSector{Tuple{I}}},
+           ::Type{ProductSector{T}}) where {I<:Sector,T<:SectorTuple}
+    return ProductSector{Base.tuple_type_cons(I, T)}
+end
 
-⊠(::Type{ProductSector{T1}},
-        I2::Type{ProductSector{T2}}) where {T1<:SectorTuple, T2<:SectorTuple} =
-    Base.tuple_type_head(T1) ⊠ (ProductSector{Base.tuple_type_tail(T1)} ⊠ I2)
+function ⊠(::Type{ProductSector{T1}},
+           I2::Type{ProductSector{T2}}) where {T1<:SectorTuple,T2<:SectorTuple}
+    return Base.tuple_type_head(T1) ⊠ (ProductSector{Base.tuple_type_tail(T1)} ⊠ I2)
+end
 
 function Base.show(io::IO, P::ProductSector)
     sectors = P.sectors
     compact = get(io, :typeinfo, nothing) === typeof(P)
     sep = compact ? ", " : " ⊠ "
     print(io, "(")
-    for i = 1:length(sectors)
+    for i in 1:length(sectors)
         i == 1 || print(io, sep)
         io2 = compact ? IOContext(io, :typeinfo => typeof(sectors[i])) : io
         print(io2, sectors[i])
     end
-    print(io, ")")
+    return print(io, ")")
 end
 
 function type_repr(P::Type{<:ProductSector})
@@ -235,8 +256,8 @@ end
 function Base.getindex(::IrrepTable, ::Type{ProductGroup{Gs}}) where {Gs<:GroupTuple}
     G1 = tuple_type_head(Gs)
     Grem = tuple_type_tail(Gs)
-    ProductSector{Tuple{Irrep[G1]}} ⊠ Irrep[ProductGroup{tuple_type_tail(Gs)}]
+    return ProductSector{Tuple{Irrep[G1]}} ⊠ Irrep[ProductGroup{tuple_type_tail(Gs)}]
 end
 function Base.getindex(::IrrepTable, ::Type{ProductGroup{Tuple{G}}}) where {G<:Group}
-    ProductSector{Tuple{Irrep[G]}}
+    return ProductSector{Tuple{Irrep[G]}}
 end

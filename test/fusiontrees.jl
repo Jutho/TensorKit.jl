@@ -2,7 +2,8 @@ println("------------------------------------")
 println("Fusion Trees")
 println("------------------------------------")
 ti = time()
-@timedtestset "Fusion trees for $(TensorKit.type_repr(I))" verbose=true for I in sectorlist
+@timedtestset "Fusion trees for $(TensorKit.type_repr(I))" verbose = true for I in
+                                                                              sectorlist
     Istr = TensorKit.type_repr(I)
     N = 5
     out = ntuple(n -> randsector(I), N)
@@ -48,7 +49,7 @@ ti = time()
                 return t′
             end
             braid_i_to_1 = braid(f1, levels, (i, (1:(i - 1))..., ((i + 1):N)...))
-            trees2 = Dict(_reinsert_partial_tree(t,f2)=>c for (t,c) in braid_i_to_1)
+            trees2 = Dict(_reinsert_partial_tree(t, f2) => c for (t, c) in braid_i_to_1)
             trees3 = empty(trees2)
             p = (((N + 1):(N + i - 1))..., (1:N)..., ((N + i):(2N - 1))...)
             levels = ((i:(N + i - 1))..., (1:(i - 1))..., ((i + N):(2N - 1))...)

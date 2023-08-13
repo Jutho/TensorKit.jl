@@ -9,10 +9,10 @@ struct ComplexSpace <: ElementarySpace{ℂ}
     d::Int
     dual::Bool
 end
-ComplexSpace(d::Integer = 0; dual = false) = ComplexSpace(Int(d), dual)
-function ComplexSpace(dim::Pair; dual = false)
+ComplexSpace(d::Integer=0; dual=false) = ComplexSpace(Int(d), dual)
+function ComplexSpace(dim::Pair; dual=false)
     if dim.first === Trivial()
-        return ComplexSpace(dim.second; dual = dual)
+        return ComplexSpace(dim.second; dual=dual)
     else
         msg = "$(dim) is not a valid dimension for ComplexSpace"
         throw(SectorMismatch(msg))
