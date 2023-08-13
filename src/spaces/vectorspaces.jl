@@ -257,6 +257,7 @@ include("generalspace.jl")
 # space with internal structure corresponding to the irreducible representations of
 # a group, or more generally, the simple objects of a fusion category.
 include("gradedspace.jl")
+include("planarspace.jl")
 
 # Specific realizations of CompositeSpace types
 #-----------------------------------------------

@@ -49,23 +49,33 @@ end
 
 # Replace the tensor operations created by `TO.instantiate` with the corresponding
 # planar operations, immediately inserting them with `GlobalRef`.
+
+# NOTE: work around a somewhat unfortunate interface choice in TensorOperations, which we will correct in the future.
+_planaradd!(C, p, A, α, β, backend...) = planaradd!(C, A, p, α, β, backend...)
+_planartrace!(C, p, A, q, α, β, backend...) = planartrace!(C, A, p, q, α, β, backend...)
+function _planarcontract!(C, pAB, A, pA, B, pB, α, β, backend...)
+    return planarcontract!(C, A, pA, B, pB, pAB, α, β, backend...)
+end
+# TODO: replace _planarmethod with planarmethod in everything below
+const _PLANAR_OPERATIONS = (:_planaradd!, :_planartrace!, :_planarcontract!)
+
 function _insert_planar_operations(ex)
     if isexpr(ex, :call)
         if ex.args[1] == GlobalRef(TensorOperations, :tensoradd!)
             conjA = popat!(ex.args, 5)
             @assert conjA == :(:N) "conj flag should be `:N` ($conjA)"
-            return Expr(ex.head, GlobalRef(TensorKit, Symbol(:planaradd!)),
+            return Expr(ex.head, GlobalRef(TensorKit, Symbol(:_planaradd!)),
                         map(_insert_planar_operations, ex.args[2:end])...)
         elseif ex.args[1] == GlobalRef(TensorOperations, :tensorcontract!)
             conjB = popat!(ex.args, 9)
             conjA = popat!(ex.args, 6)
             @assert conjA == conjB == :(:N) "conj flag should be `:N` ($conjA), ($conjB)"
-            return Expr(ex.head, GlobalRef(TensorKit, Symbol(:planarcontract!)),
+            return Expr(ex.head, GlobalRef(TensorKit, Symbol(:_planarcontract!)),
                         map(_insert_planar_operations, ex.args[2:end])...)
         elseif ex.args[1] == GlobalRef(TensorOperations, :tensortrace!)
             conjA = popat!(ex.args, 6)
             @assert conjA == :(:N) "conj flag should be `:N` ($conjA)"
-            return Expr(ex.head, GlobalRef(TensorKit, Symbol(:planartrace!)),
+            return Expr(ex.head, GlobalRef(TensorKit, Symbol(:_planartrace!)),
                         map(_insert_planar_operations, ex.args[2:end])...)
         elseif ex.args[1] in TensorOperations.tensoroperationsfunctions
             return Expr(ex.head, GlobalRef(TensorOperations, ex.args[1]),
@@ -76,8 +86,6 @@ function _insert_planar_operations(ex)
     end
     return ex
 end
-
-const _PLANAR_OPERATIONS = (:planaradd!, :planarcontract!, :planartrace!)
 
 # Mimick `TO.insert_operationbackend` for planar operations.
 function insert_operationbackend(ex, backend)

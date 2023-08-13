@@ -363,8 +363,17 @@ function _decompose_planar_contractions(ex::Expr, temporaries)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
         if TO.istensorexpr(rhs)
             pre = Vector{Any}()
-            rhs = _extract_contraction_pairs(rhs, lhs, pre, temporaries)
-            return Expr(:block, pre..., Expr(ex.head, lhs, rhs))
+            if TO.istensor(lhs)
+                rhs = _extract_contraction_pairs(rhs, lhs, pre, temporaries)
+                return Expr(:block, pre..., Expr(ex.head, lhs, rhs))
+            else
+                lhssym = gensym(string(lhs))
+                lhstensor = Expr(:typed_vcat, lhssym, Expr(:tuple), Expr(:tuple))
+                rhs = _extract_contraction_pairs(rhs, lhstensor, pre, temporaries)
+                push!(temporaries, lhssym)
+                return Expr(:block, pre..., Expr(:(:=), lhstensor, rhs),
+                            Expr(:(=), lhs, lhstensor))
+            end
         else
             return ex
         end

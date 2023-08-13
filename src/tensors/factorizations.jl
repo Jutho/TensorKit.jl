@@ -21,7 +21,7 @@ Base.@deprecate(svd!(t::AbstractTensorMap;
         -> U, S, V, ϵ
 
 Compute the (possibly truncated) singular value decomposition such that
-`norm(permute(t, leftind, rightind) - U * S * V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
+`norm(permute(t, (leftind, rightind)) - U * S * V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in
@@ -48,7 +48,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and `tsvd(!)`
 is currently only implemented for `InnerProductStyle(t) === EuclideanProduct()`.
 """
 function tsvd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return tsvd!(permute(t, p1, p2; copy=true); kwargs...)
+    return tsvd!(permute(t, (p1, p2); copy=true); kwargs...)
 end
 
 """
@@ -56,7 +56,7 @@ end
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> Q, R
 
 Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
-`permute(t, leftind, rightind) = Q*R`.
+`permute(t, (leftind, rightind)) = Q*R`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -66,7 +66,7 @@ Different algorithms are available, namely `QR()`, `QRpos()`, `SVD()` and `Polar
 and `QRpos()` use a standard QR decomposition, producing an upper triangular matrix `R`.
 `Polar()` produces a Hermitian and positive semidefinite `R`. `QRpos()` corrects the
 standard QR decomposition such that the diagonal elements of `R` are positive. Only
-`QRpos()` and `Polar()` are uniqe (no residual freedom) so that they always return the same
+`QRpos()` and `Polar()` are unique (no residual freedom) so that they always return the same
 result for the same input tensor `t`.
 
 Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
@@ -74,7 +74,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
     `InnerProductStyle(t) === EuclideanProduct()`.
 """
 function leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return leftorth!(permute(t, p1, p2; copy=true); kwargs...)
+    return leftorth!(permute(t, (p1, p2); copy=true); kwargs...)
 end
 
 """
@@ -82,7 +82,7 @@ end
                 alg::OrthogonalFactorizationAlgorithm = LQpos()) -> L, Q
 
 Create orthonormal basis `Q` for indices in `rightind`, and remainder `L` such that
-`permute(t, leftind, rightind) = L*Q`.
+`permute(t, (leftind, rightind)) = L*Q`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -94,15 +94,15 @@ a QR decomposition of the transpose. `RQ()` and `RQpos()` produce an upper trian
 remainder `L` and only works if the total left dimension is smaller than or equal to the
 total right dimension. `LQpos()` and `RQpos()` add an additional correction such that the
 diagonal elements of `L` are positive. `Polar()` produces a Hermitian and positive
-semidefinite `L`. Only `LQpos()`, `RQpos()` and `Polar()` are uniqe (no residual freedom) so
-that they always return the same result for the same input tensor `t`.
+semidefinite `L`. Only `LQpos()`, `RQpos()` and `Polar()` are unique (no residual freedom)
+so that they always return the same result for the same input tensor `t`.
 
 Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `rightorth(!)` is currently only implemented for 
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
 function rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return rightorth!(permute(t, p1, p2; copy=true); kwargs...)
+    return rightorth!(permute(t, (p1, p2); copy=true); kwargs...)
 end
 
 """
@@ -110,7 +110,7 @@ end
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> N
 
 Create orthonormal basis for the orthogonal complement of the support of the indices in
-`leftind`, such that `N' * permute(t, leftind, rightind) = 0`.
+`leftind`, such that `N' * permute(t, (leftind, rightind)) = 0`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -128,7 +128,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
 function leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return leftnull!(permute(t, p1, p2; copy=true); kwargs...)
+    return leftnull!(permute(t, (p1, p2); copy=true); kwargs...)
 end
 
 """
@@ -138,7 +138,7 @@ end
                 rtol::Real = eps(real(float(one(scalartype(t)))))*iszero(atol)) -> N
 
 Create orthonormal basis for the orthogonal complement of the support of the indices in
-`rightind`, such that `permute(t, leftind, rightind)*N' = 0`.
+`rightind`, such that `permute(t, (leftind, rightind))*N' = 0`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -156,7 +156,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
 function rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return rightnull!(permute(t, p1, p2; copy=true); kwargs...)
+    return rightnull!(permute(t, (p1, p2); copy=true); kwargs...)
 end
 
 """
@@ -170,7 +170,7 @@ to be destroyed/overwritten, by using `eigen!(t)`. Note that the permuted tensor
 `eigen!` is called should have equal domain and codomain, as otherwise the eigenvalue
 decomposition is meaningless and cannot satisfy
 ```
-permute(t, leftind, rightind) * V = V * D
+permute(t, (leftind, rightind)) * V = V * D
 ```
 
 Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense
@@ -180,7 +180,7 @@ See also `eig` and `eigh`
 """
 function LinearAlgebra.eigen(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple;
                              kwargs...)
-    return eigen!(permute(t, p1, p2; copy=true); kwargs...)
+    return eigen!(permute(t, (p1, p2); copy=true); kwargs...)
 end
 
 """
@@ -197,7 +197,7 @@ indices of `t` is used. In that case, less memory is allocated if one allows the
 which `eig!` is called should have equal domain and codomain, as otherwise the eigenvalue
 decomposition is meaningless and cannot satisfy
 ```
-permute(t, leftind, rightind) * V = V * D
+permute(t, (leftind, rightind)) * V = V * D
 ```
 
 Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense matrices. See the corresponding documentation for more information.
@@ -205,7 +205,7 @@ Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of
 See also `eigen` and `eigh`.
 """
 function eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return eig!(permute(t, p1, p2; copy=true); kwargs...)
+    return eig!(permute(t, (p1, p2); copy=true); kwargs...)
 end
 
 """
@@ -223,13 +223,13 @@ indices of `t` is used. In that case, less memory is allocated if one allows the
 which `eigh!` is called should have equal domain and codomain, as otherwise the eigenvalue
 decomposition is meaningless and cannot satisfy
 ```
-permute(t, leftind, rightind) * V = V * D
+permute(t, (leftind, rightind)) * V = V * D
 ```
 
 See also `eigen` and `eig`.
 """
 function eigh(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple)
-    return eigh!(permute(t, p1, p2; copy=true))
+    return eigh!(permute(t, (p1, p2); copy=true))
 end
 
 """
@@ -247,7 +247,7 @@ Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of
 matrices. See the corresponding documentation for more information.
 """
 function LinearAlgebra.isposdef(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple)
-    return isposdef!(permute(t, p1, p2; copy=true))
+    return isposdef!(permute(t, (p1, p2); copy=true))
 end
 
 function tsvd(t::AbstractTensorMap; trunc::TruncationScheme=NoTruncation(),

@@ -256,7 +256,7 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tB::AbstractTensorMap, α=true, β=false)
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) &&
          domain(tA) == codomain(tB))
-        throw(SpaceMismatch())
+        throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
     end
     for c in blocksectors(tC)
         if hasblock(tA, c) # then also tB should have such a block

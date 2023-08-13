@@ -1,3 +1,35 @@
+# PlanarTrivial
+"""
+    struct PlanarTrivial <: Sector
+    PlanarTrivial()
+
+Represents a trivial anyon sector, i.e. a trivial sector without braiding. This is mostly
+useful for testing.
+"""
+struct PlanarTrivial <: Sector end
+
+Base.IteratorSize(::Type{SectorValues{PlanarTrivial}}) = HasLength()
+Base.length(::SectorValues{PlanarTrivial}) = 1
+Base.iterate(::SectorValues{PlanarTrivial}, i=0) = i == 0 ? (PlanarTrivial(), 1) : nothing
+function Base.getindex(::SectorValues{PlanarTrivial}, i::Int)
+    return i == 1 ? PlanarTrivial() :
+           throw(BoundsError(values(PlanarTrivial), i))
+end
+findindex(::SectorValues{PlanarTrivial}, c::PlanarTrivial) = 1
+Base.isless(::PlanarTrivial, ::PlanarTrivial) = false
+
+Base.one(::Type{PlanarTrivial}) = PlanarTrivial()
+Base.conj(::PlanarTrivial) = PlanarTrivial()
+
+FusionStyle(::Type{PlanarTrivial}) = UniqueFusion()
+BraidingStyle(::Type{PlanarTrivial}) = NoBraiding()
+Base.isreal(::Type{PlanarTrivial}) = true
+
+Nsymbol(::Vararg{PlanarTrivial,3}) = 1
+Fsymbol(::Vararg{PlanarTrivial,6}) = 1
+
+⊗(::PlanarTrivial, ::PlanarTrivial) = (PlanarTrivial(),)
+
 # FibonacciAnyons
 """
     struct FibonacciAnyon <: Sector

@@ -61,6 +61,7 @@ include("sectors.jl")
 include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")
+include("planar.jl")
 Tf = time()
 printstyled("Finished all tests in ",
             string(round((Tf - Ti) / 60; sigdigits=3)),
