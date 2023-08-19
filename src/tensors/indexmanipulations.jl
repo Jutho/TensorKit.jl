@@ -121,7 +121,7 @@ function braid(t::TensorMap{S}, (p₁, p₂)::Index2Tuple, levels::IndexTuple;
     cod = ProductSpace{S}(map(n -> space(t, n), p₁))
     dom = ProductSpace{S}(map(n -> dual(space(t, n)), p₂))
     @inbounds begin
-        return braid!(similar(t, cod ← dom), t, levels, (p₁, p₂))
+        return braid!(similar(t, cod ← dom), t, (p₁, p₂), levels)
     end
 end
 # TODO: braid for `AdjointTensorMap`; think about how to map the `levels` argument.
@@ -250,7 +250,8 @@ end
 
     levels1 = TupleTools.getindices(levels, codomainind(tsrc))
     levels2 = TupleTools.getindices(levels, domainind(tsrc))
-    treebraider(f₁, f₂) = braid(f₁, f₂, p[1], levels1, levels2, p[2])
+    # TODO: arg order for tensormaps is different than for fusiontrees
+    treebraider(f₁, f₂) = braid(f₁, f₂, levels1, levels2, p...)
     return add_transform!(tdst, tsrc, p, treebraider, α, β, backend...)
 end
 
