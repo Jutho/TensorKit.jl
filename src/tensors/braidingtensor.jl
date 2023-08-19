@@ -179,107 +179,114 @@ end
 
 blocks(b::BraidingTensor) = blocks(TensorMap(b))
 
-function planar_contract!(C::AbstractTensorMap{S},
-                          A::BraidingTensor{S},
-                          (oindA, cindA)::Index2Tuple{2,2},
-                          B::AbstractTensorMap{S},
-                          (cindB, oindB)::Index2Tuple{2,<:Any},
-                          (p1, p2)::Index2Tuple,
-                          α::Number, β::Number,
-                          backends...) where {S}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::BraidingTensor{S},
+                         (oindA, cindA)::Index2Tuple{2,2},
+                         B::AbstractTensorMap{S},
+                         (cindB, oindB)::Index2Tuple{2,N₃},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backend::Backend...) where {S,N₁,N₂,N₃}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
                                                  oindB, cindB, p1, p2)
 
-    @assert space(B, cindB[1]) == space(A, cindA[1])' &&
-            space(B, cindB[2]) == space(A, cindA[2])'
+    if space(B, cindB[1]) != space(A, cindA[1])' || space(B, cindB[2]) != space(A, cindA[2])
+        throw(SpaceMismatch())
+    end
 
     if BraidingStyle(sectortype(B)) isa Bosonic
-        return add!(α, B, β, C, reverse(cindB), oindB)
+        return add_permute!(C, B, (reverse(cindB), oindB), α, β, backend...)
     end
 
-    if iszero(β)
-        fill!(C, β)
-    elseif β != 1
-        rmul!(C, β)
-    end
-    braidingtensor_levels = A.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
-    inv_braid = braidingtensor_levels[cindA[1]] > braidingtensor_levels[cindA[2]]
-    for (f₁, f₂) in fusiontrees(B)
-        local newtrees
-        for ((f₁′, f₂′), coeff′) in transpose(f₁, f₂, cindB, oindB)
-            for (f₁′′, coeff′′) in artin_braid(f₁′, 1; inv=inv_braid)
-                f12 = (f₁′′, f₂′)
-                coeff = coeff′ * coeff′′
-                if @isdefined newtrees
-                    newtrees[f12] = get(newtrees, f12, zero(coeff)) + coeff
-                else
-                    newtrees = Dict(f12 => coeff)
-                end
-            end
-        end
-        for ((f₁′, f₂′), coeff) in newtrees
-            TO._add!(coeff * α, B[f₁, f₂], true, C[f₁′, f₂′], (reverse(cindB)..., oindB...))
-        end
-    end
-    return C
+    τ_levels = A.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
+    levels = (τ_levels[cindA[1]], τ_levels[cindA[2]], ntuple(i -> 0, N₃)...)
+    return add_braid!(C, B, (reverse(cindB), oindB), levels, α, β, backend...)
+
+    # inv_braid = braidingtensor_levels[cindA[1]] > braidingtensor_levels[cindA[2]]
+    # for (f₁, f₂) in fusiontrees(B)
+    #     local newtrees
+    #     for ((f₁′, f₂′), coeff′) in transpose(f₁, f₂, cindB, oindB)
+    #         for (f₁′′, coeff′′) in artin_braid(f₁′, 1; inv=inv_braid)
+    #             f12 = (f₁′′, f₂′)
+    #             coeff = coeff′ * coeff′′
+    #             if @isdefined newtrees
+    #                 newtrees[f12] = get(newtrees, f12, zero(coeff)) + coeff
+    #             else
+    #                 newtrees = Dict(f12 => coeff)
+    #             end
+    #         end
+    #     end
+    #     for ((f₁′, f₂′), coeff) in newtrees
+    #         TO._add!(coeff * α, B[f₁, f₂], true, C[f₁′, f₂′], (reverse(cindB)..., oindB...))
+    #     end
+    # end
+    # return C
 end
-function planar_contract!(C::AbstractTensorMap{S},
-                          A::AbstractTensorMap{S},
-                          (oindA, cindA)::Index2Tuple{<:Any,2},
-                          B::BraidingTensor{S},
-                          (cindB, oindB)::Index2Tuple{2,2},
-                          (p1, p2)::Index2Tuple,
-                          α::Number, β::Number,
-                          backends...) where {S}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::AbstractTensorMap{S},
+                         (oindA, cindA)::Index2Tuple{N₃,2},
+                         B::BraidingTensor{S},
+                         (cindB, oindB)::Index2Tuple{2,2},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backend::Backend...) where {S,N₁,N₂,N₃}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
                                                  oindB, cindB, p1, p2)
 
-    @assert space(B, cindB[1]) == space(A, cindA[1])' &&
-            space(B, cindB[2]) == space(A, cindA[2])'
+    if space(B, cindB[1]) != space(A, cindA[1])' ||
+       space(B, cindB[2]) != space(A, cindA[2])'
+        # @show space(B, cindB[1]), space(A, cindA[1])
+        # @show space(B, cindB[2]), space(A, cindA[2])
+        throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($p1, $p2)"))
+    end
 
     if BraidingStyle(sectortype(A)) isa Bosonic
-        return add!(α, A, β, C, oindA, reverse(cindA))
+        return add_permute!(C, A, (oindA, reverse(cindA)), α, β, backend...)
     end
 
-    if iszero(β)
-        fill!(C, β)
-    elseif β != 1
-        rmul!(C, β)
-    end
-    braidingtensor_levels = B.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
-    inv_braid = braidingtensor_levels[cindB[1]] > braidingtensor_levels[cindB[2]]
-    for (f₁, f₂) in fusiontrees(A)
-        local newtrees
-        for ((f₁′, f₂′), coeff′) in transpose(f₁, f₂, oindA, cindA)
-            for (f₂′′, coeff′′) in artin_braid(f₂′, 1; inv=inv_braid)
-                f12 = (f₁′, f₂′′)
-                coeff = coeff′ * conj(coeff′′)
-                if @isdefined newtrees
-                    newtrees[f12] = get(newtrees, f12, zero(coeff)) + coeff
-                else
-                    newtrees = Dict(f12 => coeff)
-                end
-            end
-        end
-        for ((f₁′, f₂′), coeff) in newtrees
-            TO._add!(coeff * α, A[f₁, f₂], true, C[f₁′, f₂′], (oindA..., reverse(cindA)...))
-        end
-    end
-    return C
+    τ_levels = B.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
+    levels = (ntuple(i -> 0, N₃)..., τ_levels[cindB[1]], τ_levels[cindB[2]])
+    return add_braid!(C, A, (oindA, reverse(cindA)), levels, α, β, backend...)
+
+    # if iszero(β)
+    #     fill!(C, β)
+    # elseif β != 1
+    #     rmul!(C, β)
+    # end
+    # braidingtensor_levels = B.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
+    # inv_braid = braidingtensor_levels[cindB[1]] > braidingtensor_levels[cindB[2]]
+    # for (f₁, f₂) in fusiontrees(A)
+    #     local newtrees
+    #     for ((f₁′, f₂′), coeff′) in transpose(f₁, f₂, oindA, cindA)
+    #         for (f₂′′, coeff′′) in artin_braid(f₂′, 1; inv=inv_braid)
+    #             f12 = (f₁′, f₂′′)
+    #             coeff = coeff′ * conj(coeff′′)
+    #             if @isdefined newtrees
+    #                 newtrees[f12] = get(newtrees, f12, zero(coeff)) + coeff
+    #             else
+    #                 newtrees = Dict(f12 => coeff)
+    #             end
+    #         end
+    #     end
+    #     for ((f₁′, f₂′), coeff) in newtrees
+    #         TO._add!(coeff * α, A[f₁, f₂], true, C[f₁′, f₂′], (oindA..., reverse(cindA)...))
+    #     end
+    # end
+    # return C
 end
 
-function planar_contract!(C::AbstractTensorMap{S},
-                          A::BraidingTensor{S},
-                          (oindA, cindA)::Index2Tuple{0,4},
-                          B::AbstractTensorMap{S},
-                          (cindB, oindB)::Index2Tuple{4,<:Any},
-                          (p1, p2)::Index2Tuple,
-                          α::Number, β::Number,
-                          backends...) where {S}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::BraidingTensor{S},
+                         (oindA, cindA)::Index2Tuple{0,4},
+                         B::AbstractTensorMap{S},
+                         (cindB, oindB)::Index2Tuple{4,<:Any},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backend::Backend...) where {S,N₁,N₂}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -340,15 +347,14 @@ function planar_contract!(C::AbstractTensorMap{S},
     end
     return C
 end
-
-function planar_contract!(C::AbstractTensorMap{S},
-                          A::AbstractTensorMap{S},
-                          (oindA, cindA)::Index2Tuple{0,4},
-                          B::BraidingTensor{S},
-                          (cindB, oindB)::Index2Tuple{4,<:Any},
-                          (p1, p2)::Index2Tuple,
-                          α::Number, β::Number,
-                          backends...) where {S}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::AbstractTensorMap{S},
+                         (oindA, cindA)::Index2Tuple{0,4},
+                         B::BraidingTensor{S},
+                         (cindB, oindB)::Index2Tuple{4,<:Any},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backends...) where {S,N₁,N₂}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -409,15 +415,14 @@ function planar_contract!(C::AbstractTensorMap{S},
     end
     return C
 end
-
-function planar_contract!(C::AbstractTensorMap{S},
-                          A::BraidingTensor{S},
-                          (oindA, cindA)::Index2Tuple{1,3},
-                          B::AbstractTensorMap{S},
-                          (cindB, oindB)::Index2Tuple{1,<:Any},
-                          (p1, p2)::Index2Tuple,
-                          α::Number, β::Number,
-                          backends...) where {S}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::BraidingTensor{S},
+                         (oindA, cindA)::Index2Tuple{1,3},
+                         B::AbstractTensorMap{S},
+                         (cindB, oindB)::Index2Tuple{1,<:Any},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backend::Backend...) where {S,N₁,N₂}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -472,15 +477,14 @@ function planar_contract!(C::AbstractTensorMap{S},
     end
     return C
 end
-
-function planar_contract!(C::AbstractTensorMap{S},
-                          A::AbstractTensorMap{S},
-                          (oindA, cindA)::Index2Tuple{<:Any,3},
-                          B::BraidingTensor{S},
-                          (cindB, oindB)::Index2Tuple{3,1},
-                          (p1, p2)::Index2Tuple,
-                          α::Number, β::Number,
-                          backends...) where {S}
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::AbstractTensorMap{S},
+                         (oindA, cindA)::Index2Tuple{<:Any,3},
+                         B::BraidingTensor{S},
+                         (cindB, oindB)::Index2Tuple{3,1},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backend::Backend...) where {S,N₁,N₂}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,

@@ -795,7 +795,7 @@ function artin_braid(f::FusionTree{I,N}, i; inv::Bool=false) where {I<:Sector,N}
     end
 
     BraidingStyle(I) isa NoBraiding &&
-        throw(SectorMismatch("Cannot braid sector " * type_repr(I)))
+        throw(SectorMismatch("Cannot braid sectors $(uncoupled[i]) and $(uncoupled[i + 1])"))
 
     if i == 1
         c = N > 2 ? inner[1] : coupled′
@@ -927,7 +927,11 @@ function braid(f::FusionTree{I,N},
         f′ = FusionTree{I}(uncoupled′, coupled′, isdual′)
         return fusiontreedict(I)(f′ => coeff)
     else
-        coeff = Rsymbol(one(I), one(I), one(I))[1, 1]
+        u = one(I)
+        T = BraidingStyle(I) isa NoBraiding ?
+            typeof(Fsymbol(u, u, u, u, u, u)[1, 1, 1, 1]) :
+            typeof(Rsymbol(u, u, u)[1, 1] * Fsymbol(u, u, u, u, u, u)[1, 1, 1, 1])
+        coeff = one(T)
         trees = FusionTreeDict(f => coeff)
         newtrees = empty(trees)
         for s in permutation2swaps(p)
@@ -1004,7 +1008,9 @@ function braid(f₁::FusionTree{I}, f₂::FusionTree{I},
     else
         if usebraidcache_nonabelian[]
             u = one(I)
-            T = typeof(sqrtdim(u) * Fsymbol(u, u, u, u, u, u)[1, 1, 1, 1] *
+            T = BraidingStyle(I) isa NoBraiding ?
+                typeof(Fsymbol(u, u, u, u, u, u)[1, 1, 1, 1]) :
+                typeof(sqrtdim(u) * Fsymbol(u, u, u, u, u, u)[1, 1, 1, 1] *
                        Rsymbol(u, u, u)[1, 1])
             F₁ = fusiontreetype(I, N₁)
             F₂ = fusiontreetype(I, N₂)
