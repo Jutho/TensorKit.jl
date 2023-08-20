@@ -503,14 +503,14 @@ end
 # Show
 #------
 function Base.summary(t::TensorMap)
-    return print("TensorMap(", codomain(t), " ← ", domain(t), ")")
+    return print("TensorMap(", space(t), ")")
 end
 function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
     if get(io, :compact, false)
-        print(io, "TensorMap(", codomain(t), " ← ", domain(t), ")")
+        print(io, "TensorMap(", space(t), ")")
         return
     end
-    println(io, "TensorMap(", codomain(t), " ← ", domain(t), "):")
+    println(io, "TensorMap(", space(t), "):")
     if sectortype(S) == Trivial
         Base.print_array(io, t[])
         println(io)
