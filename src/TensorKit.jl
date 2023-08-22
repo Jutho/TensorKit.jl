@@ -116,6 +116,8 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      Diagonal, Hermitian
 import Base.Meta
 
+using PackageExtensionCompat
+
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
