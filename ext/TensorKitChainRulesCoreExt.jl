@@ -6,8 +6,24 @@ using ChainRulesCore
 using LinearAlgebra
 using TupleTools
 
+# Utility
+# -------
+
 _conj(conjA::Symbol) = conjA == :C ? :N : :C
 trivtuple(N) = ntuple(identity, N)
+
+function _repartition(p::IndexTuple, N₁::Int, N₂::Int)
+    length(p) == N₁ + N₂ || 
+        throw(ArgumentError("cannot repartition $(typeof(p)) to $N₁, $N₂"))
+    return p[1:N₁], p[(N₁ + 1):end]
+end
+_repartition(p::Index2Tuple, N₁::Int, N₂::Int) = _repartition(linearize(p), N₁, N₂)
+function _repartition(p::Union{IndexTuple,Index2Tuple}, ::Index2Tuple{N₁,N₂})
+    return _repartition(p, N₁, N₂)
+end
+function _repartition(p::Union{IndexTuple,Index2Tuple}, ::AbstractTensorMap{<:Any,N₁,N₂})
+    return _repartition(p, N₁, N₂)
+end
 
 # Constructors
 # ------------
@@ -63,16 +79,12 @@ function ChainRulesCore.rrule(::typeof(*), a::Number, b::AbstractTensorMap)
     return a * b, times_pullback
 end
 
-function ChainRulesCore.rrule(::typeof(permute), t::AbstractTensorMap, (leftind, rightind))
+function ChainRulesCore.rrule(::typeof(permute), t::AbstractTensorMap, p::Index2Tuple)
     function permute_pullback(c)
-        invpt = TupleTools.invperm(tuple(leftind..., rightind...))
-        invpt = (tuple(invpt[1:numout(t)]...), tuple(invpt[(numout(t) + 1):end]...))
-        ∂a = permute(c, invpt)
-
-        return NoTangent(), ∂a, NoTangent()
+        invpt = _repartition(TupleTools.invperm(linearize(p)), t)
+        return NoTangent(), permute(c, invpt), NoTangent()
     end
-
-    return permute(t, (leftind, rightind)), permute_pullback
+    return permute(t, p), permute_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(scalar), t::AbstractTensorMap)
@@ -101,7 +113,7 @@ end
 function ChainRulesCore.rrule(::typeof(norm), a::AbstractTensorMap, p)
     p == 2 || error("currently only implemented for p = 2")
     n = norm(a, p)
-    norm_pullback(Δn) = NoTangent(), @thunk(a * (Δn' + Δn) / (n * 2)), NoTangent()
+    norm_pullback(Δn) = NoTangent(), a * (Δn' + Δn) / (n * 2), NoTangent()
     return n, norm_pullback
 end
 
@@ -373,28 +385,23 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
     function tensorcontract_pullback(ΔC)
         dC = @thunk conj(β) * ΔC
         dA = @thunk begin
-            ipC = invperm(linearize(pC))
-            ipA = invperm(linearize(pA))
-            ipA = (tuple(ipA[1:TensorKit.numout(A)]...),
-                   tuple(ipA[(TensorKit.numout(A) + 1):end]...))
-            NA₁ = TensorOperations.numout(pA)
+            ipC = _repartition(invperm(linearize(pC)), pA)
+            ipA = _repartition(invperm(linearize(pA)), A)
             conjΔC = conjA == :C ? :C : :N
             conjB′ = conjA == :C ? conjB : _conj(conjB)
-            c_dA = tensorcontract(ipA, ΔC, (ipC[1:NA₁], ipC[(NA₁ + 1):end]), conjΔC,
+            c_dA = tensorcontract(ipA, ΔC, ipC, conjΔC,
                                   B, reverse(pB), conjB′, conjA == :C ? α : conj(α),
                                   backend...)
             (!(eltype(A) <: Complex) && (eltype(c_dA) <: Complex)) ? real(c_dA) : c_dA
         end
         dB = @thunk begin
-            ipC = invperm(linearize(pC))
-            ipB = invperm(linearize(pB))
-            ipB = (tuple(ipB[1:TensorKit.numout(B)]...),
-                   tuple(ipB[(TensorKit.numout(B) + 1):end]...))
+            ipC = _repartition(invperm(linearize(pC)), pA)
+            ipB = _repartition(invperm(linearize(pB)), B)
             NA₁ = TensorOperations.numout(pA)
             conjΔC = conjB == :C ? :C : :N
             conjA′ = conjB == :C ? conjA : _conj(conjA)
             return tensorcontract(ipB, A, reverse(pA), conjA′,
-                                  ΔC, (ipC[1:NA₁], ipC[(NA₁ + 1):end]), conjΔC,
+                                  ΔC, ipC, conjΔC,
                                   conjB == :C ? α : conj(α), backend...)
             (!(eltype(B) <: Complex) && (eltype(c_dB) <: Complex)) ? real(c_dB) : c_dB
         end
@@ -433,9 +440,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
     function tensoradd_pullback(ΔC)
         dC = @thunk conj(β) * ΔC
         dA = @thunk begin
-            ipC = invperm(linearize(pC))
-            ipC = (tuple(ipC[1:TensorKit.numout(A)]...),
-                   tuple(ipC[(TensorKit.numout(A) + 1):end]...))
+            ipC = _repartition(invperm(linearize(pC)), A)
             c_dA = tensorcopy(ipC, ΔC, conjA, conjA == :N ? conj(α) : α, backend...)
 
             return (!(scalartype(A) <: Complex) && (scalartype(c_dA) <: Complex)) ?
@@ -468,12 +473,8 @@ function ChainRulesCore.rrule(::typeof(tensortrace!), C::AbstractTensorMap, pC::
     function tensortrace_pullback(ΔC)
         dC = @thunk conj(β) * ΔC
         dA = @thunk begin
-            ipC = invperm((linearize(pC)..., pA[1]..., pA[2]...))
-            ipC = (tuple(ipC[1:TensorKit.numout(A)]...),
-                   tuple(ipC[(TensorKit.numout(A) + 1):end]...))
-
+            ipC = _repartition(invperm((linearize(pC)..., pA[1]..., pA[2]...)), A)
             E = id(storagetype(A), ProductSpace((space(A, i) for i in pA[1])...))
-
             return tensorproduct(ipC, ΔC, (trivtuple(TensorOperations.numind(pC)), ()),
                                  conjA, E,
                                  ((), trivtuple(TensorOperations.numind(pA))), conjA,
