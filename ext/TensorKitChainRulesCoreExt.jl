@@ -1,8 +1,13 @@
 module TensorKitChainRulesCoreExt
 
+using TensorOperations
 using TensorKit
 using ChainRulesCore
 using LinearAlgebra
+using TupleTools
+
+_conj(conjA::Symbol) = conjA == :C ? :N : :C
+trivtuple(N) = ntuple(identity, N)
 
 # Constructors
 # ------------
@@ -58,6 +63,23 @@ function ChainRulesCore.rrule(::typeof(*), a::Number, b::AbstractTensorMap)
     return a * b, times_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(permute), t::AbstractTensorMap, (leftind, rightind))
+    function permute_pullback(c)
+        invpt = TupleTools.invperm(tuple(leftind..., rightind...))
+        invpt = (tuple(invpt[1:numout(t)]...), tuple(invpt[(numout(t) + 1):end]...))
+        ∂a = permute(c, invpt)
+
+        return NoTangent(), ∂a, NoTangent()
+    end
+
+    return permute(t, (leftind, rightind)), permute_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(scalar), t::AbstractTensorMap)
+    scalar_pullback(Δc) = NoTangent(), fill!(similar(t), Δc)
+    return scalar(t), scalar_pullback
+end
+
 # LinearAlgebra
 # -------------
 
@@ -99,7 +121,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kw
                 dst[i, j] = zero(eltype(S))
             else
                 sᵢ, sⱼ = src[i, i], src[j, j]
-                dst[i, j] = 1 / (abs(sᵢ - sⱼ) < 1e-12) ? 1e-12 : sᵢ^2 - sⱼ^2
+                dst[i, j] = 1 / (abs(sⱼ - sᵢ) < 1e-12 ? 1e-12 : sⱼ^2 - sᵢ^2)
             end
         end
     end
@@ -321,7 +343,7 @@ end
 
 function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{Dict}, t::AbstractTensorMap)
     out = convert(Dict, t)
-    function pullback(c)
+    function convert_pullback(c)
         if haskey(c, :data) # :data is the only thing for which this dual makes sense
             dual = copy(out)
             dual[:data] = c[:data]
@@ -331,11 +353,154 @@ function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{Dict}, t::AbstractT
             return (NoTangent(), NoTangent(), zero(t))
         end
     end
-    return out, pullback
+    return out, convert_pullback
 end
 function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{TensorMap},
                               t::Dict{Symbol,Any})
     return convert(TensorMap, t), v -> (NoTangent(), NoTangent(), convert(Dict, v))
+end
+
+# TensorOperations rules for TensorMaps
+# -------------------------------------
+
+function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
+                              C::AbstractTensorMap, pC::Index2Tuple,
+                              A::AbstractTensorMap, pA::Index2Tuple, conjA::Symbol,
+                              B::AbstractTensorMap, pB::Index2Tuple, conjB::Symbol,
+                              α::Number, β::Number, backend...)
+    C′ = tensorcontract!(copy(C), pC, A, pA, conjA, B, pB, conjB, α, β, backend...)
+
+    function tensorcontract_pullback(ΔC)
+        dC = @thunk conj(β) * ΔC
+        dA = @thunk begin
+            ipC = invperm(linearize(pC))
+            ipA = invperm(linearize(pA))
+            ipA = (tuple(ipA[1:TensorKit.numout(A)]...),
+                   tuple(ipA[(TensorKit.numout(A) + 1):end]...))
+            NA₁ = TensorOperations.numout(pA)
+            conjΔC = conjA == :C ? :C : :N
+            conjB′ = conjA == :C ? conjB : _conj(conjB)
+            c_dA = tensorcontract(ipA, ΔC, (ipC[1:NA₁], ipC[(NA₁ + 1):end]), conjΔC,
+                                  B, reverse(pB), conjB′, conjA == :C ? α : conj(α),
+                                  backend...)
+            (!(eltype(A) <: Complex) && (eltype(c_dA) <: Complex)) ? real(c_dA) : c_dA
+        end
+        dB = @thunk begin
+            ipC = invperm(linearize(pC))
+            ipB = invperm(linearize(pB))
+            ipB = (tuple(ipB[1:TensorKit.numout(B)]...),
+                   tuple(ipB[(TensorKit.numout(B) + 1):end]...))
+            NA₁ = TensorOperations.numout(pA)
+            conjΔC = conjB == :C ? :C : :N
+            conjA′ = conjB == :C ? conjA : _conj(conjA)
+            return tensorcontract(ipB, A, reverse(pA), conjA′,
+                                  ΔC, (ipC[1:NA₁], ipC[(NA₁ + 1):end]), conjΔC,
+                                  conjB == :C ? α : conj(α), backend...)
+            (!(eltype(B) <: Complex) && (eltype(c_dB) <: Complex)) ? real(c_dB) : c_dB
+        end
+        dα = @thunk tensorscalar(tensorcontract(((), ()),
+                                                tensorcontract(pC, A, pA, conjA, B, pB,
+                                                               conjB),
+                                                ((),
+                                                 trivtuple(TensorOperations.numind(pC))),
+                                                :C, ΔC,
+                                                (trivtuple(TensorOperations.numind(pC)),
+                                                 ()), :N,
+                                                backend...))
+        dβ = @thunk tensorscalar(tensorcontract(((), ()), C,
+                                                ((),
+                                                 trivtuple(TensorOperations.numind(pC))),
+                                                :C, ΔC,
+                                                (trivtuple(TensorOperations.numind(pC)),
+                                                 ()), :N,
+                                                backend...))
+
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, NoTangent(),
+               dA, NoTangent(), NoTangent(), dB, NoTangent(), NoTangent(), dα, dβ,
+               dbackend...
+    end
+
+    return C′, tensorcontract_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
+                              C::AbstractTensorMap, pC::Index2Tuple,
+                              A::AbstractTensorMap, conjA::Symbol,
+                              α::Number, β::Number, backend...)
+    C′ = tensoradd!(copy(C), pC, A, conjA, α, β, backend...)
+
+    function tensoradd_pullback(ΔC)
+        dC = @thunk conj(β) * ΔC
+        dA = @thunk begin
+            ipC = invperm(linearize(pC))
+            ipC = (tuple(ipC[1:TensorKit.numout(A)]...),
+                   tuple(ipC[(TensorKit.numout(A) + 1):end]...))
+            c_dA = tensorcopy(ipC, ΔC, conjA, conjA == :N ? conj(α) : α, backend...)
+
+            return (!(scalartype(A) <: Complex) && (scalartype(c_dA) <: Complex)) ?
+                   real(c_dA) : c_dA
+        end
+        dα = @thunk tensorscalar(tensorcontract(((), ()), A, ((), linearize(pC)),
+                                                _conj(conjA), ΔC,
+                                                (trivtuple(TensorOperations.numind(pC)),
+                                                 ()), :N, backend...))
+        dβ = @thunk tensorscalar(tensorcontract(((), ()), C,
+                                                ((),
+                                                 trivtuple(TensorOperations.numind(pC))),
+                                                :C, ΔC,
+                                                (trivtuple(TensorOperations.numind(pC)),
+                                                 ()), :N,
+                                                backend...))
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, NoTangent(), dA, NoTangent(), dα, dβ, dbackend...
+    end
+
+    return C′, tensoradd_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(tensortrace!), C::AbstractTensorMap, pC::Index2Tuple,
+                              A::AbstractTensorMap,
+                              pA::Index2Tuple, conjA::Symbol, α::Number, β::Number,
+                              backend...)
+    C′ = tensortrace!(copy(C), pC, A, pA, conjA, α, β, backend...)
+
+    function tensortrace_pullback(ΔC)
+        dC = @thunk conj(β) * ΔC
+        dA = @thunk begin
+            ipC = invperm((linearize(pC)..., pA[1]..., pA[2]...))
+            ipC = (tuple(ipC[1:TensorKit.numout(A)]...),
+                   tuple(ipC[(TensorKit.numout(A) + 1):end]...))
+
+            E = id(storagetype(A), ProductSpace((space(A, i) for i in pA[1])...))
+
+            return tensorproduct(ipC, ΔC, (trivtuple(TensorOperations.numind(pC)), ()),
+                                 conjA, E,
+                                 ((), trivtuple(TensorOperations.numind(pA))), conjA,
+                                 conjA == :N ? conj(α) : α, backend...)
+        end
+
+        dα = @thunk tensorscalar(tensorcontract(((), ()),
+                                                tensortrace(pC, A, pA, conjA),
+                                                ((),
+                                                 trivtuple(TensorOperations.numind(pC))),
+                                                _conj(conjA), ΔC,
+                                                (trivtuple(TensorOperations.numind(pC)),
+                                                 ()), :N,
+                                                backend...))
+        dβ = @thunk tensorscalar(tensorcontract(((), ()), C,
+                                                ((),
+                                                 trivtuple(TensorOperations.numind(pC))),
+                                                :C, ΔC,
+                                                (trivtuple(TensorOperations.numind(pC)),
+                                                 ()), :N,
+                                                backend...))
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, NoTangent(), dA, NoTangent(), NoTangent(), dα, dβ,
+               dbackend...
+    end
+
+    return C′, tensortrace_pullback
 end
 
 end
