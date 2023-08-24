@@ -185,6 +185,8 @@ for V in spacelist
             @test convert(typeof(tc), t) == tc
             @test typeof(convert(typeof(tc), t)) == typeof(tc)
             @test typeof(convert(typeof(tc), t')) == typeof(tc)
+            @test Base.promote_typeof(t, tc) == typeof(tc)
+            @test Base.promote_typeof(tc, t) == typeof(tc + t)
         end
         @timedtestset "Permutations: test via inner product invariance" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5

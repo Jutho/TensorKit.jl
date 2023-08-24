@@ -573,3 +573,9 @@ function Base.convert(T::Type{TensorMap{S,N₁,N₂,I,A,F₁,F₂}},
         return TensorMap(data, codomain(t), domain(t))
     end
 end
+
+function Base.promote_rule(::Type{<:T1},
+                           t2::Type{<:T2}) where {S,N₁,N₂,T1<:TensorMap{S,N₁,N₂},
+                                                  T2<:TensorMap{S,N₁,N₂}}
+    return tensormaptype(S, N₁, N₂, promote_type(storagetype(T1), storagetype(T2)))
+end
