@@ -12,17 +12,18 @@ using TupleTools
 _conj(conjA::Symbol) = conjA == :C ? :N : :C
 trivtuple(N) = ntuple(identity, N)
 
-function _repartition(p::IndexTuple, N₁::Int, N₂::Int)
-    length(p) == N₁ + N₂ || 
-        throw(ArgumentError("cannot repartition $(typeof(p)) to $N₁, $N₂"))
+function _repartition(p::IndexTuple, N₁::Int)
+    length(p) >= N₁ ||
+        throw(ArgumentError("cannot repartition $(typeof(p)) to $N₁, $(length(p) - N₁)"))
     return p[1:N₁], p[(N₁ + 1):end]
 end
-_repartition(p::Index2Tuple, N₁::Int, N₂::Int) = _repartition(linearize(p), N₁, N₂)
-function _repartition(p::Union{IndexTuple,Index2Tuple}, ::Index2Tuple{N₁,N₂})
-    return _repartition(p, N₁, N₂)
+_repartition(p::Index2Tuple, N₁::Int) = _repartition(linearize(p), N₁)
+function _repartition(p::Union{IndexTuple,Index2Tuple}, ::Index2Tuple{N₁}) where {N₁}
+    return _repartition(p, N₁)
 end
-function _repartition(p::Union{IndexTuple,Index2Tuple}, ::AbstractTensorMap{<:Any,N₁,N₂})
-    return _repartition(p, N₁, N₂)
+function _repartition(p::Union{IndexTuple,Index2Tuple},
+                      ::AbstractTensorMap{<:Any,N₁}) where {N₁}
+    return _repartition(p, N₁)
 end
 
 # Constructors
