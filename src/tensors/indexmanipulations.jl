@@ -327,16 +327,17 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
     elseif β != 1
         tdst = scale!(tdst, β)
     end
-
-    # TODO: implement multithreading for general symmetries
-    # Currently disable multithreading for general symmetries, requires more testing and
-    # possibly a different approach. Ideally, we'd loop over output blocks in parallel, to
-    # avoid parallel writing, but this requires the inverse of the fusiontreetransform.
-
-    for (f₁, f₂) in fusiontrees(tsrc)
-        for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-            TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
-                          backend...)
+    if Threads.nthreads() > 1
+        Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
+            Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁,
+                                                   s₂, α, β, backend...)
+        end
+    else
+        for (f₁, f₂) in fusiontrees(tsrc)
+            for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
+                TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
+                              backend...)
+            end
         end
     end
 
@@ -356,9 +357,10 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
     return nothing
 end
 
-function _add_sectors!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, β, backend...)
+function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, β,
+                                 backend...)
     for (f₁, f₂) in fusiontrees(tsrc)
-        (f₁.outgoing == s₁ && f₂.outgoing == s₂) || continue
+        (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
         for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
             TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true, backend...)
         end
