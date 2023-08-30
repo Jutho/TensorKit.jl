@@ -35,3 +35,7 @@ A Julia package for large-scale tensor computations, with a hint of category the
 Install via the package manager.
 
 Check out the [tutorial](https://jutho.github.io/TensorKit.jl/stable/man/tutorial/) and the full [documentation](https://jutho.github.io/TensorKit.jl/stable).
+
+
+While most common symmetries are already shipped with TensorKit.jl, there exist several extensions: [SUNRepresentations.jl](https://github.com/maartenvd/SUNRepresentations.jl) provides support for SU(N), while [CategoryData.jl](https://github.com/lkdvos/CategoryData.jl) incorporates a large collection of *small* fusion categories.
+Additionally, for libraries that implement tensor network algorithms on top of TensorKit.jl, check out [MPSKit.jl](https://github.com/maartenvd/MPSKit.jl), [MERAKit.jl](https://github.com/mhauru/MERAKit.jl) and [PEPSKit.jl](https://github.com/quantumghent/PEPSKit.jl).
