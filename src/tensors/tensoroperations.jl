@@ -26,7 +26,7 @@ function _canonicalize(p::Index2Tuple{N₁,N₂},
                        ::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂}
     return p
 end
-function _canonicalize(p::Index2Tuple, ::AbstractTensorMap)
+function _canonicalize(p::Index2Tuple, t::AbstractTensorMap)
     p′ = linearize(p)
     p₁ = TupleTools.getindices(p′, codomainind(t))
     p₂ = TupleTools.getindices(p′, domainind(t))
