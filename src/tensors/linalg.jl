@@ -163,7 +163,7 @@ end
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
 # Copy, adjoint! and fill:
 function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
-    space(tdst) == space(tsrc) || throw(SpaceMismatch())
+    space(tdst) == space(tsrc) || throw(SpaceMismatch("$(space(tdst)) ≠ $(space(tsrc))"))
     for c in blocksectors(tdst)
         copy!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
     end
@@ -179,7 +179,8 @@ function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
                                 tsrc::AbstractTensorMap)
     spacetype(tdst) === spacetype(tsrc) && InnerProductStyle(tdst) === EuclideanProduct() ||
         throw(ArgumentError("adjoint! requires Euclidean inner product spacetype"))
-    space(tdst) == adjoint(space(tsrc)) || throw(SpaceMismatch())
+    space(tdst) == adjoint(space(tsrc)) || 
+        throw(SpaceMismatch("$(space(tdst)) ≠ adjoint($(space(tsrc)))"))
     for c in blocksectors(tdst)
         adjoint!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
     end
@@ -396,8 +397,9 @@ end
 # concatenate tensors
 function catdomain(t1::AbstractTensorMap{S,N₁,1},
                    t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
-    codomain(t1) == codomain(t2) || throw(SpaceMismatch())
-
+    codomain(t1) == codomain(t2) ||
+        throw(SpaceMismatch("codomains of tensors to concatenate must match:\n\
+                             $(codomain(t1)) ≠ $(codomain(t2))"))
     V1, = domain(t1)
     V2, = domain(t2)
     isdual(V1) == isdual(V2) ||
@@ -413,7 +415,9 @@ function catdomain(t1::AbstractTensorMap{S,N₁,1},
 end
 function catcodomain(t1::AbstractTensorMap{S,1,N₂},
                      t2::AbstractTensorMap{S,1,N₂}) where {S,N₂}
-    domain(t1) == domain(t2) || throw(SpaceMismatch())
+    domain(t1) == domain(t2) ||
+        throw(SpaceMismatch("domains of tensors to concatenate must match:\n\
+                             $(domain(t1)) ≠ $(domain(t2))"))
 
     V1, = codomain(t1)
     V2, = codomain(t2)

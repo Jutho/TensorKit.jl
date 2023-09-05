@@ -191,9 +191,10 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
                                                  oindB, cindB, p1, p2)
-
-    if space(B, cindB[1]) != space(A, cindA[1])' || space(B, cindB[2]) != space(A, cindA[2])
-        throw(SpaceMismatch())
+    
+    if space(B, cindB[1]) != space(A, cindA[1])' ||
+       space(B, cindB[2]) != space(A, cindA[2])'
+        throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($p1, $p2)"))
     end
 
     if BraidingStyle(sectortype(B)) isa Bosonic
@@ -239,8 +240,6 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
 
     if space(B, cindB[1]) != space(A, cindA[1])' ||
        space(B, cindB[2]) != space(A, cindA[2])'
-        # @show space(B, cindB[1]), space(A, cindA[1])
-        # @show space(B, cindB[2]), space(A, cindA[2])
         throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($p1, $p2)"))
     end
 

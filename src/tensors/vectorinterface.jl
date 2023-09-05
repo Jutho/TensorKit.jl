@@ -34,14 +34,14 @@ function VectorInterface.scale!!(t::AbstractTensorMap, α::Number)
 end
 
 function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
-    space(ty) == space(tx) || throw(SpaceMismatch())
+    space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     for c in blocksectors(tx)
         scale!(block(ty, c), block(tx, c), α)
     end
     return ty
 end
 function VectorInterface.scale!!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
-    space(ty) == space(tx) || throw(SpaceMismatch())
+    space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     T = scalartype(ty)
     if promote_type(T, typeof(α), scalartype(tx)) <: T
         return scale!(ty, tx, α)
@@ -55,7 +55,7 @@ end
 # TODO: remove VectorInterface from calls to `add!` when `TensorKit.add!` is renamed
 function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
                              α::Number=VectorInterface._one, β::Number=VectorInterface._one)
-    space(ty) == space(tx) || throw(SpaceMismatch())
+    space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     T = promote_type(scalartype(ty), scalartype(tx), typeof(α), typeof(β))
     return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
 end
@@ -82,7 +82,7 @@ end
 # inner
 #-------
 function VectorInterface.inner(tx::AbstractTensorMap, ty::AbstractTensorMap)
-    space(tx) == space(ty) || throw(SpaceMismatch())
+    space(tx) == space(ty) || throw(SpaceMismatch("$(space(tx)) ≠ $(space(ty))"))
     InnerProductStyle(tx) === EuclideanProduct() ||
         throw(ArgumentError("dot requires Euclidean inner product"))
     T = promote_type(scalartype(tx), scalartype(ty))
