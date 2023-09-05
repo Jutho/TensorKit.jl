@@ -2,29 +2,19 @@
 #---------------
 Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
 
-Base.:-(t::AbstractTensorMap) = mul!(similar(t), t, -one(scalartype(t)))
-function Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    T = promote_type(scalartype(t1), scalartype(t2))
-    return axpy!(one(T), t2, copy!(similar(t1, T), t1))
-end
-function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    T = promote_type(scalartype(t1), scalartype(t2))
-    return axpy!(-one(T), t2, copy!(similar(t1, T), t1))
-end
+Base.:-(t::AbstractTensorMap) = VectorInterface.scale(t, -one(scalartype(t)))
 
-function Base.:*(t::AbstractTensorMap, α::Number)
-    return mul!(similar(t, promote_type(scalartype(t), typeof(α))), t, α)
-end
-function Base.:*(α::Number, t::AbstractTensorMap)
-    return mul!(similar(t, promote_type(scalartype(t), typeof(α))), α, t)
-end
+Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap) = VectorInterface.add(t1, t2)
+Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap) = VectorInterface.add(t1, t2, -one(scalartype(t1)))
+
+Base.:*(t::AbstractTensorMap, α::Number) = VectorInterface.scale(t, α)
+Base.:*(α::Number, t::AbstractTensorMap) = VectorInterface.scale(t, α)
+
 Base.:/(t::AbstractTensorMap, α::Number) = *(t, one(scalartype(t)) / α)
 Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t)) / α)
 
-LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real=2) = rmul!(t, inv(norm(t, p)))
-function LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2)
-    return mul!(similar(t), t, inv(norm(t, p)))
-end
+LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real=2) = scale!(t, inv(norm(t, p)))
+LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2) = scale(t, inv(norm(t, p)))
 
 function Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap)
     return mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)),
@@ -37,7 +27,7 @@ end
 
 # Special purpose constructors
 #------------------------------
-Base.zero(t::AbstractTensorMap) = fill!(similar(t), 0)
+Base.zero(t::AbstractTensorMap) = VectorInterface.zerovector(t)
 function Base.one(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
         throw(SectorMismatch("no identity if domain and codomain are different"))

@@ -17,7 +17,10 @@ VectorInterface.zerovector!!(t::AbstractTensorMap) = zerovector!(t)
 
 # scale, scale! & scale!!
 #-------------------------
-VectorInterface.scale(t::TensorMap, α::Number) = isone(α) ? t : t * α
+function VectorInterface.scale(t::AbstractTensorMap, α::Number)
+    T = Base.promote_op(scale, scalartype(t), scalartype(α))
+    return scale!(similar(t, T), t, α)
+end
 function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
     for (c, b) in blocks(t)
         scale!(b, α)
@@ -25,12 +28,10 @@ function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
     return t
 end
 function VectorInterface.scale!!(t::AbstractTensorMap, α::Number)
-    isone(α) && return t
-    if promote_type(scalartype(t), typeof(α)) <: scalartype(t)
-        return scale!(t, α)
-    else
-        return scale(t, α)
-    end
+    α === _one && return t
+    α === _zero && return zerovector!!(t)
+    T = Base.promote_op(scale, scalartype(t), scalartype(α))
+    return T <: scalartype(t) ? scale!(t, α) : scale(t, α)
 end
 
 function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
@@ -41,9 +42,8 @@ function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α
     return ty
 end
 function VectorInterface.scale!!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
-    space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    T = scalartype(ty)
-    if promote_type(T, typeof(α), scalartype(tx)) <: T
+    T = Base.promote_op(scale, scalartype(tx), scalartype(α))
+    if T <: scalartype(ty)
         return scale!(ty, tx, α)
     else
         return scale(tx, α)
@@ -54,14 +54,13 @@ end
 #-------------------
 # TODO: remove VectorInterface from calls to `add!` when `TensorKit.add!` is renamed
 function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                             α::Number=VectorInterface._one, β::Number=VectorInterface._one)
+                             α::Number=_one, β::Number=_one)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    T = promote_type(scalartype(ty), scalartype(tx), typeof(α), typeof(β))
+    T = Base.promote_op(VectorInterface.add, scalartype(ty), scalartype(tx), scalartype(α), scalartype(β))
     return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                              α::Number=VectorInterface._one,
-                              β::Number=VectorInterface._one)
+                              α::Number=_one, β::Number=_one)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     for c in blocksectors(tx)
         VectorInterface.add!(block(ty, c), block(tx, c), α, β)
@@ -69,10 +68,10 @@ function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
     return ty
 end
 function VectorInterface.add!!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                               α::Number=VectorInterface._one,
-                               β::Number=VectorInterface._one)
-    T = scalartype(ty)
-    if promote_type(T, typeof(α), typeof(β), scalartype(tx)) <: T
+                               α::Number=_one, β::Number=_one)
+    T = Base.promote_op(VectorInterface.add, scalartype(ty), scalartype(tx), scalartype(α),
+                        scalartype(β))
+    if T <: scalartype(ty)
         return VectorInterface.add!(ty, tx, α, β)
     else
         return VectorInterface.add(ty, tx, α, β)
@@ -85,7 +84,7 @@ function VectorInterface.inner(tx::AbstractTensorMap, ty::AbstractTensorMap)
     space(tx) == space(ty) || throw(SpaceMismatch("$(space(tx)) ≠ $(space(ty))"))
     InnerProductStyle(tx) === EuclideanProduct() ||
         throw(ArgumentError("dot requires Euclidean inner product"))
-    T = promote_type(scalartype(tx), scalartype(ty))
+    T = Base.promote_op(VectorInterface.inner, scalartype(tx), scalartype(ty))
     s = zero(T)
     for c in blocksectors(tx)
         s += convert(T, dim(c)) * dot(block(tx, c), block(ty, c))
