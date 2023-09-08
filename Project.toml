@@ -26,7 +26,7 @@ LRUCache = "1.0.2"
 Strided = "2"
 TensorOperations = "4.0.2"
 TupleTools = "1.1"
-VectorInterface = "0.3"
+VectorInterface = "0.4"
 WignerSymbols = "1,2"
 julia = "1.6"
 
