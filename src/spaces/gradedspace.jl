@@ -1,5 +1,5 @@
 """
-    struct GradedSpace{I<:Sector, D} <: ElementarySpace{ℂ}
+    struct GradedSpace{I<:Sector, D} <: ElementarySpace
         dims::D
         dual::Bool
     end
@@ -24,7 +24,7 @@ and should typically be of no concern.
 The concrete type `GradedSpace{I,D}` with correct `D` can be obtained as `Vect[I]`, or if
 `I == Irrep[G]` for some `G<:Group`, as `Rep[G]`.
 """
-struct GradedSpace{I<:Sector,D} <: ElementarySpace{ℂ}
+struct GradedSpace{I<:Sector,D} <: ElementarySpace
     dims::D
     dual::Bool
 end
@@ -84,6 +84,7 @@ Base.hash(V::GradedSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
 
 # Corresponding methods:
 # properties
+field(::Type{<:GradedSpace}) = ℂ
 InnerProductStyle(::Type{<:GradedSpace}) = EuclideanProduct()
 function dim(V::GradedSpace)
     return reduce(+, dim(V, c) * dim(c) for c in sectors(V);

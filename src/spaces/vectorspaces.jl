@@ -87,10 +87,10 @@ function isdual end
 # Hierarchy of elementary vector spaces
 #---------------------------------------
 """
-    abstract type ElementarySpace{𝕜} <: VectorSpace end
+    abstract type ElementarySpace <: VectorSpace end
 
-Elementary finite-dimensional vector space over a field `𝕜` that can be used as the index
-space corresponding to the indices of a tensor. ElementarySpace is a super type for all
+Elementary finite-dimensional vector space over a field that can be used as the index
+space corresponding to the indices of a tensor. ElementarySpace is a supertype for all
 vector spaces (objects) that can be associated with the individual indices of a tensor,
 as hinted to by its alias IndexSpace.
 
@@ -100,10 +100,11 @@ complex conjugate of the dual space is obtained as `dual(conj(V)) === conj(dual(
 different spaces should be of the same type, so that a tensor can be defined as an element
 of a homogeneous tensor product of these spaces.
 """
-abstract type ElementarySpace{𝕜} <: VectorSpace end
+abstract type ElementarySpace <: VectorSpace end
 const IndexSpace = ElementarySpace
 
-field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
+field(V::ElementarySpace) = field(typeof(V))
+# field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
 
 """
     oneunit(V::S) where {S<:ElementarySpace} -> S
@@ -171,7 +172,10 @@ Return the conjugate space of `V`. This should satisfy `conj(conj(V)) == V`.
 
 For `field(V)==ℝ`, `conj(V) == V`. It is assumed that `typeof(V) == typeof(conj(V))`.
 """
-Base.conj(V::ElementarySpace{ℝ}) = V
+function Base.conj(V::ElementarySpace)
+    @assert field(V) == ℝ "default conj only defined for Vector spaces over ℝ"
+    return V
+end
 
 # trait to describe the inner product type of vector spaces
 abstract type InnerProductStyle end
@@ -229,7 +233,7 @@ end
     abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
 Abstract type for composite spaces that are defined in terms of a number of elementary
-vector spaces of a homogeneous type `S<:ElementarySpace{𝕜}`.
+vector spaces of a homogeneous type `S<:ElementarySpace`.
 """
 abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
