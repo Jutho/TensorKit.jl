@@ -32,7 +32,10 @@ function BraidingTensor(V1::S, V2::S, adjoint::Bool=false) where {S<:IndexSpace}
         return BraidingTensor{S,Matrix{ComplexF64}}(V1, V2, adjoint)
     end
 end
-
+function BraidingTensor(V::HomSpace{S}, adjoint::Bool=false) where {S<:IndexSpace}
+    domain(V) == flip(codomain(V)) || throw(SpaceMismatch("Cannot define a braiding on $V"))
+    return BraidingTensor(V[1], V[2], adjoint)
+end
 function Base.adjoint(b::BraidingTensor{S,A}) where {S<:IndexSpace,A<:DenseMatrix}
     return BraidingTensor(b.V1, b.V2, !b.adjoint, A)
 end
