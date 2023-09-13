@@ -257,4 +257,4 @@ Base.convert(::Type{S}, P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneun
 Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 
 # ElementarySpace to ProductSpace
-Base.convert(::Type{<:ProductSpace{S}}, V::S) where {S<:ElementarySpace} = ⊗(V)
+Base.convert(::Type{<:ProductSpace}, V::S) where {S<:ElementarySpace} = ⊗(V)
