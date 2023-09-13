@@ -124,7 +124,8 @@ spaces `V₁`, `V₂`, ... Note that all the individual spaces should have the s
 [`isdual`](@ref), as otherwise the direct sum is not defined.
 """
 function ⊕ end
-⊕(V₁, V₂, V₃, V₄...) = ⊕(⊕(V₁, V₂), V₃, V₄...)
+⊕(V₁::VectorSpace, V₂::VectorSpace) = ⊕(promote(V₁, V₂)...)
+⊕(V::Vararg{VectorSpace}) = foldl(⊕, V)
 
 """
     ⊗(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
@@ -137,7 +138,8 @@ The tensor product structure is preserved, see [`fuse`](@ref) for returning a si
 elementary space of type `S` that is isomorphic to this tensor product.
 """
 function ⊗ end
-⊗(V₁, V₂, V₃, V₄...) = ⊗(⊗(V₁, V₂), V₃, V₄...)
+⊗(V₁::VectorSpace, V₂::VectorSpace) = ⊗(promote(V₁, V₂)...)
+⊗(V::Vararg{VectorSpace}) = foldl(⊗, V)
 
 # convenience definitions:
 Base.:*(V₁::VectorSpace, V₂::VectorSpace) = ⊗(V₁, V₂)

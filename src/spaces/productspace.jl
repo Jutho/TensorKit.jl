@@ -31,6 +31,8 @@ Base.axes(P::ProductSpace, n::Int) = axes(P.spaces[n])
 
 dual(P::ProductSpace{<:ElementarySpace,0}) = P
 dual(P::ProductSpace) = ProductSpace(map(dual, reverse(P.spaces)))
+flip(P::ProductSpace{<:ElementarySpace,0}) = P
+flip(P::ProductSpace) = ProductSpace(map(flip, reverse(P.spaces)))
 
 # Base.conj(P::ProductSpace) = ProductSpace(map(conj, P.spaces))
 
@@ -177,21 +179,11 @@ Base.hash(P::ProductSpace, h::UInt) = hash(P.spaces, h)
 
 # Default construction from product of spaces
 #---------------------------------------------
-⊗(V₁::S, V₂::S) where {S<:ElementarySpace} = ProductSpace((V₁, V₂))
-function ⊗(P1::ProductSpace{S}, V₂::S) where {S<:ElementarySpace}
-    return ProductSpace(tuple(P1.spaces..., V₂))
-end
-function ⊗(V₁::S, P2::ProductSpace{S}) where {S<:ElementarySpace}
-    return ProductSpace(tuple(V₁, P2.spaces...))
-end
-function ⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace}
-    return ProductSpace(tuple(P1.spaces..., P2.spaces...))
-end
-⊗(P::ProductSpace{S,0}, ::ProductSpace{S,0}) where {S<:ElementarySpace} = P
-⊗(P::ProductSpace{S}, ::ProductSpace{S,0}) where {S<:ElementarySpace} = P
-⊗(::ProductSpace{S,0}, P::ProductSpace{S}) where {S<:ElementarySpace} = P
-⊗(V::ElementarySpace) = ProductSpace((V,))
+⊗(V::Vararg{S}) where {S<:ElementarySpace} = ProductSpace(V)
 ⊗(P::ProductSpace) = P
+function ⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace}
+    return ProductSpace{S}(tuple(P1.spaces..., P2.spaces...))
+end
 
 # unit element with respect to the monoidal structure of taking tensor products
 """
@@ -205,14 +197,12 @@ Base.one(V::VectorSpace) = one(typeof(V))
 Base.one(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 Base.one(::Type{S}) where {S<:ElementarySpace} = ProductSpace{S,0}(())
 
-Base.convert(::Type{<:ProductSpace}, V::ElementarySpace) = ProductSpace((V,))
 Base.:^(V::ElementarySpace, N::Int) = ProductSpace{typeof(V),N}(ntuple(n -> V, N))
 Base.:^(V::ProductSpace, N::Int) = ⊗(ntuple(n -> V, N)...)
 function Base.literal_pow(::typeof(^), V::ElementarySpace, p::Val{N}) where {N}
     return ProductSpace{typeof(V),N}(ntuple(n -> V, p))
 end
-Base.convert(::Type{S}, P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
-Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
+
 fuse(P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
 fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 
@@ -255,3 +245,16 @@ Base.eltype(P::ProductSpace) = eltype(typeof(P))
 
 Base.IteratorEltype(::Type{<:ProductSpace}) = Base.HasEltype()
 Base.IteratorSize(::Type{<:ProductSpace}) = Base.HasLength()
+
+# Promotion and conversion
+# ------------------------
+function Base.promote_rule(::Type{S}, ::Type{<:ProductSpace{S}}) where {S<:ElementarySpace}
+    return ProductSpace{S}
+end
+
+# ProductSpace to ElementarySpace
+Base.convert(::Type{S}, P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
+Base.convert(::Type{S}, P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
+
+# ElementarySpace to ProductSpace
+Base.convert(::Type{<:ProductSpace{S}}, V::S) where {S<:ElementarySpace} = ⊗(V)

@@ -43,13 +43,14 @@ function Base.getindex(W::TensorMapSpace{<:IndexSpace,N₁,N₂}, i) where {N₁
     return i <= N₁ ? codomain(W)[i] : dual(domain(W)[i - N₁])
 end
 
-function →(dom::TensorSpace{S}, codom::TensorSpace{S}) where {S<:ElementarySpace}
+function ←(codom::ProductSpace{S}, dom::ProductSpace{S}) where {S<:ElementarySpace}
+    return HomSpace(codom, dom)
+end
+function ←(codom::S, dom::S) where {S<:ElementarySpace}
     return HomSpace(ProductSpace(codom), ProductSpace(dom))
 end
-
-function ←(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:ElementarySpace}
-    return HomSpace(ProductSpace(codom), ProductSpace(dom))
-end
+←(codom::VectorSpace, dom::VectorSpace) = ←(promote(codom, dom)...)
+→(dom::VectorSpace, codom::VectorSpace) = ←(codom, dom)
 
 function Base.show(io::IO, W::HomSpace)
     if length(W.codomain) == 1
