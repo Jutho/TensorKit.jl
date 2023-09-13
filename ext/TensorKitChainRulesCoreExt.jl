@@ -80,16 +80,16 @@ function ChainRulesCore.rrule(::typeof(*), a::Number, b::AbstractTensorMap)
     return a * b, times_pullback
 end
 
-function ChainRulesCore.rrule(::typeof(permute), t::AbstractTensorMap, p::Index2Tuple)
-    function permute_pullback(c)
-        invpt = _repartition(TupleTools.invperm(linearize(p)), t)
-        return NoTangent(), permute(c, invpt), NoTangent()
+function ChainRulesCore.rrule(::typeof(permute), tsrc::AbstractTensorMap, p::Index2Tuple)
+    function permute_pullback(Δtdst)
+        invp = TensorKit._canonicalize(TupleTools.invperm(linearize(p)), tsrc)
+        return NoTangent(), permute(unthunk(Δtdst), invp), NoTangent()
     end
-    return permute(t, p), permute_pullback
+    return permute(tsrc, p), permute_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(scalar), t::AbstractTensorMap)
-    scalar_pullback(Δc) = NoTangent(), fill!(similar(t), Δc)
+    scalar_pullback(Δc) = NoTangent(), fill!(similar(t), unthunk(Δc))
     return scalar(t), scalar_pullback
 end
 
@@ -102,7 +102,7 @@ function ChainRulesCore.rrule(::typeof(tr), A::AbstractTensorMap)
 end
 
 function ChainRulesCore.rrule(::typeof(adjoint), A::AbstractTensorMap)
-    adjoint_pullback(Δadjoint) = NoTangent(), adjoint(Δadjoint)
+    adjoint_pullback(Δadjoint) = NoTangent(), adjoint(unthunk(Δadjoint))
     return adjoint(A), adjoint_pullback
 end
 
@@ -124,7 +124,7 @@ end
 function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kwargs...)
     T = eltype(t)
 
-    U, S, V = tsvd(t; kwargs...)
+    U, S, V, ϵ = tsvd(t; kwargs...)
 
     F = similar(S)
     for (k, dst) in blocks(F)
@@ -171,10 +171,10 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kw
             ∂t += U * pinv(S) * dV * (one(prv) - prv)
         end
 
-        return NoTangent(), ∂t, fill(NoTangent(), length(kwargs))...
+        return NoTangent(), ∂t
     end
 
-    return (U, S, V), tsvd_pullback
+    return (U, S, V, ϵ), tsvd_pullback
 end
 
 function _elementwise_mult(a::AbstractTensorMap, b::AbstractTensorMap)
