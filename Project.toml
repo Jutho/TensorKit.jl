@@ -31,7 +31,10 @@ WignerSymbols = "1,2"
 julia = "1.6"
 
 [extras]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+ChainRulesTestUtils = "cdddcdb0-9152-4a09-a978-84456f9df70a"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
 HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -41,4 +44,4 @@ TestExtras = "5ed8adda-3752-4e41-b88a-e8b09835ee3a"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [targets]
-test = ["Combinatorics", "HalfIntegers", "LinearAlgebra", "Random", "TensorOperations", "Test", "TestExtras", "WignerSymbols"]
+test = ["Combinatorics", "HalfIntegers", "LinearAlgebra", "Random", "TensorOperations", "Test", "TestExtras", "WignerSymbols", "ChainRulesCore", "ChainRulesTestUtils", "FiniteDifferences"]

@@ -121,7 +121,7 @@ end
 # Factorizations
 # --------------
 
-function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kwargs...)
+function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap; kwargs...)
     T = eltype(t)
 
     U, S, V, ϵ = tsvd(t; kwargs...)
@@ -139,7 +139,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kw
         end
     end
 
-    function tsvd_pullback(ΔUSV)
+    function tsvd!_pullback(ΔUSV)
         dU, dS, dV = ΔUSV
 
         ∂t = zero(t)
@@ -174,7 +174,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), t::AbstractTensorMap; kw
         return NoTangent(), ∂t
     end
 
-    return (U, S, V, ϵ), tsvd_pullback
+    return (U, S, V, ϵ), tsvd!_pullback
 end
 
 function _elementwise_mult(a::AbstractTensorMap, b::AbstractTensorMap)
@@ -185,9 +185,9 @@ function _elementwise_mult(a::AbstractTensorMap, b::AbstractTensorMap)
     return dst
 end
 
-function ChainRulesCore.rrule(::typeof(leftorth!), t; alg=QRpos())
+function ChainRulesCore.rrule(::typeof(leftorth!), t::AbstractTensorMap; alg=QRpos())
     alg isa TensorKit.QR || alg isa TensorKit.QRpos || error("only QR and QRpos supported")
-    Q, R = leftorth(t; alg)
+    Q, R = leftorth(t; alg=alg)
 
     function leftorth_pullback((ΔQ, ΔR))
         ∂t = similar(t)
@@ -210,9 +210,9 @@ function ChainRulesCore.rrule(::typeof(leftorth!), t; alg=QRpos())
     return (Q, R), leftorth_pullback
 end
 
-function ChainRulesCore.rrule(::typeof(rightorth!), tensor; alg=LQpos())
+function ChainRulesCore.rrule(::typeof(rightorth!), t::AbstractTensorMap; alg=LQpos())
     alg isa TensorKit.LQ || alg isa TensorKit.LQpos || error("only LQ and LQpos supported")
-    L, Q = rightorth(tensor; alg)
+    L, Q = rightorth(t; alg)
 
     function rightorth_pullback((ΔL, ΔQ))
         ∂t = similar(t)
@@ -282,7 +282,7 @@ end
 
 lq_pullback(A, L, Q, ::Nothing, ::Nothing) = nothing
 function lq_pullback(A, L, Q, ΔL, ΔQ)
-    M = lq_rqnk(L)
+    M = lq_rank(L)
     N = size(L, 1)
 
     l = view(L, :, 1:M)
@@ -310,16 +310,17 @@ end
 
 qr_pullback_fullrank(Q, R, ::Nothing, ::Nothing) = nothing
 function qr_pullback_fullrank(Q, R, ΔQ, ::Nothing)
-    b = ΔQ + q * copyltu!(-ΔQ' * Q)
-    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
+    b = ΔQ + Q * copyltu!(-Q' * ΔQ)
+    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', R, copy(adjoint(b)))'
 end
 function qr_pullback_fullrank(Q, R, ::Nothing, ΔR)
-    b = q * copyltu!(R * ΔR)
-    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
+    b = Q * copyltu!(R * ΔR')
+    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', R, copy(adjoint(b)))'
 end
 function qr_pullback_fullrank(Q, R, ΔQ, ΔR)
-    b = ΔQ + q * copyltu(R * ΔR' - ΔQ' * Q)
-    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', r, copy(adjoint(b)))
+    b = ΔQ + Q * copyltu!(R * ΔR' - ΔQ' * Q)
+    return b / R'
+    return LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', R, copy(adjoint(b)))'
 end
 
 lq_pullback_fullrank(L, Q, ::Nothing, ::Nothing) = nothing
@@ -346,7 +347,7 @@ function qr_rank(r::AbstractMatrix)
 end
 
 function lq_rank(l::AbstractMatrix)
-    Base.require_one_based_indexing(r)
+    Base.require_one_based_indexing(l)
     l₀ = l[1, 1]
     for i in axes(l, 2)
         abs(l[i, i] / l₀) < 1e-12 && return i - 1
