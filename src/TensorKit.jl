@@ -92,7 +92,6 @@ using TupleTools: StaticLength
 using Strided
 
 using VectorInterface
-using VectorInterface: _zero, _one
 
 using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon
 using TensorOperations: IndexTuple, Index2Tuple, linearize, Backend
@@ -117,8 +116,6 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      isposdef, isposdef!, ishermitian,
                      Diagonal, Hermitian
 import Base.Meta
-
-# const IndexTuple{N} = NTuple{N, Int}
 
 # Auxiliary files
 #-----------------

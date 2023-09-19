@@ -188,11 +188,7 @@ function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂},
         cod = codomain(tsrc)
         dom = domain(tsrc)
         n = length(cod)
-        if iszero(β)
-            fill!(tdst, β)
-        elseif β != 1
-            mul!(tdst, β, tdst)
-        end
+        scale!(tdst, β)
         r₁ = (p₁..., q₁...)
         r₂ = (p₂..., q₂...)
         for (f₁, f₂) in fusiontrees(tsrc)
@@ -209,7 +205,7 @@ function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂},
                 C = tdst[f₁′′, f₂′′]
                 A = tsrc[f₁, f₂]
                 α′ = α * coeff
-                TO.tensortrace!(C, (p₁, p₂), A, (q₁, q₂), :N, α′, true, backend...)
+                TO.tensortrace!(C, (p₁, p₂), A, (q₁, q₂), :N, α′, One(), backend...)
             end
         end
     end

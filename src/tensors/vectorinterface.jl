@@ -18,7 +18,7 @@ VectorInterface.zerovector!!(t::AbstractTensorMap) = zerovector!(t)
 # scale, scale! & scale!!
 #-------------------------
 function VectorInterface.scale(t::AbstractTensorMap, α::Number)
-    T = Base.promote_op(scale, scalartype(t), scalartype(α))
+    T = VectorInterface.promote_scale(t, α)
     return scale!(similar(t, T), t, α)
 end
 function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
@@ -28,12 +28,10 @@ function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
     return t
 end
 function VectorInterface.scale!!(t::AbstractTensorMap, α::Number)
-    α === _one && return t
-    α === _zero && return zerovector!!(t)
-    T = Base.promote_op(scale, scalartype(t), scalartype(α))
+    α === One() && return t
+    T = VectorInterface.promote_scale(t, α)
     return T <: scalartype(t) ? scale!(t, α) : scale(t, α)
 end
-
 function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     for c in blocksectors(tx)
@@ -42,7 +40,7 @@ function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α
     return ty
 end
 function VectorInterface.scale!!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
-    T = Base.promote_op(scale, scalartype(tx), scalartype(α))
+    T = VectorInterface.promote_scale(tx, α)
     if T <: scalartype(ty)
         return scale!(ty, tx, α)
     else
@@ -54,13 +52,13 @@ end
 #-------------------
 # TODO: remove VectorInterface from calls to `add!` when `TensorKit.add!` is renamed
 function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                             α::Number=_one, β::Number=_one)
+                             α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    T = Base.promote_op(VectorInterface.add, scalartype(ty), scalartype(tx), scalartype(α), scalartype(β))
+    T = VectorInterface.promote_add(ty, tx, α, β)
     return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                              α::Number=_one, β::Number=_one)
+                              α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     for c in blocksectors(tx)
         VectorInterface.add!(block(ty, c), block(tx, c), α, β)
@@ -68,9 +66,9 @@ function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
     return ty
 end
 function VectorInterface.add!!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                               α::Number=_one, β::Number=_one)
-    T = Base.promote_op(VectorInterface.add, scalartype(ty), scalartype(tx), scalartype(α),
-                        scalartype(β))
+                               α::Number, β::Number)
+    # spacecheck is done in add(!)
+    T = VectorInterface.promote_add(ty, tx, α, β)
     if T <: scalartype(ty)
         return VectorInterface.add!(ty, tx, α, β)
     else
@@ -84,7 +82,7 @@ function VectorInterface.inner(tx::AbstractTensorMap, ty::AbstractTensorMap)
     space(tx) == space(ty) || throw(SpaceMismatch("$(space(tx)) ≠ $(space(ty))"))
     InnerProductStyle(tx) === EuclideanProduct() ||
         throw(ArgumentError("dot requires Euclidean inner product"))
-    T = Base.promote_op(VectorInterface.inner, scalartype(tx), scalartype(ty))
+    T = VectorInterface.promote_inner(tx, ty)
     s = zero(T)
     for c in blocksectors(tx)
         s += convert(T, dim(c)) * dot(block(tx, c), block(ty, c))
