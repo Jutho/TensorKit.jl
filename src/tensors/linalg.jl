@@ -390,8 +390,8 @@ end
 function catdomain(t1::AbstractTensorMap{S,N₁,1},
                    t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
     codomain(t1) == codomain(t2) ||
-        throw(SpaceMismatch("codomains of tensors to concatenate must match:\n\
-                             $(codomain(t1)) ≠ $(codomain(t2))"))
+        throw(SpaceMismatch("codomains of tensors to concatenate must match:\n" *
+                            "$(codomain(t1)) ≠ $(codomain(t2))"))
     V1, = domain(t1)
     V2, = domain(t2)
     isdual(V1) == isdual(V2) ||
@@ -408,9 +408,8 @@ end
 function catcodomain(t1::AbstractTensorMap{S,1,N₂},
                      t2::AbstractTensorMap{S,1,N₂}) where {S,N₂}
     domain(t1) == domain(t2) ||
-        throw(SpaceMismatch("domains of tensors to concatenate must match:\n\
-                             $(domain(t1)) ≠ $(domain(t2))"))
-
+        throw(SpaceMismatch("domains of tensors to concatenate must match:\n" *
+                            "$(domain(t1)) ≠ $(domain(t2))"))
     V1, = codomain(t1)
     V2, = codomain(t2)
     isdual(V1) == isdual(V2) ||
