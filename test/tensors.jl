@@ -347,7 +347,7 @@ for V in spacelist
                                                        TensorKit.QL(), TensorKit.QLpos(),
                                                        TensorKit.Polar(), TensorKit.SVD(),
                                                        TensorKit.SDD())
-                        Q, R = @constinferred leftorth(t, (3, 4, 2), (1, 5); alg=alg)
+                        Q, R = @constinferred leftorth(t, ((3, 4, 2), (1, 5)); alg=alg)
                         QdQ = Q' * Q
                         @test QdQ ≈ one(QdQ)
                         @test Q * R ≈ permute(t, ((3, 4, 2), (1, 5)))
@@ -359,7 +359,7 @@ for V in spacelist
                     @testset "leftnull with $alg" for alg in
                                                       (TensorKit.QR(), TensorKit.SVD(),
                                                        TensorKit.SDD())
-                        N = @constinferred leftnull(t, (3, 4, 2), (1, 5); alg=alg)
+                        N = @constinferred leftnull(t, ((3, 4, 2), (1, 5)); alg=alg)
                         NdN = N' * N
                         @test NdN ≈ one(NdN)
                         @test norm(N' * permute(t, ((3, 4, 2), (1, 5)))) <
@@ -370,7 +370,7 @@ for V in spacelist
                                                         TensorKit.LQ(), TensorKit.LQpos(),
                                                         TensorKit.Polar(), TensorKit.SVD(),
                                                         TensorKit.SDD())
-                        L, Q = @constinferred rightorth(t, (3, 4), (2, 1, 5); alg=alg)
+                        L, Q = @constinferred rightorth(t, ((3, 4), (2, 1, 5)); alg=alg)
                         QQd = Q * Q'
                         @test QQd ≈ one(QQd)
                         @test L * Q ≈ permute(t, ((3, 4), (2, 1, 5)))
@@ -382,14 +382,14 @@ for V in spacelist
                     @testset "rightnull with $alg" for alg in
                                                        (TensorKit.LQ(), TensorKit.SVD(),
                                                         TensorKit.SDD())
-                        M = @constinferred rightnull(t, (3, 4), (2, 1, 5); alg=alg)
+                        M = @constinferred rightnull(t, ((3, 4), (2, 1, 5)); alg=alg)
                         MMd = M * M'
                         @test MMd ≈ one(MMd)
                         @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') <
                               100 * eps(norm(t))
                     end
                     @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                        U, S, V = @constinferred tsvd(t, (3, 4, 2), (1, 5); alg=alg)
+                        U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
                         UdU = U' * U
                         @test UdU ≈ one(UdU)
                         VVd = V * V'
@@ -440,8 +440,8 @@ for V in spacelist
 
                 t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
                 @testset "eig and isposdef" begin
-                    D, V = eigen(t, (1, 3), (2, 4))
-                    D̃, Ṽ = @constinferred eig(t, (1, 3), (2, 4))
+                    D, V = eigen(t, ((1, 3), (2, 4)))
+                    D̃, Ṽ = @constinferred eig(t, ((1, 3), (2, 4)))
                     @test D ≈ D̃
                     @test V ≈ Ṽ
                     VdV = V' * V

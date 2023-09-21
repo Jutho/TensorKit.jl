@@ -5,18 +5,8 @@ const OFA = OrthogonalFactorizationAlgorithm
 import LinearAlgebra: svd!, svd
 const SVDAlg = Union{SVD,SDD}
 
-Base.@deprecate(svd(t::AbstractTensorMap, leftind::IndexTuple, rightind::IndexTuple;
-                    trunc::TruncationScheme=notrunc(), p::Real=2, alg::SVDAlg=SDD()),
-                tsvd(t, leftind, rightind; trunc=trunc, p=p, alg=alg))
-Base.@deprecate(svd(t::AbstractTensorMap;
-                    trunc::TruncationScheme=notrunc(), p::Real=2, alg::SVDAlg=SDD()),
-                tsvd(t; trunc=trunc, p=p, alg=alg))
-Base.@deprecate(svd!(t::AbstractTensorMap;
-                     trunc::TruncationScheme=notrunc(), p::Real=2, alg::SVDAlg=SDD()),
-                tsvd(t; trunc=trunc, p=p, alg=alg))
-
 """
-    tsvd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
+    tsvd(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
         trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD, SDD} = SDD())
         -> U, S, V, ϵ
 
@@ -47,12 +37,12 @@ algorithm that computes the decomposition (`_gesvd` or `_gesdd`).
 Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and `tsvd(!)`
 is currently only implemented for `InnerProductStyle(t) === EuclideanProduct()`.
 """
-function tsvd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return tsvd!(permute(t, (p1, p2); copy=true); kwargs...)
+function tsvd(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return tsvd!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
 """
-    leftorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
+    leftorth(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> Q, R
 
 Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
@@ -73,12 +63,12 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `leftorth(!)` is currently only implemented for 
     `InnerProductStyle(t) === EuclideanProduct()`.
 """
-function leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return leftorth!(permute(t, (p1, p2); copy=true); kwargs...)
+function leftorth(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return leftorth!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
 """
-    rightorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
+    rightorth(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = LQpos()) -> L, Q
 
 Create orthonormal basis `Q` for indices in `rightind`, and remainder `L` such that
@@ -101,12 +91,12 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `rightorth(!)` is currently only implemented for 
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
-function rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return rightorth!(permute(t, (p1, p2); copy=true); kwargs...)
+function rightorth(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return rightorth!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
 """
-    leftnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple;
+    leftnull(t::AbstractTensor, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> N
 
 Create orthonormal basis for the orthogonal complement of the support of the indices in
@@ -127,12 +117,12 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `leftnull(!)` is currently only implemented for 
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
-function leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return leftnull!(permute(t, (p1, p2); copy=true); kwargs...)
+function leftnull(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return leftnull!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
 """
-    rightnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple;
+    rightnull(t::AbstractTensor, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = LQ(),
                 atol::Real = 0.0,
                 rtol::Real = eps(real(float(one(scalartype(t)))))*iszero(atol)) -> N
@@ -155,12 +145,12 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `rightnull(!)` is currently only implemented for 
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
-function rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return rightnull!(permute(t, (p1, p2); copy=true); kwargs...)
+function rightnull(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return rightnull!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
 """
-    eigen(t::AbstractTensor, leftind::Tuple, rightind::Tuple; kwargs...) -> D, V
+    eigen(t::AbstractTensor, (leftind, rightind)::Index2Tuple; kwargs...) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 
@@ -178,13 +168,13 @@ matrices. See the corresponding documentation for more information.
 
 See also `eig` and `eigh`
 """
-function LinearAlgebra.eigen(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple;
+function LinearAlgebra.eigen(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple;
                              kwargs...)
-    return eigen!(permute(t, (p1, p2); copy=true); kwargs...)
+    return eigen!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
 """
-    eig(t::AbstractTensor, leftind::Tuple, rightind::Tuple; kwargs...) -> D, V
+    eig(t::AbstractTensor, (leftind, rightind)::Index2Tuple; kwargs...) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 The function `eig` assumes that the linear map is not hermitian and returns type stable
@@ -204,12 +194,12 @@ Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of
 
 See also `eigen` and `eigh`.
 """
-function eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...)
-    return eig!(permute(t, (p1, p2); copy=true); kwargs...)
+function eig(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return eig!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
 """
-    eigh(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple) -> D, V
+    eigh(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 The function `eigh` assumes that the linear map is hermitian and `D` and `V` tensors with
@@ -228,12 +218,12 @@ permute(t, (leftind, rightind)) * V = V * D
 
 See also `eigen` and `eig`.
 """
-function eigh(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple)
-    return eigh!(permute(t, (p1, p2); copy=true))
+function eigh(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
+    return eigh!(permute(t, (p₁, p₂); copy=true))
 end
 
 """
-    isposdef(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> ::Bool
+    isposdef(t::AbstractTensor, (leftind, rightind)::Index2Tuple) -> ::Bool
 
 Test whether a tensor `t` is positive definite as linear map from `rightind` to `leftind`.
 
@@ -241,13 +231,10 @@ If `leftind` and `rightind` are not specified, the current partition of left and
 indices of `t` is used. In that case, less memory is allocated if one allows the data in
 `t` to be destroyed/overwritten, by using `isposdef!(t)`. Note that the permuted tensor on
 which `isposdef!` is called should have equal domain and codomain, as otherwise it is
-meaningless
-
-Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense
-matrices. See the corresponding documentation for more information.
+meaningless.
 """
-function LinearAlgebra.isposdef(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple)
-    return isposdef!(permute(t, (p1, p2); copy=true))
+function LinearAlgebra.isposdef(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
+    return isposdef!(permute(t, (p₁, p₂); copy=true))
 end
 
 function tsvd(t::AbstractTensorMap; trunc::TruncationScheme=NoTruncation(),
