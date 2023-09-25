@@ -23,22 +23,6 @@ i.e. a tensor map with only a non-trivial output space.
 const AbstractTensor{S<:IndexSpace,N} = AbstractTensorMap{S,N,0}
 
 # tensor characteristics
-Base.eltype(T::Type{<:AbstractTensorMap}) = eltype(storagetype(T))
-function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
-    return Core.Compiler.return_type(similar, Tuple{storagetype(TT),Type{T}})
-end
-
-storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
-similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
-Base.eltype(t::AbstractTensorMap) = eltype(typeof(t))
-spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
-sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
-InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
-field(t::AbstractTensorMap) = field(typeof(t))
-numout(t::AbstractTensorMap) = numout(typeof(t))
-numin(t::AbstractTensorMap) = numin(typeof(t))
-numind(t::AbstractTensorMap) = numind(typeof(t))
-
 spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
 sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
 function InnerProductStyle(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace}
@@ -48,6 +32,21 @@ field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
 numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁
 numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₂
 numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁ + N₂
+
+function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
+    return Core.Compiler.return_type(similar, Tuple{storagetype(TT),Type{T}})
+end
+
+spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
+sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
+InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
+field(t::AbstractTensorMap) = field(typeof(t))
+numout(t::AbstractTensorMap) = numout(typeof(t))
+numin(t::AbstractTensorMap) = numin(typeof(t))
+numind(t::AbstractTensorMap) = numind(typeof(t))
+
+storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
+similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
 
 const order = numind
 
@@ -75,12 +74,16 @@ codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
 domainind(t::AbstractTensorMap) = domainind(typeof(t))
 allind(t::AbstractTensorMap) = allind(typeof(t))
 
-function adjointtensorindex(t::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂}
+function adjointtensorindex(::AbstractTensorMap{<:IndexSpace,N₁,N₂}, i) where {N₁,N₂}
     return ifelse(i <= N₁, N₂ + i, i - N₁)
 end
 
 function adjointtensorindices(t::AbstractTensorMap, indices::IndexTuple)
     return map(i -> adjointtensorindex(t, i), indices)
+end
+
+function adjointtensorindices(t::AbstractTensorMap, p::Index2Tuple)
+    return adjointtensorindices(t, p[1]), adjointtensorindices(t, p[2])
 end
 
 # Equality and approximality
@@ -103,7 +106,7 @@ end
 
 function Base.isapprox(t1::AbstractTensorMap, t2::AbstractTensorMap;
                        atol::Real=0,
-                       rtol::Real=Base.rtoldefault(eltype(t1), eltype(t2), atol))
+                       rtol::Real=Base.rtoldefault(scalartype(t1), scalartype(t2), atol))
     d = norm(t1 - t2)
     if isfinite(d)
         return d <= max(atol, rtol * max(norm(t1), norm(t2)))
@@ -123,27 +126,27 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap{S,N₁,N₂}) where {S
         cod = codomain(t)
         dom = domain(t)
         local A
-        for (f1, f2) in fusiontrees(t)
-            F1 = convert(Array, f1)
-            F2 = convert(Array, f2)
-            sz1 = size(F1)
-            sz2 = size(F2)
+        for (f₁, f₂) in fusiontrees(t)
+            F₁ = convert(Array, f₁)
+            F₂ = convert(Array, f₂)
+            sz1 = size(F₁)
+            sz2 = size(F₂)
             d1 = TupleTools.front(sz1)
             d2 = TupleTools.front(sz2)
-            F = reshape(reshape(F1, TupleTools.prod(d1), sz1[end]) *
-                        reshape(F2, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
+            F = reshape(reshape(F₁, TupleTools.prod(d1), sz1[end]) *
+                        reshape(F₂, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
             if !(@isdefined A)
                 if eltype(F) <: Complex
-                    T = complex(float(eltype(t)))
+                    T = complex(float(scalartype(t)))
                 elseif eltype(F) <: Integer
-                    T = eltype(t)
+                    T = scalartype(t)
                 else
-                    T = float(eltype(t))
+                    T = float(scalartype(t))
                 end
                 A = fill(zero(T), (dims(cod)..., dims(dom)...))
             end
-            Aslice = StridedView(A)[axes(cod, f1.uncoupled)..., axes(dom, f2.uncoupled)...]
-            axpy!(1, StridedView(_kron(convert(Array, t[f1, f2]), F)), Aslice)
+            Aslice = StridedView(A)[axes(cod, f₁.uncoupled)..., axes(dom, f₂.uncoupled)...]
+            axpy!(1, StridedView(_kron(convert(Array, t[f₁, f₂]), F)), Aslice)
         end
         return A
     end

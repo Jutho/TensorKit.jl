@@ -1,18 +1,20 @@
-struct TensorKeyIterator{I<:Sector, F₁<:FusionTree{I}, F₂<:FusionTree{I}}
-    rowr::SectorDict{I, FusionTreeDict{F₁, UnitRange{Int}}}
-    colr::SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}
+struct TensorKeyIterator{I<:Sector,F₁<:FusionTree{I},F₂<:FusionTree{I}}
+    rowr::SectorDict{I,FusionTreeDict{F₁,UnitRange{Int}}}
+    colr::SectorDict{I,FusionTreeDict{F₂,UnitRange{Int}}}
 end
-struct TensorPairIterator{I<:Sector, F₁<:FusionTree{I}, F₂<:FusionTree{I}, A<:DenseMatrix}
-    rowr::SectorDict{I, FusionTreeDict{F₁, UnitRange{Int}}}
-    colr::SectorDict{I, FusionTreeDict{F₂, UnitRange{Int}}}
-    data::SectorDict{I, A}
+struct TensorPairIterator{I<:Sector,F₁<:FusionTree{I},F₂<:FusionTree{I},A<:DenseMatrix}
+    rowr::SectorDict{I,FusionTreeDict{F₁,UnitRange{Int}}}
+    colr::SectorDict{I,FusionTreeDict{F₂,UnitRange{Int}}}
+    data::SectorDict{I,A}
 end
-
-const TensorIterator{I<:Sector, F₁<:FusionTree{I}, F₂<:FusionTree{I}} = Union{TensorKeyIterator{I, F₁, F₂}, TensorPairIterator{I, F₁, F₂}}
+#! format: off
+const TensorIterator{I<:Sector,F₁<:FusionTree{I},F₂<:FusionTree{I}} =
+    Union{TensorKeyIterator{I,F₁,F₂},TensorPairIterator{I,F₁,F₂}}
+#! format: on
 
 Base.IteratorSize(::Type{<:TensorIterator}) = Base.HasLength()
 Base.IteratorEltype(::Type{<:TensorIterator}) = Base.HasEltype()
-Base.eltype(T::Type{TensorKeyIterator{I, F₁, F₂}}) where {I, F₁, F₂} = Tuple{F₁, F₂}
+Base.eltype(T::Type{TensorKeyIterator{I,F₁,F₂}}) where {I,F₁,F₂} = Tuple{F₁,F₂}
 
 function Base.length(t::TensorKeyIterator)
     l = 0
@@ -42,26 +44,26 @@ function Base.iterate(it::TensorKeyIterator)
         rownext = iterate(rowit)
         colnext = iterate(colit)
     end
-    (f1, r1), rowstate = rownext
-    (f2, r2), colstate = colnext
+    (f₁, r1), rowstate = rownext
+    (f₂, r2), colstate = colnext
 
-    return (f1, f2), (f2, i, rowstate, colstate)
+    return (f₁, f₂), (f₂, i, rowstate, colstate)
 end
 function Base.iterate(it::TensorKeyIterator, state)
-    (f2, i, rowstate, colstate) = state
+    (f₂, i, rowstate, colstate) = state
     rowit, colit = it.rowr.values[i], it.colr.values[i]
     rownext = iterate(rowit, rowstate)
     if rownext !== nothing
-        (f1, r1), rowstate = rownext
-        return (f1, f2), (f2, i, rowstate, colstate)
+        (f₁, r1), rowstate = rownext
+        return (f₁, f₂), (f₂, i, rowstate, colstate)
     end
     colnext = iterate(colit, colstate)
     if colnext !== nothing
         rownext = iterate(rowit) # should not be nothing
         @assert rownext !== nothing
-        (f1, r1), rowstate = rownext
-        (f2, r2), colstate = colnext
-        return (f1, f2), (f2, i, rowstate, colstate)
+        (f₁, r1), rowstate = rownext
+        (f₂, r2), colstate = colnext
+        return (f₁, f₂), (f₂, i, rowstate, colstate)
     end
     while true
         if rownext === nothing
@@ -76,8 +78,8 @@ function Base.iterate(it::TensorKeyIterator, state)
         rownext = iterate(rowit)
         colnext = iterate(colit)
     end
-    (f1, r1), rowstate = rownext
-    (f2, r2), colstate = colnext
+    (f₁, r1), rowstate = rownext
+    (f₂, r2), colstate = colnext
 
-    return (f1, f2), (f2, i, rowstate, colstate)
+    return (f₁, f₂), (f₂, i, rowstate, colstate)
 end

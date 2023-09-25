@@ -3,13 +3,12 @@ using TestExtras
 using Random
 using TensorKit
 using Combinatorics
-using TensorKit: ProductSector, fusiontensor
+using TensorKit: ProductSector, fusiontensor, pentagon_equation, hexagon_equation
 using TensorOperations
-TensorOperations.disable_cache() # avoids memory overflow during CI?
 using Base.Iterators: take, product
-using SUNRepresentations: SUNIrrep
-const SU3Irrep = SUNIrrep{3}
-import LinearAlgebra
+# using SUNRepresentations: SUNIrrep
+# const SU3Irrep = SUNIrrep{3}
+using LinearAlgebra: LinearAlgebra
 
 include("newsectors.jl")
 using .NewSectors
@@ -21,12 +20,12 @@ Random.seed!(1234)
 smallset(::Type{I}) where {I<:Sector} = take(values(I), 5)
 function smallset(::Type{ProductSector{Tuple{I1,I2}}}) where {I1,I2}
     iter = product(smallset(I1), smallset(I2))
-    s = collect(i ⊠ j for (i,j) in iter if dim(i)*dim(j) <= 6)
+    s = collect(i ⊠ j for (i, j) in iter if dim(i) * dim(j) <= 6)
     return length(s) > 6 ? rand(s, 6) : s
 end
 function smallset(::Type{ProductSector{Tuple{I1,I2,I3}}}) where {I1,I2,I3}
     iter = product(smallset(I1), smallset(I2), smallset(I3))
-    s = collect(i ⊠ j ⊠ k for (i,j,k) in iter if dim(i)*dim(j)*dim(k) <= 6)
+    s = collect(i ⊠ j ⊠ k for (i, j, k) in iter if dim(i) * dim(j) * dim(k) <= 6)
     return length(s) > 6 ? rand(s, 6) : s
 end
 function randsector(::Type{I}) where {I<:Sector}
@@ -50,7 +49,7 @@ function hasfusiontensor(I::Type{<:Sector})
     end
 end
 
-sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep, SU3Irrep,
+sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep, # SU3Irrep,
               FibonacciAnyon, IsingAnyon, FermionParity, FermionParity ⊠ FermionParity,
               Z3Irrep ⊠ Z4Irrep, FermionParity ⊠ U1Irrep ⊠ SU2Irrep,
               FermionParity ⊠ SU2Irrep ⊠ SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep,
@@ -62,8 +61,9 @@ include("sectors.jl")
 include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")
+include("planar.jl")
 Tf = time()
 printstyled("Finished all tests in ",
-            string(round((Tf-Ti)/60; sigdigits=3)),
-            " minutes."; bold = true, color = Base.info_color())
+            string(round((Tf - Ti) / 60; sigdigits=3)),
+            " minutes."; bold=true, color=Base.info_color())
 println()

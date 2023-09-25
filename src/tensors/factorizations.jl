@@ -3,28 +3,15 @@
 const OFA = OrthogonalFactorizationAlgorithm
 
 import LinearAlgebra: svd!, svd
-const SVDAlg = Union{SVD, SDD}
-
-Base.@deprecate(
-    svd(t::AbstractTensorMap, leftind::IndexTuple, rightind::IndexTuple;
-            trunc::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
-    tsvd(t, leftind, rightind; trunc = trunc, p = p, alg = alg))
-Base.@deprecate(
-    svd(t::AbstractTensorMap;
-            trunc::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
-    tsvd(t; trunc = trunc, p = p, alg = alg))
-Base.@deprecate(
-    svd!(t::AbstractTensorMap;
-            trunc::TruncationScheme = notrunc(), p::Real = 2, alg::SVDAlg = SDD()),
-    tsvd(t; trunc = trunc, p = p, alg = alg))
+const SVDAlg = Union{SVD,SDD}
 
 """
-    tsvd(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
+    tsvd(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
         trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD, SDD} = SDD())
         -> U, S, V, ϵ
 
 Compute the (possibly truncated) singular value decomposition such that
-`norm(permute(t, leftind, rightind) - U * S * V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
+`norm(permute(t, (leftind, rightind)) - U * S * V) ≈ ϵ`, where `ϵ` thus represents the truncation error.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in
@@ -50,15 +37,16 @@ algorithm that computes the decomposition (`_gesvd` or `_gesdd`).
 Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and `tsvd(!)`
 is currently only implemented for `InnerProductStyle(t) === EuclideanProduct()`.
 """
-tsvd(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
-    tsvd!(permute(t, p1, p2; copy = true); kwargs...)
+function tsvd(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return tsvd!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
 
 """
-    leftorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
+    leftorth(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> Q, R
 
 Create orthonormal basis `Q` for indices in `leftind`, and remainder `R` such that
-`permute(t, leftind, rightind) = Q*R`.
+`permute(t, (leftind, rightind)) = Q*R`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -68,22 +56,23 @@ Different algorithms are available, namely `QR()`, `QRpos()`, `SVD()` and `Polar
 and `QRpos()` use a standard QR decomposition, producing an upper triangular matrix `R`.
 `Polar()` produces a Hermitian and positive semidefinite `R`. `QRpos()` corrects the
 standard QR decomposition such that the diagonal elements of `R` are positive. Only
-`QRpos()` and `Polar()` are uniqe (no residual freedom) so that they always return the same
+`QRpos()` and `Polar()` are unique (no residual freedom) so that they always return the same
 result for the same input tensor `t`.
 
 Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `leftorth(!)` is currently only implemented for 
     `InnerProductStyle(t) === EuclideanProduct()`.
 """
-leftorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
-    leftorth!(permute(t, p1, p2; copy = true); kwargs...)
+function leftorth(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return leftorth!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
 
 """
-    rightorth(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple;
+    rightorth(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = LQpos()) -> L, Q
 
 Create orthonormal basis `Q` for indices in `rightind`, and remainder `L` such that
-`permute(t, leftind, rightind) = L*Q`.
+`permute(t, (leftind, rightind)) = L*Q`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -95,22 +84,23 @@ a QR decomposition of the transpose. `RQ()` and `RQpos()` produce an upper trian
 remainder `L` and only works if the total left dimension is smaller than or equal to the
 total right dimension. `LQpos()` and `RQpos()` add an additional correction such that the
 diagonal elements of `L` are positive. `Polar()` produces a Hermitian and positive
-semidefinite `L`. Only `LQpos()`, `RQpos()` and `Polar()` are uniqe (no residual freedom) so
-that they always return the same result for the same input tensor `t`.
+semidefinite `L`. Only `LQpos()`, `RQpos()` and `Polar()` are unique (no residual freedom)
+so that they always return the same result for the same input tensor `t`.
 
 Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `rightorth(!)` is currently only implemented for 
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
-rightorth(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
-    rightorth!(permute(t, p1, p2; copy = true); kwargs...)
+function rightorth(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return rightorth!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
 
 """
-    leftnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple;
+    leftnull(t::AbstractTensor, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> N
 
 Create orthonormal basis for the orthogonal complement of the support of the indices in
-`leftind`, such that `N' * permute(t, leftind, rightind) = 0`.
+`leftind`, such that `N' * permute(t, (leftind, rightind)) = 0`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -127,17 +117,18 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `leftnull(!)` is currently only implemented for 
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
-leftnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
-    leftnull!(permute(t, p1, p2; copy = true); kwargs...)
+function leftnull(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return leftnull!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
 
 """
-    rightnull(t::AbstractTensor, leftind::Tuple, rightind::Tuple;
+    rightnull(t::AbstractTensor, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = LQ(),
                 atol::Real = 0.0,
-                rtol::Real = eps(real(float(one(eltype(t)))))*iszero(atol)) -> N
+                rtol::Real = eps(real(float(one(scalartype(t)))))*iszero(atol)) -> N
 
 Create orthonormal basis for the orthogonal complement of the support of the indices in
-`rightind`, such that `permute(t, leftind, rightind)*N' = 0`.
+`rightind`, such that `permute(t, (leftind, rightind))*N' = 0`.
 
 If `leftind` and `rightind` are not specified, the current partition of left and right
 indices of `t` is used. In that case, less memory is allocated if one allows the data in `t`
@@ -154,11 +145,12 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `rightnull(!)` is currently only implemented for 
 `InnerProductStyle(t) === EuclideanProduct()`.
 """
-rightnull(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
-    rightnull!(permute(t, p1, p2; copy = true); kwargs...)
+function rightnull(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return rightnull!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
 
 """
-    eigen(t::AbstractTensor, leftind::Tuple, rightind::Tuple; kwargs...) -> D, V
+    eigen(t::AbstractTensor, (leftind, rightind)::Index2Tuple; kwargs...) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 
@@ -168,7 +160,7 @@ to be destroyed/overwritten, by using `eigen!(t)`. Note that the permuted tensor
 `eigen!` is called should have equal domain and codomain, as otherwise the eigenvalue
 decomposition is meaningless and cannot satisfy
 ```
-permute(t, leftind, rightind) * V = V * D
+permute(t, (leftind, rightind)) * V = V * D
 ```
 
 Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense
@@ -176,11 +168,13 @@ matrices. See the corresponding documentation for more information.
 
 See also `eig` and `eigh`
 """
-LinearAlgebra.eigen(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
-    eigen!(permute(t, p1, p2; copy = true); kwargs...)
+function LinearAlgebra.eigen(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple;
+                             kwargs...)
+    return eigen!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
 
 """
-    eig(t::AbstractTensor, leftind::Tuple, rightind::Tuple; kwargs...) -> D, V
+    eig(t::AbstractTensor, (leftind, rightind)::Index2Tuple; kwargs...) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 The function `eig` assumes that the linear map is not hermitian and returns type stable
@@ -193,22 +187,23 @@ indices of `t` is used. In that case, less memory is allocated if one allows the
 which `eig!` is called should have equal domain and codomain, as otherwise the eigenvalue
 decomposition is meaningless and cannot satisfy
 ```
-permute(t, leftind, rightind) * V = V * D
+permute(t, (leftind, rightind)) * V = V * D
 ```
 
 Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense matrices. See the corresponding documentation for more information.
 
 See also `eigen` and `eigh`.
 """
-eig(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; kwargs...) =
-    eig!(permute(t, p1, p2; copy = true); kwargs...)
+function eig(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
+    return eig!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
 
 """
-    eigh(t::AbstractTensorMap, leftind::Tuple, rightind::Tuple) -> D, V
+    eigh(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple) -> D, V
 
 Compute eigenvalue factorization of tensor `t` as linear map from `rightind` to `leftind`.
 The function `eigh` assumes that the linear map is hermitian and `D` and `V` tensors with
-the same `eltype` as `t`. See `eig` and `eigen` for non-hermitian tensors. Hermiticity
+the same `scalartype` as `t`. See `eig` and `eigen` for non-hermitian tensors. Hermiticity
 requires that the tensor acts on inner product spaces, and the current implementation
 requires `InnerProductStyle(t) === EuclideanProduct()`.
 
@@ -218,17 +213,17 @@ indices of `t` is used. In that case, less memory is allocated if one allows the
 which `eigh!` is called should have equal domain and codomain, as otherwise the eigenvalue
 decomposition is meaningless and cannot satisfy
 ```
-permute(t, leftind, rightind) * V = V * D
+permute(t, (leftind, rightind)) * V = V * D
 ```
 
 See also `eigen` and `eig`.
 """
-function eigh(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple)
-    return eigh!(permute(t, p1, p2; copy=true))
+function eigh(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
+    return eigh!(permute(t, (p₁, p₂); copy=true))
 end
 
 """
-    isposdef(t::AbstractTensor, leftind::Tuple, rightind::Tuple) -> ::Bool
+    isposdef(t::AbstractTensor, (leftind, rightind)::Index2Tuple) -> ::Bool
 
 Test whether a tensor `t` is positive definite as linear map from `rightind` to `leftind`.
 
@@ -236,25 +231,28 @@ If `leftind` and `rightind` are not specified, the current partition of left and
 indices of `t` is used. In that case, less memory is allocated if one allows the data in
 `t` to be destroyed/overwritten, by using `isposdef!(t)`. Note that the permuted tensor on
 which `isposdef!` is called should have equal domain and codomain, as otherwise it is
-meaningless
-
-Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense
-matrices. See the corresponding documentation for more information.
+meaningless.
 """
-LinearAlgebra.isposdef(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple) =
-    isposdef!(permute(t, p1, p2; copy = true))
+function LinearAlgebra.isposdef(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
+    return isposdef!(permute(t, (p₁, p₂); copy=true))
+end
 
-tsvd(t::AbstractTensorMap; trunc::TruncationScheme = NoTruncation(),
-                            p::Real = 2, alg::Union{SVD, SDD} = SDD()) =
-    tsvd!(copy(t); trunc = trunc, p = p, alg = alg)
-leftorth(t::AbstractTensorMap; alg::OFA = QRpos(), kwargs...) =
-    leftorth!(copy(t); alg = alg, kwargs...)
-rightorth(t::AbstractTensorMap; alg::OFA = LQpos(), kwargs...) =
-    rightorth!(copy(t); alg = alg, kwargs...)
-leftnull(t::AbstractTensorMap; alg::OFA = QR(), kwargs...) =
-    leftnull!(copy(t); alg = alg, kwargs...)
-rightnull(t::AbstractTensorMap; alg::OFA = LQ(), kwargs...) =
-    rightnull!(copy(t); alg = alg, kwargs...)
+function tsvd(t::AbstractTensorMap; trunc::TruncationScheme=NoTruncation(),
+              p::Real=2, alg::Union{SVD,SDD}=SDD())
+    return tsvd!(copy(t); trunc=trunc, p=p, alg=alg)
+end
+function leftorth(t::AbstractTensorMap; alg::OFA=QRpos(), kwargs...)
+    return leftorth!(copy(t); alg=alg, kwargs...)
+end
+function rightorth(t::AbstractTensorMap; alg::OFA=LQpos(), kwargs...)
+    return rightorth!(copy(t); alg=alg, kwargs...)
+end
+function leftnull(t::AbstractTensorMap; alg::OFA=QR(), kwargs...)
+    return leftnull!(copy(t); alg=alg, kwargs...)
+end
+function rightnull(t::AbstractTensorMap; alg::OFA=LQ(), kwargs...)
+    return rightnull!(copy(t); alg=alg, kwargs...)
+end
 LinearAlgebra.eigen(t::AbstractTensorMap; kwargs...) = eigen!(copy(t); kwargs...)
 eig(t::AbstractTensorMap; kwargs...) = eig!(copy(t); kwargs...)
 eigh(t::AbstractTensorMap; kwargs...) = eigh!(copy(t); kwargs...)
@@ -302,22 +300,22 @@ end
 
 function leftorth!(t::TensorMap;
                    alg::Union{QR,QRpos,QL,QLpos,SVD,SDD,Polar}=QRpos(),
-                   atol::Real=zero(float(real(eltype(t)))),
-                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                              eps(real(float(one(eltype(t))))) * iszero(atol))
+                   atol::Real=zero(float(real(scalartype(t)))),
+                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                              eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("leftorth! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
-        atol = max(atol, rtol*norm(t))
+        atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
-    Qdata = SectorDict{I, A}()
-    Rdata = SectorDict{I, A}()
-    dims = SectorDict{I, Int}()
+    Qdata = SectorDict{I,A}()
+    Rdata = SectorDict{I,A}()
+    dims = SectorDict{I,Int}()
     for c in blocksectors(domain(t))
-        isempty(block(t,c)) && continue
+        isempty(block(t, c)) && continue
         Q, R = _leftorth!(block(t, c), alg, atol)
         Qdata[c] = Q
         Rdata[c] = R
@@ -334,52 +332,52 @@ function leftorth!(t::TensorMap;
     else
         W = ProductSpace(V)
     end
-    return TensorMap(Qdata, codomain(t)←W), TensorMap(Rdata, W←domain(t))
+    return TensorMap(Qdata, codomain(t) ← W), TensorMap(Rdata, W ← domain(t))
 end
 
 function leftnull!(t::TensorMap;
                    alg::Union{QR,QRpos,SVD,SDD}=QRpos(),
-                   atol::Real=zero(float(real(eltype(t)))),
-                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                              eps(real(float(one(eltype(t))))) * iszero(atol))
+                   atol::Real=zero(float(real(scalartype(t)))),
+                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                              eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("leftnull! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
-        atol = max(atol, rtol*norm(t))
+        atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
     V = codomain(t)
-    Ndata = SectorDict{I, A}()
-    dims = SectorDict{I, Int}()
+    Ndata = SectorDict{I,A}()
+    dims = SectorDict{I,Int}()
     for c in blocksectors(V)
         N = _leftnull!(block(t, c), alg, atol)
         Ndata[c] = N
         dims[c] = size(N, 2)
     end
     W = S(dims)
-    return TensorMap(Ndata, V←W)
+    return TensorMap(Ndata, V ← W)
 end
 
 function rightorth!(t::TensorMap;
                     alg::Union{LQ,LQpos,RQ,RQpos,SVD,SDD,Polar}=LQpos(),
-                    atol::Real=zero(float(real(eltype(t)))),
-                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                               eps(real(float(one(eltype(t))))) * iszero(atol))
+                    atol::Real=zero(float(real(scalartype(t)))),
+                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                               eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("rightorth! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
-        atol = max(atol, rtol*norm(t))
+        atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
-    Ldata = SectorDict{I, A}()
-    Qdata = SectorDict{I, A}()
-    dims = SectorDict{I, Int}()
+    Ldata = SectorDict{I,A}()
+    Qdata = SectorDict{I,A}()
+    dims = SectorDict{I,Int}()
     for c in blocksectors(codomain(t))
-        isempty(block(t,c)) && continue
+        isempty(block(t, c)) && continue
         L, Q = _rightorth!(block(t, c), alg, atol)
         Ldata[c] = L
         Qdata[c] = Q
@@ -396,32 +394,32 @@ function rightorth!(t::TensorMap;
     else
         W = ProductSpace(V)
     end
-    return TensorMap(Ldata, codomain(t)←W), TensorMap(Qdata, W←domain(t))
+    return TensorMap(Ldata, codomain(t) ← W), TensorMap(Qdata, W ← domain(t))
 end
 
 function rightnull!(t::TensorMap;
                     alg::Union{LQ,LQpos,SVD,SDD}=LQpos(),
-                    atol::Real=zero(float(real(eltype(t)))),
-                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(eltype(t)))) :
-                               eps(real(float(one(eltype(t))))) * iszero(atol))
+                    atol::Real=zero(float(real(scalartype(t)))),
+                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
+                               eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanProduct() ||
         throw(ArgumentError("rightnull! only defined for Euclidean inner product spaces"))
     if !iszero(rtol)
-        atol = max(atol, rtol*norm(t))
+        atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
     S = spacetype(t)
     A = storagetype(t)
     V = domain(t)
-    Ndata = SectorDict{I, A}()
-    dims = SectorDict{I, Int}()
+    Ndata = SectorDict{I,A}()
+    dims = SectorDict{I,Int}()
     for c in blocksectors(V)
         N = _rightnull!(block(t, c), alg, atol)
         Ndata[c] = N
         dims[c] = size(N, 1)
     end
     W = S(dims)
-    return TensorMap(Ndata, W←V)
+    return TensorMap(Ndata, W ← V)
 end
 
 function tsvd!(t::TensorMap;
@@ -433,16 +431,16 @@ function tsvd!(t::TensorMap;
     S = spacetype(t)
     I = sectortype(t)
     A = storagetype(t)
-    Ar = similarstoragetype(t, real(eltype(t)))
-    Udata = SectorDict{I, A}()
-    Σmdata = SectorDict{I, Ar}() # this will contain the singular values as matrix
-    Vdata = SectorDict{I, A}()
-    dims = SectorDict{sectortype(t), Int}()
+    Ar = similarstoragetype(t, real(scalartype(t)))
+    Udata = SectorDict{I,A}()
+    Σmdata = SectorDict{I,Ar}() # this will contain the singular values as matrix
+    Vdata = SectorDict{I,A}()
+    dims = SectorDict{sectortype(t),Int}()
     if isempty(blocksectors(t))
         W = S(dims)
-        truncerr = zero(real(eltype(t)))
-        return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
-                    TensorMap(Vdata, W←domain(t)), truncerr
+        truncerr = zero(real(scalartype(t)))
+        return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
+               TensorMap(Vdata, W ← domain(t)), truncerr
     end
     for (c, b) in blocks(t)
         U, Σ, V = _svd!(b, alg)
@@ -451,13 +449,13 @@ function tsvd!(t::TensorMap;
         if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
             Σdata[c] = Σ
         else
-            Σdata = SectorDict(c=>Σ)
+            Σdata = SectorDict(c => Σ)
         end
         dims[c] = length(Σ)
     end
     if !isa(trunc, NoTruncation)
         Σdata, truncerr = _truncate!(Σdata, trunc, p)
-        truncdims = SectorDict{I, Int}()
+        truncdims = SectorDict{I,Int}()
         for c in blocksectors(t)
             truncdim = length(Σdata[c])
             if truncdim != 0
@@ -481,13 +479,13 @@ function tsvd!(t::TensorMap;
         elseif length(codomain(t)) == 1 && codomain(t)[1] ≅ W
             W = codomain(t)[1]
         end
-        truncerr = abs(zero(eltype(t)))
+        truncerr = abs(zero(scalartype(t)))
     end
     for (c, Σ) in Σdata
         Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
     end
-    return TensorMap(Udata, codomain(t)←W), TensorMap(Σmdata, W←W),
-            TensorMap(Vdata, W←domain(t)), truncerr
+    return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
+           TensorMap(Vdata, W ← domain(t)), truncerr
 end
 
 function LinearAlgebra.ishermitian(t::TensorMap)
@@ -509,10 +507,10 @@ function eigh!(t::TensorMap; kwargs...)
     S = spacetype(t)
     I = sectortype(t)
     A = storagetype(t)
-    Ar = similarstoragetype(t, real(eltype(t)))
-    Ddata = SectorDict{I, Ar}()
-    Vdata = SectorDict{I, A}()
-    dims = SectorDict{I, Int}()
+    Ar = similarstoragetype(t, real(scalartype(t)))
+    Ddata = SectorDict{I,Ar}()
+    Vdata = SectorDict{I,A}()
+    dims = SectorDict{I,Int}()
     for (c, b) in blocks(t)
         values, vectors = eigen!(Hermitian(b); kwargs...)
         d = length(values)
@@ -525,7 +523,7 @@ function eigh!(t::TensorMap; kwargs...)
     else
         W = S(dims)
     end
-    return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
+    return TensorMap(Ddata, W ← W), TensorMap(Vdata, domain(t) ← W)
 end
 
 function eig!(t::TensorMap; kwargs...)
@@ -533,11 +531,11 @@ function eig!(t::TensorMap; kwargs...)
         throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
     S = spacetype(t)
     I = sectortype(t)
-    T = complex(eltype(t))
+    T = complex(scalartype(t))
     Ac = similarstoragetype(t, T)
-    Ddata = SectorDict{I, Ac}()
-    Vdata = SectorDict{I, Ac}()
-    dims = SectorDict{I, Int}()
+    Ddata = SectorDict{I,Ac}()
+    Vdata = SectorDict{I,Ac}()
+    dims = SectorDict{I,Int}()
     for (c, b) in blocks(t)
         values, vectors = eigen!(b; kwargs...)
         d = length(values)
@@ -554,7 +552,7 @@ function eig!(t::TensorMap; kwargs...)
     else
         W = S(dims)
     end
-    return TensorMap(Ddata, W←W), TensorMap(Vdata, domain(t)←W)
+    return TensorMap(Ddata, W ← W), TensorMap(Vdata, domain(t) ← W)
 end
 
 function LinearAlgebra.isposdef!(t::TensorMap)

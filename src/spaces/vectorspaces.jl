@@ -116,19 +116,19 @@ that this is different from `one(V::S)`, which returns the empty product space
 Base.oneunit(V::ElementarySpace) = oneunit(typeof(V))
 
 """
-    ⊕(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
+    ⊕(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
 
 Return the corresponding vector space of type `S` that represents the direct sum sum of the
-spaces `V1`, `V2`, ... Note that all the individual spaces should have the same value for
+spaces `V₁`, `V₂`, ... Note that all the individual spaces should have the same value for
 [`isdual`](@ref), as otherwise the direct sum is not defined.
 """
 function ⊕ end
-⊕(V1, V2, V3, V4...) = ⊕(⊕(V1, V2), V3, V4...)
+⊕(V₁, V₂, V₃, V₄...) = ⊕(⊕(V₁, V₂), V₃, V₄...)
 
 """
-    ⊗(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
+    ⊗(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
 
-Create a [`ProductSpace{S}(V1, V2, V3...)`](@ref) representing the tensor product of several
+Create a [`ProductSpace{S}(V₁, V₂, V₃...)`](@ref) representing the tensor product of several
 elementary vector spaces. For convience, Julia's regular multiplication operator `*` applied
 to vector spaces has the same effect.
 
@@ -136,23 +136,24 @@ The tensor product structure is preserved, see [`fuse`](@ref) for returning a si
 elementary space of type `S` that is isomorphic to this tensor product.
 """
 function ⊗ end
-⊗(V1, V2, V3, V4...) = ⊗(⊗(V1, V2), V3, V4...)
+⊗(V₁, V₂, V₃, V₄...) = ⊗(⊗(V₁, V₂), V₃, V₄...)
 
 # convenience definitions:
-Base.:*(V1::VectorSpace, V2::VectorSpace) = ⊗(V1, V2)
+Base.:*(V₁::VectorSpace, V₂::VectorSpace) = ⊗(V₁, V₂)
 
 """
-    fuse(V1::S, V2::S, V3::S...) where {S<:ElementarySpace} -> S
+    fuse(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
     fuse(P::ProductSpace{S}) where {S<:ElementarySpace} -> S
 
 Return a single vector space of type `S` that is isomorphic to the fusion product of the
-individual spaces `V1`, `V2`, ..., or the spaces contained in `P`.
+individual spaces `V₁`, `V₂`, ..., or the spaces contained in `P`.
 """
 function fuse end
 fuse(V::ElementarySpace) = V
-fuse(V1::VectorSpace, V2::VectorSpace, V3::VectorSpace...) =
-    fuse(fuse(fuse(V1), fuse(V2)), V3...)
-    # calling fuse on V1 and V2 will allow these to be `ProductSpace`
+function fuse(V₁::VectorSpace, V₂::VectorSpace, V₃::VectorSpace...)
+    return fuse(fuse(fuse(V₁), fuse(V₂)), V₃...)
+end
+# calling fuse on V₁ and V₂ will allow these to be `ProductSpace`
 
 """
     flip(V::S) where {S<:ElementarySpace} -> S
@@ -212,26 +213,15 @@ dimension, i.e. `dim(V, a) > 0`.
 hassector(V::ElementarySpace, ::Trivial) = dim(V) != 0
 Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
 
-struct TrivialOrEmptyIterator
-    isempty::Bool
-end
-Base.IteratorSize(::TrivialOrEmptyIterator) = Base.HasLength()
-Base.IteratorEltype(::TrivialOrEmptyIterator) = Base.HasEltype()
-Base.isempty(V::TrivialOrEmptyIterator) = V.isempty
-Base.length(V::TrivialOrEmptyIterator) = isempty(V) ? 0 : 1
-Base.eltype(::TrivialOrEmptyIterator) = Trivial
-function Base.iterate(V::TrivialOrEmptyIterator, state = true)
-    return isempty(V) == state ? nothing : (Trivial(), false)
-end
-
 """
     sectors(V::ElementarySpace)
 
 Return an iterator over the different sectors of `V`.
 """
-sectors(V::ElementarySpace) = TrivialOrEmptyIterator(dim(V) == 0)
-dim(V::ElementarySpace, ::Trivial) =
-    sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())
+sectors(V::ElementarySpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
+function dim(V::ElementarySpace, ::Trivial)
+    return sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())
+end
 
 # Composite vector spaces
 #-------------------------
@@ -267,6 +257,7 @@ include("generalspace.jl")
 # space with internal structure corresponding to the irreducible representations of
 # a group, or more generally, the simple objects of a fusion category.
 include("gradedspace.jl")
+include("planarspace.jl")
 
 # Specific realizations of CompositeSpace types
 #-----------------------------------------------
@@ -286,16 +277,16 @@ include("homspace.jl")
 # Partial order for vector spaces
 #---------------------------------
 """
-    isisomorphic(V1::VectorSpace, V2::VectorSpace)
-    V1 ≅ V2
+    isisomorphic(V₁::VectorSpace, V₂::VectorSpace)
+    V₁ ≅ V₂
 
-Return if `V1` and `V2` are isomorphic, meaning that there exists isomorphisms from `V1` to
-`V2`, i.e. morphisms with left and right inverses.
+Return if `V₁` and `V₂` are isomorphic, meaning that there exists isomorphisms from `V₁` to
+`V₂`, i.e. morphisms with left and right inverses.
 """
-function isisomorphic(V1::VectorSpace, V2::VectorSpace)
-    spacetype(V1) == spacetype(V2) || return false
-    for c in union(blocksectors(V1), blocksectors(V2))
-        if blockdim(V1, c) != blockdim(V2, c)
+function isisomorphic(V₁::VectorSpace, V₂::VectorSpace)
+    spacetype(V₁) == spacetype(V₂) || return false
+    for c in union(blocksectors(V₁), blocksectors(V₂))
+        if blockdim(V₁, c) != blockdim(V₂, c)
             return false
         end
     end
@@ -303,16 +294,16 @@ function isisomorphic(V1::VectorSpace, V2::VectorSpace)
 end
 
 """
-    ismonomorphic(V1::VectorSpace, V2::VectorSpace)
-    V1 ≾ V2
+    ismonomorphic(V₁::VectorSpace, V₂::VectorSpace)
+    V₁ ≾ V₂
 
-Return whether there exist monomorphisms from `V1` to `V2`, i.e. 'injective' morphisms with
+Return whether there exist monomorphisms from `V₁` to `V₂`, i.e. 'injective' morphisms with
 left inverses.
 """
-function ismonomorphic(V1::VectorSpace, V2::VectorSpace)
-    spacetype(V1) == spacetype(V2) || return false
-    for c in blocksectors(V1)
-        if blockdim(V1, c) > blockdim(V2, c)
+function ismonomorphic(V₁::VectorSpace, V₂::VectorSpace)
+    spacetype(V₁) == spacetype(V₂) || return false
+    for c in blocksectors(V₁)
+        if blockdim(V₁, c) > blockdim(V₂, c)
             return false
         end
     end
@@ -320,16 +311,16 @@ function ismonomorphic(V1::VectorSpace, V2::VectorSpace)
 end
 
 """
-    isepimorphic(V1::VectorSpace, V2::VectorSpace)
-    V1 ≿ V2
+    isepimorphic(V₁::VectorSpace, V₂::VectorSpace)
+    V₁ ≿ V₂
 
-Return whether there exist epimorphisms from `V1` to `V2`, i.e. 'surjective' morphisms with
+Return whether there exist epimorphisms from `V₁` to `V₂`, i.e. 'surjective' morphisms with
 right inverses.
 """
-function isepimorphic(V1::VectorSpace, V2::VectorSpace)
-    spacetype(V1) == spacetype(V2) || return false
-    for c in blocksectors(V2)
-        if blockdim(V1, c) < blockdim(V2, c)
+function isepimorphic(V₁::VectorSpace, V₂::VectorSpace)
+    spacetype(V₁) == spacetype(V₂) || return false
+    for c in blocksectors(V₂)
+        if blockdim(V₁, c) < blockdim(V₂, c)
             return false
         end
     end
@@ -341,29 +332,27 @@ const ≅ = isisomorphic
 const ≾ = ismonomorphic
 const ≿ = isepimorphic
 
-≺(V1::VectorSpace, V2::VectorSpace) = V1 ≾ V2 && !(V1 ≿ V2)
-≻(V1::VectorSpace, V2::VectorSpace) = V1 ≿ V2 && !(V1 ≾ V2)
+≺(V₁::VectorSpace, V₂::VectorSpace) = V₁ ≾ V₂ && !(V₁ ≿ V₂)
+≻(V₁::VectorSpace, V₂::VectorSpace) = V₁ ≿ V₂ && !(V₁ ≾ V₂)
 
 """
-    infimum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
+    infimum(V₁::ElementarySpace, V₂::ElementarySpace, V₃::ElementarySpace...)
 
 Return the infimum of a number of elementary spaces, i.e. an instance `V::ElementarySpace`
-such that `V ≾ V1`, `V ≾ V2`, ... and no other `W ≻ V` has this property. This requires
+such that `V ≾ V₁`, `V ≾ V₂`, ... and no other `W ≻ V` has this property. This requires
 that all arguments have the same value of `isdual( )`, and also the return value `V` will
 have the same value.
 """
-infimum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
-    infimum(infimum(V1, V2), V3...)
+infimum(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} = infimum(infimum(V₁, V₂), V₃...)
 
 """
-    supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...)
+    supremum(V₁::ElementarySpace, V₂::ElementarySpace, V₃::ElementarySpace...)
 
 Return the supremum of a number of elementary spaces, i.e. an instance `V::ElementarySpace`
-such that `V ≿ V1`, `V ≿ V2`, ... and no other `W ≺ V` has this property. This requires
+such that `V ≿ V₁`, `V ≿ V₂`, ... and no other `W ≺ V` has this property. This requires
 that all arguments have the same value of `isdual( )`, and also the return value `V` will
 have the same value.
 """
-supremum(V1::ElementarySpace, V2::ElementarySpace, V3::ElementarySpace...) =
-    supremum(supremum(V1, V2), V3...)
-
-import Base: min, max
+function supremum(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace}
+    return supremum(supremum(V₁, V₂), V₃...)
+end

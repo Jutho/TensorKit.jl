@@ -8,10 +8,10 @@ vector space that is implicitly assumed in most of matrix algebra.
 struct CartesianSpace <: ElementarySpace{ℝ}
     d::Int
 end
-CartesianSpace(d::Integer = 0; dual = false) = CartesianSpace(Int(d))
-function CartesianSpace(dim::Pair; dual = false)
+CartesianSpace(d::Integer=0; dual=false) = CartesianSpace(Int(d))
+function CartesianSpace(dim::Pair; dual=false)
     if dim.first === Trivial()
-        return CartesianSpace(dim.second; dual = dual)
+        return CartesianSpace(dim.second; dual=dual)
     else
         msg = "$(dim) is not a valid dimension for CartesianSpace"
         throw(SectorMismatch(msg))
@@ -42,11 +42,11 @@ dim(V::CartesianSpace) = V.d
 Base.axes(V::CartesianSpace) = Base.OneTo(dim(V))
 
 Base.oneunit(::Type{CartesianSpace}) = CartesianSpace(1)
-⊕(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(V1.d+V2.d)
-fuse(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(V1.d*V2.d)
+⊕(V₁::CartesianSpace, V₂::CartesianSpace) = CartesianSpace(V₁.d + V₂.d)
+fuse(V₁::CartesianSpace, V₂::CartesianSpace) = CartesianSpace(V₁.d * V₂.d)
 flip(V::CartesianSpace) = V
 
-infimum(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(min(V1.d, V2.d))
-supremum(V1::CartesianSpace, V2::CartesianSpace) = CartesianSpace(max(V1.d, V2.d))
+infimum(V₁::CartesianSpace, V₂::CartesianSpace) = CartesianSpace(min(V₁.d, V₂.d))
+supremum(V₁::CartesianSpace, V₂::CartesianSpace) = CartesianSpace(max(V₁.d, V₂.d))
 
 Base.show(io::IO, V::CartesianSpace) = print(io, "ℝ^$(V.d)")

@@ -1,71 +1,63 @@
 struct FermionParity <: Sector
-    sector::Z2Irrep
+    isodd::Bool
 end
 const fℤ₂ = FermionParity
-fermionparity(f::FermionParity) = isodd(f.sector.n)
+fermionparity(f::FermionParity) = f.isodd
 
 Base.convert(::Type{FermionParity}, a::FermionParity) = a
 Base.convert(::Type{FermionParity}, a) = FermionParity(a)
 
-Base.IteratorSize(::Type{SectorValues{FermionParity}}) =
-    Base.IteratorSize(SectorValues{Z2Irrep})
-Base.length(::SectorValues{FermionParity}) = length(values(Z2Irrep))
-function Base.iterate(::SectorValues{FermionParity})
-    next = iterate(values(Z2Irrep))
-    @assert next !== nothing
-    value, state = next
-    return FermionParity(value), state
+Base.IteratorSize(::Type{SectorValues{FermionParity}}) = HasLength()
+Base.length(::SectorValues{FermionParity}) = 2
+function Base.iterate(::SectorValues{FermionParity}, i=0)
+    return i == 2 ? nothing : (FermionParity(i), i + 1)
 end
-
-function Base.iterate(::SectorValues{FermionParity}, state)
-    next = iterate(values(Z2Irrep), state)
-    if next === nothing
-        return nothing
-    else
-        value, state = next
-        return FermionParity(value), state
-    end
+function Base.getindex(::SectorValues{FermionParity}, i)
+    return 1 <= i <= 2 ? FermionParity(i - 1) : throw(BoundsError(values(FermionParity), i))
 end
-Base.getindex(::SectorValues{FermionParity}, i) = FermionParity(values(Z2Irrep)[i])
-findindex(::SectorValues{FermionParity}, f::FermionParity) = findindex(values(Z2Irrep), f.sector)
+findindex(::SectorValues{FermionParity}, f::FermionParity) = f.isodd ? 2 : 1
 
-Base.one(::Type{FermionParity}) = FermionParity(one(Z2Irrep))
-Base.conj(f::FermionParity) = FermionParity(conj(f.sector))
+Base.one(::Type{FermionParity}) = FermionParity(false)
+Base.conj(f::FermionParity) = f
+dim(f::FermionParity) = 1
 
-dim(f::FermionParity) = dim(f.sector)
-
-FusionStyle(::Type{FermionParity}) = FusionStyle(Z2Irrep)
+FusionStyle(::Type{FermionParity}) = UniqueFusion()
 BraidingStyle(::Type{FermionParity}) = Fermionic()
-Base.isreal(::Type{FermionParity}) = isreal(Z2Irrep)
+Base.isreal(::Type{FermionParity}) = true
 
-⊗(a::FermionParity, b::FermionParity) = SectorSet{FermionParity}(a.sector ⊗ b.sector)
+⊗(a::FermionParity, b::FermionParity) = (FermionParity(a.isodd ⊻ b.isodd),)
 
-Nsymbol(a::FermionParity, b::FermionParity, c::FermionParity) = Nsymbol(a.sector, b.sector, c.sector)
-
-Fsymbol(a::F, b::F, c::F, d::F, e::F, f::F) where {F<:FermionParity} =
-    Fsymbol(a.sector, b.sector, c.sector, d.sector, e.sector, f.sector)
+function Nsymbol(a::FermionParity, b::FermionParity, c::FermionParity)
+    return (a.isodd ⊻ b.isodd) == c.isodd
+end
+function Fsymbol(a::I, b::I, c::I, d::I, e::I, f::I) where {I<:FermionParity}
+    return Int(Nsymbol(a, b, e) * Nsymbol(e, c, d) * Nsymbol(b, c, f) * Nsymbol(a, f, d))
+end
 
 function Rsymbol(a::F, b::F, c::F) where {F<:FermionParity}
-    if fermionparity(a) && fermionparity(b)
-        return -Rsymbol(a.sector, b.sector, c.sector)
-    else
-        return +Rsymbol(a.sector, b.sector, c.sector)
-    end
+    return a.isodd && b.isodd ? -Int(Nsymbol(a, b, c)) : Int(Nsymbol(a, b, c))
 end
-
-twist(a::FermionParity) = ifelse(fermionparity(a), -1, +1) * twist(a.sector)
+twist(a::FermionParity) = a.isodd ? -1 : +1
 
 type_repr(::Type{FermionParity}) = "FermionParity"
 
 function Base.show(io::IO, a::FermionParity)
-    if get(io, :typeinfo, nothing) !== FermionParity
-        print(io, type_repr(typeof(a)), "(")
-    end
-    print(IOContext(io, :typeinfo => Z2Irrep), a.sector)
-    if get(io, :typeinfo, nothing) !== FermionParity
-        print(io, ")")
+    if get(io, :typeinfo, nothing) === FermionParity
+        print(io, Int(a.isodd))
+    else
+        print(io, "FermionParity(", Int(a.isodd), ")")
     end
 end
 
-Base.hash(f::FermionParity, h::UInt) = hash(f.sector, h)
-Base.isless(a::FermionParity, b::FermionParity) = isless(a.sector, b.sector)
+Base.hash(f::FermionParity, h::UInt) = hash(f.isodd, h)
+Base.isless(a::FermionParity, b::FermionParity) = isless(a.isodd, b.isodd)
+
+const FermionNumber = ProductSector{Tuple{U1Irrep,FermionParity}}
+const FermionSpin = ProductSector{Tuple{SU2Irrep,FermionParity}}
+
+const fU₁ = FermionNumber
+const fSU₂ = FermionSpin
+
+type_repr(::Type{FermionParity}) = "FermionParity"
+type_repr(::Type{FermionNumber}) = "FermionNumber"
+type_repr(::Type{FermionSpin}) = "FermionSpin"

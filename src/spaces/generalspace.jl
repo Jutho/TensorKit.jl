@@ -19,8 +19,9 @@ struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
         end
     end
 end
-GeneralSpace{𝕜}(d::Int = 0; dual::Bool = false, conj::Bool = false) where {𝕜} =
-    GeneralSpace{𝕜}(d, dual, conj)
+function GeneralSpace{𝕜}(d::Int=0; dual::Bool=false, conj::Bool=false) where {𝕜}
+    return GeneralSpace{𝕜}(d, dual, conj)
+end
 
 dim(V::GeneralSpace) = V.d
 isdual(V::GeneralSpace) = V.dual
