@@ -12,10 +12,9 @@ export Sector, AbstractIrrep, Irrep
 export FusionStyle, UniqueFusion, MultipleFusion, MultiplicityFreeFusion,
        SimpleFusion, GenericFusion
 export BraidingStyle, SymmetricBraiding, Bosonic, Fermionic, Anyonic
-export Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
-export Fermion, FermionParity, FermionNumber, FermionSpin
-export FibonacciAnyon
-export IsingAnyon
+export Trivial, Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
+export FermionParity, FermionNumber, FermionSpin
+export FibonacciAnyon, IsingAnyon
 
 export VectorSpace, Field, ElementarySpace # abstract vector spaces
 export InnerProductStyle, NoInnerProduct, HasInnerProduct, EuclideanProduct
@@ -38,7 +37,7 @@ export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
        frobeniusschur, twist
 export fusiontrees, braid, permute, transpose
-export Trivial, ZNSpace, SU2Irrep, U1Irrep, CU1Irrep # Fermion
+export ZNSpace, SU2Irrep, U1Irrep, CU1Irrep
 # other fusion tree manipulations, should not be exported:
 # export insertat, split, merge, repartition, artin_braid,
 #        bendleft, bendright, foldleft, foldright, cycleclockwise, cycleanticlockwise
