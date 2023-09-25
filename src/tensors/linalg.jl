@@ -5,7 +5,9 @@ Base.copy(t::AbstractTensorMap) = Base.copy!(similar(t), t)
 Base.:-(t::AbstractTensorMap) = VectorInterface.scale(t, -one(scalartype(t)))
 
 Base.:+(t1::AbstractTensorMap, t2::AbstractTensorMap) = VectorInterface.add(t1, t2)
-Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap) = VectorInterface.add(t1, t2, -one(scalartype(t1)))
+function Base.:-(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    return VectorInterface.add(t1, t2, -one(scalartype(t1)))
+end
 
 Base.:*(t::AbstractTensorMap, α::Number) = VectorInterface.scale(t, α)
 Base.:*(α::Number, t::AbstractTensorMap) = VectorInterface.scale(t, α)
@@ -169,7 +171,7 @@ function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
                                 tsrc::AbstractTensorMap)
     spacetype(tdst) === spacetype(tsrc) && InnerProductStyle(tdst) === EuclideanProduct() ||
         throw(ArgumentError("adjoint! requires Euclidean inner product spacetype"))
-    space(tdst) == adjoint(space(tsrc)) || 
+    space(tdst) == adjoint(space(tsrc)) ||
         throw(SpaceMismatch("$(space(tdst)) ≠ adjoint($(space(tsrc)))"))
     for c in blocksectors(tdst)
         adjoint!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))

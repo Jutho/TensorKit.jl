@@ -1,88 +1,162 @@
-using TestEnv: TestEnv;
-TestEnv.activate("TensorKit");
-using TensorKit
-using TensorOperations
 using ChainRulesCore
 using ChainRulesTestUtils
 using Random
 using FiniteDifferences
-using Test
+using LinearAlgebra
 
 ## Test utility
 # -------------
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap)
     return TensorMap(randn, scalartype(x), space(x))
 end
-function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap, expected::AbstractTensorMap, msg=""; kwargs...)
-    ChainRulesTestUtils.@test_msg msg isapprox(actual, expected; kwargs...)
+function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
+                                         expected::AbstractTensorMap, msg=""; kwargs...)
+    for (c, b) in blocks(actual)
+        ChainRulesTestUtils.@test_msg msg isapprox(block(expected, c), b; kwargs...)
+    end
 end
-# function ChainRulesTestUtils.test_approx(actual::NTuple{N}, expected::NTuple{N}, msg="";
-#                                          kwargs...) where {N}
-#     @test all(isapprox.(actual, expected; Ref(kwargs)...))
-# end
 function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
     vec, from_vec = to_vec(t.data)
     return vec, x -> T(from_vec(x), codomain(t), domain(t))
 end
 function FiniteDifferences.to_vec(t::AbstractTensorMap)
-    vec, from_vec′ = to_vec(blocks(t))
+    vec, from_vec′ = to_vec(values(blocks(t)))
     function from_vec(x)
         blocks′ = from_vec′(x)
         t′ = similar(t)
-        for (c, b) in blocks(t′)
-            b .= blocks′[c]
+        for (b1, b2) in zip(values(blocks(t′)), blocks′)
+            copyto!(b1, b2)
         end
         return t′
     end
-    
     return vec, from_vec
 end
 FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
 
-ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...) = ChainRulesCore.rrule(tsvd!, args...)
+# rrules for functions that destroy inputs
+# ----------------------------------------
+function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...)
+    return ChainRulesCore.rrule(tsvd!, args...)
+end
 function ChainRulesCore.rrule(::typeof(TensorKit.leftorth), args...; kwargs...)
     return ChainRulesCore.rrule(leftorth!, args...; kwargs...)
 end
 function ChainRulesCore.rrule(::typeof(TensorKit.rightorth), args...; kwargs...)
     return ChainRulesCore.rrule(rightorth!, args...; kwargs...)
 end
-##
+
+# complex-valued svd?
+# -------------------
+
+# function _gaugefix!(U, V)
+#     s = LinearAlgebra.Diagonal(TensorKit._safesign.(diag(U)))
+#     rmul!(U, s)
+#     lmul!(s', V)
+#     return U, V
+# end
+
+# function _tsvd(t::AbstractTensorMap)
+#     U, S, V, ϵ = tsvd(t)
+#     for (c, b) in blocks(U)
+#         _gaugefix!(b, block(V, c))
+#     end
+#     return U, S, V, ϵ
+# end
+
+# svd_rev = Base.get_extension(TensorKit, :TensorKitChainRulesCoreExt).svd_rev
+
+# function ChainRulesCore.rrule(::typeof(_tsvd), t::AbstractTensorMap)
+#     U, S, V, ϵ = _tsvd(t)
+#     function _tsvd_pullback((ΔU, ΔS, ΔV, Δϵ))
+#         ∂t = similar(t)
+#         for (c, b) in blocks(∂t)
+#             copyto!(b,
+#                     svd_rev(block(U, c), block(S, c), block(V, c),
+#                             block(ΔU, c), block(ΔS, c), block(ΔV, c)))
+#         end
+#         return NoTangent(), ∂t
+#     end
+#     return (U, S, V, ϵ), _tsvd_pullback
+# end
+
+# Tests
+# -----
 
 ChainRulesTestUtils.test_method_tables()
 
-Vtr = (ℂ^3, (ℂ^4)', ℂ^5, ℂ^6, (ℂ^7)')
-T = Float64
+Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
+         (ℂ[Z2Irrep](0 => 1, 1 => 1),
+          ℂ[Z2Irrep](0 => 1, 1 => 2)',
+          ℂ[Z2Irrep](0 => 3, 1 => 2)',
+          ℂ[Z2Irrep](0 => 2, 1 => 3),
+          ℂ[Z2Irrep](0 => 2, 1 => 2)),
+         (ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
+          ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
+          ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
+          ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
+          ℂ[U1Irrep](0 => 1, 1 => 3, -1 => 2)'),
+         (ℂ[SU2Irrep](0 => 3, 1 // 2 => 1),
+          ℂ[SU2Irrep](0 => 2, 1 => 1),
+          ℂ[SU2Irrep](1 // 2 => 1, 1 => 1)',
+          ℂ[SU2Irrep](0 => 2, 1 // 2 => 2),
+          ℂ[SU2Irrep](0 => 1, 1 // 2 => 1, 3 // 2 => 1)'))
 
-A = TensorMap(randn, T, Vtr[1] ⊗ Vtr[2] ← Vtr[3] ⊗ Vtr[4] ⊗ Vtr[5])
-B = TensorMap(randn, T, space(A))
-test_rrule(+, A, B)
-test_rrule(-, A, B)
-C = TensorMap(randn, T, domain(A), codomain(A))
-test_rrule(*, A, C)
-α = randn(T)
-test_rrule(*, α, A)
-test_rrule(*, A, α)
+@testset "Automatic Differentiation ($(eltype(V)))" verbose = true for V in Vlist
+    @testset "Basic Linear Algebra ($T)" for T in (Float64, ComplexF64)
+        A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+        B = TensorMap(randn, T, space(A))
 
-test_rrule(permute, A, ((1, 3, 2), (5, 4)))
+        test_rrule(+, A, B)
+        test_rrule(-, A, B)
 
-D = Tensor(randn, T, ProductSpace{ComplexSpace,0}())
-test_rrule(TensorKit.scalar, D)
+        α = randn(T)
+        test_rrule(*, α, A)
+        test_rrule(*, A, α)
 
-# LinearAlgebra
-# -------------
-using LinearAlgebra
-for i in 1:3
-    E = TensorMap(randn, T, ⊗(Vtr[1:i]...) ← ⊗(Vtr[1:i]...))
-    test_rrule(tr, E)
+        C = TensorMap(randn, T, domain(A), codomain(A))
+        test_rrule(*, A, C)
+
+        test_rrule(permute, A, ((1, 3, 2), (5, 4)))
+
+        D = Tensor(randn, T, ProductSpace{ComplexSpace,0}())
+        test_rrule(TensorKit.scalar, D)
+    end
+
+    @testset "Linear Algebra part II ($T)" for T in (Float64, ComplexF64)
+        for i in 1:3
+            E = TensorMap(randn, T, ⊗(V[1:i]...) ← ⊗(V[1:i]...))
+            test_rrule(LinearAlgebra.tr, E)
+        end
+        
+        A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+        test_rrule(LinearAlgebra.adjoint, A)
+        test_rrule(LinearAlgebra.norm, A, 2)
+    end
+
+    @testset "Factorizations ($T)" for T in (Float64, ComplexF64)
+        A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+        B = TensorMap(randn, T, space(A)')
+        C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
+        atol = 1e-6
+
+        for alg in (TensorKit.QR(), TensorKit.QRpos())
+            test_rrule(leftorth, A; fkwargs=(; alg=alg), atol)
+            test_rrule(leftorth, B; fkwargs=(; alg=alg), atol)
+            test_rrule(leftorth, C; fkwargs=(; alg=alg), atol)
+        end
+
+        for alg in (TensorKit.LQ(), TensorKit.LQpos())
+            test_rrule(rightorth, A; fkwargs=(; alg=alg), atol)
+            test_rrule(rightorth, B; fkwargs=(; alg=alg), atol)
+            test_rrule(rightorth, C; fkwargs=(; alg=alg), atol)
+        end
+
+        # Complex-valued SVD tests are incompatible with finite differencing,
+        # because U and V are not unique.
+        if T <: Real
+            test_rrule(tsvd, A; atol)
+            test_rrule(tsvd, B; atol)
+            test_rrule(tsvd, C; atol)
+        end
+    end
 end
-
-test_rrule(adjoint, A)
-test_rrule(norm, A, 2)
-
-
-
-test_rrule(tsvd, A; atol=1e-6)
-test_rrule(leftorth, A; fkwargs=(;alg = TensorKit.QR()))
-test_rrule(leftorth, A; fkwargs=(;alg = TensorKit.QRpos()))
-test_rrule(rightorth, A; fkwargs=(;alg = TensorKit.LQ()))
-test_rrule(rightorth, A; fkwargs=(;alg = TensorKit.LQpos()))
