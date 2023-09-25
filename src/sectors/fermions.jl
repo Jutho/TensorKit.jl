@@ -39,8 +39,6 @@ function Rsymbol(a::F, b::F, c::F) where {F<:FermionParity}
 end
 twist(a::FermionParity) = a.isodd ? -1 : +1
 
-type_repr(::Type{FermionParity}) = "FermionParity"
-
 function Base.show(io::IO, a::FermionParity)
     if get(io, :typeinfo, nothing) === FermionParity
         print(io, Int(a.isodd))
@@ -48,16 +46,29 @@ function Base.show(io::IO, a::FermionParity)
         print(io, "FermionParity(", Int(a.isodd), ")")
     end
 end
+type_repr(::Type{FermionParity}) = "FermionParity"
 
 Base.hash(f::FermionParity, h::UInt) = hash(f.isodd, h)
 Base.isless(a::FermionParity, b::FermionParity) = isless(a.isodd, b.isodd)
 
-const FermionNumber = ProductSector{Tuple{U1Irrep,FermionParity}}
-const FermionSpin = ProductSector{Tuple{SU2Irrep,FermionParity}}
+# Common fermionic combinations
+# -----------------------------
 
+const FermionNumber = U1Irrep ⊠ FermionParity
 const fU₁ = FermionNumber
-const fSU₂ = FermionSpin
-
-type_repr(::Type{FermionParity}) = "FermionParity"
 type_repr(::Type{FermionNumber}) = "FermionNumber"
+
+# convenience default converter -> allows Vect[FermionNumber](1 => 1)
+function Base.convert(::Type{FermionNumber}, a::Int)
+    return U1Irrep(a) ⊠ FermionParity(isodd(a))
+end
+
+const FermionSpin = SU2Irrep ⊠ FermionParity
+const fSU₂ = FermionSpin
 type_repr(::Type{FermionSpin}) = "FermionSpin"
+
+# convenience default converter -> allows Vect[FermionSpin](1 => 1)
+function Base.convert(::Type{FermionSpin}, a::Real)
+    s = SU2Irrep(a)
+    return s ⊠ FermionParity(isodd(twice(s.j)))
+end
