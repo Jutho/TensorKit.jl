@@ -340,20 +340,6 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
             end
         end
     end
-
-    # if Threads.nthreads() > 1
-    #     Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
-    #         _add_sectors!(tdst, tsrc, fusiontreemap, s₁, s₂, α, β, backend...)
-    #     end
-    # else
-    #     for (f₁, f₂) in fusiontrees(tsrc)
-    #         for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-    #             TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
-    #                           backend...)
-    #         end
-    #     end
-    # end
-
     return nothing
 end
 

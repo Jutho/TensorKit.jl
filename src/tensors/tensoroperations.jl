@@ -188,7 +188,7 @@ function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂},
         cod = codomain(tsrc)
         dom = domain(tsrc)
         n = length(cod)
-        VectorInterface.scale!(tdst, β)
+        scale!(tdst, β)
         r₁ = (p₁..., q₁...)
         r₂ = (p₂..., q₂...)
         for (f₁, f₂) in fusiontrees(tsrc)
