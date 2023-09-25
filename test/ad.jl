@@ -28,7 +28,7 @@ function FiniteDifferences.to_vec(t::AbstractTensorMap)
             return vcat(real(v), imag(v))
         end
     end
-    
+
     function from_vec(x)
         t′ = similar(t)
         T = scalartype(t)
@@ -36,16 +36,18 @@ function FiniteDifferences.to_vec(t::AbstractTensorMap)
         for (c, b) in blocks(t′)
             n = length(b)
             if T <: Real
-                copyto!(b, reshape(x[ctr+1:ctr+n], size(b)) ./ sqrt(dim(c)))
+                copyto!(b, reshape(x[(ctr + 1):(ctr + n)], size(b)) ./ sqrt(dim(c)))
             else
-                v = x[ctr+1:ctr+2n]
-                copyto!(b, complex.(x[ctr+1:ctr+n], x[ctr+n+1:ctr+2n]) ./ sqrt(dim(c)))
+                v = x[(ctr + 1):(ctr + 2n)]
+                copyto!(b,
+                        complex.(x[(ctr + 1):(ctr + n)], x[(ctr + n + 1):(ctr + 2n)]) ./
+                        sqrt(dim(c)))
             end
             ctr += T <: Real ? n : 2n
         end
         return t′
     end
-    
+
     return vec, from_vec
 end
 FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
@@ -144,7 +146,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             E = TensorMap(randn, T, ⊗(V[1:i]...) ← ⊗(V[1:i]...))
             test_rrule(LinearAlgebra.tr, E)
         end
-        
+
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         test_rrule(LinearAlgebra.adjoint, A)
         test_rrule(LinearAlgebra.norm, A, 2)
