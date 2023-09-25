@@ -15,6 +15,7 @@ ZNIrrep
 U1Irrep
 SU2Irrep
 CU1Irrep
+FermionParity
 FibonacciAnyon
 FusionTree
 ```

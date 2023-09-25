@@ -1244,10 +1244,17 @@ the corresponding tensors.
 
 ## Fermions
 
-TODO
+TODO: Update the documentation for this section.
 
-(Support for fermionic sectors and corresponding super vector spaces is on its way. This
-section will be completed when the implementation is finished.)
+Fermionic sectors are represented by the type [`FermionParity`](@ref), which effectively
+behaves like a ℤ₂ sector, but with two modifications. Firstly, the exchange of two sectors
+with odd fermion parity should yield a minus sign, which is taken care of by virtue of the
+R-symbol. This ensures that permuting tensors behave as expected. Secondly, diagrams with
+self-crossing lines (aka twists) give rise to a minus sign for odd fermion parity. This is
+in essence equivalent to having supertraces, which is what ensures that `@tensor` has a
+result that is invariant under permutation of its input tensors. This does however lead to
+unwanted minus signs for certain types of diagrams. To avoid this, the `@planar` macro does
+not include a supertrace, but requires a manual resolution of all crossings in the diagram.
 
 ## Anyons
 
