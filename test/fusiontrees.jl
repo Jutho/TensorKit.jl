@@ -1,10 +1,14 @@
 println("------------------------------------")
 println("Fusion Trees")
 println("------------------------------------")
-ti = time()
-@timedtestset "Fusion trees for $(TensorKit.type_repr(I))" verbose = true for I in
-                                                                              sectorlist
+
+module FusionTreeTests
+
+include("utility.jl")
+
+@testset "$(TensorKit.type_repr(I))" verbose = true for I in sectorlist
     Istr = TensorKit.type_repr(I)
+    println("Starting tests for $Istr...")
     N = 5
     out = ntuple(n -> randsector(I), N)
     isdual = ntuple(n -> rand(Bool), N)
@@ -18,10 +22,11 @@ ti = time()
     it = @constinferred fusiontrees(out, in, isdual)
     @constinferred Nothing iterate(it)
     f = @constinferred first(it)
-    @testset "Fusion tree $Istr: printing" begin
+
+    @testset "printing" begin
         @test eval(Meta.parse(sprint(show, f))) == f
     end
-    @testset "Fusion tree $Istr: insertat" begin
+    @testset "insertat" begin
         N = 4
         out2 = ntuple(n -> randsector(I), N)
         in2 = rand(collect(⊗(out2...)))
@@ -35,16 +40,16 @@ ti = time()
             isdual1 = Base.setindex(isdual1, false, i)
             f1 = rand(collect(fusiontrees(out1, in1, isdual1)))
 
-            trees = @constinferred TK.insertat(f1, i, f2)
+            trees = @constinferred TensorKit.insertat(f1, i, f2)
             @test norm(values(trees)) ≈ 1
 
-            f1a, f1b = @constinferred TK.split(f1, $i)
-            @test length(TK.insertat(f1b, 1, f1a)) == 1
-            @test first(TK.insertat(f1b, 1, f1a)) == (f1 => 1)
+            f1a, f1b = @constinferred TensorKit.split(f1, $i)
+            @test length(TensorKit.insertat(f1b, 1, f1a)) == 1
+            @test first(TensorKit.insertat(f1b, 1, f1a)) == (f1 => 1)
 
             levels = ntuple(identity, N)
             function _reinsert_partial_tree(t, f)
-                (t′, c′) = first(TK.insertat(t, 1, f))
+                (t′, c′) = first(TensorKit.insertat(t, 1, f))
                 @test c′ == one(c′)
                 return t′
             end
@@ -77,7 +82,7 @@ ti = time()
             end
         end
     end
-    @testset "Fusion tree $Istr: planar trace" begin
+    @testset "planar trace" begin
         if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
             s = randsector(I)
             N = 6
@@ -89,7 +94,7 @@ ti = time()
                     T = eltype(af)
 
                     for i in 1:N
-                        d = @constinferred TK.elementary_trace(f, i)
+                        d = @constinferred TensorKit.elementary_trace(f, i)
                         j = mod1(i + 1, N)
                         inds = collect(1:(N + 1))
                         inds[i] = inds[j]
@@ -101,7 +106,7 @@ ti = time()
                         @test bf ≈ bf′ atol = 1e-12
                     end
 
-                    d2 = @constinferred TK.planar_trace(f, (1, 3), (2, 4))
+                    d2 = @constinferred TensorKit.planar_trace(f, (1, 3), (2, 4))
                     oind2 = (5, 6, 7)
                     bf2 = tensortrace(af, (:a, :a, :b, :b, :c, :d, :e))
                     bf2′ = zero(bf2)
@@ -110,7 +115,7 @@ ti = time()
                     end
                     @test bf2 ≈ bf2′ atol = 1e-12
 
-                    d2 = @constinferred TK.planar_trace(f, (5, 6), (2, 1))
+                    d2 = @constinferred TensorKit.planar_trace(f, (5, 6), (2, 1))
                     oind2 = (3, 4, 7)
                     bf2 = tensortrace(af, (:a, :b, :c, :d, :b, :a, :e))
                     bf2′ = zero(bf2)
@@ -119,7 +124,7 @@ ti = time()
                     end
                     @test bf2 ≈ bf2′ atol = 1e-12
 
-                    d2 = @constinferred TK.planar_trace(f, (1, 4), (6, 3))
+                    d2 = @constinferred TensorKit.planar_trace(f, (1, 4), (6, 3))
                     bf2 = tensortrace(af, (:a, :b, :c, :c, :d, :a, :e))
                     bf2′ = zero(bf2)
                     for (f2′, coeff) in d2
@@ -129,7 +134,7 @@ ti = time()
 
                     q1 = (1, 3, 5)
                     q2 = (2, 4, 6)
-                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    d3 = @constinferred TensorKit.planar_trace(f, q1, q2)
                     bf3 = tensortrace(af, (:a, :a, :b, :b, :c, :c, :d))
                     bf3′ = zero(bf3)
                     for (f3′, coeff) in d3
@@ -139,7 +144,7 @@ ti = time()
 
                     q1 = (1, 3, 5)
                     q2 = (6, 2, 4)
-                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    d3 = @constinferred TensorKit.planar_trace(f, q1, q2)
                     bf3 = tensortrace(af, (:a, :b, :b, :c, :c, :a, :d))
                     bf3′ = zero(bf3)
                     for (f3′, coeff) in d3
@@ -149,7 +154,7 @@ ti = time()
 
                     q1 = (1, 2, 3)
                     q2 = (6, 5, 4)
-                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    d3 = @constinferred TensorKit.planar_trace(f, q1, q2)
                     bf3 = tensortrace(af, (:a, :b, :c, :c, :b, :a, :d))
                     bf3′ = zero(bf3)
                     for (f3′, coeff) in d3
@@ -159,7 +164,7 @@ ti = time()
 
                     q1 = (1, 2, 4)
                     q2 = (6, 3, 5)
-                    d3 = @constinferred TK.planar_trace(f, q1, q2)
+                    d3 = @constinferred TensorKit.planar_trace(f, q1, q2)
                     bf3 = tensortrace(af, (:a, :b, :b, :c, :c, :a, :d))
                     bf3′ = zero(bf3)
                     for (f3′, coeff) in d3
@@ -170,17 +175,17 @@ ti = time()
             end
         end
     end
-    @testset "Fusion tree $Istr: elementy artin braid" begin
+    @testset "elementy artin braid" begin
         N = length(out)
         isdual = ntuple(n -> rand(Bool), N)
         for in in ⊗(out...)
             for i in 1:(N - 1)
                 for f in fusiontrees(out, in, isdual)
-                    d1 = @constinferred TK.artin_braid(f, i)
+                    d1 = @constinferred TensorKit.artin_braid(f, i)
                     @test norm(values(d1)) ≈ 1
                     d2 = empty(d1)
                     for (f1, coeff1) in d1
-                        for (f2, coeff2) in TK.artin_braid(f1, i; inv=true)
+                        for (f2, coeff2) in TensorKit.artin_braid(f1, i; inv=true)
                             d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
                         end
                     end
@@ -196,24 +201,24 @@ ti = time()
         end
 
         f = rand(collect(it))
-        d1 = TK.artin_braid(f, 2)
+        d1 = TensorKit.artin_braid(f, 2)
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2, coeff2) in TK.artin_braid(f1, 3)
+            for (f2, coeff2) in TensorKit.artin_braid(f1, 3)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
             end
         end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2, coeff2) in TK.artin_braid(f1, 3; inv=true)
+            for (f2, coeff2) in TensorKit.artin_braid(f1, 3; inv=true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
             end
         end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2, coeff2) in TK.artin_braid(f1, 2; inv=true)
+            for (f2, coeff2) in TensorKit.artin_braid(f1, 2; inv=true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
             end
         end
@@ -226,7 +231,7 @@ ti = time()
             end
         end
     end
-    @testset "Fusion tree $Istr: braiding and permuting" begin
+    @testset "braiding and permuting" begin
         f = rand(collect(fusiontrees(out, in, isdual)))
         p = tuple(randperm(N)...)
         ip = invperm(p)
@@ -259,7 +264,7 @@ ti = time()
         end
     end
 
-    @testset "Fusion tree $Istr: merging" begin
+    @testset "merging" begin
         N = 3
         out1 = ntuple(n -> randsector(I), N)
         in1 = rand(collect(⊗(out1...)))
@@ -268,27 +273,27 @@ ti = time()
         in2 = rand(collect(⊗(out2...)))
         f2 = rand(collect(fusiontrees(out2, in2)))
 
-        @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), 1)
+        @constinferred TensorKit.merge(f1, f2, first(in1 ⊗ in2), 1)
         if !(FusionStyle(I) isa GenericFusion)
-            @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), nothing)
-            @constinferred TK.merge(f1, f2, first(in1 ⊗ in2))
+            @constinferred TensorKit.merge(f1, f2, first(in1 ⊗ in2), nothing)
+            @constinferred TensorKit.merge(f1, f2, first(in1 ⊗ in2))
         end
         @test dim(in1) * dim(in2) ≈ sum(abs2(coeff) * dim(c) for c in in1 ⊗ in2
                                         for μ in 1:Nsymbol(in1, in2, c)
-                                        for (f, coeff) in TK.merge(f1, f2, c, μ))
+                                        for (f, coeff) in TensorKit.merge(f1, f2, c, μ))
 
         for c in in1 ⊗ in2
             R = Rsymbol(in1, in2, c)
             for μ in 1:Nsymbol(in1, in2, c)
                 μ′ = FusionStyle(I) isa GenericFusion ? μ : nothing
-                trees1 = TK.merge(f1, f2, c, μ′)
+                trees1 = TensorKit.merge(f1, f2, c, μ′)
 
                 # test merge and braid interplay
                 trees2 = Dict{keytype(trees1),complex(valtype(trees1))}()
                 trees3 = Dict{keytype(trees1),complex(valtype(trees1))}()
                 for ν in 1:Nsymbol(in2, in1, c)
                     ν′ = FusionStyle(I) isa GenericFusion ? ν : nothing
-                    for (t, coeff) in TK.merge(f2, f1, c, ν′)
+                    for (t, coeff) in TensorKit.merge(f2, f1, c, ν′)
                         trees2[t] = get(trees2, t, zero(valtype(trees2))) + coeff * R[μ, ν]
                     end
                 end
@@ -340,14 +345,14 @@ ti = time()
     f1 = rand(collect(fusiontrees(out, incoming, ntuple(n -> rand(Bool), N))))
     f2 = rand(collect(fusiontrees(out[randperm(N)], incoming, ntuple(n -> rand(Bool), N))))
 
-    @testset "Double fusion tree $Istr: repartioning" begin
+    @testset "repartioning" begin
         for n in 0:(2 * N)
-            d = @constinferred TK.repartition(f1, f2, $n)
+            d = @constinferred TensorKit.repartition(f1, f2, $n)
             @test dim(incoming) ≈
                   sum(abs2(coef) * dim(f1.coupled) for ((f1, f2), coef) in d)
             d2 = Dict{typeof((f1, f2)),valtype(d)}()
             for ((f1′, f2′), coeff) in d
-                for ((f1′′, f2′′), coeff2) in TK.repartition(f1′, f2′, N)
+                for ((f1′′, f2′′), coeff2) in TensorKit.repartition(f1′, f2′, N)
                     d2[(f1′′, f2′′)] = get(d2, (f1′′, f2′′), zero(coeff)) + coeff2 * coeff
                 end
             end
@@ -385,7 +390,7 @@ ti = time()
             end
         end
     end
-    @testset "Double fusion tree $Istr: permutation" begin
+    @testset "permutation" begin
         if BraidingStyle(I) isa SymmetricBraiding
             for n in 0:(2N)
                 p = (randperm(2 * N)...,)
@@ -441,7 +446,7 @@ ti = time()
             end
         end
     end
-    @testset "Double fusion tree $Istr: transposition" begin
+    @testset "transposition" begin
         for n in 0:(2N)
             i0 = rand(1:(2N))
             p = mod1.(i0 .+ (1:(2N)), 2N)
@@ -506,15 +511,15 @@ ti = time()
             end
         end
     end
-    @testset "Double fusion tree $Istr: planar trace" begin
+    @testset "planar trace" begin
         d1 = transpose(f1, f1, (N + 1, 1:N..., ((2N):-1:(N + 3))...), (N + 2,))
-        f1front, = TK.split(f1, N - 1)
+        f1front, = TensorKit.split(f1, N - 1)
         T = typeof(Fsymbol(one(I), one(I), one(I), one(I), one(I), one(I))[1, 1, 1, 1])
         d2 = Dict{typeof((f1front, f1front)),T}()
         for ((f1′, f2′), coeff′) in d1
             for ((f1′′, f2′′), coeff′′) in
-                TK.planar_trace(f1′, f2′, (2:N...,), (1, ((2N):-1:(N + 3))...), (N + 1,),
-                                (N + 2,))
+                TensorKit.planar_trace(f1′, f2′, (2:N...,), (1, ((2N):-1:(N + 3))...),
+                                       (N + 1,), (N + 2,))
                 coeff = coeff′ * coeff′′
                 d2[(f1′′, f2′′)] = get(d2, (f1′′, f2′′), zero(coeff)) + coeff
             end
@@ -527,9 +532,8 @@ ti = time()
             end
         end
     end
+    
+    println("Finished tests for $Istr.")
 end
-tf = time()
-printstyled("Finished fusion tree tests in ",
-            string(round(tf - ti; sigdigits=3)),
-            " seconds."; bold=true, color=Base.info_color())
-println()
+
+end
