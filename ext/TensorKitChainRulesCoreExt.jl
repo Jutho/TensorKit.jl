@@ -98,7 +98,7 @@ end
 # -------------
 
 function ChainRulesCore.rrule(::typeof(tr), A::AbstractTensorMap)
-    tr_pullback(Δtr) = NoTangent(), @thunk(Δtr * id(domain(A)))
+    tr_pullback(Δtr) = NoTangent(), Δtr * id(domain(A))
     return tr(A), tr_pullback
 end
 
