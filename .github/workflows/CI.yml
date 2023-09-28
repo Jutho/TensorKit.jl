@@ -19,7 +19,7 @@ jobs:
     permissions:
       pull-requests: read
     outputs:
-      groups: ${{ steps.changes.outputs.groups }}
+      groups: ${{ steps.filter.outputs.changes }}
     steps:
     - uses: actions/checkout@v4
     - uses: dorny/paths-filter@v2
