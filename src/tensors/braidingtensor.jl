@@ -193,19 +193,19 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
                                                  oindB, cindB, p1, p2)
-    
+
     if space(B, cindB[1]) != space(A, cindA[1])' ||
        space(B, cindB[2]) != space(A, cindA[2])'
         throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($p1, $p2)"))
     end
-    
+
     if BraidingStyle(sectortype(B)) isa Bosonic
         return add_permute!(C, B, (reverse(cindB), oindB), α, β, backend...)
     end
 
     τ_levels = A.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
     scale!(C, β)
-    
+
     inv_braid = τ_levels[cindA[1]] > τ_levels[cindA[2]]
     for (f₁, f₂) in fusiontrees(B)
         local newtrees
@@ -221,7 +221,8 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
             end
         end
         for ((f₁′, f₂′), coeff) in newtrees
-            TO.tensoradd!(C[f₁′, f₂′], (reverse(cindB), oindB), B[f₁, f₂], :N, α * coeff, One(), backend...)
+            TO.tensoradd!(C[f₁′, f₂′], (reverse(cindB), oindB), B[f₁, f₂], :N, α * coeff,
+                          One(), backend...)
         end
     end
     return C
@@ -251,7 +252,7 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     scale!(C, β)
     τ_levels = B.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
     inv_braid = τ_levels[cindB[1]] > τ_levels[cindB[2]]
-    
+
     for (f₁, f₂) in fusiontrees(A)
         local newtrees
         for ((f₁′, f₂′), coeff′) in transpose(f₁, f₂, oindA, cindA)
@@ -266,7 +267,8 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
             end
         end
         for ((f₁′, f₂′), coeff) in newtrees
-            TO.tensoradd!(C[f₁′, f₂′], (oindA, reverse(cindA)), A[f₁, f₂], :N, α * coeff, One(), backend...)
+            TO.tensoradd!(C[f₁′, f₂′], (oindA, reverse(cindA)), A[f₁, f₂], :N, α * coeff,
+                          One(), backend...)
         end
     end
     return C
