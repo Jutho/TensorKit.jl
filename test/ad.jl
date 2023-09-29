@@ -52,6 +52,17 @@ function FiniteDifferences.to_vec(t::AbstractTensorMap)
 end
 FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
 
+function _randomize!(a::TensorMap)
+    for b in values(blocks(a))
+        copyto!(b, randn(size(b)))
+    end
+    return a
+end
+
+# Float32 and finite differences don't mix well
+precision(::Type{<:Union{Float32, Complex{Float32}}}) = 1e-2
+precision(::Type{<:Union{Float64, Complex{Float64}}}) = 1e-8
+
 # rrules for functions that destroy inputs
 # ----------------------------------------
 function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...)
@@ -150,6 +161,64 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         test_rrule(LinearAlgebra.adjoint, A)
         test_rrule(LinearAlgebra.norm, A, 2)
+    end
+    
+    @testset "TensorOperations ($T)" for T in (Float64, ComplexF64)
+        atol = precision(T)
+        rtol = precision(T)
+        @testset "tensortrace!" begin
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[1] ⊗ V[5])
+            pC = ((3, 5), (2,))
+            pA = ((1,), (4,))
+            α = randn(T)
+            β = randn(T)
+            
+            C = _randomize!(TensorOperations.tensoralloc_add(T, pC, A, :N, false))
+            test_rrule(tensortrace!, C, pC, A, pA, :N, α, β; atol, rtol)
+            
+            C = _randomize!(TensorOperations.tensoralloc_add(T, pC, A, :C, false))
+            test_rrule(tensortrace!, C, pC, A, pA, :C, α, β; atol, rtol)
+        end
+        
+        @testset "tensoradd!" begin
+            p = ((1, 3, 2), (5, 4))
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
+            α = randn(T)
+            β = randn(T)
+            test_rrule(tensoradd!, C, p, A, :N, α, β; atol, rtol)
+            
+            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
+            test_rrule(tensoradd!, C, p, A, :C, α, β; atol, rtol)
+        end
+        
+        @testset "tensorcontract!" begin
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+            B = TensorMap(randn, T, V[3] ⊗ V[1]' ← V[2])
+            pC = ((3, 2), (4, 1))
+            pA = ((2, 4, 5), (1, 3))
+            pB = ((2, 1), (3,))
+            α = randn(T)
+            β = randn(T)
+        
+            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N, 
+                                                                  B, pB, :N, false))
+            test_rrule(tensorcontract!, C, pC, A, pA, :N, B, pB, :N, α, β; atol, rtol)
+            
+            A2 = TensorMap(randn, T, V[1]' ⊗ V[2]' ← V[3]' ⊗ V[4]' ⊗ V[5]')
+            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
+                                                                  B, pB, :N, false))
+            test_rrule(tensorcontract!, C, pC, A2, pA, :C, B, pB, :N, α, β; atol, rtol)
+
+            B2 = TensorMap(randn, T, V[3]' ⊗ V[1] ← V[2]')
+            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N,
+                                                                  B2, pB, :C, false))
+            test_rrule(tensorcontract!, C, pC, A, pA, :N, B2, pB, :C, α, β; atol, rtol)
+
+            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
+                                                                  B2, pB, :C, false))
+            test_rrule(tensorcontract!, C, pC, A2, pA, :C, B2, pB, :C, α, β; atol, rtol)
+        end
     end
 
     @testset "Factorizations ($T)" for T in (Float64, ComplexF64)
