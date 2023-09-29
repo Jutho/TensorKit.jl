@@ -58,6 +58,9 @@ function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
     return copy(t), copy_pullback
 end
 
+ChainRulesCore.ProjectTo(::T) where {T<:AbstractTensorMap} = ProjectTo{T}()
+(::ProjectTo{T})(x::AbstractTensorMap) where {T<:AbstractTensorMap} = convert(T, x)
+
 # Base Linear Algebra
 # -------------------
 
