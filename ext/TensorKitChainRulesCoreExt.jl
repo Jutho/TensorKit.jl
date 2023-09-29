@@ -97,11 +97,6 @@ function ChainRulesCore.rrule(::typeof(permute), tsrc::AbstractTensorMap, p::Ind
     return permute(tsrc, p), permute_pullback
 end
 
-function ChainRulesCore.rrule(::typeof(scalar), t::AbstractTensorMap)
-    scalar_pullback(Δc) = NoTangent(), fill!(similar(t), unthunk(Δc))
-    return scalar(t), scalar_pullback
-end
-
 # LinearAlgebra
 # -------------
 
