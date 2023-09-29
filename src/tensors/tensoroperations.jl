@@ -26,10 +26,10 @@ function _canonicalize(p::Index2Tuple{N₁,N₂},
                        ::AbstractTensorMap{<:IndexSpace,N₁,N₂}) where {N₁,N₂}
     return p
 end
-function _canonicalize(p::Index2Tuple, t::AbstractTensorMap)
-    p′ = linearize(p)
-    p₁ = TupleTools.getindices(p′, codomainind(t))
-    p₂ = TupleTools.getindices(p′, domainind(t))
+_canonicalize(p::Index2Tuple, t::AbstractTensorMap) = _canonicalize(linearize(p), t)
+function _canonicalize(p::IndexTuple, t::AbstractTensorMap)
+    p₁ = TupleTools.getindices(p, codomainind(t))
+    p₂ = TupleTools.getindices(p, domainind(t))
     return (p₁, p₂)
 end
 
@@ -42,7 +42,7 @@ function TO.tensoradd!(C::AbstractTensorMap{S}, pC::Index2Tuple,
         pC′ = _canonicalize(pC, C)
     elseif conjA == :C
         A′ = adjoint(A)
-        pC′ = adjointtensorindices(A, _canonicalize(pA, C))
+        pC′ = adjointtensorindices(A, _canonicalize(pC, C))
     else
         throw(ArgumentError("unknown conjugation flag $conjA"))
     end
