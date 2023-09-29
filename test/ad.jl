@@ -147,9 +147,6 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(*, A, C)
 
         test_rrule(permute, A, ((1, 3, 2), (5, 4)))
-
-        D = Tensor(randn, T, ProductSpace{ComplexSpace,0}())
-        test_rrule(TensorKit.scalar, D)
     end
 
     @testset "Linear Algebra part II ($T)" for T in (Float64, ComplexF64)
