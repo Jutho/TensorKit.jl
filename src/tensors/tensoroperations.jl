@@ -42,7 +42,7 @@ function TO.tensoradd!(C::AbstractTensorMap{S}, pC::Index2Tuple,
         pC′ = _canonicalize(pC, C)
     elseif conjA == :C
         A′ = adjoint(A)
-        pC′ = adjointtensorindices(A, _canonicalize(pA, C))
+        pC′ = adjointtensorindices(A, _canonicalize(pC, C))
     else
         throw(ArgumentError("unknown conjugation flag $conjA"))
     end
