@@ -53,6 +53,11 @@ function ChainRulesCore.rrule(::typeof(convert), T::Type{<:Array}, t::AbstractTe
     return A, convert_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
+    copy_pullback(Δt) = NoTangent(), Δt
+    return copy(t), copy_pullback
+end
+
 # Base Linear Algebra
 # -------------------
 
