@@ -198,6 +198,10 @@ Return the type of inner product for vector spaces, which can be either
 InnerProductStyle(V::VectorSpace) = InnerProductStyle(typeof(V))
 InnerProductStyle(::Type{<:VectorSpace}) = NoInnerProduct()
 
+@noinline function throw_invalid_innerproduct(fname)
+    throw(ArgumentError("$fname requires Euclidean inner product"))
+end
+
 dual(V::VectorSpace) = dual(InnerProductStyle(V), V)
 dual(::EuclideanProduct, V::VectorSpace) = conj(V)
 

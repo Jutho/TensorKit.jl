@@ -262,28 +262,22 @@ LinearAlgebra.isposdef(t::AbstractTensorMap) = isposdef!(copy(t))
 # only correct if Euclidean inner product
 #------------------------------------------------------------------------------------------
 function leftorth!(t::AdjointTensorMap; alg::OFA=QRpos())
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("leftorth! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftorth!)
     return map(adjoint, reverse(rightorth!(adjoint(t); alg=alg')))
 end
 
 function rightorth!(t::AdjointTensorMap; alg::OFA=LQpos())
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("rightorth! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightorth!)
     return map(adjoint, reverse(leftorth!(adjoint(t); alg=alg')))
 end
 
-function leftnull!(t::AdjointTensorMap; alg::OFA=QR(),
-                   kwargs...)
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("leftnull! only defined for Euclidean inner product spaces"))
+function leftnull!(t::AdjointTensorMap; alg::OFA=QR(), kwargs...)
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftnull!)
     return adjoint(rightnull!(adjoint(t); alg=alg', kwargs...))
 end
 
-function rightnull!(t::AdjointTensorMap; alg::OFA=LQ(),
-                    kwargs...)
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("rightnull! only defined for Euclidean inner product spaces"))
+function rightnull!(t::AdjointTensorMap; alg::OFA=LQ(), kwargs...)
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightnull!)
     return adjoint(leftnull!(adjoint(t); alg=alg', kwargs...))
 end
 
@@ -291,9 +285,7 @@ function tsvd!(t::AdjointTensorMap;
                trunc::TruncationScheme=NoTruncation(),
                p::Real=2,
                alg::Union{SVD,SDD}=SDD())
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("tsvd! only defined for Euclidean inner product spaces"))
-
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
     u, s, vt, err = tsvd!(adjoint(t); trunc=trunc, p=p, alg=alg)
     return adjoint(vt), adjoint(s), adjoint(u), err
 end
@@ -303,8 +295,7 @@ function leftorth!(t::TensorMap;
                    atol::Real=zero(float(real(scalartype(t)))),
                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
                               eps(real(float(one(scalartype(t))))) * iszero(atol))
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("leftorth! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftorth!)
     if !iszero(rtol)
         atol = max(atol, rtol * norm(t))
     end
@@ -340,8 +331,7 @@ function leftnull!(t::TensorMap;
                    atol::Real=zero(float(real(scalartype(t)))),
                    rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
                               eps(real(float(one(scalartype(t))))) * iszero(atol))
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("leftnull! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftnull!)
     if !iszero(rtol)
         atol = max(atol, rtol * norm(t))
     end
@@ -365,8 +355,7 @@ function rightorth!(t::TensorMap;
                     atol::Real=zero(float(real(scalartype(t)))),
                     rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
                                eps(real(float(one(scalartype(t))))) * iszero(atol))
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("rightorth! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightorth!)
     if !iszero(rtol)
         atol = max(atol, rtol * norm(t))
     end
@@ -402,8 +391,7 @@ function rightnull!(t::TensorMap;
                     atol::Real=zero(float(real(scalartype(t)))),
                     rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
                                eps(real(float(one(scalartype(t))))) * iszero(atol))
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("rightnull! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightnull!)
     if !iszero(rtol)
         atol = max(atol, rtol * norm(t))
     end
@@ -426,8 +414,7 @@ function tsvd!(t::TensorMap;
                trunc::TruncationScheme=NoTruncation(),
                p::Real=2,
                alg::Union{SVD,SDD}=SDD())
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("tsvd! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
     S = spacetype(t)
     I = sectortype(t)
     A = storagetype(t)
@@ -500,8 +487,7 @@ end
 LinearAlgebra.eigen!(t::TensorMap) = ishermitian(t) ? eigh!(t) : eig!(t)
 
 function eigh!(t::TensorMap; kwargs...)
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("eigh! only defined for Euclidean inner product spaces"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:eigh!)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eigh!` requires domain and codomain to be the same"))
     S = spacetype(t)
@@ -527,6 +513,7 @@ function eigh!(t::TensorMap; kwargs...)
 end
 
 function eig!(t::TensorMap; kwargs...)
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:eig!)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
     S = spacetype(t)

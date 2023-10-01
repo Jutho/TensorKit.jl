@@ -99,23 +99,19 @@ for a specific isomorphism, but the current choice is such that
 `unitary(cod, dom) == inv(unitary(dom, cod)) = adjoint(unitary(dom, cod))`.
 """
 function unitary(cod::TensorSpace{S}, dom::TensorSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() ||
-        throw(ArgumentError("unitary requires inner product spaces"))
+    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
     return isomorphism(cod, dom)
 end
 function unitary(P::TensorMapSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() ||
-        throw(ArgumentError("unitary requires inner product spaces"))
+    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
     return isomorphism(P)
 end
 function unitary(A::Type{<:DenseMatrix}, P::TensorMapSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() ||
-        throw(ArgumentError("unitary requires inner product spaces"))
+    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
     return isomorphism(A, P)
 end
 function unitary(A::Type{<:DenseMatrix}, cod::TensorSpace{S}, dom::TensorSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() ||
-        throw(ArgumentError("unitary requires inner product spaces"))
+    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
     return isomorphism(A, cod, dom)
 end
 
@@ -139,8 +135,7 @@ end
 function isometry(::Type{A},
                   cod::ProductSpace{S},
                   dom::ProductSpace{S}) where {A<:DenseMatrix,S<:ElementarySpace}
-    InnerProductStyle(S) === EuclideanProduct() ||
-        throw(ArgumentError("isometries require Euclidean inner product"))
+    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:isometry)
     dom ≾ cod ||
         throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
     t = TensorMap(s -> A(undef, s), cod, dom)
@@ -167,10 +162,9 @@ function Base.fill!(t::AbstractTensorMap, value::Number)
     end
     return t
 end
-function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
-                                tsrc::AbstractTensorMap)
-    spacetype(tdst) === spacetype(tsrc) && InnerProductStyle(tdst) === EuclideanProduct() ||
-        throw(ArgumentError("adjoint! requires Euclidean inner product spacetype"))
+function LinearAlgebra.adjoint!(tdst::AbstractTensorMap{S},
+                                tsrc::AbstractTensorMap{S}) where {S}
+    InnerProductStyle(tdst) === EuclideanProduct() || throw_invalid_innerproduct(:adjoint!)
     space(tdst) == adjoint(space(tsrc)) ||
         throw(SpaceMismatch("$(space(tdst)) ≠ adjoint($(space(tsrc)))"))
     for c in blocksectors(tdst)
@@ -207,8 +201,7 @@ end
 LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap) = inner(t1, t2)
 
 function LinearAlgebra.norm(t::AbstractTensorMap, p::Real=2)
-    InnerProductStyle(t) === EuclideanProduct() ||
-        throw(ArgumentError("norm requires Euclidean inner product"))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:norm)
     return _norm(blocks(t), p, float(zero(real(scalartype(t)))))
 end
 function _norm(blockiter, p::Real, init::Real)
