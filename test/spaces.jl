@@ -119,10 +119,10 @@ println("------------------------------------")
         @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
         @test @constinferred(⊕(V, V)) == ℂ^(2d)
         @test_throws SpaceMismatch (⊕(V, V'))
-        @test_throws "promotion of types $(typeof(ℝ^d)) and $(typeof(ℂ^d)) failed to change any arguments" (⊕(ℝ^d,
-                                                                                                              ℂ^d))
-        @test_throws "promotion of types $(typeof(ℝ^d)) and $(typeof(ℂ^d)) failed to change any arguments" (⊗(ℝ^d,
-                                                                                                              ℂ^d))
+        promote_except = ErrorException("promotion of types $(typeof(ℝ^d)) and " *
+                                        "$(typeof(ℂ^d)) failed to change any arguments")
+        @test_throws promote_except (⊕(ℝ^d, ℂ^d))
+        @test_throws promote_except (⊗(ℝ^d, ℂ^d))
         @test @constinferred(⊕(V, V)) == ℂ^(2d)
         @test @constinferred(⊕(V, oneunit(V))) == ℂ^(d + 1)
         @test @constinferred(⊕(V, V, V, V)) == ℂ^(4d)
