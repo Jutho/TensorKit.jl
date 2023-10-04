@@ -53,6 +53,7 @@ include("utility.jl")
                 @test c′ == one(c′)
                 return t′
             end
+            BraidingStyle(I) isa NoBraiding && continue
             braid_i_to_1 = braid(f1, levels, (i, (1:(i - 1))..., ((i + 1):N)...))
             trees2 = Dict(_reinsert_partial_tree(t, f2) => c for (t, c) in braid_i_to_1)
             trees3 = empty(trees2)
@@ -175,7 +176,7 @@ include("utility.jl")
             end
         end
     end
-    @testset "elementy artin braid" begin
+    BraidingStyle(I) isa NoBraiding || @testset "elementy artin braid" begin
         N = length(out)
         isdual = ntuple(n -> rand(Bool), N)
         for in in ⊗(out...)
@@ -231,7 +232,7 @@ include("utility.jl")
             end
         end
     end
-    @testset "braiding and permuting" begin
+    BraidingStyle(I) isa NoBraiding || @testset "braiding and permuting" begin
         f = rand(collect(fusiontrees(out, in, isdual)))
         p = tuple(randperm(N)...)
         ip = invperm(p)
@@ -281,8 +282,7 @@ include("utility.jl")
         @test dim(in1) * dim(in2) ≈ sum(abs2(coeff) * dim(c) for c in in1 ⊗ in2
                                         for μ in 1:Nsymbol(in1, in2, c)
                                         for (f, coeff) in TensorKit.merge(f1, f2, c, μ))
-
-        for c in in1 ⊗ in2
+        BraidingStyle(I) isa NoBraiding || for c in in1 ⊗ in2
             R = Rsymbol(in1, in2, c)
             for μ in 1:Nsymbol(in1, in2, c)
                 μ′ = FusionStyle(I) isa GenericFusion ? μ : nothing

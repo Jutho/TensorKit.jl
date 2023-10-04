@@ -1,12 +1,13 @@
 using Base.Iterators: take, product
 using TensorKit
 using TensorKit: ProductSector, Trivial, fusiontensor
-using TensorKit: pentagon_equation, hexagon_equation
+using TensorKit: pentagon_equation, hexagon_equation, NoBraiding
 using TensorOperations
 using Test, TestExtras
 using Random
 using LinearAlgebra: LinearAlgebra
 using Combinatorics
+using CategoryData
 
 Random.seed!(1234)
 
@@ -18,7 +19,7 @@ sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irre
               FibonacciAnyon, IsingAnyon, FermionParity, FermionNumber, FermionSpin,
               Z3Irrep ⊠ Z4Irrep, FermionParity ⊠ U1Irrep ⊠ SU2Irrep,
               FermionParity ⊠ SU2Irrep ⊠ SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep,
-              Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
+              Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon, Object{E6})
 
 spacelist = Dict(Trivial => (ℂ^3, (ℂ^4)', ℂ^5, ℂ^6, (ℂ^7)'),
                  Z2Irrep => (ℂ[Z2Irrep](0 => 1, 1 => 1), ℂ[Z2Irrep](0 => 1, 1 => 2)',
@@ -57,7 +58,13 @@ spacelist = Dict(Trivial => (ℂ^3, (ℂ^4)', ℂ^5, ℂ^6, (ℂ^7)'),
                             ℂ[FermionSpin](0 => 2, 1 => 1),
                             ℂ[FermionSpin](1 // 2 => 1, 1 => 1)',
                             ℂ[FermionSpin](0 => 2, 1 // 2 => 2),
-                            ℂ[FermionSpin](0 => 1, 1 // 2 => 1, 3 // 2 => 1)'))
+                            ℂ[FermionSpin](0 => 1, 1 // 2 => 1, 3 // 2 => 1)'),
+                 Object{E6} => (ℂ[Object{E6}](1 => 1, 3 => 1),
+                                ℂ[Object{E6}](2 => 1, 3 => 1)',
+                                ℂ[Object{E6}](1 => 1, 3 => 1),
+                                ℂ[Object{E6}](1 => 1, 3 => 1),
+                                ℂ[Object{E6}](1 => 1, 2 => 1, 3 => 1)'
+                 ))
 
 smallset(::Type{I}) where {I<:Sector} = take(values(I), 5)
 function smallset(::Type{ProductSector{Tuple{I1,I2}}}) where {I1,I2}

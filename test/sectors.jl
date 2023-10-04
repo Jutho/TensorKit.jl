@@ -18,7 +18,7 @@ include("utility.jl")
         @constinferred dim(s[1])
         @constinferred frobeniusschur(s[1])
         @constinferred Nsymbol(s...)
-        @constinferred Rsymbol(s...)
+        BraidingStyle(I) isa NoBraiding || @constinferred Rsymbol(s...)
         @constinferred Bsymbol(s...)
         @constinferred Fsymbol(s..., s...)
         it = @constinferred s[1] ⊗ s[2]
@@ -82,9 +82,11 @@ include("utility.jl")
             @test pentagon_equation(a, b, c, d; atol=1e-12, rtol=1e-12)
         end
     end
-    @testset "Hexagon equation" begin
-        for a in smallset(I), b in smallset(I), c in smallset(I)
-            @test hexagon_equation(a, b, c; atol=1e-12, rtol=1e-12)
+    if !(BraidingStyle(I) isa NoBraiding)
+        @testset "Hexagon equation" begin
+            for a in smallset(I), b in smallset(I), c in smallset(I)
+                @test hexagon_equation(a, b, c; atol=1e-12, rtol=1e-12)
+            end
         end
     end
 
@@ -110,16 +112,17 @@ include("utility.jl")
                 end
             end
         end
-
-        @testset "Fusion tensor and R-move" begin
-            for a in smallset(I), b in smallset(I)
-                for c in ⊗(a, b)
-                    X1 = permutedims(fusiontensor(a, b, c), (2, 1, 3, 4))
-                    X2 = fusiontensor(b, a, c)
-                    l = dim(a) * dim(b) * dim(c)
-                    R = LinearAlgebra.transpose(Rsymbol(a, b, c))
-                    sz = (l, convert(Int, Nsymbol(a, b, c)))
-                    @test reshape(X1, sz) ≈ reshape(X2, sz) * R
+        if !(BraidingStyle(I) isa NoBraiding)
+            @testset "Fusion tensor and R-move" begin
+                for a in smallset(I), b in smallset(I)
+                    for c in ⊗(a, b)
+                        X1 = permutedims(fusiontensor(a, b, c), (2, 1, 3, 4))
+                        X2 = fusiontensor(b, a, c)
+                        l = dim(a) * dim(b) * dim(c)
+                        R = LinearAlgebra.transpose(Rsymbol(a, b, c))
+                        sz = (l, convert(Int, Nsymbol(a, b, c)))
+                        @test reshape(X1, sz) ≈ reshape(X2, sz) * R
+                    end
                 end
             end
         end
