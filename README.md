@@ -7,25 +7,42 @@
 
 A Julia package for large-scale tensor computations, with a hint of category theory.
 
-| **Build Status** | **Coverage** | **Quality assurance** | **Downloads** |
-|:----------------:|:------------:|:---------------------:|:--------------|
-| [![CI][ci-img]][ci-url] | [![Codecov][codecov-img]][codecov-url] | [![Aqua QA][aqua-img]][aqua-url] | [![TensorKit Downloads][genie-img]][genie-url] |
+| **Documentation** | **Digital Object Identifier** | **Downloads** |
+|:-----------------:|:-----------------------------:|:-------------:|
+| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | Coming soon | [![TensorOperations Downloads][downloads-img]][downloads-url] |
+<!-- | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![DOI][doi-img]][doi-url] | [![TensorOperations Downloads][downloads-img]][downloads-url] | -->
 
-[github-img]: https://github.com/Jutho/TensorKit.jl/workflows/CI/badge.svg
-[github-url]: https://github.com/Jutho/TensorKit.jl/actions?query=workflow%3ACI
+| **Build Status** | **PkgEval** | **Coverage** | **Quality assurance** |
+|:----------------:|:------------:|:------------:|:---------------------:|
+| [![CI][ci-img]][ci-url] | [![PkgEval][pkgeval-img]][pkgeval-url] | [![Codecov][codecov-img]][codecov-url] | [![Aqua QA][aqua-img]][aqua-url] |
+
+
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://jutho.github.io/TensorKit.jl/stable
+
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://jutho.github.io/TensorKit.jl/latest
+
+<!-- [doi-img]: https://zenodo.org/badge/DOI/
+[doi-url]: https://doi.org/ -->
+
+[downloads-img]:
+  https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/TensorKit
+[downloads-url]: https://pkgs.genieframework.com?packages=TensorKit
 
 [ci-img]: https://github.com/Jutho/TensorKit.jl/workflows/CI/badge.svg
-[ci-url]: https://github.com/Jutho/TensorKit.jl/actions?query=workflow%3ACI
+[ci-url]:
+  https://github.com/Jutho/TensorKit.jl/actions?query=workflow%3ACI
 
-[codecov-img]: https://codecov.io/gh/Jutho/TensorKit.jl/branch/master/graph/badge.svg
+[pkgeval-img]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.svg
+[pkgeval-url]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.html
+
+[codecov-img]:
+  https://codecov.io/gh/Jutho/TensorKit.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/Jutho/TensorKit.jl
 
 [aqua-img]: https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg
 [aqua-url]: https://github.com/JuliaTesting/Aqua.jl
-
-[genie-img]:
-    https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/TensorKit
-[genie-url]: https://pkgs.genieframework.com?packages=TensorKit
 
 Install via the package manager.
 
