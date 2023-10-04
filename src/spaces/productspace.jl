@@ -31,8 +31,6 @@ Base.axes(P::ProductSpace, n::Int) = axes(P.spaces[n])
 
 dual(P::ProductSpace{<:ElementarySpace,0}) = P
 dual(P::ProductSpace) = ProductSpace(map(dual, reverse(P.spaces)))
-flip(P::ProductSpace{<:ElementarySpace,0}) = P
-flip(P::ProductSpace) = ProductSpace(map(flip, reverse(P.spaces)))
 
 # Base.conj(P::ProductSpace) = ProductSpace(map(conj, P.spaces))
 
@@ -245,6 +243,8 @@ Base.eltype(P::ProductSpace) = eltype(typeof(P))
 
 Base.IteratorEltype(::Type{<:ProductSpace}) = Base.HasEltype()
 Base.IteratorSize(::Type{<:ProductSpace}) = Base.HasLength()
+
+Base.reverse(P::ProductSpace) = ProductSpace(reverse(P.spaces))
 
 # Promotion and conversion
 # ------------------------
