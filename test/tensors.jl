@@ -560,6 +560,9 @@ end
 end
 
 @timedtestset "Deligne tensor product: test via conversion" begin
+    Vtr = spacelist[Trivial]
+    VSU₂ = spacelist[SU2Irrep]
+    Vℤ₂ = spacelist[Z2Irrep]
     @testset for Vlist1 in (Vtr, VSU₂), Vlist2 in (Vtr, Vℤ₂)
         V1, V2, V3, V4, V5 = Vlist1
         W1, W2, W3, W4, W5 = Vlist2
