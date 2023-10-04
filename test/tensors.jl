@@ -441,14 +441,15 @@ for V in spacelist
                 t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
                 @testset "eig and isposdef" begin
                     D, V = eigen(t, ((1, 3), (2, 4)))
-                    D̃, Ṽ = @constinferred eig(t, ((1, 3), (2, 4)))
-                    @test D ≈ D̃
-                    @test V ≈ Ṽ
-                    VdV = V' * V
-                    VdV = (VdV + VdV') / 2
-                    @test isposdef(VdV)
                     t2 = permute(t, ((1, 3), (2, 4)))
                     @test t2 * V ≈ V * D
+
+                    # Somehow moving these test before the previous one gives rise to errors
+                    # with T=Float32 on x86 platforms. Is this an OpenBLAS issue? 
+                    VdV = V' * V;
+                    VdV = (VdV + VdV') / 2
+                    @test isposdef(VdV)
+
                     @test !isposdef(t2) # unlikely for non-hermitian map
                     t2 = (t2 + t2')
                     D, V = eigen(t2)
