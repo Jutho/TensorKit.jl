@@ -176,93 +176,93 @@ using TensorKit: ProductSector
         end
     end
     BraidingStyle(I) isa NoBraiding || @testset "elementy artin braid" begin
-        N = length(out)
-        isdual = ntuple(n -> rand(Bool), N)
-        for in in ⊗(out...)
-            for i in 1:(N - 1)
-                for f in fusiontrees(out, in, isdual)
-                    d1 = @constinferred TensorKit.artin_braid(f, i)
-                    @test norm(values(d1)) ≈ 1
-                    d2 = empty(d1)
-                    for (f1, coeff1) in d1
-                        for (f2, coeff2) in TensorKit.artin_braid(f1, i; inv=true)
-                            d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
-                        end
-                    end
-                    for (f2, coeff2) in d2
-                        if f2 == f
-                            @test coeff2 ≈ 1
-                        else
-                            @test isapprox(coeff2, 0; atol=1e-12, rtol=1e-12)
-                        end
-                    end
-                end
-            end
-        end
+                                                                       N = length(out)
+                                                                       isdual = ntuple(n -> rand(Bool), N)
+                                                                       for in in ⊗(out...)
+                                                                       for i in 1:(N - 1)
+                                                                       for f in fusiontrees(out, in, isdual)
+                                                                       d1 = @constinferred TensorKit.artin_braid(f, i)
+                                                                       @test norm(values(d1)) ≈ 1
+                                                                       d2 = empty(d1)
+                                                                       for (f1, coeff1) in d1
+                                                                       for (f2, coeff2) in TensorKit.artin_braid(f1, i; inv=true)
+                                                                       d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
+                                                                       end
+                                                                       end
+                                                                       for (f2, coeff2) in d2
+                                                                       if f2 == f
+                                                                       @test coeff2 ≈ 1
+                                                                       else
+                                                                       @test isapprox(coeff2, 0; atol=1e-12, rtol=1e-12)
+                                                                       end
+                                                                       end
+                                                                       end
+                                                                       end
+                                                                       end
 
-        f = rand(collect(it))
-        d1 = TensorKit.artin_braid(f, 2)
-        d2 = empty(d1)
-        for (f1, coeff1) in d1
-            for (f2, coeff2) in TensorKit.artin_braid(f1, 3)
-                d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
-            end
-        end
-        d1 = d2
-        d2 = empty(d1)
-        for (f1, coeff1) in d1
-            for (f2, coeff2) in TensorKit.artin_braid(f1, 3; inv=true)
-                d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
-            end
-        end
-        d1 = d2
-        d2 = empty(d1)
-        for (f1, coeff1) in d1
-            for (f2, coeff2) in TensorKit.artin_braid(f1, 2; inv=true)
-                d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
-            end
-        end
-        d1 = d2
-        for (f1, coeff1) in d1
-            if f1 == f
-                @test coeff1 ≈ 1
-            else
-                @test isapprox(coeff1, 0; atol=1e-12, rtol=1e-12)
-            end
-        end
-    end
+                                                                       f = rand(collect(it))
+                                                                       d1 = TensorKit.artin_braid(f, 2)
+                                                                       d2 = empty(d1)
+                                                                       for (f1, coeff1) in d1
+                                                                       for (f2, coeff2) in TensorKit.artin_braid(f1, 3)
+                                                                       d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
+                                                                       end
+                                                                       end
+                                                                       d1 = d2
+                                                                       d2 = empty(d1)
+                                                                       for (f1, coeff1) in d1
+                                                                       for (f2, coeff2) in TensorKit.artin_braid(f1, 3; inv=true)
+                                                                       d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
+                                                                       end
+                                                                       end
+                                                                       d1 = d2
+                                                                       d2 = empty(d1)
+                                                                       for (f1, coeff1) in d1
+                                                                       for (f2, coeff2) in TensorKit.artin_braid(f1, 2; inv=true)
+                                                                       d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
+                                                                       end
+                                                                       end
+                                                                       d1 = d2
+                                                                       for (f1, coeff1) in d1
+                                                                       if f1 == f
+                                                                       @test coeff1 ≈ 1
+                                                                       else
+                                                                       @test isapprox(coeff1, 0; atol=1e-12, rtol=1e-12)
+                                                                       end
+                                                                       end
+                                                                       end
     BraidingStyle(I) isa NoBraiding || @testset "braiding and permuting" begin
-        f = rand(collect(fusiontrees(out, in, isdual)))
-        p = tuple(randperm(N)...)
-        ip = invperm(p)
+                                                                         f = rand(collect(fusiontrees(out, in, isdual)))
+                                                                         p = tuple(randperm(N)...)
+                                                                         ip = invperm(p)
 
-        levels = ntuple(identity, N)
-        d = @constinferred braid(f, levels, p)
-        d2 = Dict{typeof(f),valtype(d)}()
-        levels2 = p
-        for (f2, coeff) in d
-            for (f1, coeff2) in braid(f2, levels2, ip)
-                d2[f1] = get(d2, f1, zero(coeff)) + coeff2 * coeff
-            end
-        end
-        for (f1, coeff2) in d2
-            if f1 == f
-                @test coeff2 ≈ 1
-            else
-                @test isapprox(coeff2, 0; atol=1e-12, rtol=1e-12)
-            end
-        end
+                                                                         levels = ntuple(identity, N)
+                                                                         d = @constinferred braid(f, levels, p)
+                                                                         d2 = Dict{typeof(f),valtype(d)}()
+                                                                         levels2 = p
+                                                                         for (f2, coeff) in d
+                                                                         for (f1, coeff2) in braid(f2, levels2, ip)
+                                                                         d2[f1] = get(d2, f1, zero(coeff)) + coeff2 * coeff
+                                                                         end
+                                                                         end
+                                                                         for (f1, coeff2) in d2
+                                                                         if f1 == f
+                                                                         @test coeff2 ≈ 1
+                                                                         else
+                                                                         @test isapprox(coeff2, 0; atol=1e-12, rtol=1e-12)
+                                                                         end
+                                                                         end
 
-        if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
-            Af = convert(Array, f)
-            Afp = permutedims(Af, (p..., N + 1))
-            Afp2 = zero(Afp)
-            for (f1, coeff) in d
-                Afp2 .+= coeff .* convert(Array, f1)
-            end
-            @test Afp ≈ Afp2
-        end
-    end
+                                                                         if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
+                                                                         Af = convert(Array, f)
+                                                                         Afp = permutedims(Af, (p..., N + 1))
+                                                                         Afp2 = zero(Afp)
+                                                                         for (f1, coeff) in d
+                                                                         Afp2 .+= coeff .* convert(Array, f1)
+                                                                         end
+                                                                         @test Afp ≈ Afp2
+                                                                         end
+                                                                         end
 
     @testset "merging" begin
         N = 3
@@ -282,51 +282,55 @@ using TensorKit: ProductSector
                                         for μ in 1:Nsymbol(in1, in2, c)
                                         for (f, coeff) in TensorKit.merge(f1, f2, c, μ))
         BraidingStyle(I) isa NoBraiding || for c in in1 ⊗ in2
-            R = Rsymbol(in1, in2, c)
-            for μ in 1:Nsymbol(in1, in2, c)
-                μ′ = FusionStyle(I) isa GenericFusion ? μ : nothing
-                trees1 = TensorKit.merge(f1, f2, c, μ′)
+                                           R = Rsymbol(in1, in2, c)
+                                           for μ in 1:Nsymbol(in1, in2, c)
+                                           μ′ = FusionStyle(I) isa GenericFusion ? μ : nothing
+                                           trees1 = TensorKit.merge(f1, f2, c, μ′)
 
                 # test merge and braid interplay
-                trees2 = Dict{keytype(trees1),complex(valtype(trees1))}()
-                trees3 = Dict{keytype(trees1),complex(valtype(trees1))}()
-                for ν in 1:Nsymbol(in2, in1, c)
-                    ν′ = FusionStyle(I) isa GenericFusion ? ν : nothing
-                    for (t, coeff) in TensorKit.merge(f2, f1, c, ν′)
-                        trees2[t] = get(trees2, t, zero(valtype(trees2))) + coeff * R[μ, ν]
-                    end
-                end
-                perm = ((N .+ (1:N))..., (1:N)...)
-                levels = ntuple(identity, 2 * N)
-                for (t, coeff) in trees1
-                    for (t′, coeff′) in braid(t, levels, perm)
-                        trees3[t′] = get(trees3, t′, zero(valtype(trees3))) + coeff * coeff′
-                    end
-                end
-                for (t, coeff) in trees3
-                    coeff′ = get(trees2, t, zero(coeff))
-                    @test isapprox(coeff, coeff′; atol=1e-12, rtol=1e-12)
-                end
+                                           trees2 = Dict{keytype(trees1),complex(valtype(trees1))}()
+                                           trees3 = Dict{keytype(trees1),complex(valtype(trees1))}()
+                                           for ν in 1:Nsymbol(in2, in1, c)
+                                           ν′ = FusionStyle(I) isa GenericFusion ? ν : nothing
+                                           for (t, coeff) in TensorKit.merge(f2, f1, c, ν′)
+                                           trees2[t] = get(trees2, t, zero(valtype(trees2))) +
+                                                       coeff * R[μ, ν]
+                                           end
+                                           end
+                                           perm = ((N .+ (1:N))..., (1:N)...)
+                                           levels = ntuple(identity, 2 * N)
+                                           for (t, coeff) in trees1
+                                           for (t′, coeff′) in braid(t, levels, perm)
+                                           trees3[t′] = get(trees3, t′, zero(valtype(trees3))) +
+                                                        coeff * coeff′
+                                           end
+                                           end
+                                           for (t, coeff) in trees3
+                                           coeff′ = get(trees2, t, zero(coeff))
+                                           @test isapprox(coeff, coeff′; atol=1e-12, rtol=1e-12)
+                                           end
 
                 # test via conversion
-                if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
-                    Af1 = convert(Array, f1)
-                    Af2 = convert(Array, f2)
-                    Af0 = convert(Array,
-                                  FusionTree((f1.coupled, f2.coupled), c, (false, false),
-                                             (), (μ,)))
-                    _Af = TensorOperations.tensorcontract(1:(N + 2), Af1, [1:N; -1],
-                                                          Af0, [-1; N + 1; N + 2])
-                    Af = TensorOperations.tensorcontract(1:(2N + 1), Af2, [N .+ (1:N); -1],
-                                                         _Af, [1:N; -1; 2N + 1])
-                    Af′ = zero(Af)
-                    for (f, coeff) in trees1
-                        Af′ .+= coeff .* convert(Array, f)
-                    end
-                    @test Af ≈ Af′
-                end
-            end
-        end
+                                           if (BraidingStyle(I) isa Bosonic) && hasfusiontensor(I)
+                                           Af1 = convert(Array, f1)
+                                           Af2 = convert(Array, f2)
+                                           Af0 = convert(Array,
+                                                         FusionTree((f1.coupled, f2.coupled), c,
+                                                                    (false, false),
+                                                                    (), (μ,)))
+                                           _Af = TensorOperations.tensorcontract(1:(N + 2), Af1, [1:N; -1],
+                                                                                 Af0, [-1; N + 1; N + 2])
+                                           Af = TensorOperations.tensorcontract(1:(2N + 1), Af2,
+                                                                                [N .+ (1:N); -1],
+                                                                                _Af, [1:N; -1; 2N + 1])
+                                           Af′ = zero(Af)
+                                           for (f, coeff) in trees1
+                                           Af′ .+= coeff .* convert(Array, f)
+                                           end
+                                           @test Af ≈ Af′
+                                           end
+                                           end
+                                           end
     end
 
     if I <: ProductSector
@@ -531,6 +535,6 @@ using TensorKit: ProductSector
             end
         end
     end
-    
+
     println("Finished tests for $Istr.")
 end

@@ -379,67 +379,67 @@ end
                 end
             end
 
-                t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
-                @testset "eig and isposdef" begin
-                    D, V = eigen(t, ((1, 3), (2, 4)))
-                    t2 = permute(t, ((1, 3), (2, 4)))
-                    @test t2 * V ≈ V * D
-                    @test !isposdef(t2) # unlikely for non-hermitian map
-                    t2 = (t2 + t2')
-                    D, V = eigen(t2)
-                    VdV = V' * V
-                    @test VdV ≈ one(VdV)
-                    D̃, Ṽ = @constinferred eigh(t2)
-                    @test D ≈ D̃
-                    @test V ≈ Ṽ
-                    λ = minimum(minimum(real(LinearAlgebra.diag(b)))
-                                for (c, b) in blocks(D))
-                    @test isposdef(t2) == isposdef(λ)
-                    @test isposdef(t2 - λ * one(t2) + 0.1 * one(t2))
-                    @test !isposdef(t2 - λ * one(t2) - 0.1 * one(t2))
+            t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
+            @testset "eig and isposdef" begin
+                D, V = eigen(t, ((1, 3), (2, 4)))
+                t2 = permute(t, ((1, 3), (2, 4)))
+                @test t2 * V ≈ V * D
+                @test !isposdef(t2) # unlikely for non-hermitian map
+                t2 = (t2 + t2')
+                D, V = eigen(t2)
+                VdV = V' * V
+                @test VdV ≈ one(VdV)
+                D̃, Ṽ = @constinferred eigh(t2)
+                @test D ≈ D̃
+                @test V ≈ Ṽ
+                λ = minimum(minimum(real(LinearAlgebra.diag(b)))
+                            for (c, b) in blocks(D))
+                @test isposdef(t2) == isposdef(λ)
+                @test isposdef(t2 - λ * one(t2) + 0.1 * one(t2))
+                @test !isposdef(t2 - λ * one(t2) - 0.1 * one(t2))
+            end
+        end
+    end
+    @timedtestset "Tensor truncation" begin
+        for T in (Float32, ComplexF64)
+            for p in (1, 2, 3, Inf)
+                # Test both a normal tensor and an adjoint one.
+                ts = (TensorMap(randn, T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
+                      TensorMap(randn, T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
+                for t in ts
+                    U₀, S₀, V₀, = tsvd(t)
+                    t = rmul!(t, 1 / norm(S₀, p))
+                    U, S, V, ϵ = @constinferred tsvd(t; trunc=truncerr(5e-1), p=p)
+                    # @show p, ϵ
+                    # @show domain(S)
+                    # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc=truncerr(nextfloat(ϵ)), p=p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc=truncdim(ceil(Int, dim(domain(S)))),
+                                          p=p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                    # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
+                    U, S, V, ϵ = tsvd(t; trunc=truncbelow(1 / dim(domain(S₀))), p=p)
+                    # @show p, ϵ
+                    # @show domain(S)
+                    # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                    U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
+                    @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                 end
             end
         end
-        @timedtestset "Tensor truncation" begin
-            for T in (Float32, ComplexF64)
-                for p in (1, 2, 3, Inf)
-                    # Test both a normal tensor and an adjoint one.
-                    ts = (TensorMap(randn, T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
-                          TensorMap(randn, T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
-                    for t in ts
-                        U₀, S₀, V₀, = tsvd(t)
-                        t = rmul!(t, 1 / norm(S₀, p))
-                        U, S, V, ϵ = @constinferred tsvd(t; trunc=truncerr(5e-1), p=p)
-                        # @show p, ϵ
-                        # @show domain(S)
-                        # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncerr(nextfloat(ϵ)), p=p)
-                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncdim(ceil(Int, dim(domain(S)))),
-                                              p=p)
-                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
-                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                        # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
-                        U, S, V, ϵ = tsvd(t; trunc=truncbelow(1 / dim(domain(S₀))), p=p)
-                        # @show p, ϵ
-                        # @show domain(S)
-                        # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
-                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                    end
-                end
-            end
-        end
-        if hasfusiontensor(I)
-            @timedtestset "Tensor functions" begin
-                W = V1 ⊗ V2
-                for T in (Float64, ComplexF64)
-                    t = TensorMap(randn, T, W, W)
-                    s = dim(W)
-                    expt = @constinferred exp(t)
-                    @test reshape(convert(Array, expt), (s, s)) ≈
-                          exp(reshape(convert(Array, t), (s, s)))
+    end
+    if hasfusiontensor(I)
+        @timedtestset "Tensor functions" begin
+            W = V1 ⊗ V2
+            for T in (Float64, ComplexF64)
+                t = TensorMap(randn, T, W, W)
+                s = dim(W)
+                expt = @constinferred exp(t)
+                @test reshape(convert(Array, expt), (s, s)) ≈
+                      exp(reshape(convert(Array, t), (s, s)))
 
                 @test (@constinferred sqrt(t))^2 ≈ t
                 @test reshape(convert(Array, sqrt(t^2)), (s, s)) ≈

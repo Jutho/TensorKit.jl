@@ -4,11 +4,11 @@ const TESTNAMES = ["sectors", "spaces", "fusiontrees", "tensors", "planar", "ad"
 const TESTGROUPS = String[]
 
 const SECTORNAMES = ["Trivial", "Z2Irrep", "Z3Irrep", "Z4Irrep", "U1Irrep", "CU1Irrep",
-                      "SU2Irrep", "NewSU2Irrep", "FibonacciAnyon", "IsingAnyon",
-                      "FermionParity", "FermionNumber", "FermionSpin", "Z3Irrep ⊠ Z4Irrep",
-                      "FermionNumber ⊠ SU2Irrep", "FermionSpin ⊠ SU2Irrep",
-                      "NewSU2Irrep ⊠ NewSU2Irrep", "FibonacciAnyon", "Object{E6}",
-                      "Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon"]
+                     "SU2Irrep", "NewSU2Irrep", "FibonacciAnyon", "IsingAnyon",
+                     "FermionParity", "FermionNumber", "FermionSpin", "Z3Irrep ⊠ Z4Irrep",
+                     "FermionNumber ⊠ SU2Irrep", "FermionSpin ⊠ SU2Irrep",
+                     "NewSU2Irrep ⊠ NewSU2Irrep", "FibonacciAnyon", "Object{E6}",
+                     "Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon"]
 const DEFAULT_SECTORNAMES = try
     if ENV["CI"] == "true"
         println("Detected CI environment")
@@ -16,9 +16,11 @@ const DEFAULT_SECTORNAMES = try
             ["Trivial", "Z2Irrep", "FermionParity", "Z3Irrep", "U1Irrep",
              "FermionNumber", "CU1Irrep", "SU2Irrep"]
         elseif Sys.isapple()
-            ["Trivial", "Z2Irrep", "FermionParity", "Z3Irrep", "FermionNumber", "FermionSpin"]
+            ["Trivial", "Z2Irrep", "FermionParity", "Z3Irrep", "FermionNumber",
+             "FermionSpin"]
         else
-            ["Trivial", "Z2Irrep", "FermionParity", "U1Irrep", "CU1Irrep", "SU2Irrep", "FermionSpin"]
+            ["Trivial", "Z2Irrep", "FermionParity", "U1Irrep", "CU1Irrep", "SU2Irrep",
+             "FermionSpin"]
         end
     else
         SECTORNAMES

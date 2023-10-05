@@ -2,7 +2,8 @@ println("------------------------------------")
 println("Planar")
 println("------------------------------------")
 
-using TensorKit: planaradd!, planartrace!, planarcontract!, BraidingTensor, SymmetricBraiding
+using TensorKit: planaradd!, planartrace!, planarcontract!, BraidingTensor,
+                 SymmetricBraiding
 using TensorOperations
 
 @testset "$(TensorKit.type_repr(I))" verbose = true for I in sectorlist
@@ -52,7 +53,7 @@ using TensorOperations
                   planarcontract!(C′, A′, pA, B′, pB, pAB, true, true)
         end
     end
-    
+
     @testset "BraidingTensor conversion" begin
         for (V1, V2) in [(V1, V1), (V1', V1), (V1, V1'), (V1', V1')]
             τ = BraidingTensor(V1, V2)
@@ -72,7 +73,7 @@ using TensorOperations
             end
         end
     end
-    
+
     t = TensorMap(randn, V1 * V1' * V1' * V1, V1 * V1')
 
     ττ = copy(BraidingTensor(V1, V1'))

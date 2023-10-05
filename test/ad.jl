@@ -201,21 +201,21 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             β = randn(T)
 
             C = _randomize!(tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B, pB, :N, false))
+                                                 B, pB, :N, false))
             test_rrule(tensorcontract!, C, pC, A, pA, :N, B, pB, :N, α, β; atol, rtol)
 
             A2 = TensorMap(randn, T, V[1]' ⊗ V[2]' ← V[3]' ⊗ V[4]' ⊗ V[5]')
             C = _randomize!(tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B, pB, :N, false))
+                                                 B, pB, :N, false))
             test_rrule(tensorcontract!, C, pC, A2, pA, :C, B, pB, :N, α, β; atol, rtol)
 
             B2 = TensorMap(randn, T, V[3]' ⊗ V[1] ← V[2]')
             C = _randomize!(tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B2, pB, :C, false))
+                                                 B2, pB, :C, false))
             test_rrule(tensorcontract!, C, pC, A, pA, :N, B2, pB, :C, α, β; atol, rtol)
 
             C = _randomize!(tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B2, pB, :C, false))
+                                                 B2, pB, :C, false))
             test_rrule(tensorcontract!, C, pC, A2, pA, :C, B2, pB, :C, α, β; atol, rtol)
         end
 
