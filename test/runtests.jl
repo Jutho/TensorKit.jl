@@ -2,7 +2,15 @@ using Test, Random, TensorKit
 
 include("choosetests.jl")
 
-(; tests, sectors, exit_on_error, use_revise, seed) = choosetests(ARGS)
+
+choices = choosetests(ARGS)
+
+tests = choices.tests
+sectors = choices.sectors
+exit_on_error = choices.exit_on_error
+use_revise = choices.use_revise
+seed = choices.seed
+
 
 module Utility
 include("utility.jl")
