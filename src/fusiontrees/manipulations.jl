@@ -256,7 +256,7 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     coeff₀ = sqrtdim(c) * isqrtdim(a)
     if f₁.isdual[N₁]
         coeff₀ *= conj(frobeniusschur(dual(b)))
-    end    
+    end
     if FusionStyle(I) isa MultiplicityFreeFusion
         coeff = coeff₀ * Bsymbol(a, b, c)
         vertices2 = N₂ > 0 ? (f₂.vertices..., nothing) : ()

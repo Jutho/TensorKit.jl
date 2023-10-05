@@ -1,11 +1,11 @@
 """
-    struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
+    struct GeneralSpace{𝕜} <: ElementarySpace
 
 A finite-dimensional space over an arbitrary field `𝕜` without additional structure.
 It is thus characterized by its dimension, and whether or not it is the dual and/or
 conjugate space. For a real field `𝕜`, the space and its conjugate are the same.
 """
-struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
+struct GeneralSpace{𝕜} <: ElementarySpace
     d::Int
     dual::Bool
     conj::Bool
@@ -29,6 +29,7 @@ isconj(V::GeneralSpace) = V.conj
 
 Base.axes(V::GeneralSpace) = Base.OneTo(dim(V))
 
+field(::Type{GeneralSpace{𝕜}}) where {𝕜} = 𝕜
 InnerProductStyle(::Type{<:GeneralSpace}) = NoInnerProduct()
 
 dual(V::GeneralSpace{𝕜}) where {𝕜} = GeneralSpace{𝕜}(dim(V), !isdual(V), isconj(V))
