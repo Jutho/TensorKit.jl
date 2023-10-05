@@ -2,11 +2,9 @@ println("------------------------------------")
 println("Sectors")
 println("------------------------------------")
 
-module SectorTests
+using TensorKit: pentagon_equation, hexagon_equation
 
-include("utility.jl")
-
-@testset "$(TensorKit.type_repr(I))" verbose = true for I in sectorlist
+@testset "$(TensorKit.type_repr(I))" for I in sectorlist
     @testset "Basic properties" begin
         s = (randsector(I), randsector(I), randsector(I))
         @test eval(Meta.parse(sprint(show, I))) == I
@@ -127,6 +125,4 @@ include("utility.jl")
             end
         end
     end
-end
-
 end

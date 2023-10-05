@@ -2,39 +2,23 @@ println("------------------------------------")
 println("Tensors")
 println("------------------------------------")
 
-module TensorTests
+using Combinatorics: permutations
 
-include("utility.jl")
-
-sectortypes = try
-    if ENV["CI"] == "true"
-        println("Detected running on CI")
-        if Sys.iswindows()
-            (Trivial, Z2Irrep, FermionParity, Z3Irrep, U1Irrep,
-             FermionNumber, CU1Irrep, SU2Irrep)
-        elseif Sys.isapple()
-            (Trivial, Z2Irrep, FermionParity, Z3Irrep, FermionNumber, FermionSpin)
-        else
-            (Trivial, Z2Irrep, FermionParity, U1Irrep, CU1Irrep, SU2Irrep, FermionSpin)
-        end
-    else
-        keys(spacelist)
-    end
-catch
-    keys(spacelist)
-end
-
-for V in getindex.(Ref(spacelist), sectortypes)
+for V in getindex.(Ref(spacelist), sectorlist)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
 end
 
-@testset "$(TensorKit.type_repr(I))" verbose = true for I in sectortypes
+@testset "$(TensorKit.type_repr(I))" verbose = true for I in sectorlist
+    V = smallspace(I)
+    if isnothing(V)
+        "No spaces defined for $(TensorKit.type_repr(I)), skipping tests"
+        continue
+    end
     Istr = TensorKit.type_repr(I)
     println("Starting tests for $Istr...")
-
-    V1, V2, V3, V4, V5 = spacelist[I]
+    V1, V2, V3, V4, V5 = V
 
     @testset "basic tensor properties ($T)" for T in (Int, Float32, Float64, ComplexF32,
                                                       ComplexF64, BigFloat)
@@ -555,7 +539,7 @@ end
             @test t ≈ t′
         end
     end
-    
+
     println("Finished tests for $Istr.")
 end
 
@@ -580,6 +564,4 @@ end
                   reshape(convert(Array, t2), (1, d2, 1, d4))
         end
     end
-end
-
 end

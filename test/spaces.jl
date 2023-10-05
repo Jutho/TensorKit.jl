@@ -2,10 +2,6 @@ println("------------------------------------")
 println("Spaces")
 println("------------------------------------")
 
-module SpaceTests
-
-include("utility.jl")
-
 @testset "Fields" begin
     @test isa(ℝ, Field)
     @test isa(ℂ, Field)
@@ -405,6 +401,4 @@ end
     @test W[5] == V5'
     @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
     @test W == deepcopy(W)
-end
-
 end

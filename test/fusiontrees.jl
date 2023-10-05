@@ -2,9 +2,8 @@ println("------------------------------------")
 println("Fusion Trees")
 println("------------------------------------")
 
-module FusionTreeTests
-
-include("utility.jl")
+using TensorOperations
+using TensorKit: ProductSector
 
 @testset "$(TensorKit.type_repr(I))" verbose = true for I in sectorlist
     Istr = TensorKit.type_repr(I)
@@ -534,6 +533,4 @@ include("utility.jl")
     end
     
     println("Finished tests for $Istr.")
-end
-
 end

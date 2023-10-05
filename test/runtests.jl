@@ -1,35 +1,20 @@
-using Test
+using Test, Random, TensorKit
 
-const GROUP = uppercase(get(ENV, "GROUP", "ALL"))
+include("choosetests.jl")
 
-@testset verbose=true begin
-    if GROUP == "ALL" || GROUP == "SECTORS"
-        @testset "Sectors" verbose = true begin
-            include("sectors.jl")
-        end
-    end
+(; tests, sectors, exit_on_error, use_revise, seed) = choosetests(ARGS)
 
-    if GROUP == "ALL" || GROUP == "SPACES"
-        @testset "Spaces" verbose = true begin
-            include("spaces.jl")
-        end
-    end
+module Utility
+include("utility.jl")
+end
+@eval(Utility, const sectorlist = eval.(Meta.parse.($sectors)))
 
-    if GROUP == "ALL" || GROUP == "FUSIONTREES"
-        @testset "Fusiontrees" verbose = true begin
-            include("fusiontrees.jl")
-        end
-    end
-
-    if GROUP == "ALL" || GROUP == "TENSORS"
-        @testset "Tensors" verbose = true begin
-            include("tensors.jl")
-        end
-    end
-    
-    if GROUP == "ALL" || GROUP == "PLANAR"
-        @testset "Planar" verbose = true begin
-            include("planar.jl")
-        end
+for t in tests
+    modname = Symbol("Test_($t)")
+    m = @eval(Main, module $modname end)
+    @eval(m, using Test, TestExtras, Random, TensorKit, ..Utility)
+    !isnothing(seed) && Random.seed!(seed)
+    @testset "$t" verbose = true begin
+        Base.include(m, "$t.jl")
     end
 end
