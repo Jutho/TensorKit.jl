@@ -253,11 +253,12 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     isdual2 = (f₂.isdual..., !(f₁.isdual[N₁]))
     inner2 = N₂ > 1 ? (f₂.innerlines..., c) : ()
 
+    coeff₀ = sqrtdim(c) * isqrtdim(a)
+    if f₁.isdual[N₁]
+        coeff₀ *= conj(frobeniusschur(dual(b)))
+    end
     if FusionStyle(I) isa MultiplicityFreeFusion
-        coeff = sqrtdim(c) * isqrtdim(a) * Bsymbol(a, b, c)
-        if f₁.isdual[N₁]
-            coeff *= conj(frobeniusschur(dual(b)))
-        end
+        coeff = coeff₀ * Bsymbol(a, b, c)
         vertices2 = N₂ > 0 ? (f₂.vertices..., nothing) : ()
         f₂′ = FusionTree(uncoupled2, a, isdual2, inner2, vertices2)
         return SingletonDict((f₁′, f₂′) => coeff)
@@ -266,11 +267,8 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
         Bmat = Bsymbol(a, b, c)
         μ = N₁ > 1 ? f₁.vertices[end] : 1
         for ν in 1:size(Bmat, 2)
-            coeff = sqrtdim(c) * isqrtdim(a) * Bmat[μ, ν]
+            coeff = coeff₀ * Bmat[μ, ν]
             iszero(coeff) && continue
-            if f₁.isdual[N₁]
-                coeff *= conj(frobeniusschur(dual(b)))
-            end
             vertices2 = N₂ > 0 ? (f₂.vertices..., ν) : ()
             f₂′ = FusionTree(uncoupled2, a, isdual2, inner2, vertices2)
             if @isdefined newtrees
@@ -332,7 +330,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
                     vertices = N₁ <= 2 ? () : Base.tail(Base.tail(fl′.vertices))
                     fl = FusionTree{I}(uncoupled, coupled, isdual, inner, vertices)
                     for (fr, coeff2) in insertat(fc, 2, f₂)
-                        coeff = factor * coeff1 * coeff2
+                        coeff = factor * coeff1 * conj(coeff2)
                         if (@isdefined newtrees)
                             newtrees[(fl, fr)] = get(newtrees, (fl, fr), zero(coeff)) +
                                                  coeff

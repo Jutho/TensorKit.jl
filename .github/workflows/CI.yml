@@ -50,7 +50,7 @@ jobs:
         os:
           - ubuntu-latest
           - macOS-latest
-          # - windows-latest # run on AppVeyor instead
+          - windows-latest
         arch:
           - x64
           - x86

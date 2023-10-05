@@ -87,54 +87,56 @@ end
     @test @constinferred(supremum(V', ℝ^3)) == ℝ^3
 end
 
-@testset "ComplexSpace" begin
-    d = 2
-    V = ℂ^d
-    @test eval(Meta.parse(sprint(show, V))) == V
-    @test eval(Meta.parse(sprint(show, V'))) == V'
-    @test eval(Meta.parse(sprint(show, typeof(V)))) == typeof(V)
-    @test isa(V, VectorSpace)
-    @test isa(V, ElementarySpace)
-    @test isa(InnerProductStyle(V), HasInnerProduct)
-    @test isa(InnerProductStyle(V), EuclideanProduct)
-    @test isa(V, ComplexSpace)
-    @test !isdual(V)
-    @test isdual(V')
-    @test V == ComplexSpace(Trivial() => d) == ComplexSpace(Dict(Trivial() => d))
-    @test @constinferred(hash(V)) == hash(deepcopy(V)) != hash(V')
-    @test @constinferred(dual(V)) == @constinferred(conj(V)) ==
-          @constinferred(adjoint(V)) != V
-    @test @constinferred(field(V)) == ℂ
-    @test @constinferred(sectortype(V)) == Trivial
-    @test @constinferred(sectortype(V)) == Trivial
-    @test ((@constinferred sectors(V))...,) == (Trivial(),)
-    @test length(sectors(V)) == 1
-    @test @constinferred(TensorKit.hassector(V, Trivial()))
-    @test @constinferred(dim(V)) == d == @constinferred(dim(V, Trivial()))
-    @test dim(@constinferred(typeof(V)())) == 0
-    @test (sectors(typeof(V)())...,) == ()
-    @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
-    @test ℂ^d == Vect[Trivial](d) == Vect[](Trivial() => d) == ℂ[](d) == typeof(V)(d)
-    W = @constinferred ℂ^1
-    @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
-    @test @constinferred(⊕(V, V)) == ℂ^(2d)
-    @test_throws SpaceMismatch (⊕(V, V'))
-    @test_throws MethodError (⊕(ℝ^d, ℂ^d))
-    @test_throws MethodError (⊗(ℝ^d, ℂ^d))
-    @test @constinferred(⊕(V, V)) == ℂ^(2d)
-    @test @constinferred(⊕(V, oneunit(V))) == ℂ^(d + 1)
-    @test @constinferred(⊕(V, V, V, V)) == ℂ^(4d)
-    @test @constinferred(fuse(V, V)) == ℂ^(d^2)
-    @test @constinferred(fuse(V, V', V, V')) == ℂ^(d^4)
-    @test @constinferred(flip(V)) == V'
-    @test flip(V) ≅ V
-    @test flip(V) ≾ V
-    @test flip(V) ≿ V
-    @test V ≺ ⊕(V, V)
-    @test !(V ≻ ⊕(V, V))
-    @test @constinferred(infimum(V, ℂ^3)) == V
-    @test @constinferred(supremum(V', (ℂ^3)')) == dual(ℂ^3) == conj(ℂ^3)
-end
+    @timedtestset "ElementarySpace: ComplexSpace" begin
+        d = 2
+        V = ℂ^d
+        @test eval(Meta.parse(sprint(show, V))) == V
+        @test eval(Meta.parse(sprint(show, V'))) == V'
+        @test eval(Meta.parse(sprint(show, typeof(V)))) == typeof(V)
+        @test isa(V, VectorSpace)
+        @test isa(V, ElementarySpace)
+        @test isa(InnerProductStyle(V), HasInnerProduct)
+        @test isa(InnerProductStyle(V), EuclideanProduct)
+        @test isa(V, ComplexSpace)
+        @test !isdual(V)
+        @test isdual(V')
+        @test V == ComplexSpace(Trivial() => d) == ComplexSpace(Dict(Trivial() => d))
+        @test @constinferred(hash(V)) == hash(deepcopy(V)) != hash(V')
+        @test @constinferred(dual(V)) == @constinferred(conj(V)) ==
+              @constinferred(adjoint(V)) != V
+        @test @constinferred(field(V)) == ℂ
+        @test @constinferred(sectortype(V)) == Trivial
+        @test @constinferred(sectortype(V)) == Trivial
+        @test ((@constinferred sectors(V))...,) == (Trivial(),)
+        @test length(sectors(V)) == 1
+        @test @constinferred(TensorKit.hassector(V, Trivial()))
+        @test @constinferred(dim(V)) == d == @constinferred(dim(V, Trivial()))
+        @test dim(@constinferred(typeof(V)())) == 0
+        @test (sectors(typeof(V)())...,) == ()
+        @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
+        @test ℂ^d == Vect[Trivial](d) == Vect[](Trivial() => d) == ℂ[](d) == typeof(V)(d)
+        W = @constinferred ℂ^1
+        @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
+        @test @constinferred(⊕(V, V)) == ℂ^(2d)
+        @test_throws SpaceMismatch (⊕(V, V'))
+    promote_except = ErrorException("promotion of types $(typeof(ℝ^d)) and " *
+                                    "$(typeof(ℂ^d)) failed to change any arguments")
+    @test_throws promote_except (⊕(ℝ^d, ℂ^d))
+    @test_throws promote_except (⊗(ℝ^d, ℂ^d))
+        @test @constinferred(⊕(V, V)) == ℂ^(2d)
+        @test @constinferred(⊕(V, oneunit(V))) == ℂ^(d + 1)
+        @test @constinferred(⊕(V, V, V, V)) == ℂ^(4d)
+        @test @constinferred(fuse(V, V)) == ℂ^(d^2)
+        @test @constinferred(fuse(V, V', V, V')) == ℂ^(d^4)
+        @test @constinferred(flip(V)) == V'
+        @test flip(V) ≅ V
+        @test flip(V) ≾ V
+        @test flip(V) ≿ V
+        @test V ≺ ⊕(V, V)
+        @test !(V ≻ ⊕(V, V))
+        @test @constinferred(infimum(V, ℂ^3)) == V
+        @test @constinferred(supremum(V', (ℂ^3)')) == dual(ℂ^3) == conj(ℂ^3)
+    end
 
 @testset "GeneralSpace" begin
     d = 2

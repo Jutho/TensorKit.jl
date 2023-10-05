@@ -1,6 +1,4 @@
-import Base: eltype, transpose
-@deprecate eltype(T::Type{<:AbstractTensorMap}) scalartype(T)
-@deprecate eltype(t::AbstractTensorMap) scalartype(t)
+import Base: transpose
 
 #! format: off
 @deprecate permute(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; copy::Bool=false) permute(t, (p1, p2); copy=copy)
