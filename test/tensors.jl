@@ -4,12 +4,6 @@ println("------------------------------------")
 
 using Combinatorics: permutations
 
-for V in getindex.(Ref(spacelist), sectorlist)
-    V1, V2, V3, V4, V5 = V
-    @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
-    @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
-end
-
 @testset "$(TensorKit.type_repr(I))" verbose = true for I in sectorlist
     V = smallspace(I)
     if isnothing(V)
@@ -18,7 +12,10 @@ end
     end
     Istr = TensorKit.type_repr(I)
     println("Starting tests for $Istr...")
+    
     V1, V2, V3, V4, V5 = V
+    @assert V3 * V4 * V2 ≿ V1' * V5' "leftorth tests assumption"
+    @assert V3 * V4 ≾ V1' * V2' * V5' "rightorth tests assumption"
 
     @testset "basic tensor properties ($T)" for T in (Int, Float32, Float64, ComplexF32,
                                                       ComplexF64, BigFloat)
