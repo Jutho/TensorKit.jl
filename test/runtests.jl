@@ -2,7 +2,6 @@ using Test, Random, TensorKit
 
 include("choosetests.jl")
 
-
 choices = choosetests(ARGS)
 
 tests = choices.tests
