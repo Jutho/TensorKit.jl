@@ -20,7 +20,7 @@ const DEFAULT_SECTORNAMES = try
              "FermionSpin"]
         else
             ["Trivial", "Z2Irrep", "FermionParity", "U1Irrep", "CU1Irrep", "SU2Irrep",
-             "FermionSpin"]
+             "FermionSpin", "Object{E6}"]
         end
     else
         SECTORNAMES

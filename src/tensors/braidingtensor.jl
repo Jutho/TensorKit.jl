@@ -195,7 +195,7 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
                         α::Number,
                         β::Number,
                         backend::Backend...) where {S,N₁,N₂}
-    return add_transform!(tdst, copy(tsrc), (p1, p2), fusiontreetransform, α, β, backend...)
+    return add_transform!(tdst, copy(tsrc), (p₁, p₂), fusiontreetransform, α, β, backend...)
 end
 
 # VectorInterface
