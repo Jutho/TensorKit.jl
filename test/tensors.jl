@@ -446,7 +446,7 @@ for V in spacelist
 
                     # Somehow moving these test before the previous one gives rise to errors
                     # with T=Float32 on x86 platforms. Is this an OpenBLAS issue? 
-                    VdV = V' * V;
+                    VdV = V' * V
                     VdV = (VdV + VdV') / 2
                     @test isposdef(VdV)
 
