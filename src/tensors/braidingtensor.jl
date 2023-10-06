@@ -185,6 +185,23 @@ end
 
 blocks(b::BraidingTensor) = blocks(TensorMap(b))
 
+# Index manipulations
+# -------------------
+has_shared_permute(t::BraidingTensor, args...) = false
+function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
+                        tsrc::BraidingTensor{S},
+                        (p₁, p₂)::Index2Tuple{N₁,N₂},
+                        fusiontreetransform,
+                        α::Number,
+                        β::Number,
+                        backend::Backend...) where {S,N₁,N₂}
+    return add_transform!(tdst, copy(tsrc), (p1, p2), fusiontreetransform, α, β, backend...)
+end
+
+# VectorInterface
+# ---------------
+# TODO
+
 # Planar operations
 # -----------------
 function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
@@ -567,5 +584,3 @@ end
 #     end
 #     return C
 # end
-
-has_shared_permute(t::BraidingTensor, args...) = false
