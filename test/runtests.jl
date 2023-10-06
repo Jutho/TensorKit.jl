@@ -10,7 +10,6 @@ exit_on_error = choices.exit_on_error
 use_revise = choices.use_revise
 seed = choices.seed
 
-
 module Utility
 include("utility.jl")
 end
