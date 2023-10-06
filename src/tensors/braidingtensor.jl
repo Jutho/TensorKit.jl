@@ -185,6 +185,33 @@ end
 
 blocks(b::BraidingTensor) = blocks(TensorMap(b))
 
+# Index manipulations
+# -------------------
+has_shared_permute(t::BraidingTensor, args...) = false
+function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
+                        tsrc::BraidingTensor{S},
+                        (p₁, p₂)::Index2Tuple{N₁,N₂},
+                        fusiontreetransform,
+                        α::Number,
+                        β::Number,
+                        backend::Backend...) where {S,N₁,N₂}
+    return add_transform!(tdst, copy(tsrc), (p₁, p₂), fusiontreetransform, α, β, backend...)
+end
+
+# VectorInterface
+# ---------------
+# TODO
+
+# Planar operations
+# -----------------
+function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
+                    A::BraidingTensor{S},
+                    p::Index2Tuple{N₁,N₂},
+                    α::Number, β::Number,
+                    backend::Backend...) where {S,N₁,N₂}
+    return planaradd!(C, copy(A), p, α, β, backend...)
+end
+
 function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
                          A::BraidingTensor{S},
                          (oindA, cindA)::Index2Tuple{2,2},
@@ -276,6 +303,27 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
         end
     end
     return C
+end
+
+# Fallback cases for planarcontract!
+# TODO: implement specialised cases for contracting 0, 1, 3 and 4 indices
+function planarcontract!(C::AbstractTensorMap{S}, A::BraidingTensor{S}, pA::Index2Tuple,
+                         B::AbstractTensorMap{S}, pB::Index2Tuple, α::Number, β::Number,
+                         backend::Backend...) where {S}
+    return planarcontract!(C, copy(A), pA, B, pB, α, β, backend...)
+end
+function planarcontract!(C::AbstractTensorMap{S}, A::AbstractTensorMap{S}, pA::Index2Tuple,
+                         B::BraidingTensor{S}, pB::Index2Tuple, α::Number, β::Number,
+                         backend::Backend...) where {S}
+    return planarcontract!(C, A, pA, copy(B), pB, α, β, backend...)
+end
+
+function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
+                      A::BraidingTensor{S},
+                      p::Index2Tuple{N₁,N₂}, q::Index2Tuple{N₃,N₃},
+                      α::Number, β::Number,
+                      backend::Backend...) where {S,N₁,N₂,N₃}
+    return planartrace!(C, copy(A), p, q, α, β, backend...)
 end
 
 # function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
@@ -538,5 +586,3 @@ end
 #     end
 #     return C
 # end
-
-has_shared_permute(t::BraidingTensor, args...) = false

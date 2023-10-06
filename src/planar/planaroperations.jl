@@ -54,7 +54,7 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
                          β::Number,
                          backend::Backend...) where {S,N₁,N₂}
     if BraidingStyle(sectortype(S)) == Bosonic()
-        return contract(C, A, pA, B, pB, pAB, α, β, backend...)
+        return contract!(C, A, pA, B, pB, pAB, α, β, backend...)
     end
 
     codA, domA = codomainind(A), domainind(A)

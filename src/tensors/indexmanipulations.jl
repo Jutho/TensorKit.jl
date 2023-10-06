@@ -28,7 +28,7 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 To permute into an existing destination, see [permute!](@ref) and [`add_permute!`](@ref)
 """
-function permute(t::TensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂};
+function permute(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂};
                  copy::Bool=false) where {S,N₁,N₂}
     cod = ProductSpace{S,N₁}(map(n -> space(t, n), p₁))
     dom = ProductSpace{S,N₂}(map(n -> dual(space(t, n)), p₂))
@@ -108,7 +108,7 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 To braid into an existing destination, see [braid!](@ref) and [`add_braid!`](@ref)
 """
-function braid(t::TensorMap{S}, (p₁, p₂)::Index2Tuple, levels::IndexTuple;
+function braid(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple, levels::IndexTuple;
                copy::Bool=false) where {S}
     @assert length(levels) == numind(t)
     if BraidingStyle(sectortype(S)) isa SymmetricBraiding
@@ -161,7 +161,7 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 To permute into an existing destination, see [permute!](@ref) and [`add_permute!`](@ref)
 """
-function LinearAlgebra.transpose(t::TensorMap{S},
+function LinearAlgebra.transpose(t::AbstractTensorMap{S},
                                  (p₁, p₂)::Index2Tuple=_transpose_indices(t);
                                  copy::Bool=false) where {S}
     if sectortype(S) === Trivial
