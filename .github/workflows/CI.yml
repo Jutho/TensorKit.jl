@@ -30,11 +30,13 @@ jobs:
         filters: |
           sectors:
             - 'src/sectors/**'
-          fusiontrees: 
+            - 'test/sectors.jl'
+          fusiontrees:
             - 'src/fusiontrees/**'
+            - 'test/fusiontrees.jl'
           spaces:
             - 'src/spaces/**'
-          
+            - 'test/spaces.jl'
   test-sectors:
     needs: changes
     if: ${{ needs.changes.outputs.sectors == 'true' }}
