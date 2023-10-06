@@ -20,20 +20,27 @@ using TensorOperations
         @testset "planaradd" begin
             A = TensorMap(randn, V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
             C = TensorMap(randn, V4' ⊗ V3' ← V5 ⊗ V2' ⊗ V1')
+            
+            A′ = force_planar(A)
+            C′ = force_planar(C)
+            
             p = ((4, 3), (5, 2, 1))
-
+            
             @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
-                  planaradd!(force_planar(C), force_planar(A), p, true, true)
+                  planaradd!(C′, A′, p, true, true)
         end
         @testset "planartrace" begin
             A = TensorMap(randn, V1 ⊗ V2 ← V1 ⊗ V4 ⊗ V5)
             C = TensorMap(randn, V4' ⊗ V2 ← V5)
-
+            
+            A′ = force_planar(A)
+            C′ = force_planar(C)
+            
             p = ((4, 2), (5,))
             q = ((1,), (3,))
 
             @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
-                  planartrace!(force_planar(C), force_planar(A), p, q, true, true)
+                  planartrace!(C′, A′, p, q, true, true)
         end
 
         @testset "planarcontract" begin
