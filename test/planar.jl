@@ -20,22 +20,22 @@ using TensorOperations
         @testset "planaradd" begin
             A = TensorMap(randn, V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
             C = TensorMap(randn, V4' ⊗ V3' ← V5 ⊗ V2' ⊗ V1')
-            
+
             A′ = force_planar(A)
             C′ = force_planar(C)
-            
+
             p = ((4, 3), (5, 2, 1))
-            
+
             @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
                   planaradd!(C′, A′, p, true, true)
         end
         @testset "planartrace" begin
             A = TensorMap(randn, V1 ⊗ V2 ← V1 ⊗ V4 ⊗ V5)
             C = TensorMap(randn, V4' ⊗ V2 ← V5)
-            
+
             A′ = force_planar(A)
             C′ = force_planar(C)
-            
+
             p = ((4, 2), (5,))
             q = ((1,), (3,))
 

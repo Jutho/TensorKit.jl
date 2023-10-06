@@ -12,7 +12,7 @@ using Combinatorics: permutations
     end
     Istr = TensorKit.type_repr(I)
     println("Starting tests for $Istr...")
-    
+
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' "leftorth tests assumption"
     @assert V3 * V4 ≾ V1' * V2' * V5' "rightorth tests assumption"
