@@ -178,7 +178,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@latest
       - uses: lkdvos/julia-runtest@main
         with:
-          suffix: [-sectors -spaces -fusiontrees]
+          suffix: '-sectors -spaces -fusiontrees'
         env:
           JULIA_NUM_THREADS: 4
       - uses: julia-actions/julia-processcoverage@v1
