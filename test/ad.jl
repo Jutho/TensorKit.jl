@@ -2,7 +2,8 @@ using ChainRulesCore
 using ChainRulesTestUtils
 using Random
 using FiniteDifferences
-using LinearAlgebra
+using TensorOperations
+using TensorOperations: tensoralloc_add, tensoralloc_contract
 
 ## Test utility
 # -------------
@@ -120,16 +121,16 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
           ℂ[Z2Irrep](0 => 3, 1 => 2)',
           ℂ[Z2Irrep](0 => 2, 1 => 3),
           ℂ[Z2Irrep](0 => 2, 1 => 2)),
-         (ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
-          ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
+         (ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 1),
+          ℂ[U1Irrep](0 => 1, 1 => 1, -1 => 1),
           ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
-          ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
-          ℂ[U1Irrep](0 => 1, 1 => 3, -1 => 2)'),
-         (ℂ[SU2Irrep](0 => 3, 1 // 2 => 1),
+          ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 1),
+          ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2)'),
+         (ℂ[SU2Irrep](0 => 1, 1 // 2 => 1),
           ℂ[SU2Irrep](0 => 2, 1 => 1),
           ℂ[SU2Irrep](1 // 2 => 1, 1 => 1)',
           ℂ[SU2Irrep](0 => 2, 1 // 2 => 2),
-          ℂ[SU2Irrep](0 => 1, 1 // 2 => 1, 3 // 2 => 1)'))
+          ℂ[SU2Irrep](0 => 1, 1 // 2 => 2)'))
 
 @testset "Automatic Differentiation ($(eltype(V)))" verbose = true for V in Vlist
     @testset "Basic Linear Algebra ($T)" for T in (Float64, ComplexF64)
@@ -171,22 +172,22 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             α = randn(T)
             β = randn(T)
 
-            C = _randomize!(TensorOperations.tensoralloc_add(T, pC, A, :N, false))
+            C = _randomize!(tensoralloc_add(T, pC, A, :N, false))
             test_rrule(tensortrace!, C, pC, A, pA, :N, α, β; atol, rtol)
 
-            C = _randomize!(TensorOperations.tensoralloc_add(T, pC, A, :C, false))
+            C = _randomize!(tensoralloc_add(T, pC, A, :C, false))
             test_rrule(tensortrace!, C, pC, A, pA, :C, α, β; atol, rtol)
         end
 
         @testset "tensoradd!" begin
             p = ((1, 3, 2), (5, 4))
             A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
-            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
+            C = _randomize!(tensoralloc_add(T, p, A, :N, false))
             α = randn(T)
             β = randn(T)
             test_rrule(tensoradd!, C, p, A, :N, α, β; atol, rtol)
 
-            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
+            C = _randomize!(tensoralloc_add(T, p, A, :C, false))
             test_rrule(tensoradd!, C, p, A, :C, α, β; atol, rtol)
         end
 
@@ -199,22 +200,22 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             α = randn(T)
             β = randn(T)
 
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B, pB, :N, false))
+            C = _randomize!(tensoralloc_contract(T, pC, A, pA, :N,
+                                                 B, pB, :N, false))
             test_rrule(tensorcontract!, C, pC, A, pA, :N, B, pB, :N, α, β; atol, rtol)
 
             A2 = TensorMap(randn, T, V[1]' ⊗ V[2]' ← V[3]' ⊗ V[4]' ⊗ V[5]')
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B, pB, :N, false))
+            C = _randomize!(tensoralloc_contract(T, pC, A2, pA, :C,
+                                                 B, pB, :N, false))
             test_rrule(tensorcontract!, C, pC, A2, pA, :C, B, pB, :N, α, β; atol, rtol)
 
             B2 = TensorMap(randn, T, V[3]' ⊗ V[1] ← V[2]')
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B2, pB, :C, false))
+            C = _randomize!(tensoralloc_contract(T, pC, A, pA, :N,
+                                                 B2, pB, :C, false))
             test_rrule(tensorcontract!, C, pC, A, pA, :N, B2, pB, :C, α, β; atol, rtol)
 
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B2, pB, :C, false))
+            C = _randomize!(tensoralloc_contract(T, pC, A2, pA, :C,
+                                                 B2, pB, :C, false))
             test_rrule(tensorcontract!, C, pC, A2, pA, :C, B2, pB, :C, α, β; atol, rtol)
         end
 

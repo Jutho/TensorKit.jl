@@ -1,72 +1,244 @@
-using TensorKit, TensorOperations, Test
-using TensorKit: planaradd!, planartrace!, planarcontract!
-using TensorKit: PlanarTrivial, ℙ
+println("------------------------------------")
+println("Planar")
+println("------------------------------------")
 
-"""
-    force_planar(obj)
+using TensorKit: planaradd!, planartrace!, planarcontract!, BraidingTensor,
+                 SymmetricBraiding
+using TensorOperations
 
-Replace an object with a planar equivalent -- i.e. one that disallows braiding.
-"""
-force_planar(V::ComplexSpace) = isdual(V) ? (ℙ^dim(V))' : ℙ^dim(V)
-function force_planar(V::GradedSpace)
-    return GradedSpace((c ⊠ PlanarTrivial() => dim(V, c) for c in sectors(V))..., isdual(V))
-end
-force_planar(V::ProductSpace) = mapreduce(force_planar, ⊗, V)
-function force_planar(tsrc::TensorMap{ComplexSpace})
-    tdst = TensorMap(undef, scalartype(tsrc),
-                     force_planar(codomain(tsrc)) ← force_planar(domain(tsrc)))
-    copyto!(blocks(tdst)[PlanarTrivial()], blocks(tsrc)[Trivial()])
-    return tdst
-end
-function force_planar(tsrc::TensorMap{<:GradedSpace})
-    tdst = TensorMap(undef, scalartype(tsrc),
-                     force_planar(codomain(tsrc)) ← force_planar(domain(tsrc)))
-    for (c, b) in blocks(tsrc)
-        copyto!(blocks(tdst)[c ⊠ PlanarTrivial()], b)
+@testset "$(TensorKit.type_repr(I))" verbose = true for I in sectorlist
+    V = smallspace(I)
+    if isnothing(V)
+        "No spaces defined for $(TensorKit.type_repr(I)), skipping tests"
+        continue
     end
-    return tdst
-end
+    Istr = TensorKit.type_repr(I)
+    println("Starting tests for $Istr...")
+    V1, V2, V3, V4, V5 = V
 
-@testset "planar methods" verbose = true begin
-    @testset "planaradd" begin
-        A = TensorMap(randn, ℂ^2 ⊗ ℂ^3 ← ℂ^6 ⊗ ℂ^5 ⊗ ℂ^4)
-        C = TensorMap(randn, (ℂ^5)' ⊗ (ℂ^6)' ← ℂ^4 ⊗ (ℂ^3)' ⊗ (ℂ^2)')
-        A′ = force_planar(A)
-        C′ = force_planar(C)
-        p = ((4, 3), (5, 2, 1))
+    if BraidingStyle(I) isa SymmetricBraiding
+        @testset "planaradd" begin
+            A = TensorMap(randn, V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
+            C = TensorMap(randn, V4' ⊗ V3' ← V5 ⊗ V2' ⊗ V1')
 
-        @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
-              planaradd!(C′, A′, p, true, true)
+            A′ = force_planar(A)
+            C′ = force_planar(C)
+
+            p = ((4, 3), (5, 2, 1))
+
+            @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
+                  planaradd!(C′, A′, p, true, true)
+        end
+        @testset "planartrace" begin
+            A = TensorMap(randn, V1 ⊗ V2 ← V1 ⊗ V4 ⊗ V5)
+            C = TensorMap(randn, V4' ⊗ V2 ← V5)
+
+            A′ = force_planar(A)
+            C′ = force_planar(C)
+
+            p = ((4, 2), (5,))
+            q = ((1,), (3,))
+
+            @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
+                  planartrace!(C′, A′, p, q, true, true)
+        end
+
+        @testset "planarcontract" begin
+            A = TensorMap(randn, V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
+            B = TensorMap(randn, V2 ⊗ V5 ← V1 ⊗ V2)
+            C = TensorMap(randn, V4' ⊗ V3' ⊗ V1 ← V2' ⊗ V1)
+
+            A′ = force_planar(A)
+            B′ = force_planar(B)
+            C′ = force_planar(C)
+
+            pA = ((1, 3, 4), (5, 2))
+            pB = ((2, 4), (1, 3))
+            pAB = ((3, 2, 1), (4, 5))
+
+            @test force_planar(tensorcontract!(C, pAB, A, pA, :N, B, pB, :N, true, true)) ≈
+                  planarcontract!(C′, A′, pA, B′, pB, pAB, true, true)
+        end
     end
 
-    @testset "planartrace" begin
-        A = TensorMap(randn, ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^5 ⊗ ℂ^4)
-        C = TensorMap(randn, (ℂ^5)' ⊗ ℂ^3 ← ℂ^4)
-        A′ = force_planar(A)
-        C′ = force_planar(C)
-        p = ((4, 2), (5,))
-        q = ((1,), (3,))
+    @testset "BraidingTensor conversion" begin
+        for (V1, V2) in [(V1, V1), (V1', V1), (V1, V1'), (V1', V1')]
+            τ = BraidingTensor(V1, V2)
 
-        @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
-              planartrace!(C′, A′, p, q, true, true)
+            @test domain(τ) == V1 ⊗ V2
+            @test codomain(τ) == V2 ⊗ V1
+
+            for (c, b) in blocks(copy(τ))
+                @test b ≈ block(τ, c)
+            end
+
+            @test domain(τ') == codomain(τ)
+            @test codomain(τ') == domain(τ)
+
+            for (c, b) in blocks(copy(τ'))
+                @test b ≈ block(τ', c)
+            end
+        end
     end
 
-    @testset "planarcontract" begin
-        A = TensorMap(randn, ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^5 ⊗ ℂ^4)
-        B = TensorMap(randn, ℂ^2 ⊗ ℂ^4 ← ℂ^4 ⊗ ℂ^3)
-        C = TensorMap(randn, (ℂ^5)' ⊗ (ℂ^2)' ⊗ ℂ^2 ← (ℂ^2)' ⊗ ℂ^4)
+    t = TensorMap(randn, V1 * V1' * V1' * V1, V1 * V1')
 
-        A′ = force_planar(A)
-        B′ = force_planar(B)
-        C′ = force_planar(C)
+    ττ = copy(BraidingTensor(V1, V1'))
+    @planar t1[-1 -2 -3 -4; -5 -6] := τ[-1 -2; 1 2] * t[1 2 -3 -4; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := ττ[-1 -2; 1 2] * t[1 2 -3 -4; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := τ[2 1; -2 -1] * t[1 2 -3 -4; -5 -6]
+    @planar t4[-1 -2 -3 -4; -5 -6] := τ'[-2 2; -1 1] * t[1 2 -3 -4; -5 -6]
+    t5 = braid(t, ((2, 1, 3, 4), (5, 6)), (1, 2, 3, 4, 5, 6))
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+    @test t1 ≈ t5
 
-        pA = ((1, 3, 4), (5, 2))
-        pB = ((2, 4), (1, 3))
-        pAB = ((3, 2, 1), (4, 5))
+    ττ = copy(BraidingTensor(V1', V1'))
+    @planar t1[-1 -2 -3 -4; -5 -6] := τ[-2 -3; 1 2] * t[-1 1 2 -4; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := ττ[-2 -3; 1 2] * t[-1 1 2 -4; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := τ[2 1; -3 -2] * t[-1 1 2 -4; -5 -6]
+    @planar t4[-1 -2 -3 -4; -5 -6] := τ'[-3 2; -2 1] * t[-1 1 2 -4; -5 -6]
+    t5 = braid(t, ((1, 3, 2, 4), (5, 6)), (1, 2, 3, 4, 5, 6))
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+    @test t1 ≈ t5
 
-        @test force_planar(tensorcontract!(C, pAB, A, pA, :N, B, pB, :N, true, true)) ≈
-              planarcontract!(C′, A′, pA, B′, pB, pAB, true, true)
-    end
+    ττ = copy(BraidingTensor(V1', V1))
+    @planar t1[-1 -2 -3 -4; -5 -6] := τ[1 -2; 2 -3] * t[-1 1 2 -4; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := ττ[1 -2; 2 -3] * t[-1 1 2 -4; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := τ[-3 2; -2 1] * t[-1 1 2 -4; -5 -6]
+    @planar t4[-1 -2 -3 -4; -5 -6] := τ'[-2 -3; 1 2] * t[-1 1 2 -4; -5 -6]
+    # @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1'))
+    @planar t1[-1 -2 -3 -4; -5 -6] := τ[-3 2; -2 1] * t[-1 1 2 -4; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := ττ[-3 2; -2 1] * t[-1 1 2 -4; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := τ[1 -2; 2 -3] * t[-1 1 2 -4; -5 -6]
+    @planar t4[-1 -2 -3 -4; -5 -6] := τ'[2 1; -3 -2] * t[-1 1 2 -4; -5 -6]
+    # @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1))
+    @planar t1[-1 -2 -3 -4; -5 -6] := τ[2 1; -3 -2] * t[-1 1 2 -4; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := ττ[2 1; -3 -2] * t[-1 1 2 -4; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := τ[-2 -3; 1 2] * t[-1 1 2 -4; -5 -6]
+    @planar t4[-1 -2 -3 -4; -5 -6] := τ'[1 -2; 2 -3] * t[-1 1 2 -4; -5 -6]
+    # @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1', V1))
+    @planar t1[-1 -2 -3 -4; -5 -6] := τ[-3 -4; 1 2] * t[-1 -2 1 2; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := ττ[-3 -4; 1 2] * t[-1 -2 1 2; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := τ[2 1; -4 -3] * t[-1 -2 1 2; -5 -6]
+    @planar t4[-1 -2 -3 -4; -5 -6] := τ'[-4 2; -3 1] * t[-1 -2 1 2; -5 -6]
+    # @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1', V1))
+    @planar t1[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * τ[1 2; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * ττ[1 2; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * τ[-6 -5; 2 1]
+    @planar t4[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * τ'[2 -6; 1 -5]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1'))
+    @planar t1[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * τ'[1 2; -5 -6]
+    @planar t2[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * ττ'[1 2; -5 -6]
+    @planar t3[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * τ'[-6 -5; 2 1]
+    @planar t4[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 -4; 1 2] * τ[2 -6; 1 -5]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1))
+    @planar t1[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 1; -5 2] * τ[-4 -6; 1 2]
+    @planar t2[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 1; -5 2] * ττ[-4 -6; 1 2]
+    @planar t3[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 1; -5 2] * τ[2 1; -6 -4]
+    @planar t4[-1 -2 -3 -4; -5 -6] := t[-1 -2 -3 1; -5 2] * τ'[-6 2; -4 1]
+    # @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1', V1))
+    @planar t1[(); (-1, -2)] := τ[2 1; 3 4] * t[1 2 3 4; -1 -2]
+    @planar t2[(); (-1, -2)] := ττ[2 1; 3 4] * t[1 2 3 4; -1 -2]
+    @planar t3[(); (-1, -2)] := τ[4 3; 1 2] * t[1 2 3 4; -1 -2]
+    @planar t4[(); (-1, -2)] := τ'[1 4; 2 3] * t[1 2 3 4; -1 -2]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1))
+    @planar t1[-1; -2] := τ[2 1; 3 4] * t[-1 1 2 3; -2 4]
+    @planar t2[-1; -2] := ττ[2 1; 3 4] * t[-1 1 2 3; -2 4]
+    @planar t3[-1; -2] := τ[4 3; 1 2] * t[-1 1 2 3; -2 4]
+    @planar t4[-1; -2] := τ'[1 4; 2 3] * t[-1 1 2 3; -2 4]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1'))
+    @planar t1[-1 -2] := τ[2 1; 3 4] * t[-1 -2 1 2; 4 3]
+    @planar t2[-1 -2] := ττ[2 1; 3 4] * t[-1 -2 1 2; 4 3]
+    @planar t3[-1 -2] := τ[4 3; 1 2] * t[-1 -2 1 2; 4 3]
+    @planar t4[-1 -2] := τ'[1 4; 2 3] * t[-1 -2 1 2; 4 3]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1'))
+    @planar t1[-1 -2; -3 -4] := τ[-1 3; 1 2] * t[1 2 3 -2; -3 -4]
+    @planar t2[-1 -2; -3 -4] := ττ[-1 3; 1 2] * t[1 2 3 -2; -3 -4]
+    @planar t3[-1 -2; -3 -4] := τ[2 1; 3 -1] * t[1 2 3 -2; -3 -4]
+    @planar t4[-1 -2; -3 -4] := τ'[3 2; -1 1] * t[1 2 3 -2; -3 -4]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1', V1'))
+    @planar t1[-1 -2; -3 -4] := τ'[-2 3; 1 2] * t[-1 1 2 3; -3 -4]
+    @planar t2[-1 -2; -3 -4] := ττ'[-2 3; 1 2] * t[-1 1 2 3; -3 -4]
+    @planar t3[-1 -2; -3 -4] := τ'[2 1; 3 -2] * t[-1 1 2 3; -3 -4]
+    @planar t4[-1 -2; -3 -4] := τ[3 2; -2 1] * t[-1 1 2 3; -3 -4]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1', V1))
+    @planar t1[-1 -2 -3; -4] := τ[-3 3; 1 2] * t[-1 -2 1 2; -4 3]
+    @planar t2[-1 -2 -3; -4] := ττ[-3 3; 1 2] * t[-1 -2 1 2; -4 3]
+    @planar t3[-1 -2 -3; -4] := τ[2 1; 3 -3] * t[-1 -2 1 2; -4 3]
+    @planar t4[-1 -2 -3; -4] := τ'[3 2; -3 1] * t[-1 -2 1 2; -4 3]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1', V1))
+    @planar t1[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * τ[1 2; -4 3]
+    @planar t2[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * ττ[1 2; -4 3]
+    @planar t3[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * τ[3 -4; 2 1]
+    @planar t4[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * τ'[2 3; 1 -4]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
+
+    ττ = copy(BraidingTensor(V1, V1'))
+    @planar t1[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * τ'[1 2; -4 3]
+    @planar t2[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * ττ'[1 2; -4 3]
+    @planar t3[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * τ'[3 -4; 2 1]
+    @planar t4[-1 -2 -3; -4] := t[-1 -2 -3 3; 1 2] * τ[2 3; 1 -4]
+    @test t1 ≈ t2
+    @test t1 ≈ t3
+    @test t1 ≈ t4
 end
 
 @testset "@planar" verbose = true begin

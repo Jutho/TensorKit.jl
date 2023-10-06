@@ -14,8 +14,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      sectors: ${{ steps.filter.outputs.sectors }}
+      fusiontrees: ${{ steps.filter.outputs.fusiontrees }}
+      spaces: ${{ steps.filter.outputs.spaces }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          sectors:
+            - 'src/sectors/**'
+            - 'test/sectors.jl'
+          fusiontrees:
+            - 'src/fusiontrees/**'
+            - 'test/fusiontrees.jl'
+          spaces:
+            - 'src/spaces/**'
+            - 'test/spaces.jl'
+  test-sectors:
+    needs: changes
+    if: ${{ needs.changes.outputs.sectors == 'true' }}
+    name: "Sectors : Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -41,7 +66,121 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@latest
-      - uses: julia-actions/julia-runtest@latest
+      - uses: lkdvos/julia-runtest@main
+        with:
+          suffix: "sectors"
+        env:
+          JULIA_NUM_THREADS: 4
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v3
+        with:
+          file: lcov.info
+  test-spaces:
+    needs: changes
+    if: ${{ needs.changes.outputs.spaces == 'true' }}
+    name: "Spaces : Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.6' # LTS version
+          - '1' # automatically expands to the latest stable 1.x release of Julia
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        arch:
+          - x64
+          - x86
+        exclude:
+          - os: macOS-latest
+            arch: x86
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@latest
+      - uses: lkdvos/julia-runtest@main
+        with:
+          suffix: "spaces"
+        env:
+          JULIA_NUM_THREADS: 4
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v3
+        with:
+          file: lcov.info
+  test-fusiontrees:
+    needs: changes
+    if: ${{ needs.changes.outputs.fusiontrees == 'true' }}
+    name: "Fusiontrees : Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.6' # LTS version
+          - '1' # automatically expands to the latest stable 1.x release of Julia
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        arch:
+          - x64
+          - x86
+        exclude:
+          - os: macOS-latest
+            arch: x86
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@latest
+      - uses: lkdvos/julia-runtest@main
+        with:
+          suffix: "fusiontrees"
+        env:
+          JULIA_NUM_THREADS: 4
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v3
+        with:
+          file: lcov.info
+  test:
+    name: "Tests : Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.6' # LTS version
+          - '1' # automatically expands to the latest stable 1.x release of Julia
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        arch:
+          - x64
+          - x86
+        exclude:
+          - os: macOS-latest
+            arch: x86
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@latest
+      - uses: lkdvos/julia-runtest@main
+        with:
+          suffix: '-sectors -spaces -fusiontrees'
         env:
           JULIA_NUM_THREADS: 4
       - uses: julia-actions/julia-processcoverage@v1
@@ -71,6 +210,8 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@latest
-      - uses: julia-actions/julia-runtest@latest
+      - uses: lkdvos/julia-runtest@main
+        with:
+          suffix: tensors
         env:
           JULIA_NUM_THREADS: 4
