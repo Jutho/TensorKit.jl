@@ -397,6 +397,8 @@ function pentagon_equation(a::I, b::I, c::I, d::I; kwargs...) where {I<:Sector}
 end
 
 function hexagon_equation(a::I, b::I, c::I; kwargs...) where {I<:Sector}
+    BraidingStyle(I) isa NoBraiding &&
+        throw(ArgumentError("Hexagon equation only defined for sectors with braiding"))
     for e in ⊗(c, a), f in ⊗(c, b)
         for d in intersect(⊗(e, b), ⊗(a, f))
             if FusionStyle(I) isa MultiplicityFreeFusion
