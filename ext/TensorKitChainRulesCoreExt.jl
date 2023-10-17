@@ -98,12 +98,13 @@ function ChainRulesCore.rrule(::typeof(*), a::Number, b::AbstractTensorMap)
     return a * b, times_pullback
 end
 
-function ChainRulesCore.rrule(::typeof(permute), tsrc::AbstractTensorMap, p::Index2Tuple)
+function ChainRulesCore.rrule(::typeof(permute), tsrc::AbstractTensorMap, p::Index2Tuple;
+                              copy::Bool=false)
     function permute_pullback(Δtdst)
         invp = TensorKit._canonicalize(TupleTools.invperm(linearize(p)), tsrc)
-        return NoTangent(), permute(unthunk(Δtdst), invp), NoTangent()
+        return NoTangent(), permute(unthunk(Δtdst), invp; copy=true), NoTangent()
     end
-    return permute(tsrc, p), permute_pullback
+    return permute(tsrc, p; copy=true), permute_pullback
 end
 
 # LinearAlgebra
