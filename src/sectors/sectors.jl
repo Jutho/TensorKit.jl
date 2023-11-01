@@ -62,16 +62,20 @@ Base.eltype(::Type{SectorValues{I}}) where {I<:Sector} = I
 Base.values(::Type{I}) where {I<:Sector} = SectorValues{I}()
 
 # Define a sector for ungraded vector spaces
-struct Trivial <: Sector
-end
+"""
+    Trivial
+
+Singleton type to represent the trivial sector, i.e. the unit element of the group
+(category) with a single object.
+"""
+struct Trivial <: Sector end
 Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
 
 Base.IteratorSize(::Type{SectorValues{Trivial}}) = HasLength()
 Base.length(::SectorValues{Trivial}) = 1
 Base.iterate(::SectorValues{Trivial}, i=false) = return i ? nothing : (Trivial(), true)
 function Base.getindex(::SectorValues{Trivial}, i::Int)
-    return i == 1 ? Trivial() :
-           throw(BoundsError(values(Trivial), i))
+    return i == 1 ? Trivial() : throw(BoundsError(values(Trivial), i))
 end
 findindex(::SectorValues{Trivial}, c::Trivial) = 1
 
