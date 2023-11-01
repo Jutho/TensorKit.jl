@@ -23,6 +23,7 @@ i.e. a tensor map with only a non-trivial output space.
 const AbstractTensor{S<:IndexSpace,N} = AbstractTensorMap{S,N,0}
 
 # tensor characteristics
+Base.eltype(::Union{T,Type{T}}) where {T<:AbstractTensorMap} = scalartype(T)
 spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
 sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
 function InnerProductStyle(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace}
