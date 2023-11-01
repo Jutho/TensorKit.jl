@@ -238,7 +238,7 @@ struct Fermionic <: SymmetricBraiding end
 struct Anyonic <: BraidingStyle end
 ```
 New sector types `I<:Sector` should then indicate which fusion style they have by defining
-`BraidingStyle(::Type{})`. Note that `Bosonic()` braiding does not mean that all
+`BraidingStyle(::Type{I})`. Note that `Bosonic()` braiding does not mean that all
 permutations are trivial and ``R^{ab}_c = 1``, but that ``R^{ab}_c R^{ba}_c = 1``. For
 example, for the irreps of ``\mathsf{SU}_2``, the R-symbol associated with the fusion of
 two spin-1/2 particles to spin zero is ``-1``, i.e. the singlet of two spin-1/2 particles

@@ -260,7 +260,7 @@ dim(V2)
 A = Tensor(randn, V1*V1*V2')
 convert(Array, A)
 ```
-Here, we create a space 5-dimensional space `V1`, which has a three-dimensional subspace
+Here, we create a 5-dimensional space `V1`, which has a three-dimensional subspace
 associated with charge 0 (the trivial irrep of ``ℤ₂``) and a two-dimensional subspace with
 charge 1 (the non-trivial irrep). Similar for `V2`, where both subspaces are one-
 dimensional. Representing the tensor as a dense `Array`, we see that it is zero in those
@@ -288,21 +288,22 @@ A = TensorMap(randn, V*V, V)
 dim(A)
 convert(Array, A)
 
-V = GradedSpace[Irrep[U₁×ℤ₂]]((0,0)=>2,(1,1)=>1,(-1,0)=>1)
+V = Rep[U₁×ℤ₂]((0, 0) => 2, (1, 1) => 1, (-1, 0) => 1)
 dim(V)
 A = TensorMap(randn, V*V, V)
 dim(A)
 convert(Array, A)
 ```
-Here, the `dim` of a `TensorMap` returns the number of linearly independent components,
-i.e. the number of non-zero entries in the case of an abelian symmetry. Also note that we
-can use `×` (obtained as `\times+TAB`) to combine different symmetries. The general space
-associated with symmetries is a `GradedSpace`. Although this is actually an
-abstract type, it is the access point for users to construct spaces with arbitrary
-symmetries, and `ℤ₂Space` (also `Z2Space` as non-Unicode alternative) and `U₁Space` (or
-`U1Space`) are just convenient synonyms, e.g.
+Here, the `dim` of a `TensorMap` returns the number of linearly independent components, i.e.
+the number of non-zero entries in the case of an abelian symmetry. Also note that we can use
+`×` (obtained as `\times+TAB`) to combine different symmetry groups. The general space
+associated with symmetries is a `GradedSpace`, which is parametrized to the type of
+symmetry. For a group `G`, the fully specified type can be obtained as `Rep[G]`, while for
+more general sectortypes `I` it can be constructed as `Vect[I]`. Furthermore, `ℤ₂Space`
+(also `Z2Space` as non-Unicode alternative) and `U₁Space` (or `U1Space`) are just convenient
+synonyms, e.g.
 ```@repl tutorial
-GradedSpace[Irrep[U₁]](0=>3,1=>2,-1=>1) == U1Space(-1=>1,1=>2,0=>3)
+Rep[U₁](0=>3,1=>2,-1=>1) == U1Space(-1=>1,1=>2,0=>3)
 V = U₁Space(1=>2,0=>3,-1=>1)
 for s in sectors(V)
   @show s, dim(V, s)
@@ -316,23 +317,22 @@ also supports a grading that is derived from the fusion ring of a (unitary) pre-
 category. Also note that the order in which the charges and their corresponding subspace
 dimensionality are specified is irrelevant, and that the charges, henceforth called sectors
 (which is a more general name for charges or quantum numbers) are of a specific type, in
-this case `Irrep[U₁] == U1Irrep`. However, the `GradedSpace[I]` constructor automatically
-converts the keys in the list of `Pair`s it receives to the correct type. Alternatively, we
-can directly create the sectors of the correct type and use the generic `GradedSpace`
-
-constructor. We can probe the subspace dimension of a certain sector `s` in a space `V`
-with `dim(V, s)`. Finally, note that `GradedSpace` is also a subtype of
-`EuclideanSpace{ℂ}`, which implies that it still has the standard Euclidean inner product
-and we assume all representations to be unitary.
+this case `Irrep[U₁] == U1Irrep`. However, the `Vect[I]` constructor automatically converts
+the keys in the list of `Pair`s it receives to the correct type. Alternatively, we can
+directly create the sectors of the correct type and use the generic `GradedSpace`
+constructor. We can probe the subspace dimension of a certain sector `s` in a space `V` with
+`dim(V, s)`. Finally, note that `GradedSpace` is also a subtype of `EuclideanSpace`, which
+implies that it still has the standard Euclidean inner product and we assume all
+representations to be unitary.
 
 TensorKit.jl also allows for non-abelian symmetries such as `SU₂`. In this case, the vector
 space is characterized via the spin quantum number (i.e. the irrep label of `SU₂`) for each
-of its subspaces, and is created using `SU₂Space` (or `SU2Space` or
-`GradedSpace[Irrep[SU₂]]`)
+of its subspaces, and is created using `SU₂Space` (or `SU2Space` or `Rep[SU₂]` or
+`Vect[Irrep[SU₂]]`)
 ```@repl tutorial
 V = SU₂Space(0=>2,1/2=>1,1=>1)
 dim(V)
-V == GradedSpace[Irrep[SU₂]](0=>2, 1=>1, 1//2=>1)
+V == Vect[Irrep[SU₂]](0=>2, 1=>1, 1//2=>1)
 ```
 Note that now `V` has a two-dimensional subspace with spin zero, and two one-dimensional
 subspaces with spin 1/2 and spin 1. However, a subspace with spin `j` has an additional
