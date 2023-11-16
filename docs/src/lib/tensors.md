@@ -49,7 +49,6 @@ The following methods exist to obtain type information:
 ```@docs
 spacetype
 sectortype
-field
 storagetype
 tensormaptype
 ```
@@ -73,6 +72,8 @@ blocksectors
 blockdim
 block
 blocks
+fusiontrees
+hasblock
 ```
 
 ## `TensorMap` operations
