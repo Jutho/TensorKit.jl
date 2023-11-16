@@ -1,4 +1,4 @@
-# Symmetry sectors an fusion trees
+# Symmetry sectors and fusion trees
 
 ```@meta
 CurrentModule = TensorKit
