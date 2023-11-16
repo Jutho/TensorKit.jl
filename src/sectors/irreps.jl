@@ -112,7 +112,7 @@ Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
     U1Irrep(j::Real)
     Irrep[U₁](j::Real)
 
-Represents irreps of the group ``U₁```. The irrep is labelled by a charge, which should be
+Represents irreps of the group ``U₁``. The irrep is labelled by a charge, which should be
 an integer for a linear representation. However, it is often useful to allow half integers
 to represent irreps of ``U₁`` subgroups of ``SU₂``, such as the Sz of spin-1/2 system.
 Hence, the charge is stored as a `HalfInt` from the package HalfIntegers.jl, but can be
