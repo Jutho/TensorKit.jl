@@ -39,7 +39,12 @@ end
 const Tensor{S<:IndexSpace,N,I<:Sector,A,F₁,F₂} = TensorMap{S,N,0,I,A,F₁,F₂}
 const TrivialTensorMap{S<:IndexSpace,N₁,N₂,A<:DenseMatrix} = TensorMap{S,N₁,N₂,Trivial,A,
                                                                        Nothing,Nothing}
+"""
+    tensormaptype(::Type{S}, N₁::Int, N₂::Int, [::Type{T}]) where {S<:IndexSpace,T} -> ::Type{<:TensorMap}
 
+Return the fully specified type of a tensor map with elementary space `S`, `N₁` output
+spaces and `N₂` input spaces, either with scalar type `T` or with storage type `T`.
+"""
 function tensormaptype(::Type{S}, N₁::Int, N₂::Int, ::Type{T}) where {S,T}
     I = sectortype(S)
     if T <: DenseMatrix
