@@ -166,7 +166,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap;
             Uc, Σc, Vc = block(U, c), block(Σ, c), block(V, c)
             ΔUc, ΔΣc, ΔVc = block(ΔU, c), block(ΔΣ, c), block(ΔV, c)
             Σdc = view(Σc, diagind(Σc))
-            ΔΣdc = (ΔΣdc isa AbstractZero) ? ΔΣdc : view(ΔΣdc, diagind(ΔΣdc))
+            ΔΣdc = (ΔΣc isa AbstractZero) ? ΔΣc : view(ΔΣc, diagind(ΔΣc))
             copyto!(b, svd_pullback(Uc, Σdc, Vc, ΔUc, ΔΣdc, ΔVc))
         end
         return NoTangent(), Δt
