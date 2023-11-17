@@ -65,8 +65,8 @@ precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-8
 
 # rrules for functions that destroy inputs
 # ----------------------------------------
-function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...)
-    return ChainRulesCore.rrule(tsvd!, args...)
+function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...; kwargs...)
+    return ChainRulesCore.rrule(tsvd!, args...; kwargs...)
 end
 function ChainRulesCore.rrule(::typeof(TensorKit.leftorth), args...; kwargs...)
     return ChainRulesCore.rrule(leftorth!, args...; kwargs...)
@@ -131,8 +131,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
           ℂ[SU2Irrep](0 => 2, 1 // 2 => 2),
           ℂ[SU2Irrep](0 => 1, 1 // 2 => 1, 3 // 2 => 1)'))
 
-@testset "Automatic Differentiation ($(eltype(V)))" verbose = true for V in Vlist
-    @testset "Basic Linear Algebra ($T)" for T in (Float64, ComplexF64)
+@testset "Automatic Differentiation with spacetype $(TensorKit.type_repr(eltype(V)))" verbose = true for V in
+                                                                                                         Vlist
+    @testset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A))
 
@@ -149,7 +150,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(permute, A, ((1, 3, 2), (5, 4)))
     end
 
-    @testset "Linear Algebra part II ($T)" for T in (Float64, ComplexF64)
+    @testset "Linear Algebra part II with scalartype $T" for T in (Float64, ComplexF64)
         for i in 1:3
             E = TensorMap(randn, T, ⊗(V[1:i]...) ← ⊗(V[1:i]...))
             test_rrule(LinearAlgebra.tr, E)
@@ -160,7 +161,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(LinearAlgebra.norm, A, 2)
     end
 
-    @testset "TensorOperations ($T)" for T in (Float64, ComplexF64)
+    @testset "TensorOperations with scalartype $T" for T in (Float64, ComplexF64)
         atol = precision(T)
         rtol = precision(T)
 
@@ -224,7 +225,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         end
     end
 
-    @testset "Factorizations ($T)" for T in (Float64, ComplexF64)
+    @testset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A)')
         C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
@@ -242,12 +243,86 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             test_rrule(rightorth, C; fkwargs=(; alg=alg), atol)
         end
 
-        # Complex-valued SVD tests are incompatible with finite differencing,
-        # because U and V are not unique.
-        if T <: Real
-            test_rrule(tsvd, A; atol)
-            test_rrule(tsvd, B; atol)
-            test_rrule(tsvd, C; atol)
+        let (U, S, V, ϵ) = tsvd(A)
+            ΔU = TensorMap(randn, scalartype(U), space(U))
+            ΔS = TensorMap(randn, scalartype(S), space(S))
+            ΔV = TensorMap(randn, scalartype(V), space(V))
+            if T <: Complex # remove gauge dependent components
+                gaugepart = U' * ΔU + V * ΔV'
+                for (c, b) in blocks(gaugepart)
+                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
+                end
+            end
+            test_rrule(tsvd, A; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
+
+            allS = mapreduce(x -> diag(x[2]), vcat, blocks(S))
+            truncval = (maximum(allS) + minimum(allS)) / 2
+            U, S, V, ϵ = tsvd(A; trunc=truncbelow(truncval))
+            ΔU = TensorMap(randn, scalartype(U), space(U))
+            ΔS = TensorMap(randn, scalartype(S), space(S))
+            ΔV = TensorMap(randn, scalartype(V), space(V))
+            if T <: Complex # remove gauge dependent components
+                gaugepart = U' * ΔU + V * ΔV'
+                for (c, b) in blocks(gaugepart)
+                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
+                end
+            end
+            test_rrule(tsvd, A; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
+                       fkwargs=(; trunc=truncbelow(truncval)))
+        end
+
+        let (U, S, V, ϵ) = tsvd(B)
+            ΔU = TensorMap(randn, scalartype(U), space(U))
+            ΔS = TensorMap(randn, scalartype(S), space(S))
+            ΔV = TensorMap(randn, scalartype(V), space(V))
+            if T <: Complex # remove gauge dependent components
+                gaugepart = U' * ΔU + V * ΔV'
+                for (c, b) in blocks(gaugepart)
+                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
+                end
+            end
+            test_rrule(tsvd, B; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
+
+            Vtrunc = spacetype(S)(c => ceil(size(b, 1) / 2) for (c, b) in blocks(S))
+
+            U, S, V, ϵ = tsvd(B; trunc=truncspace(Vtrunc))
+            ΔU = TensorMap(randn, scalartype(U), space(U))
+            ΔS = TensorMap(randn, scalartype(S), space(S))
+            ΔV = TensorMap(randn, scalartype(V), space(V))
+            if T <: Complex # remove gauge dependent components
+                gaugepart = U' * ΔU + V * ΔV'
+                for (c, b) in blocks(gaugepart)
+                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
+                end
+            end
+            test_rrule(tsvd, B; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
+                       fkwargs=(; trunc=truncspace(Vtrunc)))
+        end
+
+        let (U, S, V, ϵ) = tsvd(C)
+            ΔU = TensorMap(randn, scalartype(U), space(U))
+            ΔS = TensorMap(randn, scalartype(S), space(S))
+            ΔV = TensorMap(randn, scalartype(V), space(V))
+            if T <: Complex # remove gauge dependent components
+                gaugepart = U' * ΔU + V * ΔV'
+                for (c, b) in blocks(gaugepart)
+                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
+                end
+            end
+            test_rrule(tsvd, C; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
+
+            U, S, V, ϵ = tsvd(C; trunc=truncdim(2))
+            ΔU = TensorMap(randn, scalartype(U), space(U))
+            ΔS = TensorMap(randn, scalartype(S), space(S))
+            ΔV = TensorMap(randn, scalartype(V), space(V))
+            if T <: Complex # remove gauge dependent components
+                gaugepart = U' * ΔU + V * ΔV'
+                for (c, b) in blocks(gaugepart)
+                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
+                end
+            end
+            test_rrule(tsvd, C; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
+                       fkwargs=(; trunc=truncdim(2)))
         end
     end
 end

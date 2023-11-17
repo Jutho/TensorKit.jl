@@ -134,85 +134,183 @@ end
 
 # Factorizations
 # --------------
+function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap;
+                              trunc::TensorKit.TruncationScheme=TensorKit.NoTruncation(),
+                              p::Real=2,
+                              alg::Union{TensorKit.SVD,TensorKit.SDD}=TensorKit.SDD())
+    U, Σ, V, ϵ = tsvd(t; trunc=TensorKit.NoTruncation(), p=p, alg=alg)
 
-function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap; kwargs...)
-    U, S, V, ϵ = tsvd(t; kwargs...)
-
-    function tsvd!_pullback((ΔU, ΔS, ΔV, Δϵ))
-        ∂t = similar(t)
-        for (c, b) in blocks(∂t)
-            copyto!(b,
-                    svd_rev(block(U, c), block(S, c), block(V, c),
-                            block(ΔU, c), block(ΔS, c), block(ΔV, c)))
+    if !(trunc isa TensorKit.NoTruncation) && !isempty(blocksectors(t))
+        Σddata = TensorKit.SectorDict(c => diag(b) for (c, b) in blocks(Σ))
+        dims = TensorKit.SectorDict(c => length(b) for (c, b) in Σddata)
+        Σddata, ϵ = TensorKit._truncate!(Σddata, trunc, p)
+        Udata′, Σddata′, Vdata′, dims′ = TensorKit._implement_svdtruncation!(t,
+                                                                             copy(U.data),
+                                                                             Σddata,
+                                                                             copy(V.data),
+                                                                             dims)
+        W = spacetype(t)(dims′)
+        if W ≅ domain(Σ)
+            W = domain(Σ)
         end
-
-        return NoTangent(), ∂t
+        U′, Σ′, V′ = TensorKit._create_svdtensors(t, Udata′, Σddata′, Vdata′, W)
+    else
+        U′, Σ′, V′ = U, Σ, V
     end
 
-    return (U, S, V, ϵ), tsvd!_pullback
+    function tsvd!_pullback((ΔU, ΔΣ, ΔV, Δϵ))
+        Δt = similar(t)
+        for (c, b) in blocks(Δt)
+            Uc, Σc, Vc = block(U, c), block(Σ, c), block(V, c)
+            ΔUc, ΔΣc, ΔVc = block(ΔU, c), block(ΔΣ, c), block(ΔV, c)
+            Σdc = view(Σc, diagind(Σc))
+            ΔΣdc = view(ΔΣc, diagind(ΔΣc))
+            copyto!(b, svd_pullback(Uc, Σdc, Vc, ΔUc, ΔΣdc, ΔVc))
+        end
+        return NoTangent(), Δt
+    end
+
+    return (U′, Σ′, V′, ϵ), tsvd!_pullback
 end
 
-"""
-    svd_rev(U, S, V, ΔU, ΔS, ΔV; tol=eps(real(scalartype(Σ)))^(4 / 5))
+# SVD_pullback: pullback implementation for general (possibly truncated) SVD
+#
+# Arguments are U, S and Vd of full (non-truncated, but still thin) SVD, as well as
+# cotangent ΔU, ΔS, ΔVd variables of truncated SVD
+# 
+# Checks whether the cotangent variables are such that they would couple to gauge-dependent
+# degrees of freedom (phases of singular vectors), and prints a warning if this is the case
+#
+# An implementation that only uses U, S, and Vd from truncated SVD is also possible, but
+# requires solving a Sylvester equation, which does not seem to be supported on GPUs.
+#
+# Other implementation considerations for GPU compatibility:
+# no scalar indexing, lots of broadcasting and views
+#
+safe_inv(a, tol) = abs(a) < tol ? zero(a) : inv(a)
+function svd_pullback(U::AbstractMatrix, S::AbstractVector, Vd::AbstractMatrix, ΔU, ΔS, ΔVd;
+                      atol::Real=0,
+                      rtol::Real=atol > 0 ? 0 : eps(scalartype(S))^(3 / 4))
 
-Implements the following back propagation formula for the SVD:
-
-```math
-ΔA = UΔSV' + U(J + J')SV' + US(K + K')V' + \\frac{1}{2}US^{-1}(L' - L)V'\\
-J = F ∘ (U'ΔU), \\qquad K = F ∘ (V'ΔV), \\qquad L = I ∘ (V'ΔV)\\
-F_{i ≠ j} = \\frac{1}{s_j^2 - s_i^2}\\
-F_{ii} = 0
-```
-
-# References
-
-Wan, Zhou-Quan, and Shi-Xin Zhang. 2019. “Automatic Differentiation for Complex Valued SVD.” https://doi.org/10.48550/ARXIV.1909.02659.
-"""
-function svd_rev(U::AbstractMatrix, S::AbstractMatrix, V::AbstractMatrix, ΔU, ΔS, ΔV;
-                 atol::Real=0,
-                 rtol::Real=atol > 0 ? 0 : eps(scalartype(S))^(3 / 4))
-    # project out gauge invariance dependence?
-    # ΔU * U + ΔV * V' = 0
-
-    tol = atol > 0 ? atol : rtol * S[1, 1]
-    F = _invert_S²(S, tol)
-    S⁻¹ = pinv(S; atol=tol)
-
-    term = ΔS isa ZeroTangent ? ΔS : Diagonal(diag(ΔS))
-
-    J = F .* (U' * ΔU)
-    term += (J + J') * S
-    VΔV = (V * ΔV')
-    K = F .* VΔV
-    term += S * (K + K')
-
-    if scalartype(U) <: Complex && !(ΔV isa ZeroTangent) && !(ΔU isa ZeroTangent)
-        L = LinearAlgebra.Diagonal(diag(VΔV))
-        term += 0.5 * S⁻¹ * (L' - L)
+    # Basic size checks and determination
+    m, n = size(U, 1), size(Vd, 2)
+    size(U, 2) == size(Vd, 1) == length(S) == min(m, n) || throw(DimensionMismatch())
+    ΔU isa AbstractZero && ΔVd isa AbstractZero && ΔS isa AbstractZero &&
+        return ZeroTangent()
+    p = -1
+    if !(ΔU isa AbstractZero)
+        m == size(ΔU, 1) || throw(DimensionMismatch())
+        p = size(ΔU, 2)
     end
-
-    ΔA = U * term * V
-
-    if size(U, 1) != size(V, 2)
-        UUd = U * U'
-        VdV = V' * V
-        ΔA += (one(UUd) - UUd) * ΔU * S⁻¹ * V + U * S⁻¹ * ΔV * (one(VdV) - VdV)
-    end
-
-    return ΔA
-end
-
-function _invert_S²(S::AbstractMatrix{T}, tol::Real) where {T<:Real}
-    F = similar(S)
-    @inbounds for i in axes(F, 1), j in axes(F, 2)
-        F[i, j] = if i == j
-            zero(T)
+    if !(ΔVd isa AbstractZero)
+        n == size(ΔVd, 2) || throw(DimensionMismatch())
+        if p == -1
+            p = size(ΔVd, 1)
         else
-            sᵢ, sⱼ = S[i, i], S[j, j]
-            1 / (abs(sⱼ - sᵢ) < tol ? tol : sⱼ^2 - sᵢ^2)
+            p == size(ΔVd, 1) || throw(DimensionMismatch())
         end
     end
-    return F
+    if !(ΔS isa AbstractZero)
+        if ΔS isa AbstractMatrix
+            ΔSr = real(diag(ΔS))
+        else # ΔS isa AbstractVector
+            ΔSr = real(ΔS)
+        end
+        if p == -1
+            p = length(ΔSr)
+        else
+            p == length(ΔSr) || throw(DimensionMismatch())
+        end
+    end
+    Up = view(U, :, 1:p)
+    Vp = view(Vd, 1:p, :)'
+    Sp = view(S, 1:p)
+
+    # tolerance and rank
+    tol = atol > 0 ? atol : rtol * S[1, 1]
+    r = findlast(>=(tol), S)
+
+    # compute antihermitian part of projection of ΔU and ΔV onto U and V
+    # also already subtract this projection from ΔU and ΔV
+    if !(ΔU isa AbstractZero)
+        UΔU = Up' * ΔU
+        aUΔU = rmul!(UΔU - UΔU', 1 / 2)
+        if m > p
+            ΔU -= Up * UΔU
+        end
+    else
+        aUΔU = fill!(similar(U, (p, p)), 0)
+    end
+    if !(ΔVd isa AbstractZero)
+        VΔV = Vp' * ΔVd'
+        aVΔV = rmul!(VΔV - VΔV', 1 / 2)
+        if n > p
+            ΔVd -= VΔV' * Vp'
+        end
+    else
+        aVΔV = fill!(similar(V, (p, p)), 0)
+    end
+
+    # check whether cotangents arise from gauge-invariance objective function
+    mask = abs.(Sp' .- Sp) .< tol
+    gaugepart = view(aUΔU, mask) + view(aVΔV, mask)
+    norm(gaugepart, Inf) < tol || @warn "cotangents sensitive to gauge choice"
+    if p > r
+        rprange = (r + 1):p
+        norm(view(aUΔU, rprange, rprange), Inf) < tol ||
+            @warn "cotangents sensitive to gauge choice"
+        norm(view(aVΔV, rprange, rprange), Inf) < tol ||
+            @warn "cotangents sensitive to gauge choice"
+    end
+
+    UdΔAV = (aUΔU .+ aVΔV) .* safe_inv.(Sp' .- Sp, tol) .+
+            (aUΔU .- aVΔV) .* safe_inv.(Sp' .+ Sp, tol)
+    if !(ΔS isa ZeroTangent)
+        UdΔAV[diagind(UdΔAV)] .+= ΔSr
+    end
+    ΔA = Up * UdΔAV * Vp'
+
+    if r > p # contribution from truncation
+        Ur = view(U, :, (p + 1):r)
+        Vr = view(Vd, (p + 1):r, :)'
+        Sr = view(S, (p + 1):r)
+
+        if !(ΔU isa AbstractZero)
+            UrΔU = Ur' * ΔU
+            if m > r
+                ΔU -= Ur * UrΔU # subtract this part from ΔU
+            end
+        else
+            UrΔU = fill!(similar(U, (r - p, p)), 0)
+        end
+        if !(ΔVd isa AbstractZero)
+            VrΔV = Vr' * ΔVd'
+            if n > r
+                ΔVd -= VrΔV' * Vr' # subtract this part from ΔV
+            end
+        else
+            VrΔV = fill!(similar(V, (r - p, p)), 0)
+        end
+
+        X = (1 // 2) .* ((UrΔU .+ VrΔV) .* safe_inv.(Sp' .- Sr, tol) .+
+                         (UrΔU .- VrΔV) .* safe_inv.(Sp' .+ Sr, tol))
+        Y = (1 // 2) .* ((UrΔU .+ VrΔV) .* safe_inv.(Sp' .- Sr, tol) .-
+                         (UrΔU .- VrΔV) .* safe_inv.(Sp' .+ Sr, tol))
+
+        # ΔA += Ur * X * Vp' + Up * Y' * Vr'
+        mul!(ΔA, Ur, X * Vp', 1, 1)
+        mul!(ΔA, Up * Y', Vr', 1, 1)
+    end
+
+    if m > max(r, p) && !(ΔU isa AbstractZero) # remaining ΔU is already orthogonal to U[:,1:max(p,r)]
+        # ΔA += (ΔU .* safe_inv.(Sp', tol)) * Vp'
+        mul!(ΔA, ΔU .* safe_inv.(Sp', tol), Vp', 1, 1)
+    end
+    if n > max(r, p) && !(ΔVd isa AbstractZero) # remaining ΔV is already orthogonal to V[:,1:max(p,r)]
+        # ΔA += U * (safe_inv.(Sp, tol) .* ΔVd)
+        mul!(ΔA, Up, safe_inv.(Sp, tol) .* ΔVd, 1, 1)
+    end
+    return ΔA
 end
 
 function ChainRulesCore.rrule(::typeof(leftorth!), t::AbstractTensorMap; alg=QRpos())
