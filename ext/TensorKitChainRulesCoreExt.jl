@@ -250,7 +250,7 @@ function svd_pullback(U::AbstractMatrix, S::AbstractVector, Vd::AbstractMatrix, 
             ΔVd -= VΔV' * Vp'
         end
     else
-        aVΔV = fill!(similar(V, (p, p)), 0)
+        aVΔV = fill!(similar(Vd, (p, p)), 0)
     end
 
     # check whether cotangents arise from gauge-invariance objective function
