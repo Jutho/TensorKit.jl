@@ -1,10 +1,5 @@
 # Tensor factorization
 #----------------------
-const OFA = OrthogonalFactorizationAlgorithm
-
-import LinearAlgebra: svd!, svd
-const SVDAlg = Union{SVD,SDD}
-
 """
     tsvd(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
         trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD, SDD} = SDD())
@@ -261,35 +256,6 @@ LinearAlgebra.isposdef(t::AbstractTensorMap) = isposdef!(copy(t))
 # Orthogonal factorizations (mutation for recycling memory):
 # only correct if Euclidean inner product
 #------------------------------------------------------------------------------------------
-function leftorth!(t::AdjointTensorMap; alg::OFA=QRpos())
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftorth!)
-    return map(adjoint, reverse(rightorth!(adjoint(t); alg=alg')))
-end
-
-function rightorth!(t::AdjointTensorMap; alg::OFA=LQpos())
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightorth!)
-    return map(adjoint, reverse(leftorth!(adjoint(t); alg=alg')))
-end
-
-function leftnull!(t::AdjointTensorMap; alg::OFA=QR(), kwargs...)
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftnull!)
-    return adjoint(rightnull!(adjoint(t); alg=alg', kwargs...))
-end
-
-function rightnull!(t::AdjointTensorMap; alg::OFA=LQ(), kwargs...)
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightnull!)
-    return adjoint(leftnull!(adjoint(t); alg=alg', kwargs...))
-end
-
-function tsvd!(t::AdjointTensorMap;
-               trunc::TruncationScheme=NoTruncation(),
-               p::Real=2,
-               alg::Union{SVD,SDD}=SDD())
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
-    u, s, vt, err = tsvd!(adjoint(t); trunc=trunc, p=p, alg=alg)
-    return adjoint(vt), adjoint(s), adjoint(u), err
-end
-
 function leftorth!(t::TensorMap;
                    alg::Union{QR,QRpos,QL,QLpos,SVD,SDD,Polar}=QRpos(),
                    atol::Real=zero(float(real(scalartype(t)))),
@@ -307,7 +273,7 @@ function leftorth!(t::TensorMap;
     dims = SectorDict{I,Int}()
     for c in blocksectors(domain(t))
         isempty(block(t, c)) && continue
-        Q, R = _leftorth!(block(t, c), alg, atol)
+        Q, R = MatrixAlgebra.leftorth!(block(t, c), alg, atol)
         Qdata[c] = Q
         Rdata[c] = R
         dims[c] = size(Q, 2)
@@ -342,7 +308,7 @@ function leftnull!(t::TensorMap;
     Ndata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
     for c in blocksectors(V)
-        N = _leftnull!(block(t, c), alg, atol)
+        N = MatrixAlgebra.leftnull!(block(t, c), alg, atol)
         Ndata[c] = N
         dims[c] = size(N, 2)
     end
@@ -367,7 +333,7 @@ function rightorth!(t::TensorMap;
     dims = SectorDict{I,Int}()
     for c in blocksectors(codomain(t))
         isempty(block(t, c)) && continue
-        L, Q = _rightorth!(block(t, c), alg, atol)
+        L, Q = MatrixAlgebra.rightorth!(block(t, c), alg, atol)
         Ldata[c] = L
         Qdata[c] = Q
         dims[c] = size(Q, 1)
@@ -402,7 +368,7 @@ function rightnull!(t::TensorMap;
     Ndata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
     for c in blocksectors(V)
-        N = _rightnull!(block(t, c), alg, atol)
+        N = MatrixAlgebra.rightnull!(block(t, c), alg, atol)
         Ndata[c] = N
         dims[c] = size(N, 1)
     end
@@ -410,27 +376,77 @@ function rightnull!(t::TensorMap;
     return TensorMap(Ndata, W ← V)
 end
 
+function leftorth!(t::AdjointTensorMap; alg::OFA=QRpos())
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftorth!)
+    return map(adjoint, reverse(rightorth!(adjoint(t); alg=alg')))
+end
+
+function rightorth!(t::AdjointTensorMap; alg::OFA=LQpos())
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightorth!)
+    return map(adjoint, reverse(leftorth!(adjoint(t); alg=alg')))
+end
+
+function leftnull!(t::AdjointTensorMap; alg::OFA=QR(), kwargs...)
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:leftnull!)
+    return adjoint(rightnull!(adjoint(t); alg=alg', kwargs...))
+end
+
+function rightnull!(t::AdjointTensorMap; alg::OFA=LQ(), kwargs...)
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:rightnull!)
+    return adjoint(leftnull!(adjoint(t); alg=alg', kwargs...))
+end
+
+#------------------------------#
+# Singular value decomposition #
+#------------------------------#
+function tsvd!(t::AdjointTensorMap;
+               trunc::TruncationScheme=NoTruncation(),
+               p::Real=2,
+               alg::Union{SVD,SDD}=SDD())
+    u, s, vt, err = tsvd!(adjoint(t); trunc=trunc, p=p, alg=alg)
+    return adjoint(vt), adjoint(s), adjoint(u), err
+end
+
 function tsvd!(t::TensorMap;
                trunc::TruncationScheme=NoTruncation(),
                p::Real=2,
                alg::Union{SVD,SDD}=SDD())
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
+    #early return
+    if isempty(blocksectors(t))
+        truncerr = zero(real(scalartype(t)))
+        return _empty_svdtensors(t)..., truncerr
+    end
+
     S = spacetype(t)
+    Udata, Σdata, Vdata, dims = _compute_svddata!(t, alg)
+    if !isa(trunc, NoTruncation)
+        Σdata, truncerr = _truncate!(Σdata, trunc, p)
+        Udata, Σdata, Vdata, dims = _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
+        W = S(dims)
+    else
+        truncerr = abs(zero(scalartype(t)))
+        W = S(dims)
+        if length(domain(t)) == 1 && domain(t)[1] ≅ W
+            W = domain(t)[1]
+        elseif length(codomain(t)) == 1 && codomain(t)[1] ≅ W
+            W = codomain(t)[1]
+        end
+    end
+    return _create_svdtensors(t, Udata, Σdata, Vdata, W)..., truncerr
+end
+
+# helper functions
+
+function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD})
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
     I = sectortype(t)
     A = storagetype(t)
-    Ar = similarstoragetype(t, real(scalartype(t)))
     Udata = SectorDict{I,A}()
-    Σmdata = SectorDict{I,Ar}() # this will contain the singular values as matrix
     Vdata = SectorDict{I,A}()
-    dims = SectorDict{sectortype(t),Int}()
-    if isempty(blocksectors(t))
-        W = S(dims)
-        truncerr = zero(real(scalartype(t)))
-        return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
-               TensorMap(Vdata, W ← domain(t)), truncerr
-    end
+    dims = SectorDict{I,Int}()
+    local Σdata
     for (c, b) in blocks(t)
-        U, Σ, V = _svd!(b, alg)
+        U, Σ, V = MatrixAlgebra.svd!(b, alg)
         Udata[c] = U
         Vdata[c] = V
         if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
@@ -440,50 +456,54 @@ function tsvd!(t::TensorMap;
         end
         dims[c] = length(Σ)
     end
-    if !isa(trunc, NoTruncation)
-        Σdata, truncerr = _truncate!(Σdata, trunc, p)
-        truncdims = SectorDict{I,Int}()
-        for c in blocksectors(t)
-            truncdim = length(Σdata[c])
-            if truncdim != 0
-                truncdims[c] = truncdim
-                if truncdim != dims[c]
-                    Udata[c] = Udata[c][:, 1:truncdim]
-                    Vdata[c] = Vdata[c][1:truncdim, :]
-                end
-            else
-                delete!(Udata, c)
-                delete!(Vdata, c)
-                delete!(Σdata, c)
-            end
+    return Udata, Σdata, Vdata, dims
+end
+
+function _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
+    for c in blocksectors(t)
+        truncdim = length(Σdata[c])
+        if truncdim == 0
+            delete!(Udata, c)
+            delete!(Vdata, c)
+            delete!(Σdata, c)
+            delete!(dims, c)
+        elseif truncdim < dims[c]
+            dims[c] = truncdim
+            Udata[c] = Udata[c][:, 1:truncdim]
+            Vdata[c] = Vdata[c][1:truncdim, :]
         end
-        dims = truncdims
-        W = S(dims)
-    else
-        W = S(dims)
-        if length(domain(t)) == 1 && domain(t)[1] ≅ W
-            W = domain(t)[1]
-        elseif length(codomain(t)) == 1 && codomain(t)[1] ≅ W
-            W = codomain(t)[1]
-        end
-        truncerr = abs(zero(scalartype(t)))
     end
+    return Udata, Σdata, Vdata, dims
+end
+
+function _empty_svdtensors(t)
+    I = sectortype(t)
+    S = spacetype(t)
+    A = storagetype(t)
+    Ar = similarstoragetype(t, real(scalartype(t)))
+    Udata = SectorDict{I,A}()
+    Σmdata = SectorDict{I,Ar}()
+    Vdata = SectorDict{I,A}()
+    dims = SectorDict{I,Int}()
+    W = S(dims)
+    return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
+           TensorMap(Vdata, W ← domain(t))
+end
+
+function _create_svdtensors(t, Udata, Σdata, Vdata, W)
+    I = sectortype(t)
+    Ar = similarstoragetype(t, real(scalartype(t)))
+    Σmdata = SectorDict{I,Ar}() # this will contain the singular values as matrix
     for (c, Σ) in Σdata
         Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
     end
     return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
-           TensorMap(Vdata, W ← domain(t)), truncerr
+           TensorMap(Vdata, W ← domain(t))
 end
 
-function LinearAlgebra.ishermitian(t::TensorMap)
-    domain(t) == codomain(t) || return false
-    InnerProductStyle(t) === EuclideanProduct() || return false # hermiticity only defined for euclidean
-    for (c, b) in blocks(t)
-        ishermitian(b) || return false
-    end
-    return true
-end
-
+#--------------------------#
+# Eigenvalue decomposition #
+#--------------------------#
 LinearAlgebra.eigen!(t::TensorMap) = ishermitian(t) ? eigh!(t) : eig!(t)
 
 function eigh!(t::TensorMap; kwargs...)
@@ -540,6 +560,18 @@ function eig!(t::TensorMap; kwargs...)
         W = S(dims)
     end
     return TensorMap(Ddata, W ← W), TensorMap(Vdata, domain(t) ← W)
+end
+
+#--------------------------------------------------#
+# Checks for hermiticity and positive definiteness #
+#--------------------------------------------------#
+function LinearAlgebra.ishermitian(t::TensorMap)
+    domain(t) == codomain(t) || return false
+    InnerProductStyle(t) === EuclideanProduct() || return false # hermiticity only defined for euclidean
+    for (c, b) in blocks(t)
+        ishermitian(b) || return false
+    end
+    return true
 end
 
 function LinearAlgebra.isposdef!(t::TensorMap)

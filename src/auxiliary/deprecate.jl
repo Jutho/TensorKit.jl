@@ -5,6 +5,7 @@ import Base: transpose
 @deprecate transpose(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple; copy::Bool=false) transpose(t, (p1, p2); copy=copy)
 @deprecate braid(t::AbstractTensorMap, p1::IndexTuple, p2::IndexTuple, levels; copy::Bool=false) braid(t, (p1, p2), levels; copy=copy)
 
+import LinearAlgebra: svd, svd!
 
 Base.@deprecate(svd(t::AbstractTensorMap, leftind::IndexTuple, rightind::IndexTuple;
                     trunc::TruncationScheme=notrunc(), p::Real=2, alg::SVDAlg=SDD()),
@@ -15,7 +16,6 @@ Base.@deprecate(svd(t::AbstractTensorMap;
 Base.@deprecate(svd!(t::AbstractTensorMap;
                      trunc::TruncationScheme=notrunc(), p::Real=2, alg::SVDAlg=SDD()),
                 tsvd(t; trunc=trunc, p=p, alg=alg))
-
 
 # TODO: deprecate
 

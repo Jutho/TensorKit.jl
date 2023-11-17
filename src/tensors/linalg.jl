@@ -39,7 +39,7 @@ function one!(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
         throw(SectorMismatch("no identity if domain and codomain are different"))
     for (c, b) in blocks(t)
-        _one!(b)
+        MatrixAlgebra.one!(b)
     end
     return t
 end
@@ -81,7 +81,7 @@ function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:
     cod ≅ dom || throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
     t = TensorMap(s -> A(undef, s), cod, dom)
     for (c, b) in blocks(t)
-        _one!(b)
+        MatrixAlgebra.one!(b)
     end
     return t
 end
@@ -140,7 +140,7 @@ function isometry(::Type{A},
         throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
     t = TensorMap(s -> A(undef, s), cod, dom)
     for (c, b) in blocks(t)
-        _one!(b)
+        MatrixAlgebra.one!(b)
     end
     return t
 end
