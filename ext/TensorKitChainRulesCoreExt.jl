@@ -291,7 +291,7 @@ function svd_pullback(U::AbstractMatrix, S::AbstractVector, Vd::AbstractMatrix, 
                 ΔVd -= VrΔV' * Vr' # subtract this part from ΔV
             end
         else
-            VrΔV = fill!(similar(V, (r - p, p)), 0)
+            VrΔV = fill!(similar(Vd, (r - p, p)), 0)
         end
 
         X = (1 // 2) .* ((UrΔU .+ VrΔV) .* safe_inv.(Sp' .- Sr, tol) .+

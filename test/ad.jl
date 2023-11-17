@@ -235,7 +235,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
             allS = mapreduce(x -> diag(x[2]), vcat, blocks(S))
             truncval = (maximum(allS) + minimum(allS)) / 2
-            U, S, V, ϵ = tsvd(A; trunc=truncbelow(truncval))
+            U, S, V, ϵ = tsvd(A; trunc=truncerr(truncval))
             ΔU = TensorMap(randn, scalartype(U), space(U))
             ΔS = TensorMap(randn, scalartype(S), space(S))
             ΔV = TensorMap(randn, scalartype(V), space(V))
@@ -246,7 +246,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
                 end
             end
             test_rrule(tsvd, A; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
-                       fkwargs=(; trunc=truncbelow(truncval)))
+                       fkwargs=(; trunc=truncerr(truncval)))
         end
 
         let (U, S, V, ϵ) = tsvd(B)
