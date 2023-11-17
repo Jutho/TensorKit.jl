@@ -144,10 +144,12 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap;
         Σddata = TensorKit.SectorDict(c => diag(b) for (c, b) in blocks(Σ))
         dims = TensorKit.SectorDict(c => length(b) for (c, b) in Σddata)
         Σddata, ϵ = TensorKit._truncate!(Σddata, trunc, p)
+        Udata = TensorKit.SectorDict(c => b for (c, b) in blocks(U))
+        Vdata = TensorKit.SectorDict(c => b for (c, b) in blocks(V))
         Udata′, Σddata′, Vdata′, dims′ = TensorKit._implement_svdtruncation!(t,
-                                                                             copy(U.data),
+                                                                             Udata,
                                                                              Σddata,
-                                                                             copy(V.data),
+                                                                             Vdata,
                                                                              dims)
         W = spacetype(t)(dims′)
         if W ≅ domain(Σ)

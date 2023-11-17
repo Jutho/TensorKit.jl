@@ -283,7 +283,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             end
             test_rrule(tsvd, B; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
 
-            Vtrunc = spacetype(S)(c => ceil(size(b, 1) / 2) for (c, b) in blocks(S))
+            Vtrunc = spacetype(S)(TensorKit.SectorDict(c => ceil(Int, size(b, 1) / 2) for (c, b) in blocks(S)))
 
             U, S, V, ϵ = tsvd(B; trunc=truncspace(Vtrunc))
             ΔU = TensorMap(randn, scalartype(U), space(U))
