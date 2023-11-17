@@ -164,8 +164,7 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationSpace, p=2)
     end
     return V, truncerr
 end
-########################
-########################
+
 function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p=2)
     I = keytype(V)
     S = real(eltype(valtype(V)))
