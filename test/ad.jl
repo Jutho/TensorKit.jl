@@ -116,6 +116,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         B = TensorMap(randn, T, space(A))
 
         test_rrule(+, A, B)
+        test_rrule(-, A)
         test_rrule(-, A, B)
 
         α = randn(T)

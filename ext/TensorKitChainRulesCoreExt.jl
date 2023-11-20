@@ -78,6 +78,7 @@ function ChainRulesCore.rrule(::typeof(+), a::AbstractTensorMap, b::AbstractTens
     return a + b, plus_pullback
 end
 
+ChainRulesCore.rrule(::typeof(-), a::AbstractTensorMap) = -a, Δc -> (NoTangent(), -Δc)
 function ChainRulesCore.rrule(::typeof(-), a::AbstractTensorMap, b::AbstractTensorMap)
     minus_pullback(Δc) = NoTangent(), Δc, -Δc
     return a - b, minus_pullback
