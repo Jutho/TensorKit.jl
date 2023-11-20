@@ -99,6 +99,38 @@ function ChainRulesCore.rrule(::typeof(*), a::Number, b::AbstractTensorMap)
     return a * b, times_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTensorMap)
+    C = A ⊗ B
+    projectA = ProjectTo(A)
+    projectB = ProjectTo(B)
+    function otimes_pullback(ΔC_)
+        ΔC = unthunk(ΔC_)
+        pΔC = ((codomainind(A)..., (domainind(A) .+ numout(B))...),
+               ((codomainind(B) .+ numout(A))...,
+                (domainind(B) .+ (numin(A) + numout(A)))...))
+        dA_ = @thunk begin
+            ipA = (codomainind(A), domainind(A))
+            pB = (allind(B), ())
+            dA = zerovector(A,
+                            TensorOperations.promote_contract(scalartype(ΔC),
+                                                              scalartype(B)))
+            dA = tensorcontract!(dA, ipA, ΔC, pΔC, :N, B, pB, :C)
+            return projectA(dA)
+        end
+        dB_ = @thunk begin
+            ipB = (codomainind(B), domainind(B))
+            pA = ((), allind(A))
+            dB = zerovector(B,
+                            TensorOperations.promote_contract(scalartype(ΔC),
+                                                              scalartype(A)))
+            dB = tensorcontract!(dB, ipB, A, pA, :C, ΔC, pΔC, :N)
+            return projectB(dB)
+        end
+        return NoTangent(), dA_, dB_
+    end
+    return C, otimes_pullback
+end
+
 function ChainRulesCore.rrule(::typeof(permute), tsrc::AbstractTensorMap, p::Index2Tuple;
                               copy::Bool=false)
     function permute_pullback(Δtdst)

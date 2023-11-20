@@ -127,6 +127,10 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(*, A, C)
 
         test_rrule(permute, A, ((1, 3, 2), (5, 4)))
+
+        D = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3])
+        E = TensorMap(randn, T, V[4] ← V[5])
+        test_rrule(⊗, D, E)
     end
 
     @testset "Linear Algebra part II with scalartype $T" for T in (Float64, ComplexF64)
