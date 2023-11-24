@@ -200,10 +200,11 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap;
             ΔUc, ΔΣc, ΔVc = block(ΔU, c), block(ΔΣ, c), block(ΔV, c)
             Σdc = view(Σc, diagind(Σc))
             ΔΣdc = (ΔΣc isa AbstractZero) ? ΔΣc : view(ΔΣc, diagind(ΔΣc))
-            copyto!(b, svd_pullback(Uc, Σdc, Vc, ΔUc, ΔΣdc, ΔVc))
+            svd_pullback!(b, Uc, Σdc, Vc, ΔUc, ΔΣdc, ΔVc)
         end
         return NoTangent(), Δt
     end
+    tsvd!_pullback(::Tuple{ZeroTangent,ZeroTangent,ZeroTangent}) = NoTangent(), ZeroTangent()
 
     return (U′, Σ′, V′, ϵ), tsvd!_pullback
 end
@@ -223,15 +224,13 @@ end
 # no scalar indexing, lots of broadcasting and views
 #
 safe_inv(a, tol) = abs(a) < tol ? zero(a) : inv(a)
-function svd_pullback(U::AbstractMatrix, S::AbstractVector, Vd::AbstractMatrix, ΔU, ΔS, ΔVd;
+function svd_pullback!(ΔA::AbstractMatrix, U::AbstractMatrix, S::AbstractVector, Vd::AbstractMatrix, ΔU, ΔS, ΔVd;
                       atol::Real=0,
                       rtol::Real=atol > 0 ? 0 : eps(scalartype(S))^(3 / 4))
 
     # Basic size checks and determination
     m, n = size(U, 1), size(Vd, 2)
     size(U, 2) == size(Vd, 1) == length(S) == min(m, n) || throw(DimensionMismatch())
-    ΔU isa AbstractZero && ΔVd isa AbstractZero && ΔS isa AbstractZero &&
-        return ZeroTangent()
     p = -1
     if !(ΔU isa AbstractZero)
         m == size(ΔU, 1) || throw(DimensionMismatch())
@@ -303,7 +302,7 @@ function svd_pullback(U::AbstractMatrix, S::AbstractVector, Vd::AbstractMatrix, 
     if !(ΔS isa ZeroTangent)
         UdΔAV[diagind(UdΔAV)] .+= ΔSr
     end
-    ΔA = Up * UdΔAV * Vp'
+    mul!(ΔA, Up, UdΔAV * Vp')
 
     if r > p # contribution from truncation
         Ur = view(U, :, (p + 1):r)
@@ -349,117 +348,166 @@ function svd_pullback(U::AbstractMatrix, S::AbstractVector, Vd::AbstractMatrix, 
 end
 
 function ChainRulesCore.rrule(::typeof(leftorth!), t::AbstractTensorMap; alg=QRpos())
-    alg isa TensorKit.QR || alg isa TensorKit.QRpos || error("only QR and QRpos supported")
+    alg isa TensorKit.QR || alg isa TensorKit.QRpos || error("only `alg=QR()` and `alg=QRpos()` are supported")
     Q, R = leftorth(t; alg)
-    leftorth!_pullback((ΔQ, ΔR)) = NoTangent(), qr_pullback!(similar(t), t, Q, R, ΔQ, ΔR)
-    leftorth!_pullback(::Tuple{ZeroTangent,ZeroTangent}) = ZeroTangent()
+    function leftorth!_pullback((ΔQ, ΔR))
+        Δt = similar(t)
+        for (c, b) in blocks(Δt)
+            qr_pullback!(b, block(Q, c), block(R, c), block(ΔQ, c), block(ΔR, c))
+        end
+        return NoTangent(), Δt
+    end
+    leftorth!_pullback(::Tuple{ZeroTangent,ZeroTangent}) = NoTangent(), ZeroTangent()
     return (Q, R), leftorth!_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(rightorth!), t::AbstractTensorMap; alg=LQpos())
-    alg isa TensorKit.LQ || alg isa TensorKit.LQpos || error("only LQ and LQpos supported")
+    alg isa TensorKit.LQ || alg isa TensorKit.LQpos || error("only `alg=LQ()` and `alg=LQpos()` are supported")
     L, Q = rightorth(t; alg)
-    rightorth!_pullback((ΔL, ΔQ)) = NoTangent(), lq_pullback!(similar(t), t, L, Q, ΔL, ΔQ)
-    rightorth!_pullback(::Tuple{ZeroTangent,ZeroTangent}) = ZeroTangent()
+    function rightorth!_pullback((ΔL, ΔQ))
+        Δt = similar(t)
+        for (c, b) in blocks(Δt)
+            lq_pullback!(b, block(L, c), block(Q, c), block(ΔL, c), block(ΔQ, c))
+        end
+        return NoTangent(), Δt
+    end
+    rightorth!_pullback(::Tuple{ZeroTangent,ZeroTangent}) = NoTangent(), ZeroTangent()
     return (L, Q), rightorth!_pullback
 end
 
-"""
-    copyltu!(A::AbstractMatrix)
+function qr_pullback!(ΔA::AbstractMatrix, Q::AbstractMatrix, R::AbstractMatrix, ΔQ, ΔR;
+    atol::Real=0,
+    rtol::Real=atol > 0 ? 0 : eps(real(eltype(R)))^(3 / 4))
 
-Copy the conjugated lower triangular part of `A` to the upper triangular part.
-"""
-function copyltu!(A::AbstractMatrix)
-    m, n = size(A)
-    for i in axes(A, 1)
-        A[i, i] = real(A[i, i])
-        @inbounds for j in (i + 1):n
-            A[i, j] = conj(A[j, i])
+    Rd = view(R, diagind(R))
+    p = let tol = atol > 0 ? atol : rtol * maximum(abs, Rd)
+        findlast(x->abs(x)>=tol, Rd)
+    end
+    m, n = size(R)
+
+    Q1 = view(Q, :, 1:p)
+    R1 = view(R, 1:p, :)
+    R11 = view(R, 1:p, 1:p)
+
+    ΔA1 = view(ΔA, :, 1:p)
+    ΔQ1 = view(ΔQ, :, 1:p)
+    ΔR1 = view(ΔR, 1:p, :)
+    ΔR11 = view(ΔR, 1:p, 1:p)
+
+    M = similar(R, (p, p))
+    ΔR isa AbstractZero || mul!(M, ΔR1, R1')
+    ΔQ isa AbstractZero || mul!(M, Q1', ΔQ1, -1, +1)
+    view(M, lowertriangularind(M)) .= conj.(view(M, uppertriangularind(M)))
+    if eltype(M) <: Complex
+        Md = view(M, diagind(M))
+        Md .= real.(Md)
+    end
+
+    ΔA1 .= ΔQ1
+    mul!(ΔA1, Q1, M, +1, 1)
+
+    if n > p
+        R12 = view(R, 1:p, (p+1):n)
+        ΔA2 = view(ΔA, :, (p+1):n)
+        ΔR12 = view(ΔR, 1:p, (p+1):n)
+
+        if ΔR isa AbstractZero
+            ΔA2 .= zero(eltype(ΔA))
+        else
+            mul!(ΔA2, Q1, ΔR12)
+            mul!(ΔA1, ΔA2, R12', -1, 1)
         end
     end
-    return A
-end
-
-function qr_pullback!(ΔA::AbstractTensorMap{S}, t::AbstractTensorMap{S},
-                      Q::AbstractTensorMap{S}, R::AbstractTensorMap{S}, ΔQ, ΔR) where {S}
-    for (c, b) in blocks(ΔA)
-        qr_pullback!(b, block(t, c), block(Q, c), block(R, c), block(ΔQ, c), block(ΔR, c))
+    if m > p && !(ΔQ isa AbstractZero) # case where R is not full rank
+        Q2 = view(Q, :, (p+1):m)
+        ΔQ2 = view(ΔQ, :, (p+1):m)
+        Q1dΔQ2 = Q1'*ΔQ2
+        gaugepart = mul!(copy(ΔQ2), Q1, Q1dΔQ2, -1, 1)
+        norm(gaugepart, Inf) < tol || @warn "cotangents sensitive to gauge choice"
+        mul!(ΔA1, Q2, Q1dΔQ2', -1, 1)
     end
+    rdiv!(ΔA1, UpperTriangular(R11)')
     return ΔA
 end
 
-function qr_pullback!(ΔA, A, Q::M, R::M, ΔQ, ΔR) where {M<:AbstractMatrix}
-    m = qr_rank(R)
-    n = size(R, 2)
+function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix, ΔL, ΔQ;
+    atol::Real=0,
+    rtol::Real=atol > 0 ? 0 : eps(real(eltype(L)))^(3 / 4))
 
-    if n == m # full rank
-        q = view(Q, :, 1:m)
-        Δq = view(ΔQ, :, 1:m)
-        r = view(R, 1:m, :)
-        Δr = view(ΔR, 1:m, :)
-        ΔA = qr_pullback_fullrank!(ΔA, q, r, Δq, Δr)
-    else
-        q = view(Q, :, 1:m)
-        Δq = view(ΔQ, :, 1:m) + view(A, :, (m + 1):n) * view(ΔR, :, (m + 1):n)'
-        r = view(R, 1:m, 1:m)
-        Δr = view(ΔR, 1:m, 1:m)
+    Ld = view(L, diagind(L))
+    p = let tol = atol > 0 ? atol : rtol * maximum(abs, Ld)
+        findlast(x->abs(x)>=tol, Ld)
+    end
+    m, n = size(L)
 
-        qr_pullback_fullrank!(view(ΔA, :, 1:m), q, r, Δq, Δr)
-        ΔA[:, (m + 1):n] = q * view(ΔR, :, (m + 1):n)
+    L1 = view(L, :, 1:p)
+    L11 = view(L, 1:p, 1:p)
+    Q1 = view(Q, 1:p, :)
+
+    ΔA1 = view(ΔA, 1:p, :)
+    ΔQ1 = view(ΔQ, 1:p, :)
+    ΔL1 = view(ΔL, :, 1:p)
+    ΔR11 = view(ΔL, 1:p, 1:p)
+
+    M = similar(L, (p, p))
+    ΔL isa AbstractZero || mul!(M, L1', ΔL1)
+    ΔQ isa AbstractZero || mul!(M, ΔQ1, Q1', -1, +1)
+    view(M, uppertriangularind(M)) .= conj.(view(M, lowertriangularind(M)))
+    if eltype(M) <: Complex
+        Md = view(M, diagind(M))
+        Md .= real.(Md)
     end
 
+    ΔA1 .= ΔQ1
+    mul!(ΔA1, M, Q1, +1, 1)
+
+    if m > p
+        L21 = view(L, (p+1):m, 1:p)
+        ΔA2 = view(ΔA, (p+1):m, :)
+        ΔL21 = view(ΔL, (p+1):m, 1:p)
+
+        if ΔL isa AbstractZero
+            ΔA2 .= zero(eltype(ΔA))
+        else
+            mul!(ΔA2, ΔL21, Q1)
+            mul!(ΔA1, L21', ΔA2, -1, 1)
+        end
+    end
+    if n > p && !(ΔQ isa AbstractZero) # case where R is not full rank
+        Q2 = view(Q, (p+1):n, :)
+        ΔQ2 = view(ΔQ, (p+1):n, :)
+        ΔQ2Q1d = ΔQ2*Q1'
+        gaugepart = mul!(copy(ΔQ2), ΔQ2Q1d, Q1, -1, 1)
+        norm(gaugepart, Inf) < tol || @warn "cotangents sensitive to gauge choice"
+        mul!(ΔA1, ΔQ2Q1d', Q2, -1, 1)
+    end
+    ldiv!(LowerTriangular(L11)', ΔA1)
     return ΔA
 end
 
-function qr_pullback_fullrank!(ΔA, Q, R, ΔQ, ΔR)
-    b = ΔQ + Q * copyltu!(R * ΔR' - ΔQ' * Q)
-    return adjoint!(ΔA, LinearAlgebra.LAPACK.trtrs!('U', 'N', 'N', R, copy(adjoint(b))))
-end
-
-function lq_pullback!(ΔA::AbstractTensorMap{S}, t::AbstractTensorMap{S},
-                      L::AbstractTensorMap{S}, Q::AbstractTensorMap{S}, ΔL, ΔQ) where {S}
-    for (c, b) in blocks(ΔA)
-        lq_pullback!(b, block(t, c), block(L, c), block(Q, c), block(ΔL, c), block(ΔQ, c))
+function lowertriangularind(A::AbstractMatrix)
+    m, n = size(A)
+    I = Vector{Int}(undef, div(m*(m-1), 2) + m*(n-m))
+    offset = 0
+    for j = 1:n
+        r = (j+1):m
+        I[offset .- j .+ r] = (j-1)*m .+ r
+        offset += length(r)
     end
-    return ΔA
+    return I
 end
-
-function lq_pullback!(ΔA, A, L::M, Q::M, ΔL, ΔQ) where {M<:AbstractMatrix}
-    m = qr_rank(L)
-    n = size(L, 1)
-
-    if n == m # full rank
-        l = view(L, :, 1:m)
-        Δl = view(ΔL, :, 1:m)
-        q = view(Q, 1:m, :)
-        Δq = view(ΔQ, 1:m, :)
-        ΔA = lq_pullback_fullrank!(ΔA, l, q, Δl, Δq)
-    else
-        l = view(L, 1:m, 1:m)
-        Δl = view(ΔL, 1:m, 1:m)
-        q = view(Q, 1:m, :)
-        Δq = view(ΔQ, 1:m, :) + view(ΔL, (m + 1):n, 1:m)' * view(A, (m + 1):n, :)
-
-        lq_pullback_fullrank!(view(ΔA, 1:m, :), l, q, Δl, Δq)
-        ΔA[(m + 1):n, :] = view(ΔL, (m + 1):n, :) * q
+function uppertriangularind(A::AbstractMatrix)
+    m, n = size(A)
+    I = Vector{Int}(undef, div(m*(m-1), 2) + m*(n-m))
+    offset = 0
+    for i = 1:m
+        r = (i+1):n
+        I[offset .- i .+ r] = i .+ m .* (r .- 1)
+        offset += length(r)
     end
-
-    return ΔA
+    return I
 end
 
-function lq_pullback_fullrank!(ΔA, L, Q, ΔL, ΔQ)
-    mul!(ΔA, copyltu!(L' * ΔL - ΔQ * Q'), Q)
-    axpy!(true, ΔQ, ΔA)
-    return LinearAlgebra.LAPACK.trtrs!('L', 'C', 'N', L, ΔA)
-end
-
-function qr_rank(r::AbstractMatrix)
-    Base.require_one_based_indexing(r)
-    m, n = size(r)
-    r₀ = r[1, 1]
-    i = findfirst(x -> abs(x / r₀) < 1e-12, diag(r))
-    return isnothing(i) ? min(m, n) : i - 1
-end
 
 function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{Dict}, t::AbstractTensorMap)
     out = convert(Dict, t)
