@@ -51,7 +51,7 @@ const SVDAlg = Union{SVD,SDD}
 module MatrixAlgebra
 
 using LinearAlgebra
-using LinearAlgebra: BlasFloat, checksquare
+using LinearAlgebra: BlasFloat, BlasReal, BlasComplex, checksquare
 
 using ..TensorKit: OrthogonalFactorizationAlgorithm,
                    QL, QLpos, QR, QRpos, LQ, LQpos, RQ, RQpos, SVD, SDD, Polar
@@ -259,6 +259,43 @@ end
 function svd!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD})
     U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)
     return U, S, V
+end
+
+function eig!(A::StridedMatrix{T}; permute::Bool=true, scale::Bool=true) where T<:BlasReal
+    n = checksquare(A)
+    n == 0 && return zeros(Complex{T}, 0), zeros(Complex{T}, 0, 0)
+
+    A, DR, DI, VL, VR, _ = LAPACK.geevx!(permute ? (scale ? 'B' : 'P') : (scale ? 'S' : 'N'), 'N', 'V', 'N', A)
+    D = complex.(DR, DI)
+    V = zeros(Complex{T}, n, n)
+    j = 1
+    while j <= n
+        if DI[j] == 0
+            V[:,j] = view(VR, :, j)
+        else
+            for i = 1:n
+                V[i,j]   = VR[i,j] + im*VR[i,j+1]
+                V[i,j+1] = VR[i,j] - im*VR[i,j+1]
+            end
+            j += 1
+        end
+        j += 1
+    end
+    return D, V
+end
+
+function eig!(A::StridedMatrix{T}; permute::Bool=true, scale::Bool=true) where T<:BlasComplex
+    n = checksquare(A)
+    n == 0 && return zeros(T, 0), zeros(T, 0, 0)
+    D, V = LAPACK.geevx!(permute ? (scale ? 'B' : 'P') : (scale ? 'S' : 'N'), 'N', 'V', 'N', A)[[2,4]]
+    return D, V
+end
+
+function eigh!(A::StridedMatrix{T}) where T<:BlasFloat
+    n = checksquare(A)
+    n == 0 && return zeros(real(T), 0), zeros(T, 0, 0)
+    D, V = LAPACK.syevr!('V', 'A', 'U', A, 0.0, 0.0, 0, 0, -1.0)
+    return D, V
 end
 
 ## Old stuff and experiments

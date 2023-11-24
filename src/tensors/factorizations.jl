@@ -158,7 +158,7 @@ decomposition is meaningless and cannot satisfy
 permute(t, (leftind, rightind)) * V = V * D
 ```
 
-Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense
+Accepts the same keyword arguments `scale` and `permute` as `eigen` of dense
 matrices. See the corresponding documentation for more information.
 
 See also `eig` and `eigh`
@@ -185,7 +185,8 @@ decomposition is meaningless and cannot satisfy
 permute(t, (leftind, rightind)) * V = V * D
 ```
 
-Accepts the same keyword arguments `scale`, `permute` and `sortby` as `eigen` of dense matrices. See the corresponding documentation for more information.
+Accepts the same keyword arguments `scale` and `permute` as `eigen` of dense
+matrices. See the corresponding documentation for more information.
 
 See also `eigen` and `eigh`.
 """
@@ -506,7 +507,7 @@ end
 #--------------------------#
 LinearAlgebra.eigen!(t::TensorMap) = ishermitian(t) ? eigh!(t) : eig!(t)
 
-function eigh!(t::TensorMap; kwargs...)
+function eigh!(t::TensorMap)
     InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:eigh!)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eigh!` requires domain and codomain to be the same"))
@@ -518,7 +519,7 @@ function eigh!(t::TensorMap; kwargs...)
     Vdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
     for (c, b) in blocks(t)
-        values, vectors = eigen!(Hermitian(b); kwargs...)
+        values, vectors = MatrixAlgebra.eigh!(b)
         d = length(values)
         Ddata[c] = copyto!(similar(values, (d, d)), Diagonal(values))
         Vdata[c] = vectors
@@ -533,7 +534,6 @@ function eigh!(t::TensorMap; kwargs...)
 end
 
 function eig!(t::TensorMap; kwargs...)
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:eig!)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
     S = spacetype(t)
@@ -544,14 +544,10 @@ function eig!(t::TensorMap; kwargs...)
     Vdata = SectorDict{I,Ac}()
     dims = SectorDict{I,Int}()
     for (c, b) in blocks(t)
-        values, vectors = eigen!(b; kwargs...)
+        values, vectors = MatrixAlgebra.eig!(b; kwargs...)
         d = length(values)
-        Ddata[c] = copyto!(similar(values, T, (d, d)), Diagonal(values))
-        if eltype(vectors) == T
-            Vdata[c] = vectors
-        else
-            Vdata[c] = copyto!(similar(vectors, T), vectors)
-        end
+        Ddata[c] = copy!(similar(values, T, (d, d)), Diagonal(values))
+        Vdata[c] = vectors
         dims[c] = d
     end
     if length(domain(t)) == 1
