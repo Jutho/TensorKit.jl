@@ -202,6 +202,15 @@ end
 # ---------------
 # TODO
 
+# TensorOperations
+# ----------------
+# TODO: implement specialized methods
+function TO.tensoradd!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N₂},
+                       A::BraidingTensor{S}, conjA::Symbol, α::Number, β::Number,
+                       backend::Backend...) where {S,N₁,N₂}
+    return TO.tensoradd!(C, pC, copy(A), conjA, α, β, backend...)
+end
+
 # Planar operations
 # -----------------
 function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
