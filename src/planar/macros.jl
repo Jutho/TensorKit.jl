@@ -21,9 +21,10 @@ function planarparser(planarexpr, kwargs...)
     push!(parser.postprocessors, ex -> _free_temporaries(ex, temporaries))
     push!(parser.postprocessors, _insert_planar_operations)
 
-    for kw in kwargs
-        name, val = kw
-
+    # braiding tensors need to be instantiated before kwargs are processed
+    push!(parser.preprocessors, _construct_braidingtensors)
+    
+    for (name, val) in kwargs
         if name == :order
             isexpr(val, :tuple) ||
                 throw(ArgumentError("Invalid use of `order`, should be `order=(...,)`"))
@@ -61,9 +62,7 @@ function planarparser(planarexpr, kwargs...)
             throw(ArgumentError("Unknown keyword argument `name`."))
         end
     end
-    braidingtensors = Vector{Any}()
-
-    push!(parser.preprocessors, _construct_braidingtensors)
+    
     treebuilder = parser.contractiontreebuilder
     treesorter = parser.contractiontreesorter
     costcheck = parser.contractioncostcheck
