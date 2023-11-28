@@ -23,7 +23,7 @@ function planarparser(planarexpr, kwargs...)
 
     # braiding tensors need to be instantiated before kwargs are processed
     push!(parser.preprocessors, _construct_braidingtensors)
-    
+
     for (name, val) in kwargs
         if name == :order
             isexpr(val, :tuple) ||
@@ -62,7 +62,7 @@ function planarparser(planarexpr, kwargs...)
             throw(ArgumentError("Unknown keyword argument `name`."))
         end
     end
-    
+
     treebuilder = parser.contractiontreebuilder
     treesorter = parser.contractiontreesorter
     costcheck = parser.contractioncostcheck

@@ -71,29 +71,29 @@ end
 
 @testset "@planar" verbose = true begin
     T = ComplexF64
-    
+
     @testset "contractcheck" begin
         V = ℂ^2
         A = TensorMap(rand, T, V ⊗ V ← V)
         B = TensorMap(rand, T, V ⊗ V ← V')
         @tensor C1[i j; k l] := A[i j; m] * B[k l; m]
-        @tensor contractcheck=true C2[i j; k l] := A[i j; m] * B[k l; m]
+        @tensor contractcheck = true C2[i j; k l] := A[i j; m] * B[k l; m]
         @test C1 ≈ C2
         B2 = TensorMap(rand, T, V ⊗ V ← V) # wrong duality for third space
         @test_throws SpaceMismatch("incompatible spaces for m: $V ≠ $(V')") begin
             @tensor contractcheck = true C3[i j; k l] := A[i j; m] * B2[k l; m]
         end
-        
+
         A = TensorMap(rand, T, V ← V ⊗ V)
         B = TensorMap(rand, T, V ⊗ V ← V)
         @planar C1[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
-        @planar contractcheck=true C2[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
+        @planar contractcheck = true C2[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
         @test C1 ≈ C2
         @test_throws SpaceMismatch("incompatible spaces for l: $V ≠ $(V')") begin
-            @planar contractcheck=true C3[i; j] := A[i; k l] * τ[k l; m n] * B[n j; m]
+            @planar contractcheck = true C3[i; j] := A[i; k l] * τ[k l; m n] * B[n j; m]
         end
     end
-    
+
     @testset "MPS networks" begin
         P = ℂ^2
         Vmps = ℂ^12
@@ -171,14 +171,14 @@ end
         end
         @test C ≈ C′
     end
-    
+
     @testset "Issue 93" begin
         T = Float64
         V1 = ℂ^2
         V2 = ℂ^3
         t1 = TensorMap(rand, T, V1 ← V2)
         t2 = TensorMap(rand, T, V2 ← V1)
-        
+
         tr1 = @planar opt = true t1[a; b] * t2[b; a]
         tr2 = @planar opt = true t1[d; a] * t2[b; c] * τ[c b; a d]
         tr3 = @planar opt = true t1[d; a] * t2[b; c] * τ[a c; d b]
@@ -186,7 +186,7 @@ end
         tr5 = @planar opt = true t1[f; a] * t2[c; d] * τ[d b; c e] * τ[a e; f b]
         tr6 = @planar opt = true t1[f; a] * t2[c; d] * τ[c d; e b] * τ[e b; a f]
         tr7 = @planar opt = true t1[f; a] * t2[c; d] * τ[c d; e b] * τ[a e; f b]
-        
+
         @test tr1 ≈ tr2 ≈ tr3 ≈ tr4 ≈ tr5 ≈ tr6 ≈ tr7
     end
 end
