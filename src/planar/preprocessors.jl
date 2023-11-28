@@ -42,15 +42,13 @@ function _extract_tensormap_objects(ex)
         if (obj in existingtensors)
             nl = length(leftind)
             nr = length(rightind)
-            nlsym = gensym()
-            nrsym = gensym()
-            objstr = string(obj)
-            errorstr1 = "incorrect number of input-output indices: ($nl, $nr) instead of "
-            errorstr2 = " for $objstr."
+            tensor_inds = :((numout($newobj)), (numin($newobj)))
+            errorstr = Expr(:string,
+                            "Incorrect number of input-output indices for $obj: ($nl, $nr) instead of (",
+                            tensor_inds, ").")
             checksize = quote
-                $nlsym, $nrsym = numout($newobj), numin($newobj)
-                (numout($newobj) == $nl && $numin($newobj) == $nr) ||
-                    throw(IndexError($errorstr1 * string(($nlsym, $nrsym)) * $errorstr2))
+                (numout($newobj) == $nl && numin($newobj) == $nr) ||
+                    throw(IndexError($errorstr))
             end
             push!(pre2.args, checksize)
         end
