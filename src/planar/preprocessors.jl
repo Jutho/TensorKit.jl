@@ -89,6 +89,7 @@ function _construct_braidingtensors(ex::Expr)
         return Expr(ex.head, map(_construct_braidingtensors, ex.args)...)
     end
 
+    # create a mapping of tensor_expr => braiding_constructor_expr
     i = 1
     translatebraidings = Dict{Any,Any}()
     while i <= length(list)
@@ -101,93 +102,70 @@ function _construct_braidingtensors(ex::Expr)
         end
     end
 
+    # loop over the braiding tensors and try to figure out the correct spaces
     unresolved = Any[] # list of indices that we couldn't yet figure out
-    indexmap = Dict{Any,Any}()
-    # indexmap[i] contains the expression to resolve the space for index i
-    for (t, construct_expr) in translatebraidings
-        obj, leftind, rightind = TO.decomposetensor(t)
-        length(leftind) == length(rightind) == 2 ||
-            throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
-        if _is_adjoint(obj)
-            i1b, i2b, = leftind
-            i2a, i1a, = rightind
-        else
-            i2b, i1b, = leftind
-            i1a, i2a, = rightind
-        end
-
-        obj_and_pos1a = _findindex(i1a, list)
-        obj_and_pos2a = _findindex(i2a, list)
-        obj_and_pos1b = _findindex(i1b, list)
-        obj_and_pos2b = _findindex(i2b, list)
-
-        if !isnothing(obj_and_pos1a)
-            indexmap[i1b] = Expr(:call, :space, obj_and_pos1a...)
-            indexmap[i1a] = Expr(:call, :space, obj_and_pos1a...)
-        elseif !isnothing(obj_and_pos1b)
-            indexmap[i1b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
-            indexmap[i1a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
-        else
-            push!(unresolved, (i1a, i1b))
-        end
-
-        if !isnothing(obj_and_pos2a)
-            indexmap[i2b] = Expr(:call, :space, obj_and_pos2a...)
-            indexmap[i2a] = Expr(:call, :space, obj_and_pos2a...)
-        elseif !isnothing(obj_and_pos2b)
-            indexmap[i2b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
-            indexmap[i2a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
-        else
-            push!(unresolved, (i2a, i2b))
-        end
-    end
-    # simple loop that tries to resolve as many indices as possible
-    changed = true
-    while changed == true
-        changed = false
-        i = 1
-        while i <= length(unresolved)
-            (i1, i2) = unresolved[i]
-            if i1 in keys(indexmap)
-                changed = true
-                indexmap[i2] = indexmap[i1]
-                deleteat!(unresolved, i)
-            elseif i2 in keys(indexmap)
-                changed = true
-                indexmap[i1] = indexmap[i2]
-                deleteat!(unresolved, i)
-            else
-                i += 1
-            end
-        end
-    end
-    !isempty(unresolved) &&
-        throw(ArgumentError("cannot determine the spaces of indices " *
-                            string(tuple(unresolved...)) *
-                            "for the braiding tensors in $(ex)"))
-
+    ischanged = true
     pre = Expr(:block)
-    for (t, construct_expr) in translatebraidings
-        obj, leftind, rightind = TO.decomposetensor(t)
-        if _is_adjoint(obj)
-            i1b, i2b, = leftind
-            i2a, i1a, = rightind
-        else
-            i2b, i1b, = leftind
-            i1a, i2a, = rightind
-        end
-        push!(construct_expr.args, indexmap[i1b])
-        push!(construct_expr.args, indexmap[i2b])
-        s = gensym(:τ)
-        push!(pre.args, :(@notensor $s = $construct_expr))
-        ex = TO.replacetensorobjects(ex) do o, l, r
-            if o == obj && l == leftind && r == rightind
-                return obj == :τ ? s : Expr(TO.prime, s)
+    while ischanged
+        ischanged = false
+        unresolved = Any[]
+        for (t, construct_expr) in translatebraidings
+            obj, leftind, rightind = TO.decomposetensor(t)
+            length(leftind) == length(rightind) == 2 ||
+                throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
+            if _is_adjoint(obj)
+                i1b, i2b, = leftind
+                i2a, i1a, = rightind
             else
-                return o
+                i2b, i1b, = leftind
+                i1a, i2a, = rightind
             end
+
+            # attempt to deduce first space
+            obj_and_pos1a = _findindex(i1a, list)
+            obj_and_pos1b = _findindex(i1b, list)
+            if !isnothing(obj_and_pos1a)
+                V_i1b = Expr(:call, :space, obj_and_pos1a...)
+            elseif !isnothing(obj_and_pos1b)
+                V_i1b = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
+            else
+                push!(unresolved, (i1a, i1b))
+                continue
+            end
+
+            # attempt to deduce second space
+            obj_and_pos2a = _findindex(i2a, list)
+            obj_and_pos2b = _findindex(i2b, list)
+            if !isnothing(obj_and_pos2a)
+                V_i2b = Expr(:call, :space, obj_and_pos2a...)
+            elseif !isnothing(obj_and_pos2b)
+                V_i2b = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
+            else
+                push!(unresolved, (i2a, i2b))
+                continue
+            end
+
+            # both spaces deduced, construct braidingtensor
+            push!(construct_expr.args, V_i1b)
+            push!(construct_expr.args, V_i2b)
+            s = gensym(:τ)
+            push!(pre.args, :(@notensor $s = $construct_expr))
+
+            # and insert into tensor expression
+            ex = TO.replacetensorobjects(ex) do o, l, r
+                if o == obj && l == leftind && r == rightind
+                    return obj == :τ ? s : Expr(TO.prime, s)
+                else
+                    return o
+                end
+            end
+
+            delete!(translatebraidings, t)
+            ischanged = true
         end
     end
+
+    @assert isempty(unresolved) "could not figure out all spaces"
     return Expr(:block, pre, ex)
 end
 _construct_braidingtensors(x) = x
