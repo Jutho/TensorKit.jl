@@ -178,7 +178,7 @@ function _construct_braidingtensors(ex::Expr)
         end
         push!(construct_expr.args, indexmap[i1b])
         push!(construct_expr.args, indexmap[i2b])
-        s = gensym()
+        s = gensym(:τ)
         push!(pre.args, Expr(:(=), s, construct_expr))
         ex = TO.replacetensorobjects(ex) do o, l, r
             if o == obj && l == leftind && r == rightind
