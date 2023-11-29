@@ -140,6 +140,23 @@ end
                                   conj(x′[1 3; -1])
         @test force_planar(ρ2) ≈ ρ2′
         @test ρ2 ≈ ρ3
+
+        # Periodic boundary conditions
+        # ----------------------------
+        f1 = isomorphism(storagetype(O), fuse(Vmpo^3), Vmpo ⊗ Vmpo' ⊗ Vmpo)
+        f2 = isomorphism(storagetype(O), fuse(Vmpo^3), Vmpo ⊗ Vmpo' ⊗ Vmpo)
+        f1′ = force_planar(f1)
+        f2′ = force_planar(f2)
+        @tensor O_periodic1[-1 -2; -3 -4] := O[1 -2; -3 2] * f1[-1; 1 3 4] *
+                                             conj(f2[-4; 2 3 4])
+        @plansor O_periodic2[-1 -2; -3 -4] := O[1 2; -3 6] * f1[-1; 1 3 5] *
+                                              conj(f2[-4; 6 7 8]) * τ[2 3; 7 4] *
+                                              τ[4 5; 8 -2]
+        @planar O_periodic′[-1 -2; -3 -4] := O′[1 2; -3 6] * f1′[-1; 1 3 5] *
+                                             conj(f2′[-4; 6 7 8]) * τ[2 3; 7 4] *
+                                             τ[4 5; 8 -2]
+        @test O_periodic1 ≈ O_periodic2
+        @test force_planar(O_periodic1) ≈ O_periodic′
     end
 
     @testset "MERA networks" begin
