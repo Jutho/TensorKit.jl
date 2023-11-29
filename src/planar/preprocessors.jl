@@ -70,6 +70,7 @@ _add_adjoint(ex) = Expr(TO.prime, ex)
 
 # used by `@planar`: realize explicit braiding tensors
 function _construct_braidingtensors(ex::Expr)
+    # create a list of all tensors
     if TO.isdefinition(ex) || TO.isassignment(ex)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
         if TO.istensorexpr(rhs)
@@ -103,12 +104,10 @@ function _construct_braidingtensors(ex::Expr)
     end
 
     # loop over the braiding tensors and try to figure out the correct spaces
-    unresolved = Any[] # list of indices that we couldn't yet figure out
     ischanged = true
     pre = Expr(:block)
     while ischanged
         ischanged = false
-        unresolved = Any[]
         for (t, construct_expr) in translatebraidings
             obj, leftind, rightind = TO.decomposetensor(t)
             length(leftind) == length(rightind) == 2 ||
@@ -129,7 +128,6 @@ function _construct_braidingtensors(ex::Expr)
             elseif !isnothing(obj_and_pos1b)
                 V_i1b = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
             else
-                push!(unresolved, (i1a, i1b))
                 continue
             end
 
@@ -141,7 +139,6 @@ function _construct_braidingtensors(ex::Expr)
             elseif !isnothing(obj_and_pos2b)
                 V_i2b = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
             else
-                push!(unresolved, (i2a, i2b))
                 continue
             end
 
@@ -151,7 +148,7 @@ function _construct_braidingtensors(ex::Expr)
             s = gensym(:τ)
             push!(pre.args, :(@notensor $s = $construct_expr))
 
-            # and insert into tensor expression
+            # and insert into tensor expression and tensorlist
             ex = TO.replacetensorobjects(ex) do o, l, r
                 if o == obj && l == leftind && r == rightind
                     return obj == :τ ? s : Expr(TO.prime, s)
@@ -159,13 +156,16 @@ function _construct_braidingtensors(ex::Expr)
                     return o
                 end
             end
+            push!(list, Expr(:typed_vcat, s, Expr(:tuple, leftind...),
+                             Expr(:tuple, rightind...)))
 
             delete!(translatebraidings, t)
             ischanged = true
         end
     end
 
-    @assert isempty(unresolved) "could not figure out all spaces"
+    @assert isempty(translatebraidings) "could not figure out all spaces \n $ex"
+    
     return Expr(:block, pre, ex)
 end
 _construct_braidingtensors(x) = x
