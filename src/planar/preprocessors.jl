@@ -96,6 +96,11 @@ function _construct_braidingtensors(ex::Expr)
     while i <= length(list)
         t = list[i]
         if _remove_adjoint(TO.gettensorobject(t)) == :τ
+            # verify that the braiding tensor has the correct form
+            obj, leftind, rightind = TO.decomposetensor(t)
+            length(leftind) == length(rightind) == 2 ||
+                throw(ArgumentError("Invalid expression $t. τ is reserved for the braiding, and should have two input and two output indices."))
+
             translatebraidings[t] = Expr(:call, GlobalRef(TensorKit, :BraidingTensor))
             deleteat!(list, i)
         else
@@ -110,8 +115,6 @@ function _construct_braidingtensors(ex::Expr)
         ischanged = false
         for (t, construct_expr) in translatebraidings
             obj, leftind, rightind = TO.decomposetensor(t)
-            length(leftind) == length(rightind) == 2 ||
-                throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
             if _is_adjoint(obj)
                 i1b, i2b, = leftind
                 i2a, i1a, = rightind
@@ -156,8 +159,9 @@ function _construct_braidingtensors(ex::Expr)
                     return o
                 end
             end
-            push!(list, Expr(:typed_vcat, s, Expr(:tuple, leftind...),
-                             Expr(:tuple, rightind...)))
+            push!(list,
+                  Expr(:typed_vcat, s, Expr(:tuple, leftind...),
+                       Expr(:tuple, rightind...)))
 
             delete!(translatebraidings, t)
             ischanged = true
@@ -165,7 +169,7 @@ function _construct_braidingtensors(ex::Expr)
     end
 
     @assert isempty(translatebraidings) "could not figure out all spaces \n $ex"
-    
+
     return Expr(:block, pre, ex)
 end
 _construct_braidingtensors(x) = x
