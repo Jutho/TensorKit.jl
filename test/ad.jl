@@ -12,7 +12,7 @@ end
 function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
                                          expected::AbstractTensorMap, msg=""; kwargs...)
     for (c, b) in blocks(actual)
-        ChainRulesTestUtils.@test_msg msg isapprox(block(expected, c), b; kwargs...)
+        ChainRulesTestUtils.@test_msg msg isapprox(b, block(expected, c); kwargs...)
     end
 end
 function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
@@ -68,6 +68,12 @@ precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-8
 function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...; kwargs...)
     return ChainRulesCore.rrule(tsvd!, args...; kwargs...)
 end
+function ChainRulesCore.rrule(::typeof(TensorKit.eig), args...; kwargs...)
+    return ChainRulesCore.rrule(eig!, args...; kwargs...)
+end
+function ChainRulesCore.rrule(::typeof(TensorKit.eigh), args...; kwargs...)
+    return ChainRulesCore.rrule(eigh!, args...; kwargs...)
+end
 function ChainRulesCore.rrule(::typeof(TensorKit.leftorth), args...; kwargs...)
     return ChainRulesCore.rrule(leftorth!, args...; kwargs...)
 end
@@ -75,9 +81,16 @@ function ChainRulesCore.rrule(::typeof(TensorKit.rightorth), args...; kwargs...)
     return ChainRulesCore.rrule(rightorth!, args...; kwargs...)
 end
 
+# eigh′: make argument of eigh explicitly Hermitian
+#---------------------------------------------------
+eigh′(t::AbstractTensorMap) = eigh(scale!(t + t', 1 / 2))
+
+function ChainRulesCore.rrule(::typeof(eigh′), args...; kwargs...)
+    return ChainRulesCore.rrule(eigh!, args...; kwargs...)
+end
+
 # complex-valued svd?
 # -------------------
-
 function remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
     # simple implementation, assumes no degeneracies or zeros in singular values
     gaugepart = U' * ΔU + V * ΔV'
@@ -212,6 +225,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A)')
         C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
+        H = TensorMap(randn, T, V[3] ⊗ V[4] ← V[3] ⊗ V[4])
+        H = (H + H') / 2
         atol = 1e-6
 
         for alg in (TensorKit.QR(), TensorKit.QRpos())
@@ -224,6 +239,28 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             test_rrule(rightorth, A; fkwargs=(; alg=alg), atol)
             test_rrule(rightorth, B; fkwargs=(; alg=alg), atol)
             test_rrule(rightorth, C; fkwargs=(; alg=alg), atol)
+        end
+
+        let (D, V) = eig(C)
+            ΔD = TensorMap(randn, scalartype(D), space(D))
+            ΔV = TensorMap(randn, scalartype(V), space(V))
+            gaugepart = V' * ΔV
+            for (c, b) in blocks(gaugepart)
+                mul!(block(ΔV, c), inv(block(V, c))', Diagonal(diag(b)), -1, 1)
+            end
+            test_rrule(eig, C; atol, output_tangent=(ΔD, ΔV))
+        end
+
+        let (D, U) = eigh′(H)
+            ΔD = TensorMap(randn, scalartype(D), space(D))
+            ΔU = TensorMap(randn, scalartype(U), space(U))
+            if T <: Complex
+                gaugepart = U' * ΔU
+                for (c, b) in blocks(gaugepart)
+                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
+                end
+            end
+            test_rrule(eigh′, H; atol, output_tangent=(ΔD, ΔU))
         end
 
         let (U, S, V, ϵ) = tsvd(A)
@@ -244,12 +281,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             ΔU = TensorMap(randn, scalartype(U), space(U))
             ΔS = TensorMap(randn, scalartype(S), space(S))
             ΔV = TensorMap(randn, scalartype(V), space(V))
-            if T <: Complex # remove gauge dependent components
-                gaugepart = U' * ΔU + V * ΔV'
-                for (c, b) in blocks(gaugepart)
-                    mul!(block(ΔU, c), block(U, c), Diagonal(imag(diag(b))), -im, 1)
-                end
-            end
+            T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, A; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
                        fkwargs=(; trunc=truncerr(truncval)))
         end
