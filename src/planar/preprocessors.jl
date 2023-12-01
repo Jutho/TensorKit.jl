@@ -68,129 +68,159 @@ _is_adjoint(ex) = isexpr(ex, TO.prime)
 _remove_adjoint(ex) = _is_adjoint(ex) ? ex.args[1] : ex
 _add_adjoint(ex) = Expr(TO.prime, ex)
 
-# used by `@planar`: realize explicit braiding tensors
+# used by `@planar`: identify braiding tensors (corresponding to name τ) and discover their 
+# spaces from the rest of the expression. Construct the explicit BraidingTensor objects and
+# insert them in the expression.
 function _construct_braidingtensors(ex::Expr)
     if TO.isdefinition(ex) || TO.isassignment(ex)
         lhs, rhs = TO.getlhs(ex), TO.getrhs(ex)
-        if TO.istensorexpr(rhs)
-            list = TO.gettensors(_conj_to_adjoint(rhs))
-            if TO.isassignment(ex) && TO.istensor(lhs)
-                obj, l, r = TO.decomposetensor(lhs)
-                lhs_as_rhs = Expr(:typed_vcat, _add_adjoint(obj),
-                                  Expr(:tuple, r...), Expr(:tuple, l...))
-                push!(list, lhs_as_rhs)
-            end
-        else
+        if !TO.istensorexpr(rhs)
             return ex
         end
+        preargs = Vector{Any}()
+        indexmap = Dict{Any,Any}()
+        if TO.isassignment(ex) && TO.istensor(lhs)
+            obj, leftind, rightind = TO.decomposetensor(lhs)
+            for (i, l) in enumerate(leftind)
+                indexmap[l] = Expr(:call, :space, _add_adjoint(obj), i)
+            end
+            for (i, l) in enumerate(rightind)
+                indexmap[l] = Expr(:call, :space, _add_adjoint(obj), length(leftind) + i)
+            end
+        end
+        newrhs, success = _construct_braidingtensors!(rhs, preargs, indexmap)
+        success ||
+            throw(ArgumentError("cannot determine the spaces of all braiding tensors in $ex"))
+        pre = Expr(:macrocall, Symbol("@notensor"),
+                   LineNumberNode(@__LINE__, Symbol(@__FILE__)), Expr(:block, preargs...))
+        return Expr(:block, pre, Expr(ex.head, lhs, newrhs))
     elseif TO.istensorexpr(ex)
-        list = TO.gettensors(_conj_to_adjoint(ex))
+        preargs = Vector{Any}()
+        indexmap = Dict{Any,Any}()
+        newex, success = _construct_braidingtensors!(ex, preargs, indexmap)
+        success ||
+            throw(ArgumentError("cannot determine the spaces of all braiding tensors in $ex"))
+        pre = Expr(:macrocall, Symbol("@notensor"),
+                   LineNumberNode(@__LINE__, Symbol(@__FILE__)), Expr(:block, preargs...))
+        return Expr(:block, pre, newex)
     else
         return Expr(ex.head, map(_construct_braidingtensors, ex.args)...)
     end
-
-    i = 1
-    translatebraidings = Dict{Any,Any}()
-    while i <= length(list)
-        t = list[i]
-        if _remove_adjoint(TO.gettensorobject(t)) == :τ
-            translatebraidings[t] = Expr(:call, GlobalRef(TensorKit, :BraidingTensor))
-            deleteat!(list, i)
-        else
-            i += 1
-        end
-    end
-
-    unresolved = Any[] # list of indices that we couldn't yet figure out
-    indexmap = Dict{Any,Any}()
-    # indexmap[i] contains the expression to resolve the space for index i
-    for (t, construct_expr) in translatebraidings
-        obj, leftind, rightind = TO.decomposetensor(t)
-        length(leftind) == length(rightind) == 2 ||
-            throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
-        if _is_adjoint(obj)
-            i1b, i2b, = leftind
-            i2a, i1a, = rightind
-        else
-            i2b, i1b, = leftind
-            i1a, i2a, = rightind
-        end
-
-        obj_and_pos1a = _findindex(i1a, list)
-        obj_and_pos2a = _findindex(i2a, list)
-        obj_and_pos1b = _findindex(i1b, list)
-        obj_and_pos2b = _findindex(i2b, list)
-
-        if !isnothing(obj_and_pos1a)
-            indexmap[i1b] = Expr(:call, :space, obj_and_pos1a...)
-            indexmap[i1a] = Expr(:call, :space, obj_and_pos1a...)
-        elseif !isnothing(obj_and_pos1b)
-            indexmap[i1b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
-            indexmap[i1a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos1b...))
-        else
-            push!(unresolved, (i1a, i1b))
-        end
-
-        if !isnothing(obj_and_pos2a)
-            indexmap[i2b] = Expr(:call, :space, obj_and_pos2a...)
-            indexmap[i2a] = Expr(:call, :space, obj_and_pos2a...)
-        elseif !isnothing(obj_and_pos2b)
-            indexmap[i2b] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
-            indexmap[i2a] = Expr(TO.prime, Expr(:call, :space, obj_and_pos2b...))
-        else
-            push!(unresolved, (i2a, i2b))
-        end
-    end
-    # simple loop that tries to resolve as many indices as possible
-    changed = true
-    while changed == true
-        changed = false
-        i = 1
-        while i <= length(unresolved)
-            (i1, i2) = unresolved[i]
-            if i1 in keys(indexmap)
-                changed = true
-                indexmap[i2] = indexmap[i1]
-                deleteat!(unresolved, i)
-            elseif i2 in keys(indexmap)
-                changed = true
-                indexmap[i1] = indexmap[i2]
-                deleteat!(unresolved, i)
-            else
-                i += 1
-            end
-        end
-    end
-    !isempty(unresolved) &&
-        throw(ArgumentError("cannot determine the spaces of indices " *
-                            string(tuple(unresolved...)) *
-                            "for the braiding tensors in $(ex)"))
-
-    pre = Expr(:block)
-    for (t, construct_expr) in translatebraidings
-        obj, leftind, rightind = TO.decomposetensor(t)
-        if _is_adjoint(obj)
-            i1b, i2b, = leftind
-            i2a, i1a, = rightind
-        else
-            i2b, i1b, = leftind
-            i1a, i2a, = rightind
-        end
-        push!(construct_expr.args, indexmap[i1b])
-        push!(construct_expr.args, indexmap[i2b])
-        s = gensym(:τ)
-        push!(pre.args, :(@notensor $s = $construct_expr))
-        ex = TO.replacetensorobjects(ex) do o, l, r
-            if o == obj && l == leftind && r == rightind
-                return obj == :τ ? s : Expr(TO.prime, s)
-            else
-                return o
-            end
-        end
-    end
-    return Expr(:block, pre, ex)
 end
 _construct_braidingtensors(x) = x
+
+function _construct_braidingtensors!(ex, preargs, indexmap) # ex is guaranteed to be a single tensor expression
+    if TO.istensor(ex)
+        obj, leftind, rightind = TO.decomposetensor(ex)
+        if _remove_adjoint(obj) == :τ
+            # try to construct a braiding tensor
+            length(leftind) == length(rightind) == 2 ||
+                throw(ArgumentError("The name τ is reserved for the braiding, and should have two input and two output indices."))
+            if _is_adjoint(obj)
+                i1b, i2b, = leftind
+                i2a, i1a, = rightind
+            else
+                i2b, i1b, = leftind
+                i1a, i2a, = rightind
+            end
+
+            foundV1, foundV2 = false, false
+            if haskey(indexmap, i1a)
+                V1 = indexmap[i1a]
+                foundV1 = true
+            elseif haskey(indexmap, i1b)
+                V1 = Expr(:call, :dual, indexmap[i1b])
+                foundV1 = true
+            end
+            if haskey(indexmap, i2a)
+                V2 = indexmap[i2a]
+                foundV2 = true
+            elseif haskey(indexmap, i2b)
+                V2 = Expr(:call, :dual, indexmap[i2b])
+                foundV2 = true
+            end
+            if foundV1 && foundV2
+                s = gensym(:τ)
+                constructex = Expr(:call, GlobalRef(TensorKit, :BraidingTensor), V1, V2)
+                push!(preargs, Expr(:(=), s, constructex))
+                obj = _is_adjoint(obj) ? _add_adjoint(s) : s
+                success = true
+            else
+                success = false
+            end
+            newex = Expr(:typed_vcat, obj, Expr(:tuple, leftind...),
+                         Expr(:tuple, rightind...))
+        else
+            newex = ex
+            success = true
+        end
+        # add spaces of the tensor to the indexmap
+        for (i, l) in enumerate(leftind)
+            if !haskey(indexmap, l)
+                indexmap[l] = Expr(:call, :space, obj, i)
+            end
+        end
+        for (i, l) in enumerate(rightind)
+            if !haskey(indexmap, l)
+                indexmap[l] = Expr(:call, :space, obj, length(leftind) + i)
+            end
+        end
+        return newex, success
+    elseif TO.isgeneraltensor(ex)
+        args = ex.args
+        newargs = Vector{Any}(undef, length(args))
+        success = true
+        for i in 1:length(ex.args)
+            newargs[i], successa = _construct_braidingtensors!(args[i], preargs, indexmap)
+            success = success && successa
+        end
+        newex = Expr(ex.head, newargs...)
+        return newex, success
+    elseif isexpr(ex, :call) && ex.args[1] == :*
+        args = ex.args
+        newargs = Vector{Any}(undef, length(args))
+        newargs[1] = args[1]
+        successes = map(i -> false, args)
+        successes[1] = true
+        numsuccess = 1
+        while !all(successes)
+            for i in 2:length(ex.args)
+                successes[i] && continue
+                newargs[i], successa = _construct_braidingtensors!(args[i], preargs,
+                                                                   indexmap)
+                successes[i] = successa
+            end
+            if numsuccess == count(successes)
+                break
+            end
+            numsuccess = count(successes)
+        end
+        success = numsuccess == length(successes)
+        newex = Expr(ex.head, newargs...)
+        return newex, success
+    elseif isexpr(ex, :call) && ex.args[1] ∈ (:+, :-)
+        args = ex.args
+        newargs = Vector{Any}(undef, length(args))
+        newargs[1] = args[1]
+        success = true
+        indices = TO.getindices(ex)
+        for i in 2:length(ex.args)
+            indexmapa = copy(indexmap)
+            newargs[i], successa = _construct_braidingtensors!(args[i], preargs, indexmapa)
+            for l in indices[i]
+                if !haskey(indexmap, l) && haskey(indexmapa, l)
+                    indexmap[l] = indexmapa[l]
+                end
+            end
+            success = success && successa
+        end
+        newex = Expr(ex.head, newargs...)
+        return newex, success
+    else
+        @show("huh?")
+        return ex, true
+    end
+end
 
 # used by non-planar parser of `@plansor`: remove explicit braiding tensors
 function _remove_braidingtensors(ex)
