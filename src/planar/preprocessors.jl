@@ -110,7 +110,9 @@ end
 _construct_braidingtensors(x) = x
 
 function _construct_braidingtensors!(ex, preargs, indexmap) # ex is guaranteed to be a single tensor expression
-    if TO.istensor(ex)
+    if TO.isscalarexpr(ex)
+        return ex, true
+    elseif TO.istensor(ex)
         obj, leftind, rightind = TO.decomposetensor(ex)
         if _remove_adjoint(obj) == :τ
             # try to construct a braiding tensor
@@ -216,9 +218,14 @@ function _construct_braidingtensors!(ex, preargs, indexmap) # ex is guaranteed t
         end
         newex = Expr(ex.head, newargs...)
         return newex, success
+    elseif isexpr(ex, :call) && ex.args[1] == :/ && length(ex.args) == 3
+        newarg, success = _construct_braidingtensors!(ex.args[2], preargs, indexmap)
+        return Expr(:call, :/, newarg, ex.args[3]), success
+    elseif isexpr(ex, :call) && ex.args[1] == :\ && length(ex.args) == 3
+        newarg, success = _construct_braidingtensors!(ex.args[3], preargs, indexmap)
+        return Expr(:call, :\, ex.args[2], newarg), success
     else
-        @show("huh?")
-        return ex, true
+        error("unexpected expression $ex")
     end
 end
 
@@ -520,8 +527,14 @@ function _extract_contraction_pairs(rhs, lhs, pre, temporaries)
                 for
                 a in rhs.args[2:end]]
         return Expr(rhs.head, rhs.args[1], args...)
+    elseif isexpr(rhs, :call) && rhs.args[1] == :/
+        newarg = _extract_contraction_pairs(rhs.args[2], lhs, pre, temporaries)
+        return Expr(:call, :/, newarg, rhs.args[3])
+    elseif isexpr(rhs, :call) && rhs.args[1] == :\
+        newarg = _extract_contraction_pairs(rhs.args[3], lhs, pre, temporaries)
+        return Expr(:call, :\, rhs.args[2], newarg)
     else
-        throw(ArgumentError("unknown tensor expression"))
+        throw(ArgumentError("unknown tensor expression $ex"))
     end
 end
 

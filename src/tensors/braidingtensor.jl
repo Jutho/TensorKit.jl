@@ -272,6 +272,18 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     return C
 end
 function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::BraidingTensor{S},
+                         (oindA, cindA)::Index2Tuple{2,2},
+                         B::BraidingTensor{S},
+                         (cindB, oindB)::Index2Tuple{2,2},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backend::Backend...) where {S,N₁,N₂}
+    return planarcontract!(C, copy(A), (oindA, cindA), B, (cindB, oindB), (p1, p2), α, β,
+                           backend...)
+end
+
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
                          A::AbstractTensorMap{S},
                          (oindA, cindA)::Index2Tuple{N₃,2},
                          B::BraidingTensor{S},
@@ -316,6 +328,17 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
         end
     end
     return C
+end
+function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+                         A::BraidingTensor{S},
+                         (oindA, cindA)::Index2Tuple{2,2},
+                         B::BraidingTensor{S},
+                         (cindB, oindB)::Index2Tuple{2,2},
+                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         α::Number, β::Number,
+                         backend::Backend...) where {S,N₁,N₂}
+    return planarcontract!(C, copy(A), (oindA, cindA), B, (cindB, oindB), (p1, p2), α, β,
+                           backend...)
 end
 
 # Fallback cases for planarcontract!

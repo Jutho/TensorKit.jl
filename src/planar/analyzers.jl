@@ -36,6 +36,10 @@ function get_possible_planar_indices(ex)
             end
         end
         return inds
+    elseif isexpr(ex, :call) && ex.args[1] == :/
+        return get_possible_planar_indices(ex.args[2])
+    elseif isexpr(ex, :call) && ex.args[1] == :\
+        return get_possible_planar_indices(ex.args[3])
     else
         return Any[]
     end
