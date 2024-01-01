@@ -27,9 +27,7 @@ construct or obtain a concrete subtype of `AbstractIrrep{G}` that implements the
 """
 const Irrep = IrrepTable()
 
-function type_repr(t::Type{<:AbstractIrrep{G}}) where {G<:Group}
-    return s = "Irrep[" * type_repr(G) * "]"
-end
+type_repr(::Type{<:AbstractIrrep{G}}) where {G<:Group} = "Irrep[" * type_repr(G) * "]"
 function Base.show(io::IO, c::AbstractIrrep)
     I = typeof(c)
     if get(io, :typeinfo, nothing) !== I
