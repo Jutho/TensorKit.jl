@@ -46,6 +46,11 @@ function Rsymbol(a::I, b::I, c::I) where {I<:fℤ₂}
 end
 twist(a::fℤ₂) = a.isodd ? -1 : +1
 
+function fusiontensor(a::I, b::I, c::I) where {I<:fℤ₂}
+    @warn "fℤ₂ Arrays do not preserve categorical properties." maxlog = 1
+    return fill(Int(Nsymbol(a, b, c)), (1, 1, 1, 1))
+end
+
 function Base.show(io::IO, a::fℤ₂)
     if get(io, :typeinfo, nothing) === typeof(a)
         print(io, Int(a.isodd))
