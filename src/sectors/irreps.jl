@@ -176,7 +176,7 @@ Base.IteratorSize(::Type{SectorValues{PU1Irrep}}) = IsInfinite()
 #     gcd(p, q) > 1 && return iterate(iter, (p + 1, q - 1))
 #     return PU1Irrep(p // q), p > 0 ? (-p, q) : (-p + 1, q - 1)
 # end
-function Base.iterate(::SectorValues{PU1Irrep}, i=0//1)
+function Base.iterate(::SectorValues{PU1Irrep}, i=0 // 1)
     return i <= 0 ? (PU1Irrep(i), 1 - i) : (PU1Irrep(i), -i)
 end
 
