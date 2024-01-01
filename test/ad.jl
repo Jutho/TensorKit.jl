@@ -312,7 +312,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, C; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
 
-            c, = argmax(x -> sqrt(dim(x[1])) * maximum(diag(x[2])), blocks(S))
+            c, = TensorKit.MatrixAlgebra._argmax(x -> sqrt(dim(x[1])) * maximum(diag(x[2])), blocks(S))
             U, S, V, ϵ = tsvd(C; trunc=truncdim(2 * dim(c)))
             ΔU = TensorMap(randn, scalartype(U), space(U))
             ΔS = TensorMap(randn, scalartype(S), space(S))
