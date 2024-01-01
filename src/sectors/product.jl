@@ -5,6 +5,10 @@ const SectorTuple = Tuple{Vararg{Sector}}
 struct ProductSector{T<:SectorTuple} <: Sector
     sectors::T
 end
+
+Base.getindex(s::ProductSector, i::Int) = getindex(s.sectors, i)
+Base.setindex!(s::ProductSector, v, i::Int) = setindex!(s.sectors, v, i)
+
 _sectors(::Type{Tuple{}}) = ()
 Base.@pure function _sectors(::Type{T}) where {T<:SectorTuple}
     return (Base.tuple_type_head(T), _sectors(Base.tuple_type_tail(T))...)
