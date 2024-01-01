@@ -8,6 +8,7 @@ end
 
 Base.getindex(s::ProductSector, i::Int) = getindex(s.sectors, i)
 Base.setindex!(s::ProductSector, v, i::Int) = setindex!(s.sectors, v, i)
+Base.iterate(s::ProductSector, args...) = iterate(s.sectors, args...)
 
 _sectors(::Type{Tuple{}}) = ()
 Base.@pure function _sectors(::Type{T}) where {T<:SectorTuple}
