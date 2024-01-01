@@ -246,7 +246,35 @@ function type_repr(P::Type{<:ProductSector})
     return s
 end
 
-# TODO: Do we want custom printing for product of Irreps
+#==============================================================================
+TODO: the following would implement pretty-printing of product sectors, i.e.
+`ProductSector{Tuple{Irrep[G]}}` would be printed as `Irrep[G]`, and
+`ProductSector{Tuple{Irrep[G]}}(x)` would be printed as `Irrep[G](x)`.
+However, defining show for a type is considered type piracy/treason, and can lead
+to unexpected behavior. While we can avoid this by only defining show for the
+instances, this would lead to the following behavior:
+
+```julia-repl
+julia> [Irrep[ℤ₂ × U₁](0, 0)]
+1-element Vector{TensorKit.ProductSector{Tuple{Z2Irrep, U1Irrep}}}:
+ (0, 0)
+```
+
+See Julia issues #29988, #29428, #22363, #28983.
+
+Base.show(io::IO, P::Type{<:ProductSector}) = print(io, type_repr(P))
+==============================================================================#
+function Base.show(io::IO, P::ProductSector{T}) where {T<:Tuple{Vararg{AbstractIrrep}}}
+    sectors = P.sectors
+    get(io, :typeinfo, nothing) === typeof(P) || print(io, type_repr(typeof(P)))
+    print(io, "(")
+    for i in 1:length(sectors)
+        i == 1 || print(io, ", ")
+        print(IOContext(io, :typeinfo => typeof(sectors[i])), sectors[i])
+    end
+    return print(io, ")")
+end
+
 function type_repr(::Type{ProductSector{T}}) where {T<:Tuple{Vararg{AbstractIrrep}}}
     sectors = T.parameters
     s = "Irrep["
