@@ -5,6 +5,7 @@ abstract type AbelianGroup <: Group end
 
 abstract type ℤ{N} <: AbelianGroup end
 abstract type U₁ <: AbelianGroup end
+abstract type PU₁ <: AbelianGroup end
 abstract type SU{N} <: Group end
 abstract type CU₁ <: Group end
 

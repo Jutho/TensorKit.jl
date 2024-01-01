@@ -110,11 +110,13 @@ Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
     U1Irrep(j::Real)
     Irrep[U₁](j::Real)
 
-Represents irreps of the group ``U₁```. The irrep is labelled by a charge, which should be
+Represents irreps of the group ``U₁``. The irrep is labelled by a charge, which should be
 an integer for a linear representation. However, it is often useful to allow half integers
 to represent irreps of ``U₁`` subgroups of ``SU₂``, such as the Sz of spin-1/2 system.
 Hence, the charge is stored as a `HalfInt` from the package HalfIntegers.jl, but can be
 entered as arbitrary `Real`. The sequence of the charges is: 0, 1/2, -1/2, 1, -1, ...
+
+See also: [`PU1Irrep`](@ref)
 """
 struct U1Irrep <: AbstractIrrep{U₁}
     charge::HalfInt
@@ -141,6 +143,47 @@ end
 Base.hash(c::U1Irrep, h::UInt) = hash(c.charge, h)
 @inline function Base.isless(c1::U1Irrep, c2::U1Irrep)
     return isless(abs(c1.charge), abs(c2.charge)) || zero(HalfInt) < c1.charge == -c2.charge
+end
+
+"""
+    PU1Irrep(j::Rational)
+    Irrep[PU₁](j::Rational)
+
+Represents irreps of the group ``PU₁``, corresponding to projective representations of the
+group ``U₁``. The irrep is labelled by a charge, which should be a rational number, but can
+be entered as arbitrary `Real`. The sequence of the charges is ordered by the absolute
+value, with positive entries first. Note that if only half-integer charges are required, it
+is better to use [`U1Irrep`](@ref) instead.
+
+See also: [`U1Irrep`](@ref)
+"""
+struct PU1Irrep <: AbstractIrrep{PU₁}
+    charge::Rational{Int}
+end
+Base.getindex(::IrrepTable, ::Type{PU₁}) = PU1Irrep
+Base.convert(::Type{PU1Irrep}, c::Real) = PU1Irrep(c)
+
+Base.one(::Type{PU1Irrep}) = PU1Irrep(0)
+Base.conj(c::PU1Irrep) = PU1Irrep(-c.charge)
+⊗(c1::PU1Irrep, c2::PU1Irrep) = (PU1Irrep(c1.charge + c2.charge),)
+
+Base.IteratorSize(::Type{SectorValues{PU1Irrep}}) = IsInfinite()
+
+# not sure how to define the iteration order here
+# function Base.iterate(iter::SectorValues{PU1Irrep}, (p, q)::Tuple{Int,Int}=(0, 1))
+#     q == 0 && return iterate(iter, (1, p))
+#     # skip rationals that can be simplified
+#     gcd(p, q) > 1 && return iterate(iter, (p + 1, q - 1))
+#     return PU1Irrep(p // q), p > 0 ? (-p, q) : (-p + 1, q - 1)
+# end
+function Base.iterate(::SectorValues{PU1Irrep}, i=0//1)
+    return i <= 0 ? (PU1Irrep(i), 1 - i) : (PU1Irrep(i), -i)
+end
+
+Base.hash(c::PU1Irrep, h::UInt) = hash(c.charge, h)
+@inline function Base.isless(c1::PU1Irrep, c2::PU1Irrep)
+    return isless(abs(c1.charge), abs(c2.charge)) ||
+           zero(typeof(c1.charge)) < c1.charge == -c2.charge
 end
 
 # Non-abelian groups
