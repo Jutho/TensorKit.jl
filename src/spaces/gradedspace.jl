@@ -268,6 +268,7 @@ const Z3Space = ZNSpace{3}
 const Z4Space = ZNSpace{4}
 const U1Space = Rep[U₁]
 const CU1Space = Rep[CU₁]
+const PU1Space = Rep[PU₁]
 const SU2Space = Rep[SU₂]
 
 # Unicode alternatives
@@ -276,4 +277,5 @@ const ℤ₃Space = Z3Space
 const ℤ₄Space = Z4Space
 const U₁Space = U1Space
 const CU₁Space = CU1Space
+const PU₁Space = PU1Space
 const SU₂Space = SU2Space
