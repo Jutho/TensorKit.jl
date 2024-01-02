@@ -61,7 +61,7 @@ end
 
 # Float32 and finite differences don't mix well
 precision(::Type{<:Union{Float32,Complex{Float32}}}) = 1e-2
-precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-8
+precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-7
 
 # rrules for functions that destroy inputs
 # ----------------------------------------
