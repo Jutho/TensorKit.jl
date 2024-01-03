@@ -15,7 +15,7 @@ using .NewSectors
 
 const TK = TensorKit
 
-Random.seed!(1234)
+Random.seed!(12345)
 
 smallset(::Type{I}) where {I<:Sector} = take(values(I), 5)
 function smallset(::Type{ProductSector{Tuple{I1,I2}}}) where {I1,I2}
