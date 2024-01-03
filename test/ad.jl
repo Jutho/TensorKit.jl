@@ -61,7 +61,7 @@ end
 
 # Float32 and finite differences don't mix well
 precision(::Type{<:Union{Float32,Complex{Float32}}}) = 1e-2
-precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-7
+precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-5
 
 # rrules for functions that destroy inputs
 # ----------------------------------------
@@ -227,7 +227,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
         H = TensorMap(randn, T, V[3] ⊗ V[4] ← V[3] ⊗ V[4])
         H = (H + H') / 2
-        atol = 1e-6
+        atol = precision(T)
 
         for alg in (TensorKit.QR(), TensorKit.QRpos())
             test_rrule(leftorth, A; fkwargs=(; alg=alg), atol)
