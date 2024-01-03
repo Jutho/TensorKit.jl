@@ -61,6 +61,7 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA = pA
     cindB, oindB = pB
+    # @show codA, domA, codB, domB, oindA, cindA, oindB, cindB, pAB
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
                                                  oindB, cindB, pAB...)
 
@@ -91,6 +92,7 @@ _cyclicpermute(t::Tuple{}) = ()
 function reorder_indices(codA, domA, codB, domB, oindA, oindB, p1, p2)
     N₁ = length(oindA)
     N₂ = length(oindB)
+    # @show codA, domA, codB, domB, oindA, oindB, p1, p2
     @assert length(p1) == N₁ && all(in(p1), 1:N₁)
     @assert length(p2) == N₂ && all(in(p2), N₁ .+ (1:N₂))
     oindA2 = TupleTools.getindices(oindA, p1)

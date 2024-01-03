@@ -102,7 +102,7 @@ function _plansor(expr, kwargs...)
 
     tparser = TO.tensorparser(expr, kwargs...)
     pparser = planarparser(expr, kwargs...)
-    insert!(tparser.preprocessors, 5, _remove_braidingtensors)
+    insert!(tparser.preprocessors, 4, _remove_braidingtensors)
     tensorex = tparser(expr)
     planarex = pparser(expr)
 
