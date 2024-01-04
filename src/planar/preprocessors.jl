@@ -375,7 +375,7 @@ function _remove_braidingtensors!(ex, indexmap) # ex is guaranteed to be a singl
         newarg, unchanged = _remove_braidingtensors!(ex.args[3], indexmap)
         return Expr(:call, :\, ex.args[2], newarg), unchanged
     else
-        error("unexpected expression $ex")
+        throw(ArgumentError("unexpected expression $ex"))
     end
 end
 
