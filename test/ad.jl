@@ -61,7 +61,7 @@ end
 
 # Float32 and finite differences don't mix well
 precision(::Type{<:Union{Float32,Complex{Float32}}}) = 1e-2
-precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-5
+precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-6
 
 # rrules for functions that destroy inputs
 # ----------------------------------------
@@ -111,7 +111,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
           ℂ[Z2Irrep](0 => 3, 1 => 2)',
           ℂ[Z2Irrep](0 => 2, 1 => 3),
           ℂ[Z2Irrep](0 => 2, 1 => 2)),
-         (ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
+         (ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 2),
           ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
           ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
           ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
