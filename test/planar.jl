@@ -71,29 +71,29 @@ end
 
 @testset "@planar" verbose = true begin
     T = ComplexF64
-    
+
     @testset "contractcheck" begin
         V = ℂ^2
         A = TensorMap(rand, T, V ⊗ V ← V)
         B = TensorMap(rand, T, V ⊗ V ← V')
         @tensor C1[i j; k l] := A[i j; m] * B[k l; m]
-        @tensor contractcheck=true C2[i j; k l] := A[i j; m] * B[k l; m]
+        @tensor contractcheck = true C2[i j; k l] := A[i j; m] * B[k l; m]
         @test C1 ≈ C2
         B2 = TensorMap(rand, T, V ⊗ V ← V) # wrong duality for third space
         @test_throws SpaceMismatch("incompatible spaces for m: $V ≠ $(V')") begin
             @tensor contractcheck = true C3[i j; k l] := A[i j; m] * B2[k l; m]
         end
-        
+
         A = TensorMap(rand, T, V ← V ⊗ V)
         B = TensorMap(rand, T, V ⊗ V ← V)
         @planar C1[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
-        @planar contractcheck=true C2[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
+        @planar contractcheck = true C2[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
         @test C1 ≈ C2
         @test_throws SpaceMismatch("incompatible spaces for l: $V ≠ $(V')") begin
-            @planar contractcheck=true C3[i; j] := A[i; k l] * τ[k l; m n] * B[n j; m]
+            @planar contractcheck = true C3[i; j] := A[i; k l] * τ[k l; m n] * B[n j; m]
         end
     end
-    
+
     @testset "MPS networks" begin
         P = ℂ^2
         Vmps = ℂ^12

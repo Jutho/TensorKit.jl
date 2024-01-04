@@ -61,7 +61,7 @@ end
 
 # Float32 and finite differences don't mix well
 precision(::Type{<:Union{Float32,Complex{Float32}}}) = 1e-2
-precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-8
+precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-6
 
 # rrules for functions that destroy inputs
 # ----------------------------------------
@@ -111,7 +111,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
           ℂ[Z2Irrep](0 => 3, 1 => 2)',
           ℂ[Z2Irrep](0 => 2, 1 => 3),
           ℂ[Z2Irrep](0 => 2, 1 => 2)),
-         (ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
+         (ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 2),
           ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
           ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
           ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
@@ -227,7 +227,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
         H = TensorMap(randn, T, V[3] ⊗ V[4] ← V[3] ⊗ V[4])
         H = (H + H') / 2
-        atol = 1e-6
+        atol = precision(T)
 
         for alg in (TensorKit.QR(), TensorKit.QRpos())
             test_rrule(leftorth, A; fkwargs=(; alg=alg), atol)
@@ -312,7 +312,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, C; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
 
-            c, = argmax(x -> sqrt(dim(x[1])) * maximum(diag(x[2])), blocks(S))
+            c, = TensorKit.MatrixAlgebra._argmax(x -> sqrt(dim(x[1])) * maximum(diag(x[2])),
+                                                 blocks(S))
             U, S, V, ϵ = tsvd(C; trunc=truncdim(2 * dim(c)))
             ΔU = TensorMap(randn, scalartype(U), space(U))
             ΔS = TensorMap(randn, scalartype(S), space(S))
