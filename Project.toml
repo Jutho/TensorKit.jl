@@ -14,19 +14,22 @@ TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 VectorInterface = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
+[weakdeps]
+ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+
+[extensions]
+TensorKitChainRulesCoreExt = "ChainRulesCore"
+
 [compat]
 HalfIntegers = "1"
 LRUCache = "1.0.2"
 PackageExtensionCompat = "1"
 Strided = "2"
-TensorOperations = "4.0.6 - 4.0.7"
+TensorOperations = "4.0.6 - 4.0.7, 4"
 TupleTools = "1.1"
 VectorInterface = "0.4"
 WignerSymbols = "1,2"
 julia = "1.6"
-
-[extensions]
-TensorKitChainRulesCoreExt = "ChainRulesCore"
 
 [extras]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -43,6 +46,3 @@ WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [targets]
 test = ["Combinatorics", "HalfIntegers", "LinearAlgebra", "Random", "TensorOperations", "Test", "TestExtras", "WignerSymbols", "ChainRulesCore", "ChainRulesTestUtils", "FiniteDifferences"]
-
-[weakdeps]
-ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
