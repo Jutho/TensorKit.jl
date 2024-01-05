@@ -212,7 +212,6 @@ Return the type of sector over which object `a` (e.g. a representation space or 
 defined. Also works in type domain.
 """
 sectortype(V::VectorSpace) = sectortype(typeof(V))
-sectortype(::Type{<:ElementarySpace}) = Trivial
 
 """
     hassector(V::VectorSpace, a::Sector) -> Bool
@@ -220,15 +219,14 @@ sectortype(::Type{<:ElementarySpace}) = Trivial
 Return whether a vector space `V` has a subspace corresponding to sector `a` with non-zero
 dimension, i.e. `dim(V, a) > 0`.
 """
-hassector(V::ElementarySpace, ::Trivial) = dim(V) != 0
-Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
+function hassector end
 
 """
     sectors(V::ElementarySpace)
 
 Return an iterator over the different sectors of `V`.
 """
-sectors(V::ElementarySpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
+function sectors end
 
 # Composite vector spaces
 #-------------------------

@@ -38,9 +38,12 @@ Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)
 
 # Corresponding methods:
 #------------------------
-dim(V::ComplexSpace, s::Trivial = Trivial()) = V.d
+dim(V::ComplexSpace, s::Trivial=Trivial()) = V.d
 isdual(V::ComplexSpace) = V.dual
-Base.axes(V::ComplexSpace) = Base.OneTo(dim(V))
+Base.axes(V::ComplexSpace, ::Trivial=Trivial()) = Base.OneTo(dim(V))
+hassector(V::ComplexSpace, ::Trivial) = dim(V) != 0
+sectors(V::ComplexSpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
+sectortype(::Type{ComplexSpace}) = Trivial
 
 Base.conj(V::ComplexSpace) = ComplexSpace(dim(V), !isdual(V))
 

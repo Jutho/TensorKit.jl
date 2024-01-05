@@ -40,8 +40,11 @@ Base.:^(::RealNumbers, d::Int) = CartesianSpace(d)
 
 # Corresponding methods:
 #------------------------
-dim(V::CartesianSpace, s::Trivial = Trivial()) = V.d
-Base.axes(V::CartesianSpace) = Base.OneTo(dim(V))
+dim(V::CartesianSpace, ::Trivial=Trivial()) = V.d
+Base.axes(V::CartesianSpace, ::Trivial=Trivial()) = Base.OneTo(dim(V))
+hassector(V::CartesianSpace, ::Trivial) = dim(V) != 0
+sectors(V::CartesianSpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
+sectortype(::Type{CartesianSpace}) = Trivial
 
 Base.oneunit(::Type{CartesianSpace}) = CartesianSpace(1)
 ⊕(V₁::CartesianSpace, V₂::CartesianSpace) = CartesianSpace(V₁.d + V₂.d)

@@ -23,11 +23,14 @@ function GeneralSpace{𝕜}(d::Int=0; dual::Bool=false, conj::Bool=false) where 
     return GeneralSpace{𝕜}(d, dual, conj)
 end
 
-dim(V::GeneralSpace, s::Trivial = Trivial()) = V.d
+dim(V::GeneralSpace, s::Trivial=Trivial()) = V.d
 isdual(V::GeneralSpace) = V.dual
 isconj(V::GeneralSpace) = V.conj
 
-Base.axes(V::GeneralSpace) = Base.OneTo(dim(V))
+Base.axes(V::GeneralSpace, ::Trivial=Trivial()) = Base.OneTo(dim(V))
+hassector(V::GeneralSpace, ::Trivial) = dim(V) != 0
+sectors(V::GeneralSpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
+sectortype(::Type{GeneralSpace}) = Trivial
 
 field(::Type{GeneralSpace{𝕜}}) where {𝕜} = 𝕜
 InnerProductStyle(::Type{<:GeneralSpace}) = NoInnerProduct()
