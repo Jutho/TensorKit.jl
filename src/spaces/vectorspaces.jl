@@ -229,9 +229,6 @@ Base.axes(V::ElementarySpace, ::Trivial) = axes(V)
 Return an iterator over the different sectors of `V`.
 """
 sectors(V::ElementarySpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
-function dim(V::ElementarySpace, ::Trivial)
-    return sectortype(V) == Trivial ? dim(V) : throw(SectorMismatch())
-end
 
 # Composite vector spaces
 #-------------------------

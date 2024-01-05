@@ -23,7 +23,7 @@ function GeneralSpace{𝕜}(d::Int=0; dual::Bool=false, conj::Bool=false) where 
     return GeneralSpace{𝕜}(d, dual, conj)
 end
 
-dim(V::GeneralSpace) = V.d
+dim(V::GeneralSpace, s::Trivial = Trivial()) = V.d
 isdual(V::GeneralSpace) = V.dual
 isconj(V::GeneralSpace) = V.conj
 

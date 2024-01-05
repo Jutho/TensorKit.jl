@@ -38,7 +38,7 @@ Base.:^(::ComplexNumbers, d::Int) = ComplexSpace(d)
 
 # Corresponding methods:
 #------------------------
-dim(V::ComplexSpace) = V.d
+dim(V::ComplexSpace, s::Trivial = Trivial()) = V.d
 isdual(V::ComplexSpace) = V.dual
 Base.axes(V::ComplexSpace) = Base.OneTo(dim(V))
 
