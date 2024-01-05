@@ -81,8 +81,8 @@ function FusionTree{I}(uncoupled::NTuple{N}, coupled=one(I),
                          _abelianinner(map(s -> convert(I, s),
                                            (uncoupled..., dual(coupled)))))
 end
-function FusionTree(uncoupled::NTuple{N,I}, coupled::I=one(I),
-                    isdual=ntuple(n -> false, N)) where {I<:Sector,N}
+function FusionTree(uncoupled::Tuple{I,Vararg{I}}, coupled::I=one(I),
+                    isdual=ntuple(n -> false, length(uncoupled))) where {I<:Sector}
     FusionStyle(I) isa UniqueFusion ||
         error("fusion tree requires inner lines if `FusionStyle(I) <: MultipleFusion`")
     return FusionTree{I}(uncoupled, coupled, isdual,
@@ -230,7 +230,7 @@ end
 function _abelianinner(outer::Tuple{I,I,I}) where {I<:Sector}
     return first(⊗(outer...)) == one(I) ? () : throw(SectorMismatch())
 end
-function _abelianinner(outer::NTuple{N,I}) where {I<:Sector,N}
+function _abelianinner(outer::Tuple{I,I,I,I,Vararg{I}}) where {I<:Sector}
     c = first(outer[1] ⊗ outer[2])
     return (c, _abelianinner((c, TupleTools.tail2(outer)...))...)
 end

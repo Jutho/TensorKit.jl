@@ -187,27 +187,29 @@ group representations, we have `Irrep[G₁] ⊠ Irrep[G₂] == Irrep[G₁ × G�
 
 # grow types from the left using Base.tuple_type_cons
 ⊠(I1::Type{Trivial}, I2::Type{Trivial}) = Trivial
+⊠(I1::Type{Trivial}, I2::Type{<:ProductSector}) = I2
 ⊠(I1::Type{Trivial}, I2::Type{<:Sector}) = I2
-⊠(I1::Type{<:Sector}, I2::Type{<:Trivial}) = I1
-⊠(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1,I2}}
 
 ⊠(I1::Type{<:ProductSector}, I2::Type{Trivial}) = I1
+@static if VERSION >= v"1.8"
+    Base.@assume_effects :foldable function ⊠(I1::Type{<:ProductSector},
+                                              I2::Type{<:ProductSector})
+        T1 = I1.parameters[1]
+        T2 = I2.parameters[1]
+        return ProductSector{Tuple{T1.parameters...,T2.parameters...}}
+    end
+else
+    Base.@pure function ⊠(I1::Type{<:ProductSector}, I2::Type{<:ProductSector})
+        T1 = I1.parameters[1]
+        T2 = I2.parameters[1]
+        return ProductSector{Tuple{T1.parameters...,T2.parameters...}}
+    end
+end
 ⊠(I1::Type{<:ProductSector}, I2::Type{<:Sector}) = I1 ⊠ ProductSector{Tuple{I2}}
 
-⊠(::Type{Trivial}, P::Type{ProductSector{T}}) where {T<:SectorTuple} = P
-function ⊠(I::Type{<:Sector}, ::Type{ProductSector{T}}) where {T<:SectorTuple}
-    return ProductSector{Base.tuple_type_cons(I, T)}
-end
-
-function ⊠(::Type{ProductSector{Tuple{I}}},
-           ::Type{ProductSector{T}}) where {I<:Sector,T<:SectorTuple}
-    return ProductSector{Base.tuple_type_cons(I, T)}
-end
-
-function ⊠(::Type{ProductSector{T1}},
-           I2::Type{ProductSector{T2}}) where {T1<:SectorTuple,T2<:SectorTuple}
-    return Base.tuple_type_head(T1) ⊠ (ProductSector{Base.tuple_type_tail(T1)} ⊠ I2)
-end
+⊠(I1::Type{<:Sector}, I2::Type{Trivial}) = I1
+⊠(I1::Type{<:Sector}, I2::Type{<:ProductSector}) = ProductSector{Tuple{I1}} ⊠ I2
+⊠(I1::Type{<:Sector}, I2::Type{<:Sector}) = ProductSector{Tuple{I1,I2}}
 
 function Base.show(io::IO, P::ProductSector)
     sectors = P.sectors

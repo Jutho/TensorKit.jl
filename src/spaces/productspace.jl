@@ -7,12 +7,25 @@ same type are allowed.
 """
 struct ProductSpace{S<:ElementarySpace,N} <: CompositeSpace{S}
     spaces::NTuple{N,S}
+    ProductSpace{S,N}(spaces::NTuple{N,S}) where {S<:ElementarySpace,N} = new{S,N}(spaces)
 end
-ProductSpace(spaces::Vararg{S,N}) where {S<:ElementarySpace,N} = ProductSpace{S,N}(spaces)
+
 function ProductSpace{S,N}(spaces::Vararg{S,N}) where {S<:ElementarySpace,N}
     return ProductSpace{S,N}(spaces)
 end
-ProductSpace{S}(spaces) where {S<:ElementarySpace} = ProductSpace{S,length(spaces)}(spaces)
+
+function ProductSpace{S}(spaces::Tuple{Vararg{S}}) where {S<:ElementarySpace}
+    return ProductSpace{S,length(spaces)}(spaces)
+end
+ProductSpace{S}(spaces::Vararg{S}) where {S<:ElementarySpace} = ProductSpace{S}(spaces)
+
+function ProductSpace(spaces::Tuple{S,Vararg{S}}) where {S<:ElementarySpace}
+    return ProductSpace{S,length(spaces)}(spaces)
+end
+function ProductSpace(space1::S, rspaces::Vararg{S}) where {S<:ElementarySpace}
+    return ProductSpace((space1, rspaces...))
+end
+
 ProductSpace(P::ProductSpace) = P
 
 # Corresponding methods
@@ -177,7 +190,7 @@ Base.hash(P::ProductSpace, h::UInt) = hash(P.spaces, h)
 
 # Default construction from product of spaces
 #---------------------------------------------
-⊗(V::Vararg{S}) where {S<:ElementarySpace} = ProductSpace(V)
+⊗(V::ElementarySpace...) = ProductSpace(V...)
 ⊗(P::ProductSpace) = P
 function ⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace}
     return ProductSpace{S}(tuple(P1.spaces..., P2.spaces...))

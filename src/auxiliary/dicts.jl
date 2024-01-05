@@ -26,20 +26,22 @@ struct VectorDict{K,V} <: AbstractDict{K,V}
     values::Vector{V}
 end
 VectorDict{K,V}() where {K,V} = VectorDict{K,V}(Vector{K}(), Vector{V}())
-function VectorDict{K,V}(kv) where {K,V}
+VectorDict() = VectorDict{Any,Any}()
+
+function VectorDict{K,V}(kvs) where {K,V}
     keys = Vector{K}()
     values = Vector{V}()
     if Base.IteratorSize(kv) !== SizeUnknown()
-        sizehint!(keys, length(kv))
-        sizehint!(values, length(kv))
+        sizehint!(keys, length(kvs))
+        sizehint!(values, length(kvs))
     end
-    for (k, v) in kv
+    for (k, v) in kvs
         push!(keys, k)
         push!(values, v)
     end
     return VectorDict{K,V}(keys, values)
 end
-VectorDict(kv::Pair{K,V}...) where {K,V} = VectorDict{K,V}(kv)
+VectorDict(kv1::Pair{K,V}, kvs::Pair{K,V}...) where {K,V} = VectorDict{K,V}((kv1, kvs...))
 VectorDict(g::Base.Generator) = VectorDict(g...)
 
 Base.length(d::VectorDict) = length(d.keys)

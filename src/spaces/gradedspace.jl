@@ -66,12 +66,13 @@ end
 
 GradedSpace{I}(args...; kwargs...) where {I<:Sector} = Vect[I](args..., kwargs...)
 
-function GradedSpace(dims::Tuple{Vararg{Pair{I,<:Integer}}};
+function GradedSpace(dims::Tuple{Pair{I,<:Integer},Vararg{Pair{I,<:Integer}}};
                      dual::Bool=false) where {I<:Sector}
     return Vect[I](dims; dual=dual)
 end
-function GradedSpace(dims::Vararg{Pair{I,<:Integer}}; dual::Bool=false) where {I<:Sector}
-    return Vect[I](dims; dual=dual)
+function GradedSpace(dim1::Pair{I,<:Integer}, rdims::Vararg{Pair{I,<:Integer}};
+                     dual::Bool=false) where {I<:Sector}
+    return Vect[I]((dim1, rdims...); dual=dual)
 end
 function GradedSpace(dims::AbstractDict{I,<:Integer}; dual::Bool=false) where {I<:Sector}
     return Vect[I](dims; dual=dual)

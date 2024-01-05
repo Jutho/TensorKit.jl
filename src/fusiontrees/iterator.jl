@@ -1,10 +1,13 @@
 # FusionTreeIterator:
 # iterate over fusion trees for fixed coupled and uncoupled sector labels
 #==============================================================================#
-function fusiontrees(uncoupled::NTuple{N,I}, coupled::I=one(I),
-                     isdual::NTuple{N,Bool}=ntuple(n -> false, Val(N))) where
-         {N,I<:Sector}
+function fusiontrees(uncoupled::NTuple{N,I}, coupled::I,
+                     isdual::NTuple{N,Bool}) where {N,I<:Sector}
     return FusionTreeIterator{I,N}(uncoupled, coupled, isdual)
+end
+function fusiontrees(uncoupled::Tuple{I,Vararg{I}}, coupled::I=one(I)) where {I<:Sector}
+    isdual = ntuple(n -> false, length(uncoupled))
+    return fusiontrees(uncoupled, coupled, isdual)
 end
 
 struct FusionTreeIterator{I<:Sector,N}

@@ -115,4 +115,18 @@ println("------------------------------------")
             end
         end
     end
+
+    @testset "Deligne product" begin
+        sectorlist′ = (Trivial, sectorlist...)
+        for I1 in sectorlist′, I2 in sectorlist′
+            a = first(smallset(I1))
+            b = first(smallset(I2))
+
+            @constinferred a ⊠ b
+            @constinferred a ⊠ b ⊠ a
+            @constinferred a ⊠ b ⊠ a ⊠ b
+            @constinferred I1 ⊠ I2
+            @test typeof(a ⊠ b) == I1 ⊠ I2
+        end
+    end
 end
