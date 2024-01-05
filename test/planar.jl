@@ -89,7 +89,7 @@ end
         @planar C1[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
         @planar contractcheck = true C2[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
         @test C1 ≈ C2
-        @test_throws SpaceMismatch("incompatible spaces for l: $V ≠ $(V')") begin
+        @test_throws SpaceMismatch("incompatible spaces for m: $V ≠ $(V')") begin
             @planar contractcheck = true C3[i; j] := A[i; k l] * τ[k l; m n] * B[n j; m]
         end
     end
