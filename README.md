@@ -30,9 +30,8 @@ A Julia package for large-scale tensor computations, with a hint of category the
   https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/TensorKit
 [downloads-url]: https://pkgs.genieframework.com?packages=TensorKit
 
-[ci-img]: https://github.com/Jutho/TensorKit.jl/workflows/CI/badge.svg
-[ci-url]:
-  https://github.com/Jutho/TensorKit.jl/actions?query=workflow%3ACI
+[ci-img]: https://github.com/Jutho/TensorKit.jl/actions/workflows/CI.yml/badge.svg
+[ci-url]: https://github.com/Jutho/TensorKit.jl/actions/workflows/CI.yml
 
 [pkgeval-img]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.svg
 [pkgeval-url]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.html
