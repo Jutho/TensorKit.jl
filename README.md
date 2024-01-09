@@ -9,7 +9,7 @@ A Julia package for large-scale tensor computations, with a hint of category the
 
 | **Documentation** | **Digital Object Identifier** | **Downloads** |
 |:-----------------:|:-----------------------------:|:-------------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | Coming soon | [![TensorOperations Downloads][downloads-img]][downloads-url] |
+| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![DOI][doi-img]][doi-url] | [![TensorOperations Downloads][downloads-img]][downloads-url] |
 <!-- | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![DOI][doi-img]][doi-url] | [![TensorOperations Downloads][downloads-img]][downloads-url] | -->
 
 | **Build Status** | **PkgEval** | **Coverage** | **Quality assurance** |
@@ -23,8 +23,8 @@ A Julia package for large-scale tensor computations, with a hint of category the
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://jutho.github.io/TensorKit.jl/latest
 
-<!-- [doi-img]: https://zenodo.org/badge/DOI/
-[doi-url]: https://doi.org/ -->
+[doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.8421339.svg
+[doi-url]: https://doi.org/10.5281/zenodo.8421339
 
 [downloads-img]:
   https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/TensorKit
