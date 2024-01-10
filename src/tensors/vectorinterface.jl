@@ -58,10 +58,36 @@ function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
     return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                              α::Number, β::Number)
+                              α::Number, β::Number;
+                              numthreads::Int64=1)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    for c in blocksectors(tx)
-        VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+    if numthreads == 1
+        for c in blocksectors(tx)
+            VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+        end
+    elseif numthreads == -1
+        Threads.@sync for c in blocksectors(tx)
+            Threads.@spawn VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+        end
+    else
+        # producer
+        taskref = Ref{Task}()
+        ch = Channel(; taskref=taskref, spawn=true) do ch
+            for c in vcat(blocksectors(tx), fill(nothing, numthreads))
+                put!(ch, c)
+            end
+        end
+        # consumers
+        tasks = map(1:numthreads) do _
+            task = Threads.@spawn while true
+                c = take!(ch)
+                VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+            end
+            return errormonitor(tast)
+        end
+
+        wait.(tasks)
+        wait(taskref[])
     end
     return ty
 end

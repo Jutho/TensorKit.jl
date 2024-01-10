@@ -239,20 +239,79 @@ end
 # TensorMap multiplication
 function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
-                            tB::AbstractTensorMap, α=true, β=false)
+                            tB::AbstractTensorMap, α=true, β=false;
+                            numthreads::Int64=Threads.nthreads())
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) &&
          domain(tA) == codomain(tB))
         throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
     end
-    for c in blocksectors(tC)
-        if hasblock(tA, c) # then also tB should have such a block
-            A = block(tA, c)
-            B = block(tB, c)
-            C = block(tC, c)
-            mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
-        elseif β != one(β)
-            rmul!(block(tC, c), β)
+
+    if numthreads == 1
+        for c in blocksectors(tC)
+            if hasblock(tA, c) # then also tB should have such a block
+                A = block(tA, c)
+                B = block(tB, c)
+                C = block(tC, c)
+                mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
+            elseif β != one(β)
+                rmul!(block(tC, c), β)
+            end
         end
+
+    elseif numthreads == -1
+        Threads.@sync for c in blocksectors(tC)
+            if hasblock(tA, c)
+                Threads.@spawn mul!(StridedView(block(tC, c)),
+                                    StridedView(block(tA, c)),
+                                    StridedView(block(tB, c)),
+                                    α, β)
+            elseif β != one(β)
+                Threads.@spawn rmul!(block(tC, c), β)
+            end
+        end
+
+    else
+
+        # sort sectors by size
+        lsc = blocksectors(tC)
+        lsD3 = map(lsc) do c
+            if hasblock(tA, c)
+                return size(blocks(tA)[c], 1) * size(blocks(tA)[c], 2) *
+                       size(blocks(tB)[c], 2)
+            else
+                return size(blocks(tC)[c], 1) * size(blocks(tC)[c], 2)
+            end
+        end
+        lsc = lsc[sortperm(lsD3; rev=true)]
+
+        # producer
+        taskref = Ref{Task}()
+        ch = Channel(; taskref=taskref, spawn=true) do ch
+            for c in vcat(lsc, fill(nothing, numthreads))
+                put!(ch, c)
+            end
+        end
+
+        # consumers
+        tasks = map(1:numthreads) do _
+            task = Threads.@spawn while true
+                c = take!(ch)
+                isnothing(c) && break
+
+                if hasblock(tA, c)
+                    mul!(StridedView(block(tC, c)),
+                         StridedView(block(tA, c)),
+                         StridedView(block(tB, c)),
+                         α, β)
+                elseif β != one(β)
+                    rmul!(block(tC, c), β)
+                end
+            end
+            return errormonitor(task)
+        end
+
+        wait.(tasks)
+        wait(taskref[])
     end
     return tC
 end

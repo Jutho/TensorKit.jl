@@ -438,7 +438,8 @@ end
 
 # helper functions
 
-function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD})
+function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
+                           numthreads::Int=Threads.nthreads())
     InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
     I = sectortype(t)
     A = storagetype(t)
@@ -446,16 +447,75 @@ function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD})
     Vdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
     local Σdata
-    for (c, b) in blocks(t)
-        U, Σ, V = MatrixAlgebra.svd!(b, alg)
-        Udata[c] = U
-        Vdata[c] = V
-        if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
-            Σdata[c] = Σ
-        else
-            Σdata = SectorDict(c => Σ)
+    if numthreads == 1
+        for (c, b) in blocks(t)
+            U, Σ, V = MatrixAlgebra.svd!(b, alg)
+            Udata[c] = U
+            Vdata[c] = V
+            if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
+                Σdata[c] = Σ
+            else
+                Σdata = SectorDict(c => Σ)
+            end
+            dims[c] = length(Σ)
         end
-        dims[c] = length(Σ)
+    elseif numthreads == -1
+        tasks = map(blocksectors(t)) do c
+            Threads.@spawn MatrixAlgebra.svd!(blocks(t)[c], alg)
+        end
+        for (c, task) in zip(blocksectors(t), tasks)
+            U, Σ, V = fetch(task)
+            Udata[c] = U
+            Vdata[c] = V
+            if @isdefined Σdata
+                Σdata[c] = Σ
+            else
+                Σdata = SectorDict(c => Σ)
+            end
+            dims[c] = length(Σ)
+        end
+    else
+        Σdata = SectorDict{I,Vector{real(scalartype(t))}}()
+
+        # sort sectors by size
+        lsc = blocksectors(t)
+        lsD3 = map(lsc) do c
+            # O(D1^2D2) or O(D1D2^2)
+            return min(size(blocks(t)[c])[1]^2 * size(blocks(t)[c])[2],
+                       size(blocks(t)[c])[1] * size(blocks(t)[c])[2]^2)
+        end
+        lsc = lsc[sortperm(lsD3; rev=true)]
+
+        # producer
+        taskref = Ref{Task}()
+        ch = Channel(; taskref=taskref, spawn=true) do ch
+            for c in vcat(lsc, fill(nothing, numthreads))
+                put!(ch, c)
+            end
+        end
+
+        # consumers
+        Lock = Threads.SpinLock()
+        tasks = map(1:numthreads) do _
+            task = Threads.@spawn while true
+                c = take!(ch)
+                isnothing(c) && break
+                U, Σ, V = MatrixAlgebra.svd!(blocks(t)[c], alg)
+
+                # note inserting keys to dict is not thread safe
+                lock(Lock)
+                Udata[c] = U
+                Vdata[c] = V
+                Σdata[c] = Σ
+                dims[c] = length(Σ)
+                unlock(Lock)
+            end 
+            errormonitor(task)
+        end
+
+        wait.(tasks)
+        wait(taskref[])
+
     end
     return Udata, Σdata, Vdata, dims
 end
