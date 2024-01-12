@@ -61,7 +61,7 @@ function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
                               α::Number, β::Number;
                               numthreads::Int64=1)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    if numthreads == 1
+    if numthreads == 1 || length(blocksectors) == 1
         for c in blocksectors(tx)
             VectorInterface.add!(block(ty, c), block(tx, c), α, β)
         end
@@ -83,7 +83,7 @@ function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
                 c = take!(ch)
                 VectorInterface.add!(block(ty, c), block(tx, c), α, β)
             end
-            return errormonitor(tast)
+            return errormonitor(task)
         end
 
         wait.(tasks)

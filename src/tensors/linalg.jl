@@ -246,7 +246,7 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
         throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
     end
 
-    if numthreads == 1
+    if numthreads == 1 || length(blocksectors(tC)) == 1
         for c in blocksectors(tC)
             if hasblock(tA, c) # then also tB should have such a block
                 A = block(tA, c)
@@ -276,10 +276,10 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
         lsc = blocksectors(tC)
         lsD3 = map(lsc) do c
             if hasblock(tA, c)
-                return size(blocks(tA)[c], 1) * size(blocks(tA)[c], 2) *
-                       size(blocks(tB)[c], 2)
+                return size(block(tA, c), 1) * size(block(tA, c), 2) *
+                       size(block(tA, c), 2)
             else
-                return size(blocks(tC)[c], 1) * size(blocks(tC)[c], 2)
+                return size(block(tC, c), 1) * size(block(tC, c), 2)
             end
         end
         lsc = lsc[sortperm(lsD3; rev=true)]

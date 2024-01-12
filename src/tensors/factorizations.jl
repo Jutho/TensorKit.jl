@@ -446,8 +446,8 @@ function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
     Udata = SectorDict{I,A}()
     Vdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    local Σdata
-    if numthreads == 1
+    if numthreads == 1 || length(blocksectors(t)) == 1
+        local Σdata
         for (c, b) in blocks(t)
             U, Σ, V = MatrixAlgebra.svd!(b, alg)
             Udata[c] = U
@@ -481,8 +481,8 @@ function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
         lsc = blocksectors(t)
         lsD3 = map(lsc) do c
             # O(D1^2D2) or O(D1D2^2)
-            return min(size(blocks(t)[c])[1]^2 * size(blocks(t)[c])[2],
-                       size(blocks(t)[c])[1] * size(blocks(t)[c])[2]^2)
+            return min(size(block(t, c), 1)^2 * size(block(t, c), 2),
+                       size(block(t, c), 1) * size(block(t, c), 2)^2)
         end
         lsc = lsc[sortperm(lsD3; rev=true)]
 
@@ -509,13 +509,12 @@ function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
                 Σdata[c] = Σ
                 dims[c] = length(Σ)
                 unlock(Lock)
-            end 
-            errormonitor(task)
+            end
+            return errormonitor(task)
         end
 
         wait.(tasks)
         wait(taskref[])
-
     end
     return Udata, Σdata, Vdata, dims
 end
