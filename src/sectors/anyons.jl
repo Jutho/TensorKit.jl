@@ -127,11 +127,11 @@ function Fsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon,
 end
 
 function Rsymbol(a::FibonacciAnyon, b::FibonacciAnyon, c::FibonacciAnyon)
-    Nsymbol(a, b, c) || return 0 * cis(0π / 1)
+    Nsymbol(a, b, c) || return 0 * cispi(0 / 1)
     if isone(a) || isone(b)
-        return cis(0π / 1)
+        return cispi(0 / 1)
     else
-        return isone(c) ? cis(4π / 5) : cis(-3π / 5)
+        return isone(c) ? cispi(4 / 5) : cispi(-3 / 5)
     end
 end
 
@@ -260,14 +260,14 @@ function Rsymbol(a::IsingAnyon, b::IsingAnyon, c::IsingAnyon)
     I, σ, ψ = all_isinganyons
     if c == I
         if b == a == σ
-            return cis(-π / 8)
+            return cispi(-1 / 8)
         elseif b == a == ψ
             return complex(-1.0)
         end
     elseif c == σ && (a == σ && b == ψ || a == ψ && b == σ)
         return -1.0im
     elseif c == ψ && a == b == σ
-        return cis(3π / 8)
+        return cispi(3 / 8)
     end
     return complex(1.0)
 end
