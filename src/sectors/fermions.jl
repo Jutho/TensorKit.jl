@@ -68,17 +68,17 @@ Base.isless(a::FermionParity, b::FermionParity) = isless(a.isodd, b.isodd)
 
 const FermionNumber = U1Irrep ⊠ FermionParity
 const fU₁ = FermionNumber
-fU₁(a::Int) = U1Irrep(a) ⊠ FermionParity(isodd(a))
-type_repr(::Type{fU₁}) = "fU₁"
+FermionNumber(a::Int) = U1Irrep(a) ⊠ FermionParity(isodd(a))
+type_repr(::Type{FermionNumber}) = "FermionNumber"
 
-# convenience default converter -> allows Vect[fU₁](1 => 1)
-Base.convert(::Type{fU₁}, a::Int) = fU₁(a)
+# convenience default converter -> allows Vect[FermionNumber](1 => 1)
+Base.convert(::Type{FermionNumber}, a::Int) = FermionNumber(a)
 
 const FermionSpin = SU2Irrep ⊠ FermionParity
 const fSU₂ = FermionSpin
-fSU₂(a::Real) = (s = SU2Irrep(a);
-                 s ⊠ FermionParity(isodd(twice(s.j))))
-type_repr(::Type{fSU₂}) = "fSU₂"
+FermionSpin(a::Real) = (s = SU2Irrep(a);
+                        s ⊠ FermionParity(isodd(twice(s.j))))
+type_repr(::Type{FermionSpin}) = "FermionSpin"
 
-# convenience default converter -> allows Vect[fSU₂](1 => 1)
-Base.convert(::Type{fSU₂}, a::Real) = fSU₂(a)
+# convenience default converter -> allows Vect[FermionSpin](1 => 1)
+Base.convert(::Type{FermionSpin}, a::Real) = FermionSpin(a)
