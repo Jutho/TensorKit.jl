@@ -41,17 +41,21 @@ end
 function Fsymbol(a::I, b::I, c::I, d::I, e::I, f::I) where {I<:FermionParity}
     return Int(Nsymbol(a, b, e) * Nsymbol(e, c, d) * Nsymbol(b, c, f) * Nsymbol(a, f, d))
 end
-
-function Rsymbol(a::F, b::F, c::F) where {F<:FermionParity}
+function Rsymbol(a::I, b::I, c::I) where {I<:FermionParity}
     return a.isodd && b.isodd ? -Int(Nsymbol(a, b, c)) : Int(Nsymbol(a, b, c))
 end
 twist(a::FermionParity) = a.isodd ? -1 : +1
 
+function fusiontensor(a::I, b::I, c::I) where {I<:FermionParity}
+    @warn "FermionParity Arrays do not preserve categorical properties." maxlog = 1
+    return fill(Int(Nsymbol(a, b, c)), (1, 1, 1, 1))
+end
+
 function Base.show(io::IO, a::FermionParity)
-    if get(io, :typeinfo, nothing) === FermionParity
+    if get(io, :typeinfo, nothing) === typeof(a)
         print(io, Int(a.isodd))
     else
-        print(io, "FermionParity(", Int(a.isodd), ")")
+        print(io, type_repr(typeof(a)), "(", Int(a.isodd), ")")
     end
 end
 type_repr(::Type{FermionParity}) = "FermionParity"
@@ -64,19 +68,17 @@ Base.isless(a::FermionParity, b::FermionParity) = isless(a.isodd, b.isodd)
 
 const FermionNumber = U1Irrep ⊠ FermionParity
 const fU₁ = FermionNumber
+FermionNumber(a::Int) = U1Irrep(a) ⊠ FermionParity(isodd(a))
 type_repr(::Type{FermionNumber}) = "FermionNumber"
 
 # convenience default converter -> allows Vect[FermionNumber](1 => 1)
-function Base.convert(::Type{FermionNumber}, a::Int)
-    return U1Irrep(a) ⊠ FermionParity(isodd(a))
-end
+Base.convert(::Type{FermionNumber}, a::Int) = FermionNumber(a)
 
 const FermionSpin = SU2Irrep ⊠ FermionParity
 const fSU₂ = FermionSpin
+FermionSpin(a::Real) = (s = SU2Irrep(a);
+                        s ⊠ FermionParity(isodd(twice(s.j))))
 type_repr(::Type{FermionSpin}) = "FermionSpin"
 
 # convenience default converter -> allows Vect[FermionSpin](1 => 1)
-function Base.convert(::Type{FermionSpin}, a::Real)
-    s = SU2Irrep(a)
-    return s ⊠ FermionParity(isodd(twice(s.j)))
-end
+Base.convert(::Type{FermionSpin}, a::Real) = FermionSpin(a)

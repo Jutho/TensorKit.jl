@@ -46,7 +46,7 @@ println("------------------------------------")
                 end
             end
         end
-        if hasfusiontensor(I)
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @testset "Sector $I: fusion tensor and F-move and R-move" begin
                 for a in smallset(I), b in smallset(I)
                     for c in ⊗(a, b)

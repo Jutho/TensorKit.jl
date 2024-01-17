@@ -49,7 +49,7 @@ function hasfusiontensor(I::Type{<:Sector})
     end
 end
 
-sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep, # SU3Irrep,
+sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep,
               FibonacciAnyon, IsingAnyon, FermionParity, FermionParity ⊠ FermionParity,
               Z3Irrep ⊠ Z4Irrep, FermionParity ⊠ U1Irrep ⊠ SU2Irrep,
               FermionParity ⊠ SU2Irrep ⊠ SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep,

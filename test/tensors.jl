@@ -203,7 +203,7 @@ for V in spacelist
                 end
             end
         end
-        if hasfusiontensor(I)
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Permutations: test via conversion" begin
                 W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
                 t = Tensor(rand, ComplexF64, W)
@@ -245,7 +245,7 @@ for V in spacelist
             @tensor t5[a, b] := t4[a, b, c, c]
             @test t2 ≈ t5
         end
-        if hasfusiontensor(I)
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Trace: test via conversion" begin
                 t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
                 @tensor t2[a, b] := t[c, d, b, d, c, a]
@@ -261,7 +261,7 @@ for V in spacelist
             @tensor tb[a, b] := t3[x, y, a, y, b, x]
             @test ta ≈ tb
         end
-        if hasfusiontensor(I)
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Tensor contraction: test via conversion" begin
                 A1 = TensorMap(randn, ComplexF64, V1' * V2', V3')
                 A2 = TensorMap(randn, ComplexF64, V3 * V4, V5)
@@ -299,7 +299,7 @@ for V in spacelist
                 @test tp ≈ tp * tp
             end
         end
-        if hasfusiontensor(I)
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Multiplication and inverse: test via conversion" begin
                 W1 = V1 ⊗ V2 ⊗ V3
                 W2 = V4 ⊗ V5
@@ -497,7 +497,7 @@ for V in spacelist
                 end
             end
         end
-        if hasfusiontensor(I)
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Tensor functions" begin
                 W = V1 ⊗ V2
                 for T in (Float64, ComplexF64)
@@ -553,7 +553,7 @@ for V in spacelist
                 @test domain(t) == V2 ⊗ V4
                 @test norm(tA * t + t * tB + tC) <
                       (norm(tA) + norm(tB) + norm(tC)) * eps(real(T))^(2 / 3)
-                if hasfusiontensor(I)
+                if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
                     matrix(x) = reshape(convert(Array, x), dim(codomain(x)), dim(domain(x)))
                     @test matrix(t) ≈ sylvester(matrix(tA), matrix(tB), matrix(tC))
                 end
@@ -567,7 +567,7 @@ for V in spacelist
                 @test norm(t) ≈ norm(t1) * norm(t2)
             end
         end
-        if hasfusiontensor(I)
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Tensor product: test via conversion" begin
                 for T in (Float32, ComplexF64)
                     t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
