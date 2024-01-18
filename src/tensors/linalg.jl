@@ -148,6 +148,8 @@ end
 # In-place methods
 #------------------
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
+# TODO: reconsider this strategy, consider spawning different threads for different blocks
+
 # Copy, adjoint! and fill:
 function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
     space(tdst) == space(tsrc) || throw(SpaceMismatch("$(space(tdst)) ≠ $(space(tsrc))"))
@@ -256,6 +258,7 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
     end
     return tC
 end
+# TODO: reconsider wrapping the blocks in a StridedView, consider spawning threads for different blocks
 
 # TensorMap inverse
 function Base.inv(t::AbstractTensorMap)

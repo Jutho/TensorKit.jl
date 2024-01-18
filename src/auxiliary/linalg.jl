@@ -49,6 +49,16 @@ const SVDAlg = Union{SVD,SDD}
 # Matrix algebra: entrypoint for calling matrix methods from within tensor implementations
 #------------------------------------------------------------------------------------------
 module MatrixAlgebra
+# TODO: all methods tha twe define here will need an extended version for CuMatrix in the
+# CUDA package extension.
+
+# TODO: other methods to include here:
+# mul! (possibly call matmul! instead)
+# adjoint!
+# sylvester
+# exp!
+# schur!?
+# 
 
 using LinearAlgebra
 using LinearAlgebra: BlasFloat, BlasReal, BlasComplex, checksquare
