@@ -65,8 +65,9 @@ Base.values(::Type{I}) where {I<:Sector} = SectorValues{I}()
 """
     Trivial
 
-Singleton type to represent the trivial sector, i.e. the unit element of the group
-(category) with a single object.
+Singleton type to represent the trivial sector, i.e. the trivial representation of the
+trivial group. This is equivalent to `Rep[ℤ₁]`, or the unit object of the category `Vect` of
+ordinary vector spaces.
 """
 struct Trivial <: Sector end
 Base.show(io::IO, ::Trivial) = print(io, "Trivial()")

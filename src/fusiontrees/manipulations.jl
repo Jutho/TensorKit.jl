@@ -610,7 +610,7 @@ end
         -> <:AbstractDict{FusionTree{I,N-2*N₃}, <:Number}
 
 Perform a planar trace of the uncoupled indices of the fusion tree `f` at `q1` with those at
-`q2`, which are required to be pairwise neighbouring. The result is returned as a dictionary
+`q2`, where `q1[i]` is connected to `q2[i]` for all `i`. The result is returned as a dictionary
 of output trees and corresponding coefficients.
 """
 function planar_trace(f::FusionTree{I,N},

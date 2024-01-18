@@ -12,7 +12,7 @@ randuniform(::Type{T}, dims::Base.Dims) where {T<:Number} = rand(T, dims)
 """
     randnormal([::Type{T}=Float64], dims::Dims{N}) -> Array{T,N}
 
-Create an array of size `dims` with random entries normally distributed.
+Create an array of size `dims` with random entries distributed according to the standard normal distribution.
 
 See also [`randuniform`](@ref), [`randisometry`](@ref) and[`randhaar`](@ref).
 """
@@ -23,7 +23,7 @@ randnormal(::Type{T}, dims::Base.Dims) where {T<:Number} = randn(T, dims)
     randisometry([::Type{T}=Float64], dims::Dims{2}) -> Array{T,2}
     randhaar([::Type{T}=Float64], dims::Dims{2}) -> Array{T,2}
 
-Create a random isometry of size `dims`.
+Create a random isometry of size `dims`, uniformly distributed according to the Haar measure.
 
 See also [`randuniform`](@ref) and [`randnormal`](@ref).
 """

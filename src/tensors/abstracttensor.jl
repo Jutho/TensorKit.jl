@@ -54,7 +54,7 @@ field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
 """
     numout(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
 
-Return the number of output spaces of a tensor. This should be equivalent to `length(codomain(t))`.
+Return the number of output spaces of a tensor. This is equivalent to the number of spaces in the codomain of that tensor.
 
 See also [`numin`](@ref) and [`numind`](@ref).
 """
@@ -63,7 +63,7 @@ numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = 
 """
     numin(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
 
-Return the number of input spaces of a tensor. This should be equivalent to `length(domain(t))`.
+Return the number of input spaces of a tensor. This is equivalent to the number of spaces in the domain of that tensor.
 
 See also [`numout`](@ref) and [`numind`](@ref).
 """
@@ -72,7 +72,8 @@ numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N
 """
     numind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
 
-Return the total number of input and output spaces of a tensor. This should be equivalent to `numout(t) + numin(t)`.
+Return the total number of input and output spaces of a tensor. This is equivalent to the
+total number of spaces in the domain and codomain of that tensor.
 
 See also [`numout`](@ref) and [`numin`](@ref).
 """
@@ -130,15 +131,15 @@ space(t::AbstractTensorMap, i::Int) = space(t)[i]
 """
     dim(t::AbstractTensorMap) -> Int
 
-The total number of free parameters of a tensor, discounting the entries that are
-fixed by symmetry.
+The total number of free parameters of a tensor, discounting the entries that are fixed by
+symmetry. This is also the dimension of the `HomSpace` on which the `TensorMap` is defined.
 """
 dim(t::AbstractTensorMap) = dim(space(t))
 
 """
     codomainind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Tuple{Int}
 
-Provide all indices of the codomain of a tensor.
+Return all indices of the codomain of a tensor.
 
 See also [`domainind`](@ref) and [`allind`](@ref).
 """
@@ -150,7 +151,7 @@ codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
 """
     domainind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Tuple{Int}
 
-Provide all indices of the domain of a tensor.
+Return all indices of the domain of a tensor.
 
 See also [`codomainind`](@ref) and [`allind`](@ref).
 """
@@ -162,7 +163,7 @@ domainind(t::AbstractTensorMap) = domainind(typeof(t))
 """
     allind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Tuple{Int}
 
-Provide all indices of a tensor, i.e. the indices of its domain and codomain.
+Return all indices of a tensor, i.e. the indices of its domain and codomain.
 
 See also [`codomainind`](@ref) and [`domainind`](@ref).
 """
@@ -220,7 +221,7 @@ Return the dimensions of the block of a tensor corresponding to a coupled sector
 @doc """
     fusiontrees(t::AbstractTensorMap)
 
-Return an iterator over all fusion trees of a tensor.
+Return an iterator over all splitting - fusion tree pairs of a tensor.
 """ fusiontrees
 
 # Equality and approximality
