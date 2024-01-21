@@ -2,6 +2,7 @@ module TensorKitChainRulesCoreExt
 
 using TensorOperations
 using TensorKit
+using TensorKit: planaradd!, planarcontract!, planarcontract, _canonicalize
 using ChainRulesCore
 using LinearAlgebra
 using TupleTools
@@ -134,7 +135,7 @@ end
 function ChainRulesCore.rrule(::typeof(permute), tsrc::AbstractTensorMap, p::Index2Tuple;
                               copy::Bool=false)
     function permute_pullback(Δtdst)
-        invp = TensorKit._canonicalize(TupleTools.invperm(linearize(p)), tsrc)
+        invp = _canonicalize(TupleTools.invperm(linearize(p)), tsrc)
         return NoTangent(), permute(unthunk(Δtdst), invp; copy=true), NoTangent()
     end
     return permute(tsrc, p; copy=true), permute_pullback
@@ -647,7 +648,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.planaradd!), C::AbstractTensorM
 
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk begin
-            ip = TensorKit._canonicalize(invperm(linearize(p)), A)
+            ip = _canonicalize(invperm(linearize(p)), A)
             _dA = zerovector(A, VectorInterface.promote_add(ΔC, α))
             _dA = planaradd!(_dA, ip, ΔC, conj(α), Zero(), backend...)
             return projectA(_dA)
@@ -687,17 +688,17 @@ function ChainRulesCore.rrule(::typeof(TensorKit.planarcontract!),
 
     function planarcontract_pullback(ΔC′)
         ΔC = unthunk(ΔC′)
-        pΔC = TensorKit._canonicalize(invperm(linearize(pAB)), ΔC)
+        pΔC = _canonicalize(invperm(linearize(pAB)), ΔC)
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk begin
-            ipA = TensorKit._canonicalize(invperm(linearize(pA)), (), A)
+            ipA = _canonicalize(invperm(linearize(pA)), (), A)
             _dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B), typeof(α)))
             _dA = planarcontract!(_dA, ΔC, pΔC, adjoint(B), reverse(pB), ipA,
                                   conj(α), Zero(), backend...)
             return projectA(_dA)
         end
         dB = @thunk begin
-            ipB = TensorKit._canonicalize((invperm(linearize(pB)), ()), B)
+            ipB = _canonicalize((invperm(linearize(pB)), ()), B)
             _dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A), typeof(α)))
             _dB = planarcontract!(_dB, A', reverse(pA), ΔC, pΔC, ipB,
                                   conj(α), Zero(), backend...)
