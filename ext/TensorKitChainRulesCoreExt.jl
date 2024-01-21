@@ -671,6 +671,59 @@ function ChainRulesCore.rrule(::typeof(TensorKit.planaradd!), C::AbstractTensorM
     return C′, planaradd_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(TensorKit.planarcontract!),
+                              C::AbstractTensorMap{S,N₁,N₂}, 
+                              A::AbstractTensorMap{S}, pA::Index2Tuple,
+                              B::AbstractTensorMap{S}, pB::Index2Tuple,
+                              pAB::Index2Tuple{N₁,N₂},
+                              α::Number, β::Number, backend::Backend...) where {S,N₁,N₂}
+    C′ = planarcontract!(copy(C), A, pA, B, pB, pAB, α, β, backend...)
+
+    projectA = ProjectTo(A)
+    projectB = ProjectTo(B)
+    projectC = ProjectTo(C)
+    projectα = ProjectTo(α)
+    projectβ = ProjectTo(β)
+
+    function planarcontract_pullback(ΔC′)
+        ΔC = unthunk(ΔC′)
+        pΔC = TensorKit._canonicalize(invperm(linearize(pAB)), ΔC)
+        dC = @thunk projectC(scale(ΔC, conj(β)))
+        dA = @thunk begin
+            ipA = TensorKit._canonicalize(invperm(linearize(pA)), (), A)
+            _dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B), typeof(α)))
+            _dA = planarcontract!(_dA, ΔC, pΔC, adjoint(B), reverse(pB), ipA,
+                                  conj(α), Zero(), backend...)
+            return projectA(_dA)
+        end
+        dB = @thunk begin
+            ipB = TensorKit._canonicalize((invperm(linearize(pB)), ()), B)
+            _dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A), typeof(α)))
+            _dB = planarcontract!(_dB, A', reverse(pA), ΔC, pΔC, ipB,
+                                  conj(α), Zero(), backend...)
+            return projectB(_dB)
+        end
+        dα = @thunk begin
+            AB = planarcontract!(similar(C), A, pA, B, pB, pAB, One(), Zero(), backend...)
+            _dα = tensorscalar(planarcontract(AB', ((), trivtuple(numind(pAB))),
+                                              ΔC, (trivtuple(numind(pAB)), ()), ((), ()),
+                                              One(), Zero(), backend...))
+            return projectα(_dα)
+        end
+        dβ = @thunk begin
+            _dβ = tensorscalar(planarcontract(C', ((), trivtuple(numind(pAB))), 
+                                              ΔC, (trivtuple(numind(pAB)), ()), ((), ()),
+                                              One(), Zero(), backend...))
+            return projectβ(_dβ)
+        end
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, dA, NoTangent(), dB, NoTangent(), NoTangent(),
+               dα, dβ, dbackend...
+    end
+
+    return C′, planarcontract_pullback
+end
+
 # Convert rrules
 #----------------
 function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{Dict}, t::AbstractTensorMap)
