@@ -84,6 +84,15 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     return C
 end
 
+function planarcontract(A::AbstractTensorMap{S}, pA::Index2Tuple,
+                        B::AbstractTensorMap{S}, pB::Index2Tuple,
+                        pAB::Index2Tuple{N₁,N₂},
+                        α::Number, backend::Backend...) where {S,N₁,N₂}
+    TC = promote_contract(scalartype(A), scalartype(B), scalartype(α))
+    C = tensoralloc_contract(TC, pC, A, pA, :N, B, pB, :N)
+    return planarcontract!(C, A, pA, B, pB, pAB, α, β, backend...)
+end
+
 # auxiliary routines
 _cyclicpermute(t::Tuple) = (Base.tail(t)..., t[1])
 _cyclicpermute(t::Tuple{}) = ()
