@@ -629,6 +629,48 @@ function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix,
     return ΔA
 end
 
+# Planar rrules
+# --------------
+function ChainRulesCore.rrule(::typeof(TensorKit.planaradd!), C::AbstractTensorMap{S,N₁,N₂},
+                              A::AbstractTensorMap{S}, p::Index2Tuple{N₁,N₂},
+                              α::Number, β::Number,
+                              backend::Backend...) where {S,N₁,N₂}
+    C′ = planaradd!(copy(C), A, p, α, β, backend...)
+
+    projectA = ProjectTo(A)
+    projectC = ProjectTo(C)
+    projectα = ProjectTo(α)
+    projectβ = ProjectTo(β)
+
+    function planaradd_pullback(ΔC′)
+        ΔC = unthunk(ΔC′)
+
+        dC = @thunk projectC(scale(ΔC, conj(β)))
+        dA = @thunk begin
+            ip = TensorKit._canonicalize(invperm(linearize(p)), A)
+            _dA = zerovector(A, VectorInterface.promote_add(ΔC, α))
+            _dA = planaradd!(_dA, ip, ΔC, conj(α), Zero(), backend...)
+            return projectA(_dA)
+        end
+        dα = @thunk begin
+            _dα = tensorscalar(planarcontract(A, ((), linearize(p)),
+                                              ΔC, (trivtuple(numind(p)), ()),
+                                              ((), ()), One(), Zero(), backend...))
+            return projectα(_dα)
+        end
+        dβ = @thunk begin
+            _dβ = tensorscalar(planarcontract(C, ((), trivtuple(numind(pC))),
+                                              ΔC, (trivtuple(numind(pC)), ()),
+                                              ((), ()), One(), Zero(), backend...))
+            return projectβ(_dβ)
+        end
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, dA, NoTangent(), dα, dβ, dbackend...
+    end
+
+    return C′, planaradd_pullback
+end
+
 # Convert rrules
 #----------------
 function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{Dict}, t::AbstractTensorMap)
