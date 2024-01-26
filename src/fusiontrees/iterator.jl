@@ -5,7 +5,12 @@ function fusiontrees(uncoupled::NTuple{N,I}, coupled::I,
                      isdual::NTuple{N,Bool}) where {N,I<:Sector}
     return FusionTreeIterator{I,N}(uncoupled, coupled, isdual)
 end
-function fusiontrees(uncoupled::Tuple{I,Vararg{I}}, coupled::I=one(I)) where {I<:Sector}
+function fusiontrees(uncoupled::Tuple{Vararg{I}}, coupled::I) where {I<:Sector}
+    isdual = ntuple(n -> false, length(uncoupled))
+    return fusiontrees(uncoupled, coupled, isdual)
+end
+function fusiontrees(uncoupled::Tuple{I,Vararg{I}}) where {I<:Sector}
+    coupled = one(I)
     isdual = ntuple(n -> false, length(uncoupled))
     return fusiontrees(uncoupled, coupled, isdual)
 end
