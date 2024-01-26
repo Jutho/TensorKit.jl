@@ -204,7 +204,8 @@ See also [`blocks`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasb
     hasblock(t::AbstractTensorMap, c::Sector) -> Bool
 
 Verify whether a tensor has a block corresponding to a coupled sector `c`.
-""" hasblock
+"""
+hasblock
 
 @doc """
     blocksectors(t::AbstractTensorMap)
