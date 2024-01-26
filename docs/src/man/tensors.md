@@ -346,7 +346,7 @@ as the internal structure of the representation space when the corresponding sec
 abelian sectors are `Irrep[SU₂]` and `Irrep[CU₁]`, for which the internal structure is the
 natural one.
 
-There are some tools available to facilate finding the proper range of sector `c` in space
+There are some tools available to facilitate finding the proper range of sector `c` in space
 `V`, namely `axes(V, c)`. This also works on a `ProductSpace`, with a tuple of sectors. An
 example
 ```@repl tensors

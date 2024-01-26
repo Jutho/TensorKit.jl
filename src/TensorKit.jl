@@ -13,6 +13,7 @@ export FusionStyle, UniqueFusion, MultipleFusion, MultiplicityFreeFusion,
        SimpleFusion, GenericFusion
 export BraidingStyle, SymmetricBraiding, Bosonic, Fermionic, Anyonic, NoBraiding
 export Trivial, Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
+export ProductSector
 export FermionParity, FermionNumber, FermionSpin
 export FibonacciAnyon, IsingAnyon
 
@@ -50,9 +51,8 @@ export fℤ₂, fU₁, fSU₂
 export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps
-export domain, codomain, numind, numout, numin, spacetype, storagetype, scalartype
-export domainind, codomainind, allind
-export tensormaptype
+export domain, codomain, numind, numout, numin, domainind, codomainind, allind
+export spacetype, sectortype, storagetype, scalartype, tensormaptype
 export blocksectors, blockdim, block, blocks
 
 # random methods for constructor
@@ -71,7 +71,7 @@ export leftorth, rightorth, leftnull, rightnull,
        leftorth!, rightorth!, leftnull!, rightnull!,
        tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
        isposdef, isposdef!, ishermitian, sylvester
-export braid!, permute!, transpose!, twist!
+export braid, braid!, permute, permute!, transpose, transpose!, twist, twist!
 export catdomain, catcodomain
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,

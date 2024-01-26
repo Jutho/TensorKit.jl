@@ -40,6 +40,6 @@ Depth = 3
 ## Library outline
 
 ```@contents
-Pages = ["lib/spaces.md","lib/sectors.md","lib/tensors.md"]
+Pages = ["lib/sectors.md","lib/spaces.md","lib/tensors.md"]
 Depth = 2
 ```
