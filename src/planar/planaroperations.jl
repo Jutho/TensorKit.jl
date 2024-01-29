@@ -44,42 +44,52 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
     return C
 end
 
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
+function planarcontract!(C::AbstractTensorMap{S},
                          A::AbstractTensorMap{S},
-                         pA::Index2Tuple,
+                         pA::Index2Tuple{N₁,N₃},
                          B::AbstractTensorMap{S},
-                         pB::Index2Tuple,
-                         pAB::Index2Tuple{N₁,N₂},
+                         pB::Index2Tuple{N₃,N₂},
+                         pAB::Index2Tuple,
                          α::Number,
                          β::Number,
-                         backend::Backend...) where {S,N₁,N₂}
+                         backend::Backend...) where {S,N₁,N₂,N₃}
     if BraidingStyle(sectortype(S)) == Bosonic()
         return contract!(C, A, pA, B, pB, pAB, α, β, backend...)
     end
 
-    codA, domA = codomainind(A), domainind(A)
-    codB, domB = codomainind(B), domainind(B)
-    oindA, cindA = pA
-    cindB, oindB = pB
-    oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
-                                                 oindB, cindB, pAB...)
+    indA = (codomainind(A), reverse(domainind(A)))
+    indB = (codomainind(B), reverse(domainind(B)))
+    pA′, pB′, pAB′ = reorder_indices(indA, pA, indB, pB, pAB)
 
-    if oindA == codA && cindA == domA
+
+    if pA′ == (codomainind(A), domainind(A))
         A′ = A
     else
-        A′ = TO.tensoralloc_add(scalartype(A), (oindA, cindA), A, :N, true)
-        add_transpose!(A′, A, (oindA, cindA), true, false, backend...)
+        A′ = TO.tensoralloc_add(scalartype(A), pA′, A, :N, true)
+        add_transpose!(A′, A, pA′, true, false, backend...)
     end
 
-    if cindB == codB && oindB == domB
+    if pB′ == (codomainind(B), domainind(B))
         B′ = B
     else
-        B′ = TensorOperations.tensoralloc_add(scalartype(B), (cindB, oindB), B, :N, true)
-        add_transpose!(B′, B, (cindB, oindB), true, false, backend...)
+        B′ = TO.tensoralloc_add(scalartype(B), pB′, B, :N, true)
+        add_transpose!(B′, B, pB′, true, false, backend...)
     end
-    mul!(C, A′, B′, α, β)
-    (oindA == codA && cindA == domA) || TO.tensorfree!(A′)
-    (cindB == codB && oindB == domB) || TO.tensorfree!(B′)
+
+    ipAB = TupleTools.invperm(linearize(pAB′))
+    oindAinC = TupleTools.getindices(ipAB, ntuple(n -> n, N₁))
+    oindBinC = TupleTools.getindices(ipAB, ntuple(n -> n + N₁, N₂))
+
+    if has_shared_permute(C, (oindAinC, oindBinC))
+        C′ = transpose(C, (oindAinC, oindBinC))
+        mul!(C′, A′, B′, α, β)
+    else
+        C′ = A′ * B′
+        add_transpose!(C, C′, pAB′, α, β)
+    end
+
+    pA′ == (codomainind(A), domainind(A)) || TO.tensorfree!(A′)
+    pB′ == (codomainind(B), domainind(B)) || TO.tensorfree!(B′)
 
     return C
 end
@@ -88,8 +98,8 @@ function planarcontract(A::AbstractTensorMap{S}, pA::Index2Tuple,
                         B::AbstractTensorMap{S}, pB::Index2Tuple,
                         pAB::Index2Tuple{N₁,N₂},
                         α::Number, backend::Backend...) where {S,N₁,N₂}
-    TC = TensorOperations.promote_contract(scalartype(A), scalartype(B), scalartype(α))
-    C = TensorOperations.tensoralloc_contract(TC, pAB, A, pA, :N, B, pB, :N)
+    TC = TO.promote_contract(scalartype(A), scalartype(B), scalartype(α))
+    C = TO.tensoralloc_contract(TC, pAB, A, pA, :N, B, pB, :N)
     return planarcontract!(C, A, pA, B, pB, pAB, α, VectorInterface.Zero(), backend...)
 end
 
@@ -97,56 +107,89 @@ end
 _cyclicpermute(t::Tuple) = (Base.tail(t)..., t[1])
 _cyclicpermute(t::Tuple{}) = ()
 
-function reorder_indices(codA, domA, codB, domB, oindA, oindB, p1, p2)
-    N₁ = length(oindA)
-    N₂ = length(oindB)
-    @assert length(p1) == N₁ && all(in(p1), 1:N₁)
-    @assert length(p2) == N₂ && all(in(p2), N₁ .+ (1:N₂))
-    oindA2 = TupleTools.getindices(oindA, p1)
-    oindB2 = TupleTools.getindices(oindB, p2 .- N₁)
-    indA = (codA..., reverse(domA)...)
-    indB = (codB..., reverse(domB)...)
-    # cycle indA to be of the form (oindA2..., reverse(cindA2)...)
-    while length(oindA2) > 0 && indA[1] != oindA2[1]
-        indA = _cyclicpermute(indA)
-    end
-    # cycle indB to be of the form (cindB2..., reverse(oindB2)...)
-    while length(oindB2) > 0 && indB[end] != oindB2[1]
-        indB = _cyclicpermute(indB)
-    end
-    for i in 2:N₁
-        @assert indA[i] == oindA2[i]
-    end
-    for j in 2:N₂
-        @assert indB[end + 1 - j] == oindB2[j]
-    end
-    Nc = length(indA) - N₁
-    @assert Nc == length(indB) - N₂
-    pc = ntuple(identity, Nc)
-    cindA2 = reverse(TupleTools.getindices(indA, N₁ .+ pc))
-    cindB2 = TupleTools.getindices(indB, pc)
-    return oindA2, cindA2, oindB2, cindB2
+
+function _iscyclicpermutation(v1, v2)
+    length(v1) == length(v2) || return false
+    return iscyclicpermutation(_indexin(v1, v2))
 end
 
-function reorder_indices(codA, domA, codB, domB, oindA, cindA, oindB, cindB, p1, p2)
-    oindA2, cindA2, oindB2, cindB2 = reorder_indices(codA, domA, codB, domB, oindA, oindB,
-                                                     p1, p2)
+function _findsetcircshift(p_cyclic, p_subset)
+    N = length(p_cyclic)
+    M = length(p_subset)
+    i = findfirst(0:(N - 1)) do i
+        return issetequal(TupleTools.getindices(p_cyclic, ntuple(n -> mod1(n + i, N), M)),
+                          p_subset)
+    end
+    isnothing(i) && throw(ArgumentError("no cyclic permutation of $p_cyclic that matches $p_subset"))
+    return i-1::Int
+end
 
-    #if oindA or oindB are empty, then reorder indices can only order it correctly up to a cyclic permutation!
-    if isempty(oindA2) && !isempty(cindA)
-        # isempty(cindA) is a cornercase which I'm not sure if we can encounter
-        hit = cindA[findfirst(==(first(cindB2)), cindB)]
-        while hit != first(cindA2)
-            cindA2 = _cyclicpermute(cindA2)
-        end
+function reorder_planar_indices(indA, pA, indB, pB, pAB)
+    NA₁ = length(pA[1])
+    NA₂ = length(pA[2])
+    NA = NA₁ + NA₂
+    NB₁ = length(pB[1])
+    NB₂ = length(pB[2])
+    NB = NB₁ + NB₂
+    NAB₁ = length(pAB[1])
+    NAB₂ = length(pAB[2])
+    NAB = NAB₁ + NAB₂
+    
+    # input checks
+    @assert NA == length(indA[1]) + length(indA[2])
+    @assert NB == length(indB[1]) + length(indB[2])
+    @assert NA₂ == NB₁
+    @assert NAB == NA₁ + NB₂
+
+    # find circshift index of pAB if considered as shifting sets
+    indAB = (ntuple(identity, NAB₁),
+             reverse(ntuple(n -> n + NAB₁, NAB₂)))
+    indAB_lin = (indAB[1]..., indAB[2]...)
+    iAB = _findsetcircshift(indAB_lin, pAB[1])
+    @assert iAB == _findsetcircshift(indAB_lin, pAB[2]) - NAB₁ "sanity check"
+
+    # migrate permutations from pAB to pA and pB
+    permA = TupleTools.getindices((pAB[1]..., reverse(pAB[2])...),
+                                        ntuple(n -> mod1(n + iAB, NAB), NA₁))
+    permB = reverse(TupleTools.getindices((pAB[1]..., reverse(pAB[2])...),
+                                          ntuple(n -> mod1(n + iAB + NA₁, NAB), NB₂)) .-
+                    NA₁)
+
+    pA′ = (TupleTools.getindices(pA[1], permA), pA[2])
+    pB′ = (pB[1], reverse(TupleTools.getindices(reverse(pB[2]), permB)))
+    pAB′ = (ntuple(n -> n + iAB, NAB₁),
+           ntuple(n -> n + iAB + NAB₁, NAB₂))
+
+    # fix permutations of contracted indices
+    if NA₂ > 0
+        indA_lin = (indA[1]..., indA[2]...)
+        iA = _findsetcircshift(indA_lin, pA′[1])
+        @assert iA == _findsetcircshift(indA_lin, pA′[2]) - NA₁ "sanity check"
+        pA′ = (pA′[1],
+               reverse(TupleTools.getindices(linearize(indA),
+                                             ntuple(n -> mod1(n + iA + NA₁, NA), NA₂))))
+
+        indB_lin = (indB[1]..., indB[2]...)
+        iB = _findsetcircshift(indB_lin, pB′[1])
+        @assert iB == _findsetcircshift(indB_lin, pB′[2]) - NB₁ "sanity check"
+        pB′ = (TupleTools.getindices(linearize(indB),
+                                     ntuple(n -> mod1(n + iB, NB), NB₁)),
+               pB′[2])
     end
-    if isempty(oindB2) && !isempty(cindB)
-        hit = cindB[findfirst(==(first(cindA2)), cindA)]
-        while hit != first(cindB2)
-            cindB2 = _cyclicpermute(cindB2)
-        end
-    end
-    @assert TupleTools.sort(cindA) == TupleTools.sort(cindA2)
-    @assert TupleTools.sort(tuple.(cindA2, cindB2)) == TupleTools.sort(tuple.(cindA, cindB))
-    return oindA2, cindA2, oindB2, cindB2
+
+    # make sure this is still the same contraction
+    @assert issetequal(pA[1], pA′[1]) && issetequal(pA[2], pA′[2])
+    @assert issetequal(pB[1], pB′[1]) && issetequal(pB[2], pB′[2])
+    @assert issetequal(pAB[1], pAB′[1]) && issetequal(pAB[2], pAB′[2])
+    @assert issetequal(tuple.(pA[2], pB[1]), tuple.(pA′[2], pB′[1]))
+    
+    # make sure that everything is now planar
+    @assert _iscyclicpermutation((indA[1]..., (indA[2])...),
+                                 (pA′[1]..., reverse(pA′[2])...))
+    @assert _iscyclicpermutation((indB[1]..., (indB[2])...),
+                               (pB′[1]..., reverse(pB′[2])...))
+    @assert _iscyclicpermutation((indAB[1]..., (indAB[2])...),
+                               (pAB′[1]..., reverse(pAB′[2])...))
+    
+    return pA′, pB′, pAB′
 end

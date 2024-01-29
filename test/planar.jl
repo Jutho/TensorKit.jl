@@ -27,6 +27,185 @@ function force_planar(tsrc::TensorMap{<:GradedSpace})
     return tdst
 end
 
+using TensorKit: reorder_planar_indices
+@testset "reorder_indices" begin
+    @testset "trivial case" begin
+        pA = ((1, 2, 3), (4, 5))
+        pB = ((1, 2), (3, 4, 5))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (3, 2)
+        NB = (2, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA == pA′
+        @test pB == pB′
+        @test pAB == pAB′
+    end
+
+    @testset "trivial case" begin
+        pA = ((1, 2, 3), (4, 5, 6))
+        pB = ((1, 2, 3), (4, 5, 6))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (3, 3)
+        NB = (3, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA == pA′
+        @test pB == pB′
+        @test pAB == pAB′
+    end
+
+    @testset "swap outer indices" begin
+        pA = ((2, 3, 1), (4, 5))
+        pB = ((1, 2), (3, 4, 5))
+        pAB = ((3, 1, 2), (4, 5, 6))
+        NA = (3, 2)
+        NB = (2, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == ((1, 2, 3), (4, 5))
+        @test pB′ == pB
+        @test pAB′ == ((1, 2, 3), (4, 5, 6))
+    end
+
+    @testset "swap contracted inds" begin
+        pA = ((1, 2, 3), (5, 4))
+        pB = ((2, 1), (3, 4, 5))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (3, 2)
+        NB = (2, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA[1] == pA′[1]
+        @test pA[2] == reverse(pA′[2])
+        @test pB[1] == reverse(pB′[1])
+        @test pB[2] == pB′[2]
+        @test pAB == pAB′
+    end
+
+    @testset "trivial case" begin
+        pA = ((1, 2, 3), (4, 5, 6))
+        pB = ((1, 2, 3), (6, 5, 4))
+        pAB = ((1, 2, 3), (6, 5, 4))
+        NA = (3, 3)
+        NB = (3, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == ((1, 2, 3), (4, 5, 6))
+        @test pB′ == ((1, 2, 3), (4, 5, 6))
+        @test pAB′ == ((1, 2, 3), (4, 5, 6))
+    end
+
+    @testset "swap uncontracted inds" begin
+        pA = ((2, 1, 3), (4, 5))
+        pB = ((1, 2), (3, 4, 5))
+        pAB = ((2, 1, 3), (4, 5, 6))
+        NA = (3, 2)
+        NB = (2, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test (TupleTools.getindices(pA[1], (2, 1, 3)), pA[2]) == pA′
+        @test pB == pB′
+        @test (TupleTools.getindices(pAB[1], (2, 1, 3)), pAB[2]) == pAB′
+    end
+
+    @testset "non-planar contraction" begin
+        pA = ((2, 1, 3), (4, 5))
+        pB = ((1, 2), (3, 4, 5))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (3, 2)
+        NB = (2, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        @test_throws AssertionError reorder_planar_indices(indA, pA, indB, pB, pAB)
+    end
+
+    @testset "non-planar contraction" begin
+        pA = ((1, 2, 3), (5, 4))
+        pB = ((1, 2), (3, 4, 5))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (3, 2)
+        NB = (2, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        @test_throws AssertionError reorder_planar_indices(indA, pA, indB, pB, pAB)
+    end
+
+    @testset "change input tensor partitions" begin
+        pA = ((1, 2, 3), (5, 4))
+        pB = ((1, 2), (3, 4, 5))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (5, 0)
+        NB = (2, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == ((1, 2, 3), (5, 4))
+        @test pB′ == ((1, 2), (3, 4, 5))
+        @test pAB′ == ((1, 2, 3), (4, 5, 6))
+    end
+
+    @testset "edge case with no contracted indices" begin
+        pA = ((1, 2, 3), ())
+        pB = ((), (1, 2, 3))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (3, 0)
+        NB = (0, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == pA
+        @test pB == pB′
+        @test pAB == pAB′
+    end
+
+    @testset "edge case with no contracted indices" begin
+        pA = ((2, 3, 1), ())
+        pB = ((), (1, 2, 3))
+        pAB = ((1, 2, 3), (4, 5, 6))
+        NA = (3, 0)
+        NB = (0, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == pA
+        @test pB == pB′
+        @test pAB == pAB′
+    end
+
+    @testset "edge case with no contracted indices" begin
+        pA = ((1, 2, 3), ())
+        pB = ((), (1, 2, 3))
+        pAB = ((2, 3, 1), (4, 5, 6))
+        NA = (3, 0)
+        NB = (0, 3)
+        indA = (ntuple(identity, NA[1]), reverse(ntuple(identity, NA[2])) .+ NA[1])
+        indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == ((2, 3, 1), ())
+        @test pB == pB′
+        @test pAB′ == ((1, 2, 3), (4, 5, 6))
+    end
+end
+
 @testset "planar methods" verbose = true begin
     @testset "planaradd" begin
         A = TensorMap(randn, ℂ^2 ⊗ ℂ^3 ← ℂ^6 ⊗ ℂ^5 ⊗ ℂ^4)
