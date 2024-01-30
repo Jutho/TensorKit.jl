@@ -3,6 +3,7 @@ using ChainRulesTestUtils
 using Random
 using FiniteDifferences
 using LinearAlgebra
+using TensorKit: ℙ, planaradd!, planarcontract!
 
 ## Test utility
 # -------------
@@ -106,11 +107,17 @@ end
 ChainRulesTestUtils.test_method_tables()
 
 Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
+         (ℙ^2, (ℙ^3)', ℙ^3, ℙ^2, (ℙ^2)'),
          (ℂ[Z2Irrep](0 => 1, 1 => 1),
           ℂ[Z2Irrep](0 => 1, 1 => 2)',
           ℂ[Z2Irrep](0 => 3, 1 => 2)',
           ℂ[Z2Irrep](0 => 2, 1 => 3),
           ℂ[Z2Irrep](0 => 2, 1 => 2)),
+         (ℂ[FermionParity](0 => 1, 1 => 1),
+          ℂ[FermionParity](0 => 1, 1 => 2)',
+          ℂ[FermionParity](0 => 3, 1 => 2)',
+          ℂ[FermionParity](0 => 2, 1 => 3),
+          ℂ[FermionParity](0 => 2, 1 => 2)),
          (ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 2),
           ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
           ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
@@ -221,6 +228,50 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         end
     end
 
+    @testset "PlanarOperations with scalartype $T" for T in (Float64, ComplexF64)
+        atol = precision(T)
+        rtol = precision(T)
+
+        @testset "planaradd!" begin
+            p = ((4, 3, 1), (5, 2))
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
+            α = randn(T)
+            β = randn(T)
+            test_rrule(planaradd!, C, A, p, α, β; atol, rtol)
+        end
+        
+        @testset "planarcontract! 1" begin
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+            B = TensorMap(randn, T, V[1] ⊗ V[5] ← V[5] ⊗ V[2])
+            pA = ((1, 3, 4), (5, 2))
+            pB = ((2, 4), (1, 3))
+            pAB = ((3, 2, 1), (4, 5))
+            
+            α = randn(T)
+            β = randn(T)
+
+            C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA, :N,
+                                                                  B, pB, :N, false))
+            test_rrule(planarcontract!, C, A, pA, B, pB, pAB, α, β; atol, rtol)
+        end
+        
+        @testset "planarcontract! 2" begin
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+            B = TensorMap(randn, T, V[3] ⊗ V[4] ⊗ V[5] ← V[1] ⊗ V[2])
+            pA = ((1, 2), (3, 4, 5))
+            pB = ((1, 2, 3), (4, 5))
+            pAB = ((1, 2), (3, 4))
+            
+            α = randn(T)
+            β = randn(T)
+
+            C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA, :N,
+                                                                  B, pB, :N, false))
+            test_rrule(planarcontract!, C, A, pA, B, pB, pAB, α, β; atol, rtol)
+        end
+    end
+    
     @testset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A)')
