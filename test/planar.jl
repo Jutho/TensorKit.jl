@@ -204,6 +204,19 @@ using TensorKit: reorder_planar_indices
         @test pB == pB′
         @test pAB′ == ((1, 2, 3), (4, 5, 6))
     end
+    
+    @testset "edge case with no uncontracted indices right" begin
+        pA = ((), (1, 2, 3))
+        pB = ((2, 1, 3), ())
+        pAB = ((), ())
+        indA = ((1,), (3, 2))
+        indB = ((1,), (3, 2))
+
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == ((), (2, 3, 1))
+        @test pB′ == ((1, 3, 2), ())
+        @test pAB′ == ((), ())
+    end
 end
 
 @testset "planar methods" verbose = true begin

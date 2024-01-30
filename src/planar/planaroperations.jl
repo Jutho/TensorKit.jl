@@ -61,7 +61,6 @@ function planarcontract!(C::AbstractTensorMap{S},
     indB = (codomainind(B), reverse(domainind(B)))
     pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
 
-
     if pA′ == (codomainind(A), domainind(A))
         A′ = A
     else
@@ -125,8 +124,9 @@ function _findsetcircshift(p_cyclic, p_subset)
         return issetequal(getindices(p_cyclic, ntuple(n -> mod1(n + i, N), M)),
                           p_subset)
     end
-    isnothing(i) && throw(ArgumentError("no cyclic permutation of $p_cyclic that matches $p_subset"))
-    return i-1::Int
+    isnothing(i) &&
+        throw(ArgumentError("no cyclic permutation of $p_cyclic that matches $p_subset"))
+    return i - 1::Int
 end
 
 function reorder_planar_indices(indA, pA, indB, pB, pAB)
@@ -139,7 +139,7 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
     NAB₁ = length(pAB[1])
     NAB₂ = length(pAB[2])
     NAB = NAB₁ + NAB₂
-    
+
     # input checks
     @assert NA == length(indA[1]) + length(indA[2])
     @assert NB == length(indB[1]) + length(indB[2])
@@ -148,7 +148,7 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
 
     # find circshift index of pAB if considered as shifting sets
     indAB = (ntuple(identity, NAB₁), reverse(ntuple(n -> n + NAB₁, NAB₂)))
-    
+
     if NAB > 0
         indAB_lin = (indAB[1]..., indAB[2]...)
         iAB = _findsetcircshift(indAB_lin, pAB[1])
@@ -156,9 +156,9 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
 
         # migrate permutations from pAB to pA and pB
         permA = getindices((pAB[1]..., reverse(pAB[2])...),
-                        ntuple(n -> mod1(n + iAB, NAB), NA₁))
+                           ntuple(n -> mod1(n + iAB, NAB), NA₁))
         permB = reverse(getindices((pAB[1]..., reverse(pAB[2])...),
-                                ntuple(n -> mod1(n + iAB + NA₁, NAB), NB₂)) .- NA₁)
+                                   ntuple(n -> mod1(n + iAB + NA₁, NAB), NB₂)) .- NA₁)
 
         pA′ = (getindices(pA[1], permA), pA[2])
         pB′ = (pB[1], getindices(pB[2], permB))
@@ -170,32 +170,35 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
     end
 
     # cycle indA to be of the form (oindA..., reverse(cindA)...)
+    indA_lin = (indA[1]..., indA[2]...)
     if NA₁ != 0
-        indA_lin = (indA[1]..., indA[2]...)
-        iA = findfirst(==(first(pA′[1])), indA_lin)
-        @assert all(indA_lin[mod1.(iA .+ (1:NA₁) .- 1, NA)] .== pA′[1]) "sanity check"
-        pA′ = (pA′[1],
-               reverse(getindices(indA_lin, ntuple(n -> mod1(n + iA + NA₁ - 1, NA), NA₂))))
+        iA = findfirst(==(first(pA′[1])), indA_lin) - 1
+        indA_lin = _circshift(indA_lin, -iA)
     end
+    pc = ntuple(identity, NA₂)
+    @assert all(getindices(indA_lin, ntuple(identity, NA₁)) .== pA′[1]) "sanity check"
+    pA′ = (pA′[1], reverse(getindices(indA_lin, pc .+ NA₁)))
+
     # cycle indB to be of the form (cindB..., reverse(oindB)...)
+    indB_lin = (indB[1]..., indB[2]...)
     if NB₂ != 0
-        indB_lin = (indB[1]..., indB[2]...)
         iB = findfirst(==(first(pB′[2])), indB_lin)
-        @assert all(indB_lin[mod1.(iB .- (1:NB₂) .+ 1, NB)] .== (pB′[2])) "$pB $pB′ $indB_lin $iB"
-        pB′ = (getindices(indB_lin, ntuple(n -> mod1(n + iB, NB), NB₁)), pB′[2])
+        indB_lin = _circshift(indB_lin, -iB)
     end
-    
+    @assert all(getindices(indB_lin, ntuple(identity, NB₂) .+ NB₁) .== reverse(pB′[2])) "sanity check"
+    pB′ = (getindices(indB_lin, pc), pB′[2])
+
     # if uncontracted indices are empty, we can still make cyclic adjustments
-    if NA₁ == 0
-        shiftA = findfirst(==(first(pB′[1])), pB[1])
-        @assert !isnothing(shiftA) "pB = $pB, pB′ = $pB′"
-        pA′ = (pA′[1], _circshift(pA′[2], shiftA-1))
+    if NA₁ == 0 && NA₂ != 0
+        hit = pA[2][findfirst(==(first(pB′[1])), pB[1])]
+        shiftA = findfirst(==(hit), pA′[2]) - 1
+        pA′ = (pA′[1], _circshift(pA′[2], -shiftA))
     end
-    
-    if NB₂ == 0
-        shiftB = findfirst(==(first(pA′[2])), pA[2])
-        @assert !isnothing(shiftB) "pA = $pA, pA′ = $pA′"
-        pB′ = (_circshift(pB′[1], shiftB-1), pB′[2])
+
+    if NB₂ == 0 && NB₁ != 0
+        hit = pB[1][findfirst(==(first(pA′[2])), pA[2])]
+        shiftB = findfirst(==(hit), pB′[1]) - 1
+        pB′ = (_circshift(pB′[1], -shiftB), pB′[2])
     end
 
     # make sure this is still the same contraction
@@ -203,14 +206,14 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
     @assert issetequal(pB[1], pB′[1]) && issetequal(pB[2], pB′[2])
     @assert issetequal(pAB[1], pAB′[1]) && issetequal(pAB[2], pAB′[2])
     @assert issetequal(tuple.(pA[2], pB[1]), tuple.(pA′[2], pB′[1])) "$pA $pB $pA′ $pB′"
-    
+
     # make sure that everything is now planar
     @assert _iscyclicpermutation((indA[1]..., (indA[2])...),
-                                 (pA′[1]..., reverse(pA′[2])...))
+                                 (pA′[1]..., reverse(pA′[2])...)) "indA = $indA, pA′ = $pA′"
     @assert _iscyclicpermutation((indB[1]..., (indB[2])...),
-                               (pB′[1]..., reverse(pB′[2])...))
+                                 (pB′[1]..., reverse(pB′[2])...)) "indB = $indB, pB′ = $pB′"
     @assert _iscyclicpermutation((indAB[1]..., (indAB[2])...),
-                               (pAB′[1]..., reverse(pAB′[2])...))
-    
+                                 (pAB′[1]..., reverse(pAB′[2])...)) "indAB = $indAB, pAB′ = $pAB′"
+
     return pA′, pB′, pAB′
 end
