@@ -87,7 +87,7 @@ export notrunc, truncerr, truncdim, truncspace, truncbelow
 # Imports
 #---------
 using TupleTools
-using TupleTools: StaticLength
+using TupleTools: StaticLength, getindices
 
 using Strided
 

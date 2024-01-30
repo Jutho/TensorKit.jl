@@ -116,9 +116,9 @@ using TensorKit: reorder_planar_indices
         indB = (ntuple(identity, NB[1]), reverse(ntuple(identity, NB[2])) .+ NB[1])
 
         pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
-        @test (TupleTools.getindices(pA[1], (2, 1, 3)), pA[2]) == pA′
+        @test pA′ == ((1, 2, 3), (4, 5))
         @test pB == pB′
-        @test (TupleTools.getindices(pAB[1], (2, 1, 3)), pAB[2]) == pAB′
+        @test pAB′ == ((1, 2, 3), (4, 5, 6))
     end
 
     @testset "non-planar contraction" begin

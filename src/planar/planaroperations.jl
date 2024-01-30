@@ -59,7 +59,7 @@ function planarcontract!(C::AbstractTensorMap{S},
 
     indA = (codomainind(A), reverse(domainind(A)))
     indB = (codomainind(B), reverse(domainind(B)))
-    pA′, pB′, pAB′ = reorder_indices(indA, pA, indB, pB, pAB)
+    pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
 
 
     if pA′ == (codomainind(A), domainind(A))
@@ -77,8 +77,8 @@ function planarcontract!(C::AbstractTensorMap{S},
     end
 
     ipAB = TupleTools.invperm(linearize(pAB′))
-    oindAinC = TupleTools.getindices(ipAB, ntuple(n -> n, N₁))
-    oindBinC = TupleTools.getindices(ipAB, ntuple(n -> n + N₁, N₂))
+    oindAinC = getindices(ipAB, ntuple(n -> n, N₁))
+    oindBinC = getindices(ipAB, ntuple(n -> n + N₁, N₂))
 
     if has_shared_permute(C, (oindAinC, oindBinC))
         C′ = transpose(C, (oindAinC, oindBinC))
@@ -107,6 +107,10 @@ end
 _cyclicpermute(t::Tuple) = (Base.tail(t)..., t[1])
 _cyclicpermute(t::Tuple{}) = ()
 
+_circshift(::Tuple{}, ::Int) = ()
+_circshift(t::Tuple, n::Int) = ntuple(i -> t[mod1(i - n, length(t))], length(t))
+
+_indexin(v1, v2) = ntuple(n -> findfirst(isequal(v1[n]), v2), length(v1))
 
 function _iscyclicpermutation(v1, v2)
     length(v1) == length(v2) || return false
@@ -116,8 +120,9 @@ end
 function _findsetcircshift(p_cyclic, p_subset)
     N = length(p_cyclic)
     M = length(p_subset)
+    N == M == 0 && return 0
     i = findfirst(0:(N - 1)) do i
-        return issetequal(TupleTools.getindices(p_cyclic, ntuple(n -> mod1(n + i, N), M)),
+        return issetequal(getindices(p_cyclic, ntuple(n -> mod1(n + i, N), M)),
                           p_subset)
     end
     isnothing(i) && throw(ArgumentError("no cyclic permutation of $p_cyclic that matches $p_subset"))
@@ -142,46 +147,62 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
     @assert NAB == NA₁ + NB₂
 
     # find circshift index of pAB if considered as shifting sets
-    indAB = (ntuple(identity, NAB₁),
-             reverse(ntuple(n -> n + NAB₁, NAB₂)))
-    indAB_lin = (indAB[1]..., indAB[2]...)
-    iAB = _findsetcircshift(indAB_lin, pAB[1])
-    @assert iAB == _findsetcircshift(indAB_lin, pAB[2]) - NAB₁ "sanity check"
+    indAB = (ntuple(identity, NAB₁), reverse(ntuple(n -> n + NAB₁, NAB₂)))
+    
+    if NAB > 0
+        indAB_lin = (indAB[1]..., indAB[2]...)
+        iAB = _findsetcircshift(indAB_lin, pAB[1])
+        @assert iAB == mod(_findsetcircshift(indAB_lin, pAB[2]) - NAB₁, NAB) "sanity check"
 
-    # migrate permutations from pAB to pA and pB
-    permA = TupleTools.getindices((pAB[1]..., reverse(pAB[2])...),
-                                        ntuple(n -> mod1(n + iAB, NAB), NA₁))
-    permB = reverse(TupleTools.getindices((pAB[1]..., reverse(pAB[2])...),
-                                          ntuple(n -> mod1(n + iAB + NA₁, NAB), NB₂)) .-
-                    NA₁)
+        # migrate permutations from pAB to pA and pB
+        permA = getindices((pAB[1]..., reverse(pAB[2])...),
+                        ntuple(n -> mod1(n + iAB, NAB), NA₁))
+        permB = reverse(getindices((pAB[1]..., reverse(pAB[2])...),
+                                ntuple(n -> mod1(n + iAB + NA₁, NAB), NB₂)) .- NA₁)
 
-    pA′ = (TupleTools.getindices(pA[1], permA), pA[2])
-    pB′ = (pB[1], reverse(TupleTools.getindices(reverse(pB[2]), permB)))
-    pAB′ = (ntuple(n -> n + iAB, NAB₁),
-           ntuple(n -> n + iAB + NAB₁, NAB₂))
+        pA′ = (getindices(pA[1], permA), pA[2])
+        pB′ = (pB[1], getindices(pB[2], permB))
+        pAB′ = (ntuple(n -> n + iAB, NAB₁), ntuple(n -> n + iAB + NAB₁, NAB₂))
+    else
+        pA′ = pA
+        pB′ = pB
+        pAB′ = pAB
+    end
 
-    # fix permutations of contracted indices
-    if NA₂ > 0
+    # cycle indA to be of the form (oindA..., reverse(cindA)...)
+    if NA₁ != 0
         indA_lin = (indA[1]..., indA[2]...)
-        iA = _findsetcircshift(indA_lin, pA′[1])
-        @assert iA == _findsetcircshift(indA_lin, pA′[2]) - NA₁ "sanity check"
+        iA = findfirst(==(first(pA′[1])), indA_lin)
+        @assert all(indA_lin[mod1.(iA .+ (1:NA₁) .- 1, NA)] .== pA′[1]) "sanity check"
         pA′ = (pA′[1],
-               reverse(TupleTools.getindices(linearize(indA),
-                                             ntuple(n -> mod1(n + iA + NA₁, NA), NA₂))))
-
+               reverse(getindices(indA_lin, ntuple(n -> mod1(n + iA + NA₁ - 1, NA), NA₂))))
+    end
+    # cycle indB to be of the form (cindB..., reverse(oindB)...)
+    if NB₂ != 0
         indB_lin = (indB[1]..., indB[2]...)
-        iB = _findsetcircshift(indB_lin, pB′[1])
-        @assert iB == _findsetcircshift(indB_lin, pB′[2]) - NB₁ "sanity check"
-        pB′ = (TupleTools.getindices(linearize(indB),
-                                     ntuple(n -> mod1(n + iB, NB), NB₁)),
-               pB′[2])
+        iB = findfirst(==(first(pB′[2])), indB_lin)
+        @assert all(indB_lin[mod1.(iB .- (1:NB₂) .+ 1, NB)] .== (pB′[2])) "$pB $pB′ $indB_lin $iB"
+        pB′ = (getindices(indB_lin, ntuple(n -> mod1(n + iB, NB), NB₁)), pB′[2])
+    end
+    
+    # if uncontracted indices are empty, we can still make cyclic adjustments
+    if NA₁ == 0
+        shiftA = findfirst(==(first(pB′[1])), pB[1])
+        @assert !isnothing(shiftA) "pB = $pB, pB′ = $pB′"
+        pA′ = (pA′[1], _circshift(pA′[2], shiftA-1))
+    end
+    
+    if NB₂ == 0
+        shiftB = findfirst(==(first(pA′[2])), pA[2])
+        @assert !isnothing(shiftB) "pA = $pA, pA′ = $pA′"
+        pB′ = (_circshift(pB′[1], shiftB-1), pB′[2])
     end
 
     # make sure this is still the same contraction
     @assert issetequal(pA[1], pA′[1]) && issetequal(pA[2], pA′[2])
     @assert issetequal(pB[1], pB′[1]) && issetequal(pB[2], pB′[2])
     @assert issetequal(pAB[1], pAB′[1]) && issetequal(pAB[2], pAB′[2])
-    @assert issetequal(tuple.(pA[2], pB[1]), tuple.(pA′[2], pB′[1]))
+    @assert issetequal(tuple.(pA[2], pB[1]), tuple.(pA′[2], pB′[1])) "$pA $pB $pA′ $pB′"
     
     # make sure that everything is now planar
     @assert _iscyclicpermutation((indA[1]..., (indA[2])...),
