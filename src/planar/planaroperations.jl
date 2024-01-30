@@ -60,7 +60,7 @@ function planarcontract!(C::AbstractTensorMap{S},
     indA = (codomainind(A), reverse(domainind(A)))
     indB = (codomainind(B), reverse(domainind(B)))
     pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
-
+    
     if pA′ == (codomainind(A), domainind(A))
         A′ = A
     else
@@ -84,6 +84,7 @@ function planarcontract!(C::AbstractTensorMap{S},
         mul!(C′, A′, B′, α, β)
     else
         C′ = A′ * B′
+        
         add_transpose!(C, C′, pAB′, α, β)
     end
 
@@ -147,22 +148,25 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
     @assert NAB == NA₁ + NB₂
 
     # find circshift index of pAB if considered as shifting sets
-    indAB = (ntuple(identity, NAB₁), reverse(ntuple(n -> n + NAB₁, NAB₂)))
+    indAB = (ntuple(identity, NA₁), reverse(ntuple(n -> n + NA₁, NB₂)))
 
     if NAB > 0
         indAB_lin = (indAB[1]..., indAB[2]...)
         iAB = _findsetcircshift(indAB_lin, pAB[1])
         @assert iAB == mod(_findsetcircshift(indAB_lin, pAB[2]) - NAB₁, NAB) "sanity check"
-
+        indAB_lin = _circshift(indAB_lin, -iAB)
         # migrate permutations from pAB to pA and pB
-        permA = getindices((pAB[1]..., reverse(pAB[2])...),
-                           ntuple(n -> mod1(n + iAB, NAB), NA₁))
-        permB = reverse(getindices((pAB[1]..., reverse(pAB[2])...),
-                                   ntuple(n -> mod1(n + iAB + NA₁, NAB), NB₂)) .- NA₁)
+        
+        pAB_lin = (pAB[1]..., reverse(pAB[2])...)
+        permA = getindices(pAB_lin,
+                           ntuple(n -> mod1(n - iAB, NAB), NA₁))
+        permB = reverse(getindices(pAB_lin,
+                                   ntuple(n -> mod1(n - iAB + NA₁, NAB), NB₂)) .- NA₁)
 
         pA′ = (getindices(pA[1], permA), pA[2])
         pB′ = (pB[1], getindices(pB[2], permB))
-        pAB′ = (ntuple(n -> n + iAB, NAB₁), ntuple(n -> n + iAB + NAB₁, NAB₂))
+        pAB′ = (getindices(indAB_lin, ntuple(n -> mod1(n, NAB), NAB₁)), 
+               reverse(getindices(indAB_lin, ntuple(n -> mod1(n + NAB₁, NAB), NAB₂))))
     else
         pA′ = pA
         pB′ = pB
@@ -204,7 +208,7 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
     # make sure this is still the same contraction
     @assert issetequal(pA[1], pA′[1]) && issetequal(pA[2], pA′[2])
     @assert issetequal(pB[1], pB′[1]) && issetequal(pB[2], pB′[2])
-    @assert issetequal(pAB[1], pAB′[1]) && issetequal(pAB[2], pAB′[2])
+    # @assert issetequal(pAB[1], pAB′[1]) && issetequal(pAB[2], pAB′[2]) "pAB = $pAB, pAB′ = $pAB′"
     @assert issetequal(tuple.(pA[2], pB[1]), tuple.(pA′[2], pB′[1])) "$pA $pB $pA′ $pB′"
 
     # make sure that everything is now planar

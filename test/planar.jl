@@ -217,6 +217,16 @@ using TensorKit: reorder_planar_indices
         @test pB′ == ((1, 3, 2), ())
         @test pAB′ == ((), ())
     end
+    
+    @testset "something" begin
+        pA, pB, pAB = (((1, 2, 3), (4, 5)), ((3, 1), (4, 2)), ((3, 5), (2, 1, 4)))
+        indA = ((1, 2, 3), (5, 4))
+        indB = ((1, 2), (4, 3))
+        pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
+        @test pA′ == pA
+        @test pB′ == pB
+        @test pAB′ == pAB
+    end
 end
 
 @testset "planar methods" verbose = true begin
