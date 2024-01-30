@@ -248,8 +248,8 @@ end
     length(levels) == numind(tsrc) ||
         throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(tsrc)) ← $(domain(tsrc))"))
 
-    levels1 = TupleTools.getindices(levels, codomainind(tsrc))
-    levels2 = TupleTools.getindices(levels, domainind(tsrc))
+    levels1 = getindices(levels, codomainind(tsrc))
+    levels2 = getindices(levels, domainind(tsrc))
     # TODO: arg order for tensormaps is different than for fusiontrees
     treebraider(f₁, f₂) = braid(f₁, f₂, levels1, levels2, p...)
     return add_transform!(tdst, tsrc, p, treebraider, α, β, backend...)
