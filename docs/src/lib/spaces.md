@@ -40,7 +40,8 @@ sectors
 hassector
 dim
 dims
-blocksectors
+blocksectors(::ProductSpace)
+blocksectors(::HomSpace)
 blockdim
 space
 ```
