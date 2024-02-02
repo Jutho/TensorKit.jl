@@ -54,7 +54,7 @@ A special case of [`TensorMap`](@ref) for representing tensor maps with trivial 
 i.e., whose `sectortype` is `Trivial`.
 """
 const TrivialTensorMap{S,N₁,N₂,A<:DenseMatrix} = TensorMap{S,N₁,N₂,Trivial,A,
-                                                                       Nothing,Nothing}
+                                                           Nothing,Nothing}
 """
     TrivialTensor{S, N, A} = TrivialTensorMap{S, N, 0, A}
 
