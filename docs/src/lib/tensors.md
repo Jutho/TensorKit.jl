@@ -10,7 +10,6 @@ The type hierarchy of tensors is as follows:
 
 ```@docs
 AbstractTensorMap
-AbstractTensor
 TensorMap
 AdjointTensorMap
 BraidingTensor
@@ -48,7 +47,7 @@ The following methods exist to obtain type information:
 
 ```@docs
 spacetype
-sectortype
+sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace}
 storagetype
 tensormaptype
 ```
@@ -57,7 +56,7 @@ To obtain information about the indices, you can use:
 ```@docs
 domain
 codomain
-space
+space(::AbstractTensorMap)
 numin
 numout
 numind
@@ -68,8 +67,8 @@ allind
 
 To obtain information about the data, the following methods exist:
 ```@docs
-blocksectors
-blockdim
+blocksectors(::AbstractTensorMap)
+blockdim(::AbstractTensorMap, ::Sector)
 block
 blocks
 fusiontrees
@@ -92,8 +91,8 @@ scaling, as well as the selection of a custom backend.
 ```@docs
 permute(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}; copy::Bool=false) where {S,N₁,N₂}
 braid(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple, levels::IndexTuple; copy::Bool=false) where {S}
-transpose
-twist
+transpose(::AbstractTensorMap, ::Index2Tuple)
+twist(::AbstractTensorMap, ::Int)
 ```
 ```@docs
 permute!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}

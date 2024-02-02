@@ -37,7 +37,7 @@ Rsymbol
 Bsymbol
 dim(::Sector)
 frobeniusschur
-twist
+twist(::Sector)
 Base.isreal(::Type{<:Sector})
 TensorKit.vertex_labeltype
 TensorKit.vertex_ind2label
@@ -69,7 +69,8 @@ foldleft
 cycleclockwise
 cycleanticlockwise
 repartition
-transpose
+transpose(f₁::FusionTree{I}, f₂::FusionTree{I},
+                        p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {I<:Sector,N₁,N₂}
 braid(f₁::FusionTree{I}, f₂::FusionTree{I}, levels1::IndexTuple, levels2::IndexTuple, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {I<:Sector,N₁,N₂}
 permute(f₁::FusionTree{I}, f₂::FusionTree{I}, p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {I<:Sector,N₁,N₂}
 ```

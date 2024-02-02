@@ -211,13 +211,13 @@ hasblock
     blocksectors(t::AbstractTensorMap)
 
 Return an iterator over all coupled sectors of a tensor.
-""" blocksectors
+""" blocksectors(::AbstractTensorMap)
 
 @doc """
     blockdim(t::AbstractTensorMap, c::Sector) -> Base.Dims
 
 Return the dimensions of the block of a tensor corresponding to a coupled sector `c`.
-""" blockdim
+""" blockdim(::AbstractTensorMap, ::Sector)
 
 @doc """
     fusiontrees(t::AbstractTensorMap)
