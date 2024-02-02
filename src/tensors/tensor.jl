@@ -56,7 +56,7 @@ i.e., whose `sectortype` is `Trivial`.
 const TrivialTensorMap{S<:IndexSpace,N₁,N₂,A<:DenseMatrix} = TensorMap{S,N₁,N₂,Trivial,A,
                                                                        Nothing,Nothing}
 """
-    TrivialTensor{S<:IndexSpace, N, I<:Sector, A, F₁, F₂} = TrivialTensorMap{S, N, 0, A}
+    TrivialTensor{S<:IndexSpace, N, A<:DenseMatrix} = TrivialTensorMap{S, N, 0, A}
 
 A special case of [`Tensor`](@ref) for representing tensors with trivial symmetry, i.e.,
 whose `sectortype` is `Trivial`.
