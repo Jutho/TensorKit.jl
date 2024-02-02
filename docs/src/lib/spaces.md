@@ -62,7 +62,7 @@ while the following also work on both `ElementarySpace` and `ProductSpace`
 ```@docs
 fuse
 :⊗
-:⊠
+⊠(::VectorSpace, ::VectorSpace)
 one
 ismonomorphic
 isepimorphic
