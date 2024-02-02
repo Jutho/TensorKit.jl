@@ -37,7 +37,7 @@ end
 #! format: on
 
 """
-    Tensor{S<:IndexSpace, N, I<:Sector, A, F₁, F₂} = TensorMap{S, N, 0, I, A, F₁, F₂}
+    Tensor{S, N, I, A, F₁, F₂} = TensorMap{S, N, 0, I, A, F₁, F₂}
 
 Specific subtype of [`AbstractTensor`](@ref) for representing tensors whose data is stored
 in blocks of some subtype of `DenseMatrix`.
@@ -45,7 +45,7 @@ in blocks of some subtype of `DenseMatrix`.
 A `Tensor{S, N, I, A, F₁, F₂}` is actually a special case `TensorMap{S, N, 0, I, A, F₁, F₂}`,
 i.e. a tensor map with only a non-trivial output space.
 """
-const Tensor{S<:IndexSpace,N,I<:Sector,A,F₁,F₂} = TensorMap{S,N,0,I,A,F₁,F₂}
+const Tensor{S,N,I,A,F₁,F₂} = TensorMap{S,N,0,I,A,F₁,F₂}
 """
     TrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} = TensorMap{S, N₁, N₂, Trivial, 
                                                                         A, Nothing, Nothing}
@@ -53,15 +53,15 @@ const Tensor{S<:IndexSpace,N,I<:Sector,A,F₁,F₂} = TensorMap{S,N,0,I,A,F₁,F
 A special case of [`TensorMap`](@ref) for representing tensor maps with trivial symmetry,
 i.e., whose `sectortype` is `Trivial`.
 """
-const TrivialTensorMap{S<:IndexSpace,N₁,N₂,A<:DenseMatrix} = TensorMap{S,N₁,N₂,Trivial,A,
+const TrivialTensorMap{S,N₁,N₂,A<:DenseMatrix} = TensorMap{S,N₁,N₂,Trivial,A,
                                                                        Nothing,Nothing}
 """
-    TrivialTensor{S<:IndexSpace, N, A<:DenseMatrix} = TrivialTensorMap{S, N, 0, A}
+    TrivialTensor{S, N, A} = TrivialTensorMap{S, N, 0, A}
 
 A special case of [`Tensor`](@ref) for representing tensors with trivial symmetry, i.e.,
 whose `sectortype` is `Trivial`.
 """
-const TrivialTensor{S<:IndexSpace,N,A<:DenseMatrix} = TrivialTensorMap{S,N,0,A}
+const TrivialTensor{S,N,A} = TrivialTensorMap{S,N,0,A}
 """
     tensormaptype(::Type{S}, N₁::Int, N₂::Int, [::Type{T}]) where {S<:IndexSpace,T} -> ::Type{<:TensorMap}
 
