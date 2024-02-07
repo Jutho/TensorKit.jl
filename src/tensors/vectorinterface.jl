@@ -58,36 +58,31 @@ function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
     return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                              α::Number, β::Number;
-                              numthreads::Int64=1)
+                              α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    if numthreads == 1 || length(blocksectors) == 1
-        for c in blocksectors(tx)
+    num_threads = get_num_threads_add()
+    lsc = blocksectors(tx)
+    if num_threads == 1 || length(lsc) == 1
+        for c in lsc
             VectorInterface.add!(block(ty, c), block(tx, c), α, β)
         end
-    elseif numthreads == -1
-        Threads.@sync for c in blocksectors(tx)
-            Threads.@spawn VectorInterface.add!(block(ty, c), block(tx, c), α, β)
-        end
-    else
-        # producer
-        taskref = Ref{Task}()
-        ch = Channel(; taskref=taskref, spawn=true) do ch
-            for c in vcat(blocksectors(tx), fill(nothing, numthreads))
-                put!(ch, c)
-            end
-        end
-        # consumers
-        tasks = map(1:numthreads) do _
-            task = Threads.@spawn while true
-                c = take!(ch)
-                VectorInterface.add!(block(ty, c), block(tx, c), α, β)
-            end
-            return errormonitor(task)
+    else 
+        # try to sort sectors by size
+        if isa(lsc, AbstractVector)
+            # warning: using `sort!` here is not safe. I found it will lead to a "key ... not found" error when show tx again  
+            lsc = sort(lsc; by=c -> prod(size(block(tx, c))), rev=true)
         end
 
-        wait.(tasks)
-        wait(taskref[])
+        idx = Threads.Atomic{Int64}(1)
+        Threads.@sync for _ in 1:num_threads
+            Threads.@spawn while true
+                i = Threads.atomic_add!(idx, 1)
+                i > length(lsc) && break
+
+                c = lsc[i]
+                VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+            end
+        end
     end
     return ty
 end

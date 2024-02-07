@@ -205,10 +205,17 @@ include("planar/planaroperations.jl")
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")
 
+include("multithreading.jl")
 # Extensions
 # ----------
 function __init__()
     @require_extensions
+
+    global nthreads_mul = Threads.nthreads()
+    global nthreads_eigh = Threads.nthreads()
+    global nthreads_svd = Threads.nthreads()
+    global nthreads_add = Threads.nthreads()
+
 end
 
 end
