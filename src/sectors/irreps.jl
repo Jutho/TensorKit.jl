@@ -23,7 +23,8 @@ struct IrrepTable end
     const Irrep
 
 A constant of a singleton type used as `Irrep[G]` with `G<:Group` a type of group, to
-construct or obtain a concrete subtype of `AbstractIrrep{G}` that implements the data structure used to represent irreducible representations of the group `G`.
+construct or obtain a concrete subtype of `AbstractIrrep{G}` that implements the data
+structure used to represent irreducible representations of the group `G`.
 """
 const Irrep = IrrepTable()
 
@@ -66,14 +67,17 @@ end
 
 # ZNIrrep: irreps of Z_N are labelled by integers mod N; do we ever want N > 64?
 """
+    struct ZNIrrep{N} <: AbstractIrrep{ℤ{N}}
     ZNIrrep{N}(n::Integer)
     Irrep[ℤ{N}](n::Integer)
 
-Represents irreps of the group ``ℤ_N`` for some value of `N<64`. (We need 2*(N-1) <= 127
-in order for a ⊗ b to work correctly.) For `N` equals `2`, `3` or `4`, `ℤ{N}` can be
-replaced by `ℤ₂`, `ℤ₃`, `ℤ₄`, whereas `Parity` is a synonym for `Irrep{ℤ₂}`. An arbitrary
-`Integer` `n` can be provided to the constructor, but only the value `mod(n, N)` is
-relevant.
+Represents irreps of the group ``ℤ_N`` for some value of `N<64`. (We need 2*(N-1) <= 127 in
+order for a ⊗ b to work correctly.) For `N` equals `2`, `3` or `4`, `ℤ{N}` can be replaced
+by `ℤ₂`, `ℤ₃`, `ℤ₄`. An arbitrary `Integer` `n` can be provided to the constructor, but only
+the value `mod(n, N)` is relevant.
+
+## Fields
+- `n::Int8`: the integer label of the irrep, modulo `N`.
 """
 struct ZNIrrep{N} <: AbstractIrrep{ℤ{N}}
     n::Int8
@@ -107,14 +111,18 @@ Base.isless(c1::ZNIrrep{N}, c2::ZNIrrep{N}) where {N} = isless(c1.n, c2.n)
 
 # U1Irrep: irreps of U1 are labelled by integers
 """
-    U1Irrep(j::Real)
-    Irrep[U₁](j::Real)
+    struct U1Irrep <: AbstractIrrep{U₁}
+    U1Irrep(charge::Real)
+    Irrep[U₁](charge::Real)
 
 Represents irreps of the group ``U₁``. The irrep is labelled by a charge, which should be
 an integer for a linear representation. However, it is often useful to allow half integers
 to represent irreps of ``U₁`` subgroups of ``SU₂``, such as the Sz of spin-1/2 system.
 Hence, the charge is stored as a `HalfInt` from the package HalfIntegers.jl, but can be
 entered as arbitrary `Real`. The sequence of the charges is: 0, 1/2, -1/2, 1, -1, ...
+
+## Fields
+- `charge::HalfInt`: the label of the irrep, which can be any half integer.
 """
 struct U1Irrep <: AbstractIrrep{U₁}
     charge::HalfInt
@@ -153,12 +161,16 @@ function Base.show(io::IO, ::SU2IrrepException)
 end
 
 """
+    struct SU2Irrep <: AbstractIrrep{SU₂}
     SU2Irrep(j::Real)
     Irrep[SU₂](j::Real)
 
 Represents irreps of the group ``SU₂``. The irrep is labelled by a half integer `j` which
 can be entered as an abitrary `Real`, but is stored as a `HalfInt` from the HalfIntegers.jl
 package.
+
+## Fields
+- `j::HalfInt`: the label of the irrep, which can be any non-negative half integer.
 """
 struct SU2Irrep <: AbstractIrrep{SU₂}
     j::HalfInt
@@ -219,13 +231,18 @@ Base.isless(s1::SU2Irrep, s2::SU2Irrep) = isless(s1.j, s2.j)
 
 # U₁ ⋊ C (U₁ and charge conjugation)
 """
+    struct CU1Irrep <: AbstractIrrep{CU₁}
     CU1Irrep(j, s = ifelse(j>zero(j), 2, 0))
     Irrep[CU₁](j, s = ifelse(j>zero(j), 2, 0))
 
 Represents irreps of the group ``U₁ ⋊ C`` (``U₁`` and charge conjugation or reflection),
-which is also known as just `O₂`. The irrep is labelled by a positive half integer `j` (the
-``U₁`` charge) and an integer `s` indicating the behaviour under charge conjugation. They
-take values:
+which is also known as just `O₂`. 
+
+## Fields
+- `j::HalfInt`: the value of the ``U₁`` charge.
+- `s::Int`: the representation of charge conjugation.
+
+They can take values:
 *   if `j == 0`, `s = 0` (trivial charge conjugation) or
     `s = 1` (non-trivial charge conjugation)
 *   if `j > 0`, `s = 2` (two-dimensional representation)

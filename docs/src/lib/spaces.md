@@ -16,6 +16,7 @@ ComplexSpace
 GradedSpace
 CompositeSpace
 ProductSpace
+HomSpace
 ```
 
 ## Useful constants
@@ -38,7 +39,9 @@ field
 sectortype
 sectors
 hassector
-dim
+dim(::VectorSpace)
+dim(::ElementarySpace, ::Sector)
+dim(P::ProductSpace{<:ElementarySpace,N}, sector::NTuple{N,<:Sector}) where {N}
 dims
 blocksectors(::ProductSpace)
 blocksectors(::HomSpace)

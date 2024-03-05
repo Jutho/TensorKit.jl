@@ -18,7 +18,10 @@ SU2Irrep
 CU1Irrep
 ProductSector
 FermionParity
+FermionNumber
+FermionSpin
 FibonacciAnyon
+IsingAnyon
 FusionTree
 ```
 
@@ -42,6 +45,8 @@ Base.isreal(::Type{<:Sector})
 TensorKit.vertex_labeltype
 TensorKit.vertex_ind2label
 ⊠(::Sector, ::Sector)
+fusiontrees(uncoupled::NTuple{N,I}, coupled::I,
+                     isdual::NTuple{N,Bool}) where {N,I<:Sector}
 ```
 
 ## Methods for manipulating fusion trees

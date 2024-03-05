@@ -24,21 +24,36 @@ TrivialTensorMap
 TrivialTensor
 ```
 
-## Specific `TensorMap` constructors
+## `TensorMap` constructors
 
+### General constructors
+
+A general `TensorMap` can be constructed by specifying its data, codmain and domain in one
+of the following ways:
+```@docs
+TensorMap(::AbstractDict{<:Sector,<:DenseMatrix}, ::ProductSpace{S,N₁},
+                   ::ProductSpace{S,N₂}) where {S<:IndexSpace,N₁,N₂}
+TensorMap(::Any, ::Type{T}, codom::ProductSpace{S},
+                   dom::ProductSpace{S}) where {S<:IndexSpace,T<:Number}
+TensorMap(::DenseArray, ::ProductSpace{S,N₁}, ::ProductSpace{S,N₂};
+                   tol) where {S<:IndexSpace,N₁,N₂}
+```
+
+Several special-purpose methods exist to generate data according to specific distributions:
+```@docs
+randuniform
+randnormal
+randisometry
+```
+
+### Specific constructors
+
+Additionally, several special-purpose constructors exist to generate data according to specific distributions:
 ```@docs
 id
 isomorphism
 unitary
 isometry
-```
-
-Additionally, several special-purpose methods exist to generate data according to specific distributions:
-
-```@docs
-randuniform
-randnormal
-randisometry
 ```
 
 ## Accessing properties and data
@@ -71,8 +86,26 @@ blocksectors(::AbstractTensorMap)
 blockdim(::AbstractTensorMap, ::Sector)
 block
 blocks
-fusiontrees
+fusiontrees(::AbstractTensorMap)
 hasblock
+```
+
+For `TensorMap`s with `Trivial` `sectortype`, the data can be directly accessed and
+manipulated in a straightforward way:
+```@docs
+Base.getindex(t::TrivialTensorMap)
+Base.getindex(t::TrivialTensorMap, indices::Vararg{Int})
+Base.setindex!(t::TrivialTensorMap, ::Any, indices::Vararg{Int})
+```
+
+For general `TensorMap`s, this can be done using custom `getindex` and `setindex!` methods:
+```@docs
+Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+              sectors::Tuple{Vararg{I}}) where {N₁,N₂,I<:Sector}
+Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+              f₁::FusionTree{I,N₁},
+              f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+Base.setindex!(::TensorMap{<:IndexSpace,N₁,N₂,I}, ::Any, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
 ```
 
 ## `TensorMap` operations
