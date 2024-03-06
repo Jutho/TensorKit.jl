@@ -237,7 +237,7 @@ sector.
   `S<:ElementarySpace`.
 
 If `eltype` is left unspecified, `f` should support the calling syntax `f(::Tuple{Int,Int})`
-such that `f((m, n))` returns a `DenseMatrix` with `size(f(m, n)) == (m, n)`. If `eltype` is
+such that `f((m, n))` returns a `DenseMatrix` with `size(f((m, n))) == (m, n)`. If `eltype` is
 specified, `f` is instead called as `f(eltype, (m, n))`. In the case where `f` is left
 unspecified or `undef` is passed explicitly, a `TensorMap` with uninitialized data is
 generated.
@@ -548,7 +548,7 @@ fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 
 """
     Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
-                  sectors::Tuple{Vararg{I}}) where {N₁,N₂,I<:Sector} 
+                  sectors::NTuple{N₁+N₂,I}) where {N₁,N₂,I<:Sector} 
         -> StridedViews.StridedView
     t[sectors]
 
@@ -559,7 +559,7 @@ respectively, then a `StridedViews.StridedView` of size
 `(dims(codomain(t), s1)..., dims(domain(t), s2))` is returned.
 
 This method is only available for the case where `FusionStyle(I) isa UniqueFusion`,
-since it assumes a well-defined coupled charge.
+since it assumes a  uniquely defined coupled charge.
 """
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
                                sectors::Tuple{Vararg{I}}) where {N₁,N₂,I<:Sector}

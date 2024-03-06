@@ -185,7 +185,7 @@ function adjointtensorindices(t::AbstractTensorMap, p::Index2Tuple)
 end
 
 @doc """
-    blocks(t::AbstractTensorMap) -> Dict{<:Sector,<:DenseMatrix}
+    blocks(t::AbstractTensorMap) -> SectorDict{<:Sector,<:DenseMatrix}
 
 Return an iterator over all blocks of a tensor, i.e. all coupled sectors and their
 corresponding blocks.

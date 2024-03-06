@@ -344,7 +344,7 @@ V3 = U1Space(1/2=>1,-1/2=>1) # restricted space that only uses the `σ_z` rotati
 t3 = TensorMap(data, V3 ⊗ V3, V3 ⊗ V3)
 for (c,b) in blocks(t3)
     println("Data for block $c :")
-    b |> disp
+    disp(b)
     println()
 end
 ```
@@ -390,7 +390,7 @@ block(t4, U1Irrep(1)) .= [1;;];
 block(t4, U1Irrep(-1)) .= [1;;];
 for (c, b) in blocks(t4)
     println("Data for block $c :")
-    b |> disp
+    disp(b)
     println()
 end
 ```
@@ -429,7 +429,7 @@ for (f₁, f₂) in fusiontrees(t5)
 end
 for (c, b) in blocks(t5)
     println("Data for block $c :")
-    b |> disp
+    disp(b)
     println()
 end
 ```
