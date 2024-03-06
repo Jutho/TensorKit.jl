@@ -327,13 +327,13 @@ Construct a `TensorMap` from a plain multidimensional array.
     
 Here, `data` can be specified in two ways. It can either be a `DenseArray` of rank `N₁ + N₂`
 whose size matches that of the domain and codomain spaces,
-`size(data) == (dims(codom)..., dims(dom)...)`, or a `DenseMatrix` where
-`size(data) == (dim(codom), dim(dom))`. The `TensorMap` constructor will then reconstruct
-the tensor data such that the resulting tensor `t` satisfies `data == convert(Array, t)`.
-For the case where `sectortype(S) == Trivial`, the `data` array is simply reshaped into
-matrix form and referred to as such in the resulting `TensorMap` instance. When
-`S<:GradedSpace`, the `data` array has to be compatible with how how each sector in every
-space `V` is assigned to an index range within `1:dim(V)`.
+`size(data) == (dims(codomain)..., dims(domain)...)`, or a `DenseMatrix` where
+`size(data) == (dim(codomain), dim(domain))`. The `TensorMap` constructor will then
+reconstruct the tensor data such that the resulting tensor `t` satisfies
+`data == convert(Array, t)`. For the case where `sectortype(S) == Trivial`, the `data` array
+is simply reshaped into matrix form and referred to as such in the resulting `TensorMap`
+instance. When `S<:GradedSpace`, the `data` array has to be compatible with how how each
+sector in every space `V` is assigned to an index range within `1:dim(V)`.
 
 Alternatively, the domain and codomain can be specified by passing a [`HomSpace`](@ref)
 using the syntax `codomain ← domain` or `domain → codomain`.
