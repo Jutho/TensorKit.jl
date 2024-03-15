@@ -34,9 +34,9 @@ function _canonicalize(p::IndexTuple, t::AbstractTensorMap)
 end
 
 # tensoradd!
-function TO.tensoradd!(C::AbstractTensorMap{S}, pC::Index2Tuple,
-                       A::AbstractTensorMap{S}, conjA::Symbol,
-                       α::Number, β::Number, backend::Backend...) where {S}
+function TO.tensoradd!(C::AbstractTensorMap, pC::Index2Tuple,
+                       A::AbstractTensorMap, conjA::Symbol,
+                       α::Number, β::Number, backend::Backend...)
     if conjA == :N
         A′ = A
         pC′ = _canonicalize(pC, C)
@@ -50,17 +50,17 @@ function TO.tensoradd!(C::AbstractTensorMap{S}, pC::Index2Tuple,
     return C
 end
 
-function TO.tensoradd_type(TC, ::Index2Tuple{N₁,N₂}, A::AbstractTensorMap{S},
-                           ::Symbol) where {S,N₁,N₂}
+function TO.tensoradd_type(TC, ::Index2Tuple{N₁,N₂}, A::AbstractTensorMap,
+                           ::Symbol) where {N₁,N₂}
     M = similarstoragetype(A, TC)
-    return tensormaptype(S, N₁, N₂, M)
+    return tensormaptype(spacetype(A), N₁, N₂, M)
 end
 
 function TO.tensoradd_structure(pC::Index2Tuple{N₁,N₂},
-                                A::AbstractTensorMap{S}, conjA::Symbol) where {S,N₁,N₂}
+                                A::AbstractTensorMap, conjA::Symbol) where {N₁,N₂}
     if conjA == :N
-        cod = ProductSpace{S,N₁}(space.(Ref(A), pC[1]))
-        dom = ProductSpace{S,N₂}(dual.(space.(Ref(A), pC[2])))
+        cod = ProductSpace{spacetype(A),N₁}(space.(Ref(A), pC[1]))
+        dom = ProductSpace{spacetype(A),N₂}(dual.(space.(Ref(A), pC[2])))
         return dom → cod
     else
         return TO.tensoradd_structure(adjointtensorindices(A, pC), adjoint(A), :N)
@@ -68,9 +68,9 @@ function TO.tensoradd_structure(pC::Index2Tuple{N₁,N₂},
 end
 
 # tensortrace!
-function TO.tensortrace!(C::AbstractTensorMap{S}, p::Index2Tuple,
-                         A::AbstractTensorMap{S}, q::Index2Tuple, conjA::Symbol,
-                         α::Number, β::Number, backend::Backend...) where {S}
+function TO.tensortrace!(C::AbstractTensorMap, p::Index2Tuple,
+                         A::AbstractTensorMap, q::Index2Tuple, conjA::Symbol,
+                         α::Number, β::Number, backend::Backend...)
     if conjA == :N
         A′ = A
         p′ = _canonicalize(p, C)
@@ -89,10 +89,10 @@ function TO.tensortrace!(C::AbstractTensorMap{S}, p::Index2Tuple,
 end
 
 # tensorcontract!
-function TO.tensorcontract!(C::AbstractTensorMap{S,N₁,N₂}, pAB::Index2Tuple,
-                            A::AbstractTensorMap{S}, pA::Index2Tuple, conjA::Symbol,
-                            B::AbstractTensorMap{S}, pB::Index2Tuple, conjB::Symbol,
-                            α::Number, β::Number, backend::Backend...) where {S,N₁,N₂}
+function TO.tensorcontract!(C::AbstractTensorMap, pAB::Index2Tuple,
+                            A::AbstractTensorMap, pA::Index2Tuple, conjA::Symbol,
+                            B::AbstractTensorMap, pB::Index2Tuple, conjB::Symbol,
+                            α::Number, β::Number, backend::Backend...)
     pAB′ = _canonicalize(pAB, C)
     if conjA == :N
         A′ = A
@@ -117,28 +117,30 @@ function TO.tensorcontract!(C::AbstractTensorMap{S,N₁,N₂}, pAB::Index2Tuple,
 end
 
 function TO.tensorcontract_type(TC, ::Index2Tuple{N₁,N₂},
-                                A::AbstractTensorMap{S}, pA, conjA,
-                                B::AbstractTensorMap{S}, pB, conjB) where {S,N₁,N₂}
+                                A::AbstractTensorMap, pA, conjA,
+                                B::AbstractTensorMap, pB, conjB) where {N₁,N₂}
     M = similarstoragetype(A, TC)
     M == similarstoragetype(B, TC) || throw(ArgumentError("incompatible storage types"))
-    return tensormaptype(S, N₁, N₂, M)
+    spacetype(A) == spacetype(B) || throw(SpaceMismatch("incompatible space types"))
+    return tensormaptype(spacetype(A), N₁, N₂, M)
 end
 
 function TO.tensorcontract_structure(pC::Index2Tuple{N₁,N₂},
-                                     A::AbstractTensorMap{S}, pA::Index2Tuple, conjA,
-                                     B::AbstractTensorMap{S}, pB::Index2Tuple,
-                                     conjB) where {S,N₁,N₂}
+                                     A::AbstractTensorMap, pA::Index2Tuple, conjA,
+                                     B::AbstractTensorMap, pB::Index2Tuple,
+                                     conjB) where {N₁,N₂}
+    spacetype(A) == spacetype(B) || throw(SpaceMismatch("incompatible space types"))
     spaces1 = TO.flag2op(conjA).(space.(Ref(A), pA[1]))
     spaces2 = TO.flag2op(conjB).(space.(Ref(B), pB[2]))
     spaces = (spaces1..., spaces2...)
-    cod = ProductSpace{S,N₁}(getindex.(Ref(spaces), pC[1]))
-    dom = ProductSpace{S,N₂}(dual.(getindex.(Ref(spaces), pC[2])))
+    cod = ProductSpace{spacetype(A),N₁}(getindex.(Ref(spaces), pC[1]))
+    dom = ProductSpace{spacetype(A),N₂}(dual.(getindex.(Ref(spaces), pC[2])))
     return dom → cod
 end
 
-function TO.checkcontractible(tA::AbstractTensorMap{S}, iA::Int, conjA::Symbol,
-                              tB::AbstractTensorMap{S}, iB::Int, conjB::Symbol,
-                              label) where {S}
+function TO.checkcontractible(tA::AbstractTensorMap, iA::Int, conjA::Symbol,
+                              tB::AbstractTensorMap, iB::Int, conjB::Symbol,
+                              label)
     sA = TO.tensorstructure(tA, iA, conjA)'
     sB = TO.tensorstructure(tB, iB, conjB)
     sA == sB ||
@@ -154,8 +156,8 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 
 # Trace implementation
 #----------------------
-function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂},
-                        tsrc::AbstractTensorMap{S},
+function trace_permute!(tdst::AbstractTensorMap{<:Any,S,N₁,N₂},
+                        tsrc::AbstractTensorMap{<:Any,S},
                         (p₁, p₂)::Index2Tuple{N₁,N₂},
                         (q₁, q₂)::Index2Tuple{N₃,N₃},
                         α::Number,
@@ -217,10 +219,10 @@ end
 # TODO: contraction with either A or B a rank (1, 1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
-function contract!(C::AbstractTensorMap{S},
-                   A::AbstractTensorMap{S},
+function contract!(C::AbstractTensorMap{<:Any,S},
+                   A::AbstractTensorMap{<:Any,S},
                    (oindA, cindA)::Index2Tuple{N₁,N₃},
-                   B::AbstractTensorMap{S},
+                   B::AbstractTensorMap{<:Any,S},
                    (cindB, oindB)::Index2Tuple{N₃,N₂},
                    (p₁, p₂)::Index2Tuple,
                    α::Number,
@@ -275,8 +277,8 @@ function contract!(C::AbstractTensorMap{S},
 end
 
 # TODO: also transform _contract! into new interface, and add backend support
-function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
-                    β, C::AbstractTensorMap{S},
+function _contract!(α, A::AbstractTensorMap{<:Any,S}, B::AbstractTensorMap{<:Any,S},
+                    β, C::AbstractTensorMap{<:Any,S},
                     oindA::IndexTuple{N₁}, cindA::IndexTuple,
                     oindB::IndexTuple{N₂}, cindB::IndexTuple,
                     p₁::IndexTuple, p₂::IndexTuple) where {S,N₁,N₂}
@@ -315,7 +317,7 @@ end
 
 # Scalar implementation
 #-----------------------
-function scalar(t::AbstractTensorMap{S}) where {S<:IndexSpace}
+function scalar(t::AbstractTensorMap)
     return dim(codomain(t)) == dim(domain(t)) == 1 ?
            first(blocks(t))[2][1, 1] : throw(DimensionMismatch())
 end
