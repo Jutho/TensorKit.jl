@@ -1,20 +1,20 @@
 # planar versions of tensor operations add!, trace! and contract!
-function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
-                    A::AbstractTensorMap{S},
+function planaradd!(C::AbstractTensorMap,
+                    A::AbstractTensorMap,
                     p::Index2Tuple{N₁,N₂},
                     α::Number,
                     β::Number,
-                    backend::Backend...) where {S,N₁,N₂}
+                    backend::Backend...) where {N₁,N₂}
     return add_transpose!(C, A, p, α, β, backend...)
 end
 
-function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
-                      A::AbstractTensorMap{S},
+function planartrace!(C::AbstractTensorMap{N₁,N₂},
+                      A::AbstractTensorMap,
                       p::Index2Tuple{N₁,N₂},
                       q::Index2Tuple{N₃,N₃},
                       α::Number,
                       β::Number,
-                      backend::Backend...) where {S,N₁,N₂,N₃}
+                      backend::Backend...) where {N₁,N₂,N₃}
     if BraidingStyle(sectortype(S)) == Bosonic()
         return trace_permute!(C, A, p, q, α, β, backend...)
     end
@@ -44,16 +44,16 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
     return C
 end
 
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
-                         A::AbstractTensorMap{S},
+function planarcontract!(C::AbstractTensorMap,
+                         A::AbstractTensorMap,
                          pA::Index2Tuple,
-                         B::AbstractTensorMap{S},
+                         B::AbstractTensorMap,
                          pB::Index2Tuple,
-                         pAB::Index2Tuple{N₁,N₂},
+                         pAB::Index2Tuple,
                          α::Number,
                          β::Number,
-                         backend::Backend...) where {S,N₁,N₂}
-    if BraidingStyle(sectortype(S)) == Bosonic()
+                         backend::Backend...)
+    if BraidingStyle(sectortype(C)) == Bosonic()
         return contract!(C, A, pA, B, pB, pAB, α, β, backend...)
     end
 
