@@ -156,7 +156,7 @@ Return all indices of the domain of a tensor.
 See also [`codomainind`](@ref) and [`allind`](@ref).
 """
 function domainind(::Type{T}) where {T<:AbstractTensorMap}
-    return ntuple(n -> N₁ + n, N₂)
+    return ntuple(n -> numout(T) + n, numin(T))
 end
 domainind(t::AbstractTensorMap) = domainind(typeof(t))
 
