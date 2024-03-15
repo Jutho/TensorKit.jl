@@ -40,7 +40,7 @@ end
 Specific subtype of [`AbstractTensor`](@ref) for representing tensors whose data is stored
 in blocks of some subtype of `DenseMatrix`.
 
-A `Tensor{S, N, I, A, F₁, F₂}` is actually a special case `TensorMap{S, N, 0, I, A, F₁, F₂}`,
+A `Tensor{E, S, N, I, A, F₁, F₂}` is actually a special case `TensorMap{E, S, N, 0, I, A, F₁, F₂}`,
 i.e. a tensor map with only a non-trivial output space.
 """
 const Tensor{E,S,N,I,A,F₁,F₂} = TensorMap{E,S,N,0,I,A,F₁,F₂}
@@ -352,7 +352,7 @@ Base.similar(t::AbstractTensorMap, T::Type) = similar(t, T, space(t))
 Base.similar(t::AbstractTensorMap) = similar(t, scalartype(t), space(t))
 
 # actual implementation
-function Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S}) where {T,S}
+function Base.similar(t::TensorMap, ::Type{T}, P::TensorMapSpace{S}) where {T,S}
     N₁ = length(codomain(P))
     N₂ = length(domain(P))
     I = sectortype(S)
