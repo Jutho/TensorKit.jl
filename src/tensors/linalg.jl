@@ -383,7 +383,7 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
 end
 
 # concatenate tensors
-function catdomain(t1::AbstractTensorMap{<:Any.S,N₁,1},
+function catdomain(t1::AbstractTensorMap{<:Any,S,N₁,1},
                    t2::AbstractTensorMap{<:Any,S,N₁,1}) where {S,N₁}
     codomain(t1) == codomain(t2) ||
         throw(SpaceMismatch("codomains of tensors to concatenate must match:\n" *
