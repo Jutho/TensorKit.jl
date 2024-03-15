@@ -337,12 +337,12 @@ function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tupl
 end
 function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
                          B::AbstractTensorMap, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...) 
+                         backend::Backend...)
     return planarcontract!(C, copy(A), pA, B, pB, α, β, backend...)
 end
 function planarcontract!(C::AbstractTensorMap, A::AbstractTensorMap, pA::Index2Tuple,
                          B::BraidingTensor, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...) 
+                         backend::Backend...)
     return planarcontract!(C, A, pA, copy(B), pB, α, β, backend...)
 end
 

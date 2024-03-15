@@ -52,7 +52,8 @@ const Tensor{E,S,N,I,A,F₁,F₂} = TensorMap{E,S,N,0,I,A,F₁,F₂}
 A special case of [`TensorMap`](@ref) for representing tensor maps with trivial symmetry,
 i.e., whose `sectortype` is `Trivial`.
 """
-const TrivialTensorMap{E,S,N₁,N₂,A<:DenseMatrix} = TensorMap{E,S,N₁,N₂,Trivial,A, Nothing,Nothing}
+const TrivialTensorMap{E,S,N₁,N₂,A<:DenseMatrix} = TensorMap{E,S,N₁,N₂,Trivial,A,Nothing,
+                                                             Nothing}
 
 """
     TrivialTensor{E, S, N, A} = TrivialTensorMap{E, S, N, 0, A}
@@ -512,7 +513,8 @@ end
 @propagate_inbounds function Base.setindex!(t::TensorMap{E,S,N₁,N₂,I},
                                             v,
                                             f₁::FusionTree{I,N₁},
-                                            f₂::FusionTree{I,N₂}) where {E,S,N₁,N₂,I<:Sector}
+                                            f₂::FusionTree{I,N₂}) where {E,S,N₁,N₂,
+                                                                         I<:Sector}
     return copy!(getindex(t, f₁, f₂), v)
 end
 
