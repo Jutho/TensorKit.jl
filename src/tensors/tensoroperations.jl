@@ -156,17 +156,27 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 
 # Trace implementation
 #----------------------
-function trace_permute!(tdst::AbstractTensorMap{<:Any,S,N₁,N₂},
-                        tsrc::AbstractTensorMap{<:Any,S},
-                        (p₁, p₂)::Index2Tuple{N₁,N₂},
-                        (q₁, q₂)::Index2Tuple{N₃,N₃},
+function trace_permute!(tdst::AbstractTensorMap,
+                        tsrc::AbstractTensorMap,
+                        (p₁, p₂)::Index2Tuple,
+                        (q₁, q₂)::Index2Tuple,
                         α::Number,
                         β::Number,
-                        backend::Backend...) where {S,N₁,N₂,N₃}
+                        backend::Backend...)
+    # some input checks
+    (S = spacetype(tdst)) == spacetype(tsrc) ||
+        throw(SpaceMismatch("incompatible spacetypes"))
     if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
         throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
     end
+    (N₃ = length(q₁)) == length(q₂) ||
+        throw(IndexError("number of trace indices does not match"))
+    
+    N₁, N₂ = length(p₁), length(p₂)
+    
     @boundscheck begin
+        numout(tdst) == N₁ || throw(IndexError("number of output indices does not match"))
+        numin(tdst) == N₂ || throw(IndexError("number of input indices does not match"))
         all(i -> space(tsrc, p₁[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
                     tdst = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
