@@ -292,7 +292,7 @@ function _contract!(α, A::AbstractTensorMap, B::AbstractTensorMap,
                     oindA::IndexTuple, cindA::IndexTuple,
                     oindB::IndexTuple, cindB::IndexTuple,
                     p₁::IndexTuple, p₂::IndexTuple)
-    if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
+    if !(BraidingStyle(sectortype(C)) isa SymmetricBraiding)
         throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
     end
     N₁, N₂ = length(oindA), length(oindB)
@@ -306,7 +306,7 @@ function _contract!(α, A::AbstractTensorMap, B::AbstractTensorMap,
     end
     A′ = permute(A, (oindA, cindA); copy=copyA)
     B′ = permute(B, (cindB, oindB))
-    if BraidingStyle(sectortype(S)) isa Fermionic
+    if BraidingStyle(sectortype(A)) isa Fermionic
         for i in domainind(A′)
             if !isdual(space(A′, i))
                 A′ = twist!(A′, i)
