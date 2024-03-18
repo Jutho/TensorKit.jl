@@ -11,7 +11,7 @@ export Irrep
 
 export Nsymbol, Fsymbol, Rsymbol, Asymbol, Bsymbol
 export dim, sqrtdim, isqrtdim, frobeniusschur, twist, fusiontensor, dual
-export deligneproduct
+export fusionproduct, deligneproduct
 export FusionStyle, UniqueFusion, MultipleFusion, SimpleFusion, GenericFusion,
        MultiplicityFreeFusion
 export BraidingStyle, NoBraiding, SymmetricBraiding, Bosonic, Fermionic, Anyonic

@@ -124,6 +124,9 @@ Return an iterable of elements of `c::I` that appear in the fusion product `a �
 Note that every element `c` should appear at most once, fusion degeneracies (if
 `FusionStyle(I) == GenericFusion()`) should be accessed via `Nsymbol(a, b, c)`.
 """
+fusionproduct(::Sector, ::Sector)
+const ⊗ = fusionproduct
+
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
 ⊗(I::Sector) = (I,)
 const otimes = ⊗
