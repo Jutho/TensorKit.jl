@@ -313,8 +313,8 @@ e.g. for `CartesianSpace` or `ComplexSpace`. Then the `data` array is just resha
 matrix form and referred to as such in the resulting `TensorMap` instance. When `spacetype`
 is `GradedSpace`, the `TensorMap` constructor will try to reconstruct the tensor data such
 that the resulting tensor `t` satisfies `data == convert(Array, t)`. This might not be
-possible, if the data does not respect the symmetry structure. Let's sketch procedure using
-a simple physical example, namely the SWAP gate on two qubits,
+possible, if the data does not respect the symmetry structure. This procedure can be
+sketched using a simple physical example, namely the SWAP gate on two qubits,
 ```math
 \begin{align*}
 \mathrm{SWAP}: \mathbb{C}^2 \otimes \mathbb{C}^2 & \to \mathbb{C}^2 \otimes \mathbb{C}^2\\

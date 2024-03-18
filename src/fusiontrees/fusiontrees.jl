@@ -8,9 +8,10 @@ sectors to a coupled sector. It actually represents a splitting tree, but fusion
 is a more common term.
 
 ## Fields
-- `uncoupled::NTuple{N,I}`: the uncoupled sectors coming out of the splitting tree, before the possible 𝑍 isomorphism.
+- `uncoupled::NTuple{N,I}`: the uncoupled sectors coming out of the splitting tree, before
+  the possible 𝑍 isomorphism (see `isdual`).
 - `coupled::I`: the coupled sector.
-- `isdual::NTuple{N,Bool}`: indicates whether the an isomorphism is present (`true`) or not
+- `isdual::NTuple{N,Bool}`: indicates whether a 𝑍 isomorphism is present (`true`) or not
   (`false`) for each uncoupled sector.
 - `innerlines::NTuple{M,I}`: the labels of the M=max(0, N-2)` inner lines of the splitting
   tree.
