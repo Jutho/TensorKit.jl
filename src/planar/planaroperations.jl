@@ -22,7 +22,7 @@ function planartrace!(C::AbstractTensorMap,
     (N₃ = length(q₁)) == length(q₂) ||
         throw(IndexError("number of trace indices does not match"))
     N₁, N₂ = length(p₁), length(p₂)
-    
+
     @boundscheck begin
         numout(C) == N₁ || throw(IndexError("number of output indices does not match"))
         numin(C) == N₂ || throw(IndexError("number of input indices does not match"))

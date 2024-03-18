@@ -171,9 +171,9 @@ function trace_permute!(tdst::AbstractTensorMap,
     end
     (N₃ = length(q₁)) == length(q₂) ||
         throw(IndexError("number of trace indices does not match"))
-    
+
     N₁, N₂ = length(p₁), length(p₂)
-    
+
     @boundscheck begin
         numout(tdst) == N₁ || throw(IndexError("number of output indices does not match"))
         numin(tdst) == N₂ || throw(IndexError("number of input indices does not match"))
@@ -238,7 +238,7 @@ function contract!(C::AbstractTensorMap,
     length(cindA) == length(cindB) ||
         throw(IndexError("number of contracted indices does not match"))
     N₁, N₂ = length(oindA), length(oindB)
-    
+
     # find optimal contraction scheme
     hsp = has_shared_permute
     ipC = TupleTools.invperm((p₁..., p₂...))
