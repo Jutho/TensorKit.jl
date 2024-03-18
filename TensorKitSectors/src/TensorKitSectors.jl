@@ -52,4 +52,16 @@ include("product.jl")   # direct product of different sectors
 include("fermions.jl")  # irreps with defined fermionparity and fermionic braiding
 include("anyons.jl")    # non-group sectors
 
+# precompile
+# ----------
+include("precompile.jl")
+
+function __precompile__()
+    for I in (Trivial, Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep,
+              FermionParity, FermionNumber, FermionSpin, PlanarTrivial, FibonacciAnyon,
+              IsingAnyon)
+        precompile_sector(I)
+    end
+end
+
 end # module TensorKitSectors
