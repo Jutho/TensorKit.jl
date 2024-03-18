@@ -1,11 +1,15 @@
-# NewSU2Irrep
-# Test of a bare-bones sector implementation, which is set to be `DegenerateNonAbelian`
-# (even though it is not)
+"""
+    module NewSectors
+
+Bare-bones implementation of a new sector type, `NewSU2Irrep`, which is set to be of
+`GenericFusion` type and `Bosonic` braiding style.
+"""
 module NewSectors
 
 export NewSU2Irrep
 
-using HalfIntegers, WignerSymbols
+using HalfIntegers
+using WignerSymbols
 using TensorKitSectors
 
 import TensorKitSectors: FusionStyle, BraidingStyle, Nsymbol, Fsymbol, Rsymbol, dim,
@@ -29,12 +33,7 @@ end
 
 Base.IteratorSize(::Type{SectorValues{NewSU2Irrep}}) = Base.IsInfinite()
 Base.iterate(::SectorValues{NewSU2Irrep}, i=0) = (NewSU2Irrep(half(i)), i + 1)
-# Base.getindex(::SectorValues{NewSU2Irrep}, i::Int) =
-#     1 <= i ? NewSU2Irrep(half(i-1)) : throw(BoundsError(values(NewSU2Irrep), i))
-# findindex(::SectorValues{NewSU2Irrep}, s::NewSU2Irrep) = twice(s.j)+1
 
-# TensorKit.dim(s::NewSU2Irrep) = twice(s.j)+1
-#
 FusionStyle(::Type{NewSU2Irrep}) = GenericFusion()
 BraidingStyle(::Type{NewSU2Irrep}) = Bosonic()
 Base.isreal(::Type{NewSU2Irrep}) = true
@@ -76,4 +75,4 @@ end
 Base.hash(s::NewSU2Irrep, h::UInt) = hash(s.j, h)
 Base.isless(s1::NewSU2Irrep, s2::NewSU2Irrep) = isless(s1.j, s2.j)
 
-end
+end # module NewSectors
