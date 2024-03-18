@@ -2,12 +2,12 @@ println("------------------------------------")
 println("Sectors")
 println("------------------------------------")
 @timedtestset "Sectors" verbose = true begin
-    @timedtestset "Sector properties of $(TensorKit.type_repr(I))" for I in sectorlist
-        Istr = TensorKit.type_repr(I)
+    @timedtestset "Sector properties of $(TKS.type_repr(I))" for I in sectorlist
+        Istr = TKS.type_repr(I)
         @testset "Sector $Istr: Basic properties" begin
             s = (randsector(I), randsector(I), randsector(I))
             @test eval(Meta.parse(sprint(show, I))) == I
-            @test eval(Meta.parse(TensorKit.type_repr(I))) == I
+            @test eval(Meta.parse(TKS.type_repr(I))) == I
             @test eval(Meta.parse(sprint(show, s[1]))) == s[1]
             @test @constinferred(hash(s[1])) == hash(deepcopy(s[1]))
             @test @constinferred(one(s[1])) == @constinferred(one(I))
@@ -30,21 +30,21 @@ println("------------------------------------")
                 @test !isless(s, sprev) # confirm compatibility with sort order
                 if Base.IteratorSize(values(I)) == Base.IsInfinite() && I <: ProductSector
                     @test_throws ArgumentError values(I)[i]
-                    @test_throws ArgumentError TensorKit.findindex(values(I), s)
+                    @test_throws ArgumentError findindex(values(I), s)
                 elseif hasmethod(Base.getindex, Tuple{typeof(values(I)),Int})
                     @test s == @constinferred (values(I)[i])
-                    @test TensorKit.findindex(values(I), s) == i
+                    @test findindex(values(I), s) == i
                 end
                 sprev = s
                 i >= 10 && break
             end
             @test one(I) == first(values(I))
             if Base.IteratorSize(values(I)) == Base.IsInfinite() && I <: ProductSector
-                @test_throws ArgumentError TensorKit.findindex(values(I), one(I))
+                @test_throws ArgumentError findindex(values(I), one(I))
             elseif hasmethod(Base.getindex, Tuple{typeof(values(I)),Int})
-                @test (@constinferred TensorKit.findindex(values(I), one(I))) == 1
+                @test (@constinferred findindex(values(I), one(I))) == 1
                 for s in smallset(I)
-                    @test (@constinferred values(I)[TensorKit.findindex(values(I), s)]) == s
+                    @test (@constinferred values(I)[findindex(values(I), s)]) == s
                 end
             end
         end

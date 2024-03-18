@@ -1,21 +1,15 @@
 using Test
 using TestExtras
 using Random
-using TensorKit
-using Combinatorics
-using TensorKit: ProductSector, fusiontensor, pentagon_equation, hexagon_equation
+using TensorKitSectors
 using TensorOperations
 using Base.Iterators: take, product
-# using SUNRepresentations: SUNIrrep
-# const SU3Irrep = SUNIrrep{3}
 using LinearAlgebra: LinearAlgebra
+
+const TKS = TensorKitSectors
 
 include("newsectors.jl")
 using .NewSectors
-
-const TK = TensorKit
-
-Random.seed!(1234)
 
 smallset(::Type{I}) where {I<:Sector} = take(values(I), 5)
 function smallset(::Type{ProductSector{Tuple{I1,I2}}}) where {I1,I2}
@@ -56,20 +50,4 @@ sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irre
               NewSU2Irrep ⊠ SU2Irrep, FermionParity ⊠ SU2Irrep ⊠ NewSU2Irrep,
               Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
-Ti = time()
-include("fusiontrees.jl")
-include("spaces.jl")
-include("tensors.jl")
-include("planar.jl")
-include("ad.jl")
-include("bugfixes.jl")
-Tf = time()
-printstyled("Finished all tests in ",
-            string(round((Tf - Ti) / 60; sigdigits=3)),
-            " minutes."; bold=true, color=Base.info_color())
-println()
-
-@testset "Aqua" verbose = true begin
-    using Aqua
-    Aqua.test_all(TensorKit)
-end
+include("sectors.jl")

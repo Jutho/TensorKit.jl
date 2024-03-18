@@ -1,45 +1,3 @@
-# Superselection sectors (quantum numbers):
-# for defining graded vector spaces and invariant subspaces of tensor products
-#==============================================================================#
-
-module Sectors
-
-# exports
-export Sector, Group, AbstractIrrep
-export Irrep
-
-export Nsymbol, Fsymbol, Rsymbol, Asymbol, Bsymbol
-export dim, sqrtdim, isqrtdim, frobeniusschur, twist, fusiontensor
-export deligneproduct
-export FusionStyle, UniqueFusion, MultipleFusion, SimpleFusion, GenericFusion,
-       MultiplicityFreeFusion
-export BraidingStyle, NoBraiding, SymmetricBraiding, Bosonic, Fermionic, Anyonic
-export SectorSet, SectorValues, findindex, vertex_ind2label, vertex_labeltype
-
-export pentagon_equation, hexagon_equation
-
-export Trivial, Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
-export ProductSector
-export FermionParity, FermionNumber, FermionSpin
-export PlanarTrivial, FibonacciAnyon, IsingAnyon
-
-# unicode
-export ⊠, ⊗, ×
-export ℤ, ℤ₂, ℤ₃, ℤ₄, U₁, SU, SU₂, CU₁
-export fℤ₂, fU₁, fSU₂
-
-# imports
-using Base: SizeUnknown, HasLength, IsInfinite
-using Base: HasEltype, EltypeUnknown
-using Base.Iterators: product, filter
-using Base: tuple_type_head, tuple_type_tail
-
-using LinearAlgebra: tr
-using TensorOperations
-using HalfIntegers
-using WignerSymbols
-
-
 """
     abstract type Sector end
 
@@ -495,29 +453,4 @@ function Base.iterate(s::SectorSet{I}, args...) where {I<:Sector}
     next === nothing && return nothing
     val, state = next
     return convert(I, s.f(val)), state
-end
-
-# possible sectors
-include("groups.jl")
-include("irreps.jl") # irreps of symmetry groups, with bosonic braiding
-include("product.jl") # direct product of different sectors
-include("fermions.jl") # irreps with defined fermionparity and fermionic braiding
-include("anyons.jl") # non-group sectors
-
-# utility
-_kron(A, B, C, D...) = _kron(_kron(A, B), C, D...)
-function _kron(A, B)
-    sA = size(A)
-    sB = size(B)
-    s = map(*, sA, sB)
-    C = similar(A, promote_type(eltype(A), eltype(B)), s)
-    for IA in eachindex(IndexCartesian(), A)
-        for IB in eachindex(IndexCartesian(), B)
-            I = CartesianIndex(IB.I .+ (IA.I .- 1) .* sB)
-            C[I] = A[IA] * B[IB]
-        end
-    end
-    return C
-end
-
 end

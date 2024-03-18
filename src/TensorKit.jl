@@ -167,11 +167,11 @@ Base.show(io::IO, e::IndexError) = print(io, "IndexError(", e.message, ")")
 
 # Definitions and methods for superselection sectors (quantum numbers)
 #----------------------------------------------------------------------
-include("sectors/sectors.jl")
-using .Sectors
-import .Sectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
-import .Sectors: dual, type_repr
-import .Sectors: twist
+
+using TensorKitSectors
+import TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
+import TensorKitSectors: dual, type_repr
+import TensorKitSectors: twist
 
 # Constructing and manipulating fusion trees and iterators thereof
 #------------------------------------------------------------------
