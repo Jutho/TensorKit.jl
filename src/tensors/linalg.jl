@@ -383,8 +383,7 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
 end
 
 # concatenate tensors
-function catdomain(t1::AbstractTensorMap{<:Any,S,N₁,1},
-                   t2::AbstractTensorMap{<:Any,S,N₁,1}) where {S,N₁}
+function catdomain(t1::T, t2::T) where {S,N₁,T<:AbstractTensorMap{<:Any,S,N₁,1}}
     codomain(t1) == codomain(t2) ||
         throw(SpaceMismatch("codomains of tensors to concatenate must match:\n" *
                             "$(codomain(t1)) ≠ $(codomain(t2))"))
@@ -401,8 +400,7 @@ function catdomain(t1::AbstractTensorMap{<:Any,S,N₁,1},
     end
     return t
 end
-function catcodomain(t1::AbstractTensorMap{<:Any,S,1,N₂},
-                     t2::AbstractTensorMap{<:Any,S,1,N₂}) where {S,N₂}
+function catcodomain(t1::T, t2::T) where {S,N₂,T<:AbstractTensorMap{<:Any,S,1,N₂}}
     domain(t1) == domain(t2) ||
         throw(SpaceMismatch("domains of tensors to concatenate must match:\n" *
                             "$(domain(t1)) ≠ $(domain(t2))"))
@@ -428,7 +426,9 @@ Compute the tensor product between two `AbstractTensorMap` instances, which resu
 new `TensorMap` instance whose codomain is `codomain(t1) ⊗ codomain(t2)` and whose domain
 is `domain(t1) ⊗ domain(t2)`.
 """
-function ⊗(t1::AbstractTensorMap{<:Any,S}, t2::AbstractTensorMap{<:Any,S}) where {S}
+function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    (S = spacetype(t1)) === spacetype(t2) ||
+        throw(SpaceMismatch("spacetype(t1) ≠ spacetype(t2)"))
     cod1, cod2 = codomain(t1), codomain(t2)
     dom1, dom2 = domain(t1), domain(t2)
     cod = cod1 ⊗ cod2
