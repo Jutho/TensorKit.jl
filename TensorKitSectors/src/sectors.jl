@@ -58,25 +58,6 @@ Base.IteratorEltype(::Type{<:SectorValues}) = HasEltype()
 Base.eltype(::Type{SectorValues{I}}) where {I<:Sector} = I
 Base.values(::Type{I}) where {I<:Sector} = SectorValues{I}()
 
-# Define a sector for ungraded vector spaces
-"""
-    Trivial
-
-Singleton type to represent the trivial sector, i.e. the trivial representation of the
-trivial group. This is equivalent to `Rep[ℤ₁]`, or the unit object of the category `Vect` of
-ordinary vector spaces.
-"""
-struct Trivial <: Sector end
-Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
-
-Base.IteratorSize(::Type{SectorValues{Trivial}}) = HasLength()
-Base.length(::SectorValues{Trivial}) = 1
-Base.iterate(::SectorValues{Trivial}, i=false) = return i ? nothing : (Trivial(), true)
-function Base.getindex(::SectorValues{Trivial}, i::Int)
-    return i == 1 ? Trivial() : throw(BoundsError(values(Trivial), i))
-end
-findindex(::SectorValues{Trivial}, c::Trivial) = 1
-
 """
     one(::Sector) -> Sector
     one(::Type{<:Sector}) -> Sector
@@ -84,7 +65,6 @@ findindex(::SectorValues{Trivial}, c::Trivial) = 1
 Return the unit element within this type of sector.
 """
 Base.one(a::Sector) = one(typeof(a))
-Base.one(::Type{Trivial}) = Trivial()
 
 """
     dual(a::Sector) -> Sector
@@ -92,7 +72,6 @@ Base.one(::Type{Trivial}) = Trivial()
 Return the conjugate label `conj(a)`.
 """
 dual(a::Sector) = conj(a)
-Base.conj(::Trivial) = Trivial()
 
 """
     isreal(::Type{<:Sector}) -> Bool
@@ -109,9 +88,6 @@ function Base.isreal(I::Type{<:Sector})
         return (eltype(Fsymbol(u, u, u, u, u, u)) <: Real)
     end
 end
-Base.isreal(::Type{Trivial}) = true
-
-Base.isless(::Trivial, ::Trivial) = false
 
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
@@ -138,7 +114,6 @@ Return an `Integer` representing the number of times `c` appears in the fusion p
 `a ⊗ b`. Could be a `Bool` if `FusionStyle(I) == UniqueFusion()` or `SimpleFusion()`.
 """
 function Nsymbol end
-Nsymbol(::Trivial, ::Trivial, ::Trivial) = true
 
 # trait to describe the fusion of superselection sectors
 abstract type FusionStyle end
@@ -166,23 +141,6 @@ There is an abstract supertype `MultipleFusion` of which both `SimpleFusion` and
 `MultiplicityFreeFusion = Union{UniqueFusion,SimpleFusion}`.
 """
 FusionStyle(a::Sector) = FusionStyle(typeof(a))
-FusionStyle(::Type{Trivial}) = UniqueFusion()
-
-# NOTE: the following inline is extremely important for performance, especially
-# in the case of UniqueFusion, because ⊗(...) is computed very often
-@inline function ⊗(a::I, b::I, c::I, rest::Vararg{I}) where {I<:Sector}
-    if FusionStyle(I) isa UniqueFusion
-        return a ⊗ first(⊗(b, c, rest...))
-    else
-        s = Set{I}()
-        for d in ⊗(b, c, rest...)
-            for e in a ⊗ d
-                push!(s, e)
-            end
-        end
-        return s
-    end
-end
 
 """
     Fsymbol(a::I, b::I, c::I, d::I, e::I, f::I) where {I<:Sector}
@@ -204,7 +162,6 @@ it is a rank 4 array of size
 `(Nsymbol(a, b, e), Nsymbol(e, c, d), Nsymbol(b, c, f), Nsymbol(a, f, d))`.
 """
 function Fsymbol end
-Fsymbol(::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial, ::Trivial) = 1
 
 """
     Rsymbol(a::I, b::I, c::I) where {I<:Sector}
@@ -220,7 +177,6 @@ number. Otherwise it is a square matrix with row and column size
 `Nsymbol(a,b,c) == Nsymbol(b,a,c)`.
 """
 function Rsymbol end
-Rsymbol(::Trivial, ::Trivial, ::Trivial) = 1
 
 # If a I::Sector with `fusion(I) == GenericFusion` fusion wants to have custom vertex
 # labels, a specialized method for `vertindex2label` should be added
@@ -366,7 +322,6 @@ braids are in fact equivalent to crossings (i.e. braiding twice is an identity:
 `isone(Rsymbol(b,a,c)*Rsymbol(a,b,c)) == true`) and permutations are uniquely defined.
 """
 BraidingStyle(a::Sector) = BraidingStyle(typeof(a))
-BraidingStyle(::Type{Trivial}) = Bosonic()
 
 # Pentagon and Hexagon equations
 #-------------------------------------------------------------------------------

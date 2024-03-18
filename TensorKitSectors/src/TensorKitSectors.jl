@@ -46,6 +46,7 @@ using WignerSymbols
 # --------
 include("auxiliary.jl")
 include("sectors.jl")
+include("trivial.jl")
 include("groups.jl")
 include("irreps.jl")    # irreps of symmetry groups, with bosonic braiding
 include("product.jl")   # direct product of different sectors
