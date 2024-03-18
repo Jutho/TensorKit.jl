@@ -209,6 +209,7 @@ end
 # TensorOperations
 # ----------------
 # TODO: implement specialized methods
+
 function TO.tensoradd!(C::AbstractTensorMap, pC::Index2Tuple,
                        A::BraidingTensor, conjA::Symbol, α::Number, β::Number,
                        backend::Backend...)
@@ -217,6 +218,8 @@ end
 
 # Planar operations
 # -----------------
+# TODO: implement specialized methods
+
 function planaradd!(C::AbstractTensorMap,
                     A::BraidingTensor, p::Index2Tuple,
                     α::Number, β::Number,
@@ -224,14 +227,19 @@ function planaradd!(C::AbstractTensorMap,
     return planaradd!(C, copy(A), p, α, β, backend...)
 end
 
-function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
-                         A::BraidingTensor{<:Number,S},
-                         (oindA, cindA)::Index2Tuple{2,2},
-                         B::AbstractTensorMap{<:Number,S},
-                         (cindB, oindB)::Index2Tuple{2,N₃},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
+function planarcontract!(C::AbstractTensorMap,
+                         A::BraidingTensor,
+                         (oindA, cindA)::Index2Tuple,
+                         B::AbstractTensorMap,
+                         (cindB, oindB)::Index2Tuple,
+                         (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::Backend...) where {S<:IndexSpace,N₁,N₂,N₃}
+                         backend::Backend...)
+    # special case only defined for contracting 2 indices
+    length(oindA) == length(cindA) == 2 ||
+        return planarcontract!(C, copy(A), (oindA, cindA), B, (cindB, oindB), (p1, p2),
+                               α, β, backend...)
+
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -270,14 +278,19 @@ function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
     end
     return C
 end
-function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
-                         A::AbstractTensorMap{<:Number,S},
-                         (oindA, cindA)::Index2Tuple{N₃,2},
-                         B::BraidingTensor{<:Number,S},
-                         (cindB, oindB)::Index2Tuple{2,2},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
+function planarcontract!(C::AbstractTensorMap,
+                         A::AbstractTensorMap,
+                         (oindA, cindA)::Index2Tuple,
+                         B::BraidingTensor,
+                         (cindB, oindB)::Index2Tuple,
+                         (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::Backend...) where {S<:IndexSpace,N₁,N₂,N₃}
+                         backend::Backend...)
+    # special case only defined for contracting 2 indices
+    length(oindB) == length(cindB) == 2 ||
+        return planarcontract!(C, A, (oindA, cindA), copy(B), (cindB, oindB), (p1, p2),
+                               α, β, backend...)
+
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -316,34 +329,12 @@ function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
     end
     return C
 end
-function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
-                         A::BraidingTensor{<:Number,S},
-                         (oindA, cindA)::Index2Tuple{2,2},
-                         B::BraidingTensor{<:Number,S},
-                         (cindB, oindB)::Index2Tuple{2,2},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
-                         α::Number, β::Number,
-                         backend::Backend...) where {S<:IndexSpace,N₁,N₂}
-    return planarcontract!(C, copy(A), (oindA, cindA), B, (cindB, oindB), (p1, p2), α, β,
-                           backend...)
-end
 
-# Fallback cases for planarcontract!
-# TODO: implement specialised cases for contracting 0, 1, 3 and 4 indices
+# ambiguity fix:
 function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
-                         B::BraidingTensor, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...)
-    return planarcontract!(C, copy(A), pA, copy(B), pB, α, β, backend...)
-end
-function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
-                         B::AbstractTensorMap, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...)
-    return planarcontract!(C, copy(A), pA, B, pB, α, β, backend...)
-end
-function planarcontract!(C::AbstractTensorMap, A::AbstractTensorMap, pA::Index2Tuple,
-                         B::BraidingTensor, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...)
-    return planarcontract!(C, A, pA, copy(B), pB, α, β, backend...)
+                         B::BraidingTensor, pB::Index2Tuple, pC::Index2Tuple,
+                         α::Number, β::Number, backend::Backend...)
+    return planarcontract!(C, copy(A), pA, copy(B), pB, pC, α, β, backend...)
 end
 
 function planartrace!(C::AbstractTensorMap,
