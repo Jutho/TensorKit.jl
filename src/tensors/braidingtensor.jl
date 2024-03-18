@@ -224,14 +224,14 @@ function planaradd!(C::AbstractTensorMap,
     return planaradd!(C, copy(A), p, α, β, backend...)
 end
 
-function planarcontract!(C::AbstractTensorMap{<:Any,S,N₁,N₂},
-                         A::BraidingTensor{<:Any,S},
+function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
+                         A::BraidingTensor{<:Number,S},
                          (oindA, cindA)::Index2Tuple{2,2},
-                         B::AbstractTensorMap{<:Any,S},
+                         B::AbstractTensorMap{<:Number,S},
                          (cindB, oindB)::Index2Tuple{2,N₃},
                          (p1, p2)::Index2Tuple{N₁,N₂},
                          α::Number, β::Number,
-                         backend::Backend...) where {S,N₁,N₂,N₃}
+                         backend::Backend...) where {S<:IndexSpace,N₁,N₂,N₃}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -270,14 +270,14 @@ function planarcontract!(C::AbstractTensorMap{<:Any,S,N₁,N₂},
     end
     return C
 end
-function planarcontract!(C::AbstractTensorMap{<:Any,S,N₁,N₂},
-                         A::AbstractTensorMap{<:Any,S},
+function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
+                         A::AbstractTensorMap{<:Number,S},
                          (oindA, cindA)::Index2Tuple{N₃,2},
-                         B::BraidingTensor{<:Any,S},
+                         B::BraidingTensor{<:Number,S},
                          (cindB, oindB)::Index2Tuple{2,2},
                          (p1, p2)::Index2Tuple{N₁,N₂},
                          α::Number, β::Number,
-                         backend::Backend...) where {S,N₁,N₂,N₃}
+                         backend::Backend...) where {S<:IndexSpace,N₁,N₂,N₃}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -316,14 +316,14 @@ function planarcontract!(C::AbstractTensorMap{<:Any,S,N₁,N₂},
     end
     return C
 end
-function planarcontract!(C::AbstractTensorMap{<:Any,S,N₁,N₂},
-                         A::BraidingTensor{<:Any,S},
+function planarcontract!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
+                         A::BraidingTensor{<:Number,S},
                          (oindA, cindA)::Index2Tuple{2,2},
-                         B::BraidingTensor{<:Any,S},
+                         B::BraidingTensor{<:Number,S},
                          (cindB, oindB)::Index2Tuple{2,2},
                          (p1, p2)::Index2Tuple{N₁,N₂},
                          α::Number, β::Number,
-                         backend::Backend...) where {S,N₁,N₂}
+                         backend::Backend...) where {S<:IndexSpace,N₁,N₂}
     return planarcontract!(C, copy(A), (oindA, cindA), B, (cindB, oindB), (p1, p2), α, β,
                            backend...)
 end

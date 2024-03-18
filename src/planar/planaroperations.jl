@@ -8,13 +8,13 @@ function planaradd!(C::AbstractTensorMap,
     return add_transpose!(C, A, p, α, β, backend...)
 end
 
-function planartrace!(C::AbstractTensorMap{N₁,N₂},
-                      A::AbstractTensorMap,
+function planartrace!(C::AbstractTensorMap{<:Number,S,N₁,N₂},
+                      A::AbstractTensorMap{<:Number,S},
                       p::Index2Tuple{N₁,N₂},
                       q::Index2Tuple{N₃,N₃},
                       α::Number,
                       β::Number,
-                      backend::Backend...) where {N₁,N₂,N₃}
+                      backend::Backend...) where {S,N₁,N₂,N₃}
     if BraidingStyle(sectortype(S)) == Bosonic()
         return trace_permute!(C, A, p, q, α, β, backend...)
     end
