@@ -23,6 +23,15 @@ const GroupTuple = Tuple{Vararg{Group}}
 
 abstract type ProductGroup{T<:GroupTuple} <: Group end
 
+@doc """
+    directproduct(G::Vararg{Type{<:Group}}) -> ProductGroup{Tuple{G...}}
+    ×(G::Vararg{Type{<:Group}}) -> ProductGroup{Tuple{G...}}
+
+Construct the direct product of a (list of) groups.
+"""
+directproduct
+const × = directproduct
+
 ×(a::Type{<:Group}, b::Type{<:Group}, c::Type{<:Group}...) = ×(×(a, b), c...)
 ×(G::Type{<:Group}) = ProductGroup{Tuple{G}}
 ×(G1::Type{ProductGroup{Tuple{}}},
