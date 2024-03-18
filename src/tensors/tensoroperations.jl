@@ -229,16 +229,16 @@ end
 # TODO: contraction with either A or B a rank (1, 1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
-function contract!(C::AbstractTensorMap{<:Any,S},
-                   A::AbstractTensorMap{<:Any,S},
-                   (oindA, cindA)::Index2Tuple{N₁,N₃},
-                   B::AbstractTensorMap{<:Any,S},
-                   (cindB, oindB)::Index2Tuple{N₃,N₂},
+function contract!(C::AbstractTensorMap,
+                   A::AbstractTensorMap, (oindA, cindA)::Index2Tuple,
+                   B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,
                    (p₁, p₂)::Index2Tuple,
-                   α::Number,
-                   β::Number,
-                   backend::Backend...) where {S,N₁,N₂,N₃}
-
+                   α::Number, β::Number,
+                   backend::Backend...)
+    length(cindA) == length(cindB) ||
+        throw(IndexError("number of contracted indices does not match"))
+    N₁, N₂ = length(oindA), length(oindB)
+    
     # find optimal contraction scheme
     hsp = has_shared_permute
     ipC = TupleTools.invperm((p₁..., p₂...))
@@ -287,16 +287,17 @@ function contract!(C::AbstractTensorMap{<:Any,S},
 end
 
 # TODO: also transform _contract! into new interface, and add backend support
-function _contract!(α, A::AbstractTensorMap{<:Any,S}, B::AbstractTensorMap{<:Any,S},
-                    β, C::AbstractTensorMap{<:Any,S},
-                    oindA::IndexTuple{N₁}, cindA::IndexTuple,
-                    oindB::IndexTuple{N₂}, cindB::IndexTuple,
-                    p₁::IndexTuple, p₂::IndexTuple) where {S,N₁,N₂}
+function _contract!(α, A::AbstractTensorMap, B::AbstractTensorMap,
+                    β, C::AbstractTensorMap,
+                    oindA::IndexTuple, cindA::IndexTuple,
+                    oindB::IndexTuple, cindB::IndexTuple,
+                    p₁::IndexTuple, p₂::IndexTuple)
     if !(BraidingStyle(sectortype(S)) isa SymmetricBraiding)
         throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
     end
+    N₁, N₂ = length(oindA), length(oindB)
     copyA = false
-    if BraidingStyle(sectortype(S)) isa Fermionic
+    if BraidingStyle(sectortype(A)) isa Fermionic
         for i in cindA
             if !isdual(space(A, i))
                 copyA = true
