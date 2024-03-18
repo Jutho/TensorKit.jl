@@ -163,11 +163,15 @@ Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
 Base.show(io::IO, e::IndexError) = print(io, "IndexError(", e.message, ")")
 
 # typerepr
-type_repr(T::Type) = repr(T)
+# type_repr(T::Type) = repr(T)
 
 # Definitions and methods for superselection sectors (quantum numbers)
 #----------------------------------------------------------------------
 include("sectors/sectors.jl")
+using .Sectors
+import .Sectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
+import .Sectors: dual, type_repr
+import .Sectors: twist
 
 # Constructing and manipulating fusion trees and iterators thereof
 #------------------------------------------------------------------
