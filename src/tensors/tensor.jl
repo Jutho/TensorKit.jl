@@ -114,6 +114,26 @@ dim(t::TensorMap) = mapreduce(x -> length(x[2]), +, blocks(t); init=0)
 # General TensorMap constructors
 #--------------------------------
 # constructor starting from block data
+"""
+    TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codomain::ProductSpace{S,N₁},
+                domain::ProductSpace{S,N₂}) where {S<:ElementarySpace,N₁,N₂}
+    TensorMap(data, codomain ← domain)
+    TensorMap(data, domain → codomain)
+
+Construct a `TensorMap` by explicitly specifying its block data.
+
+## Arguments
+- `data::AbstractDict{<:Sector,<:DenseMatrix}`: dictionary containing the block data for
+  each coupled sector `c` as a `DenseMatrix` of size
+  `(blockdim(codomain, c), blockdim(domain, c))`.
+- `codomain::ProductSpace{S,N₁}`: the codomain as a `ProductSpace` of `N₁` spaces of type
+  `S<:ElementarySpace`.
+- `domain::ProductSpace{S,N₂}`: the domain as a `ProductSpace` of `N₂` spaces of type
+  `S<:ElementarySpace`.
+
+Alternatively, the domain and codomain can be specified by passing a [`HomSpace`](@ref)
+using the syntax `codomain ← domain` or `domain → codomain`.
+"""
 function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpace{S,N₁},
                    dom::ProductSpace{S,N₂}) where {S<:IndexSpace,N₁,N₂}
     I = sectortype(S)
@@ -199,6 +219,32 @@ function _buildblockstructure(P::ProductSpace{S,N}, blocksectors) where {S<:Inde
     return treeranges, blockdims
 end
 
+"""
+    TensorMap([f, eltype,] codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂})
+                where {S<:ElementarySpace,N₁,N₂}
+    TensorMap([f, eltype,], codomain ← domain)
+    TensorMap([f, eltype,], domain → codomain)
+
+Construct a `TensorMap` from a general callable that produces block data for each coupled
+sector.
+
+## Arguments
+- `f`: callable object that returns a `DenseMatrix`, or `UndefInitializer`.
+- `eltype::Type{<:Number}`: element type of the data.
+- `codomain::ProductSpace{S,N₁}`: the codomain as a `ProductSpace` of `N₁` spaces of type
+  `S<:ElementarySpace`.
+- `domain::ProductSpace{S,N₂}`: the domain as a `ProductSpace` of `N₂` spaces of type
+  `S<:ElementarySpace`.
+
+If `eltype` is left unspecified, `f` should support the calling syntax `f(::Tuple{Int,Int})`
+such that `f((m, n))` returns a `DenseMatrix` with `size(f((m, n))) == (m, n)`. If `eltype` is
+specified, `f` is instead called as `f(eltype, (m, n))`. In the case where `f` is left
+unspecified or `undef` is passed explicitly, a `TensorMap` with uninitialized data is
+generated.
+
+Alternatively, the domain and codomain can be specified by passing a [`HomSpace`](@ref)
+using the syntax `codomain ← domain` or `domain → codomain`.
+"""
 function TensorMap(f, ::Type{T}, codom::ProductSpace{S},
                    dom::ProductSpace{S}) where {S<:IndexSpace,T<:Number}
     return TensorMap(d -> f(T, d), codom, dom)
@@ -263,6 +309,40 @@ Tensor(T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(T
 Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
 
 # constructor starting from a dense array
+"""
+    TensorMap(data::DenseArray, codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂};
+                    tol=sqrt(eps(real(float(eltype(data)))))) where {S<:ElementarySpace,N₁,N₂}
+    TensorMap(data, codomain ← domain)
+    TensorMap(data, domain → codomain)
+
+Construct a `TensorMap` from a plain multidimensional array.
+
+## Arguments
+- `data::DenseArray`: tensor data as a plain array.
+- `codomain::ProductSpace{S,N₁}`: the codomain as a `ProductSpace` of `N₁` spaces of type
+  `S<:ElementarySpace`.
+- `domain::ProductSpace{S,N₂}`: the domain as a `ProductSpace` of `N₂` spaces of type
+  `S<:ElementarySpace`.
+- `tol=sqrt(eps(real(float(eltype(data)))))::Float64`: 
+    
+Here, `data` can be specified in two ways. It can either be a `DenseArray` of rank `N₁ + N₂`
+whose size matches that of the domain and codomain spaces,
+`size(data) == (dims(codomain)..., dims(domain)...)`, or a `DenseMatrix` where
+`size(data) == (dim(codomain), dim(domain))`. The `TensorMap` constructor will then
+reconstruct the tensor data such that the resulting tensor `t` satisfies
+`data == convert(Array, t)`. For the case where `sectortype(S) == Trivial`, the `data` array
+is simply reshaped into matrix form and referred to as such in the resulting `TensorMap`
+instance. When `S<:GradedSpace`, the `data` array has to be compatible with how how each
+sector in every space `V` is assigned to an index range within `1:dim(V)`.
+
+Alternatively, the domain and codomain can be specified by passing a [`HomSpace`](@ref)
+using the syntax `codomain ← domain` or `domain → codomain`.
+
+!!! note
+    This constructor only works for `sectortype` values for which conversion to a plain
+    array is possible, and only in the case where the `data` actually respects the specified
+    symmetry structure.
+"""
 function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂};
                    tol=sqrt(eps(real(float(eltype(data)))))) where {S<:IndexSpace,N₁,N₂}
     (d1, d2) = (dim(codom), dim(dom))
@@ -466,6 +546,21 @@ blocks(t::TensorMap) = t.data
 fusiontrees(t::TrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 
+"""
+    Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+                  sectors::NTuple{N₁+N₂,I}) where {N₁,N₂,I<:Sector} 
+        -> StridedViews.StridedView
+    t[sectors]
+
+Return a view into the data slice of `t` corresponding to the splitting - fusion tree pair
+with combined uncoupled charges `sectors`. In particular, if `sectors == (s1..., s2...)`
+where `s1` and `s2` correspond to the coupled charges in the codomain and domain
+respectively, then a `StridedViews.StridedView` of size
+`(dims(codomain(t), s1)..., dims(domain(t), s2))` is returned.
+
+This method is only available for the case where `FusionStyle(I) isa UniqueFusion`,
+since it assumes a  uniquely defined coupled charge.
+"""
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
                                sectors::Tuple{Vararg{I}}) where {N₁,N₂,I<:Sector}
     FusionStyle(I) isa UniqueFusion ||
@@ -488,6 +583,20 @@ end
     return t[map(sectortype(t), sectors)]
 end
 
+"""
+    Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+                  f₁::FusionTree{I,N₁},
+                  f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+        -> StridedViews.StridedView
+    t[f₁, f₂]
+
+Return a view into the data slice of `t` corresponding to the splitting - fusion tree pair
+`(f₁, f₂)`. In particular, if `f₁.coupled == f₂.coupled == c`, then a
+`StridedViews.StridedView` of size
+`(dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled))` is returned which
+represents the slice of `block(t, c)` whose row indices correspond to `f₁.uncoupled` and
+column indices correspond to `f₂.uncoupled`.
+"""
 @inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
                                f₁::FusionTree{I,N₁},
                                f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
@@ -502,6 +611,21 @@ end
         return sreshape(StridedView(t.data[c])[t.rowr[c][f₁], t.colr[c][f₂]], d)
     end
 end
+
+"""
+    Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+                   v,
+                   f₁::FusionTree{I,N₁},
+                   f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+    t[f₁, f₂] = v
+
+Copies `v` into the  data slice of `t` corresponding to the splitting - fusion tree pair
+`(f₁, f₂)`. Here, `v` can be any object that can be copied into a `StridedViews.StridedView`
+of size `(dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled))` using
+`Base.copy!`.
+
+See also [`Base.getindex(::TensorMap{<:IndexSpace,N₁,N₂,I<:Sector}, ::FusionTree{I<:Sector,N₁}, ::FusionTree{I<:Sector,N₂})`](@ref)
+"""
 @propagate_inbounds function Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,I},
                                             v,
                                             f₁::FusionTree{I,N₁},
@@ -510,6 +634,13 @@ end
 end
 
 # For a tensor with trivial symmetry, allow no argument indexing
+"""
+    Base.getindex(t::TrivialTensorMap)
+    t[]
+
+Return a view into the data of `t` as a `StridedViews.StridedView` of size
+`(dims(codomain(t))..., dims(domain(t))...)`.
+"""
 @inline function Base.getindex(t::TrivialTensorMap)
     return sreshape(StridedView(t.data), (dims(codomain(t))..., dims(domain(t))...))
 end
@@ -520,12 +651,25 @@ end
 @inline Base.setindex!(t::TrivialTensorMap, v, ::Nothing, ::Nothing) = setindex!(t, v)
 
 # For a tensor with trivial symmetry, allow direct indexing
+"""
+    Base.getindex(t::TrivialTensorMap, indices::Vararg{Int})
+    t[indices]
+
+Return a view into the data slice of `t` corresponding to `indices`, by slicing the
+`StridedViews.StridedView` into the full data array.
+"""
 @inline function Base.getindex(t::TrivialTensorMap, indices::Vararg{Int})
     data = t[]
     @boundscheck checkbounds(data, indices...)
     @inbounds v = data[indices...]
     return v
 end
+"""
+    Base.setindex!(t::TrivialTensorMap, v, indices::Vararg{Int})
+    t[indices] = v
+
+Assigns `v` to the data slice of `t` corresponding to `indices`.
+"""
 @inline function Base.setindex!(t::TrivialTensorMap, v, indices::Vararg{Int})
     data = t[]
     @boundscheck checkbounds(data, indices...)

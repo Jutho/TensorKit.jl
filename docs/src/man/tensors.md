@@ -224,7 +224,7 @@ via `t[f₁,f₂]`, and is returned as a `StridedArray` of size
 implementation does not distinguish between `FusionStyle isa UniqueFusion` or
 `FusionStyle isa MultipleFusion`, in the former case the fusion tree is completely
 characterized by the uncoupled sectors, and so the subblocks can also be accessed as
-`t[(a1, …, aN₁), (b1, …, bN₂)]`. When there is no symmetry at all, i.e.
+`t[(a1, …, aN₁, b1, …, bN₂)]`. When there is no symmetry at all, i.e.
 `sectortype(t) == Trivial`, `t[]` returns the raw tensor data as a `StridedArray` of size
 `(dim(V1), …, dim(VN₁), dim(W1), …, dim(WN₂))`, whereas `block(t, Trivial())` returns the
 same data as a `DenseMatrix` of size `(dim(V1) * … * dim(VN₁), dim(W1) * … * dim(WN₂))`.
@@ -313,13 +313,28 @@ e.g. for `CartesianSpace` or `ComplexSpace`. Then the `data` array is just resha
 matrix form and referred to as such in the resulting `TensorMap` instance. When `spacetype`
 is `GradedSpace`, the `TensorMap` constructor will try to reconstruct the tensor data such
 that the resulting tensor `t` satisfies `data == convert(Array, t)`. This might not be
-possible, if the data does not respect the symmetry structure. Let's sketch this with a
-simple example
+possible, if the data does not respect the symmetry structure. This procedure can be
+sketched using a simple physical example, namely the SWAP gate on two qubits,
+```math
+\begin{align*}
+\mathrm{SWAP}: \mathbb{C}^2 \otimes \mathbb{C}^2 & \to \mathbb{C}^2 \otimes \mathbb{C}^2\\
+|i\rangle \otimes |j\rangle &\mapsto |j\rangle \otimes |i\rangle.
+\end{align*}
+```
+This operator can be rewritten in terms of the familiar Heisenberg exchange interaction
+``\vec{S}_i \cdot \vec{S}_j`` as
+```math
+\mathrm{SWAP} = 2 \vec{S}_i \cdot \vec{S}_j + \frac{1}{2} 𝟙,
+```
+where ``\vec{S} = (S^x, S^y, S^z)`` and the spin-1/2 generators of SU₂ ``S^k`` are defined
+defined in terms of the ``2 \times 2`` Pauli matrices ``\sigma^k`` as
+``S^k = \frac{1}{2}\sigma^k``. The SWAP gate can be realized as a rank-4 `TensorMap` in the
+following way:
 ```@repl tensors
+# encode the matrix elements of the swap gate into a rank-4 array, where the first two
+# indices correspond to the codomain and the last two indices correspond to the domain
 data = zeros(2,2,2,2)
-# encode the operator (σ_x * σ_x + σ_y * σ_y + σ_z * σ_z)/2
-# that is, the swap gate, which maps the last two indices on the first two in reversed order
-# also known as Heisenberg interaction between two spin 1/2 particles
+# the swap gate then maps the last two indices on the first two in reversed order
 data[1,1,1,1] = data[2,2,2,2] = data[1,2,2,1] = data[2,1,1,2] = 1
 V1 = ℂ^2 # generic qubit hilbert space
 t1 = TensorMap(data, V1 ⊗ V1, V1 ⊗ V1)
@@ -329,12 +344,12 @@ V3 = U1Space(1/2=>1,-1/2=>1) # restricted space that only uses the `σ_z` rotati
 t3 = TensorMap(data, V3 ⊗ V3, V3 ⊗ V3)
 for (c,b) in blocks(t3)
     println("Data for block $c :")
-    b |> disp
+    disp(b)
     println()
 end
 ```
-Hence, we recognize that the Heisenberg interaction has eigenvalue ``-1`` in the coupled
-spin zero sector (`SUIrrep(0)`), and eigenvalue ``+1`` in the coupled spin 1 sector
+Hence, we recognize that the exchange interaction has eigenvalue ``-1`` in the coupled spin
+zero sector (`SU2Irrep(0)`), and eigenvalue ``+1`` in the coupled spin 1 sector
 (`SU2Irrep(1)`). Using `Irrep[U₁]` instead, we observe that both coupled charge
 `U1Irrep(+1)` and `U1Irrep(-1)` have eigenvalue ``+1``. The coupled charge `U1Irrep(0)`
 sector is two-dimensional, and has an eigenvalue ``+1`` and an eigenvalue ``-1``.
@@ -356,6 +371,68 @@ axes(P, (SU2Irrep(1), SU2Irrep(0), SU2Irrep(2)))
 ```
 Note that the length of the range is the degeneracy dimension of that sector, times the
 dimension of the internal representation space, i.e. the quantum dimension of that sector.
+
+### Assigning block data after initialization
+
+In order to avoid having to know the internal structure of each representation space to
+properly construct the full `data` array, it is often simpler to assign the block data
+directly after initializing an all zero `TensorMap` with the correct spaces. While this may
+seem more difficult at first sight since it requires knowing the exact entries associated to
+each valid combination of domain uncoupled sectors, coupled sector and codomain uncoupled
+sectors, this is often a far more natural procedure in practice.
+
+A first option is to directly set the full matrix block for each coupled sector in the
+`TensorMap`. For the example with U₁ symmetry, this can be done as
+```@repl tensors
+t4 = TensorMap(zeros, V3 ⊗ V3, V3 ⊗ V3);
+block(t4, U1Irrep(0)) .= [1 0; 0 1];
+block(t4, U1Irrep(1)) .= [1;;];
+block(t4, U1Irrep(-1)) .= [1;;];
+for (c, b) in blocks(t4)
+    println("Data for block $c :")
+    disp(b)
+    println()
+end
+```
+While this indeed does not require considering the internal structure of the representation
+spaces, it still requires knowing the precise row and column indices corresponding to each
+set of uncoupled sectors in the codmain and domain respectively to correctly assign the
+nonzero entries in each block.
+
+Perhaps the most natural way of constructing a particular `TensorMap` is to directly assign
+the data slices for each splitting - fusion tree pair using the `fusiontrees(::TensorMap)`
+method. This returns an iterator over all tuples `(f₁, f₂)` of splitting - fusion tree pairs
+corresponding to all ways in which the set of domain uncoupled sectors can fuse to a coupled
+sector and split back into the set of codomain uncoupled sectors. By directly setting the
+corresponding data slice `t[f₁, f₂]` of size
+`(dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...)`, we can construct
+all the block data without worrying about the internal ordering of row and column indices in
+each block. In addition, the corresponding value of each fusion tree slice is often directly
+informed by the object we are trying to construct in the first place. For example, in order
+to construct the Heisenberg exchange interaction on two spin-1/2 particles ``i`` and ``j``
+as an SU₂ symmetric `TensorMap`, we can make use of the observation that
+```math
+\vec{S}_i \cdot \vec{S}_j = \frac{1}{2} \left( \left( \vec{S}_i \cdot \vec{S}_j \right)^2 - \vec{S}_i^2 - \vec{S}_j^2 \right).
+```
+Recalling some basic group theory, we know that the
+[quadratic Casimir of SU₂](https://en.wikipedia.org/wiki/Representation_theory_of_SU(2)#The_Casimir_element),
+``\vec{S}^2``, has a well-defined eigenvalue ``j(j+1)`` on every irrep of spin ``j``. From
+the above expressions, we can therefore directly read off the eigenvalues of the SWAP gate
+in terms of this Casimir eigenvalue on the domain uncoupled sectors and the coupled sector.
+This gives us exactly the prescription we need to assign the data slice corresponding to
+each splitting - fusion tree pair:
+```@repl tensors
+C(s::SU2Irrep) = s.j * (s.j + 1)
+t5 = TensorMap(zeros, V2 ⊗ V2, V2 ⊗ V2);
+for (f₁, f₂) in fusiontrees(t5)
+    t5[f₁, f₂] .= C(f₂.coupled) - C(f₂.uncoupled[1]) - C(f₂.uncoupled[2]) + 1/2
+end
+for (c, b) in blocks(t5)
+    println("Data for block $c :")
+    disp(b)
+    println()
+end
+```
 
 ### Constructing similar tensors
 

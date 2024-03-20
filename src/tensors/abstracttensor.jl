@@ -185,15 +185,16 @@ function adjointtensorindices(t::AbstractTensorMap, p::Index2Tuple)
 end
 
 @doc """
-    blocks(t::AbstractTensorMap)
+    blocks(t::AbstractTensorMap) -> SectorDict{<:Sector,<:DenseMatrix}
 
-Return an iterator over all blocks of a tensor, i.e. all coupled sectors and their corresponding blocks.
+Return an iterator over all blocks of a tensor, i.e. all coupled sectors and their
+corresponding blocks.
 
 See also [`block`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
 """ blocks
 
 @doc """
-    block(t::AbstractTensorMap, c::Sector)
+    block(t::AbstractTensorMap, c::Sector) -> DenseMatrix
 
 Return the block of a tensor corresponding to a coupled sector `c`.
 
@@ -223,7 +224,7 @@ Return the dimensions of the block of a tensor corresponding to a coupled sector
     fusiontrees(t::AbstractTensorMap)
 
 Return an iterator over all splitting - fusion tree pairs of a tensor.
-""" fusiontrees
+""" fusiontrees(::AbstractTensorMap)
 
 # Equality and approximality
 #----------------------------

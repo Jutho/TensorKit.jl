@@ -58,12 +58,11 @@ Return the vector space associated to object `a`.
 """
 function space end
 
-"""
+@doc """
     dim(V::VectorSpace) -> Int
 
 Return the total dimension of the vector space `V` as an Int.
-"""
-function dim end
+""" dim(::VectorSpace)
 
 """
     dual(V::VectorSpace) -> VectorSpace
@@ -105,6 +104,12 @@ const IndexSpace = ElementarySpace
 
 field(V::ElementarySpace) = field(typeof(V))
 # field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
+
+@doc """
+    dim(V::ElementarySpace, s::Sector) -> Int
+
+Return the degeneracy dimension corresponding to the sector `s` of the vector space `V`.
+""" dim(::ElementarySpace, ::Sector)
 
 """
     oneunit(V::S) where {S<:ElementarySpace} -> S

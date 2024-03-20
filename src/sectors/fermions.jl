@@ -4,7 +4,10 @@
 Represents sectors with fermion parity. The fermion parity is a ℤ₂ quantum number that
 yields an additional sign when two odd fermions are exchanged.
 
-See also: `FermionNumber`, `FermionSpin`
+## Fields
+- `isodd::Bool`: indicates whether the fermion parity is odd (`true`) or even (`false`).
+
+See also: [`FermionNumber`](@ref), [`FermionSpin`](@ref)
 """
 struct FermionParity <: Sector
     isodd::Bool
@@ -66,6 +69,15 @@ Base.isless(a::FermionParity, b::FermionParity) = isless(a.isodd, b.isodd)
 # Common fermionic combinations
 # -----------------------------
 
+"""
+    const FermionNumber = U1Irrep ⊠ FermionParity
+    FermionNumber(a::Int)
+
+Represents the fermion number as the direct product of a ``U₁`` irrep `a` and a fermion
+parity, with the restriction that the fermion parity is odd if and only if `a` is odd.
+
+See also: [`U1Irrep`](@ref), [`FermionParity`](@ref)
+"""
 const FermionNumber = U1Irrep ⊠ FermionParity
 const fU₁ = FermionNumber
 FermionNumber(a::Int) = U1Irrep(a) ⊠ FermionParity(isodd(a))
@@ -74,9 +86,18 @@ type_repr(::Type{FermionNumber}) = "FermionNumber"
 # convenience default converter -> allows Vect[FermionNumber](1 => 1)
 Base.convert(::Type{FermionNumber}, a::Int) = FermionNumber(a)
 
+"""
+    const FermionSpin = SU2Irrep ⊠ FermionParity
+    FermionSpin(j::Real)
+
+Represents the fermion spin as the direct product of a ``SU₂`` irrep `j` and a fermion
+parity, with the restriction that the fermion parity is odd if `2 * j` is odd.
+
+See also: [`SU2Irrep`](@ref), [`FermionParity`](@ref)
+"""
 const FermionSpin = SU2Irrep ⊠ FermionParity
 const fSU₂ = FermionSpin
-FermionSpin(a::Real) = (s = SU2Irrep(a);
+FermionSpin(j::Real) = (s = SU2Irrep(j);
                         s ⊠ FermionParity(isodd(twice(s.j))))
 type_repr(::Type{FermionSpin}) = "FermionSpin"
 
