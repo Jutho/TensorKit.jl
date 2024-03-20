@@ -13,7 +13,7 @@ is a more common term.
 - `coupled::I`: the coupled sector.
 - `isdual::NTuple{N,Bool}`: indicates whether a 𝑍 isomorphism is present (`true`) or not
   (`false`) for each uncoupled sector.
-- `innerlines::NTuple{M,I}`: the labels of the M=max(0, N-2)` inner lines of the splitting
+- `innerlines::NTuple{M,I}`: the labels of the `M=max(0, N-2)` inner lines of the splitting
   tree.
 - `vertices::NTuple{L,T}`: the `L=max(0, N-1)` labels of type `T` of the vertices of the
   splitting tree. If `FusionStyle(I) isa MultiplicityFreeFusion`, then `T = Nothing`.
