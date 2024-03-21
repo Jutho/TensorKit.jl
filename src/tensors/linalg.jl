@@ -164,8 +164,8 @@ function Base.fill!(t::AbstractTensorMap, value::Number)
     end
     return t
 end
-function LinearAlgebra.adjoint!(tdst::AbstractTensorMap{S},
-                                tsrc::AbstractTensorMap{S}) where {S}
+function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
+                                tsrc::AbstractTensorMap)
     InnerProductStyle(tdst) === EuclideanProduct() || throw_invalid_innerproduct(:adjoint!)
     space(tdst) == adjoint(space(tsrc)) ||
         throw(SpaceMismatch("$(space(tdst)) ≠ adjoint($(space(tsrc)))"))
@@ -383,8 +383,7 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
 end
 
 # concatenate tensors
-function catdomain(t1::AbstractTensorMap{S,N₁,1},
-                   t2::AbstractTensorMap{S,N₁,1}) where {S,N₁}
+function catdomain(t1::T, t2::T) where {S,N₁,T<:AbstractTensorMap{<:Any,S,N₁,1}}
     codomain(t1) == codomain(t2) ||
         throw(SpaceMismatch("codomains of tensors to concatenate must match:\n" *
                             "$(codomain(t1)) ≠ $(codomain(t2))"))
@@ -401,8 +400,7 @@ function catdomain(t1::AbstractTensorMap{S,N₁,1},
     end
     return t
 end
-function catcodomain(t1::AbstractTensorMap{S,1,N₂},
-                     t2::AbstractTensorMap{S,1,N₂}) where {S,N₂}
+function catcodomain(t1::T, t2::T) where {S,N₂,T<:AbstractTensorMap{<:Any,S,1,N₂}}
     domain(t1) == domain(t2) ||
         throw(SpaceMismatch("domains of tensors to concatenate must match:\n" *
                             "$(domain(t1)) ≠ $(domain(t2))"))
@@ -422,14 +420,16 @@ end
 
 # tensor product of tensors
 """
-    ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}, ...) -> TensorMap{S}
-    otimes(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}, ...) -> TensorMap{S}
+    ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap, ...) -> TensorMap
+    otimes(t1::AbstractTensorMap, t2::AbstractTensorMap, ...) -> TensorMap
 
 Compute the tensor product between two `AbstractTensorMap` instances, which results in a
 new `TensorMap` instance whose codomain is `codomain(t1) ⊗ codomain(t2)` and whose domain
 is `domain(t1) ⊗ domain(t2)`.
 """
-function ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}) where {S}
+function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    (S = spacetype(t1)) === spacetype(t2) ||
+        throw(SpaceMismatch("spacetype(t1) ≠ spacetype(t2)"))
     cod1, cod2 = codomain(t1), codomain(t2)
     dom1, dom2 = domain(t1), domain(t2)
     cod = cod1 ⊗ cod2

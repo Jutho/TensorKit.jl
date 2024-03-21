@@ -22,8 +22,8 @@ function _repartition(p::Union{IndexTuple,Index2Tuple}, ::Index2Tuple{N₁}) whe
     return _repartition(p, N₁)
 end
 function _repartition(p::Union{IndexTuple,Index2Tuple},
-                      ::AbstractTensorMap{<:Any,N₁}) where {N₁}
-    return _repartition(p, N₁)
+                      t::AbstractTensorMap)
+    return _repartition(p, numout(t))
 end
 
 TensorKit.block(t::ZeroTangent, c::Sector) = t
@@ -59,8 +59,8 @@ function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
 end
 
 ChainRulesCore.ProjectTo(::T) where {T<:AbstractTensorMap} = ProjectTo{T}()
-function (::ProjectTo{T1})(x::T2) where {S,N1,N2,T1<:AbstractTensorMap{S,N1,N2},
-                                         T2<:AbstractTensorMap{S,N1,N2}}
+function (::ProjectTo{T1})(x::T2) where {S,N1,N2,T1<:AbstractTensorMap{<:Any,S,N1,N2},
+                                         T2<:AbstractTensorMap{<:Any,S,N1,N2}}
     T1 === T2 && return x
     y = similar(x, scalartype(T1))
     for (c, b) in blocks(y)

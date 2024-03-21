@@ -1,34 +1,40 @@
 # planar versions of tensor operations add!, trace! and contract!
-function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
-                    A::AbstractTensorMap{S},
-                    p::Index2Tuple{N₁,N₂},
-                    α::Number,
-                    β::Number,
-                    backend::Backend...) where {S,N₁,N₂}
+function planaradd!(C::AbstractTensorMap,
+                    A::AbstractTensorMap,
+                    p::Index2Tuple,
+                    α::Number, β::Number,
+                    backend::Backend...)
     return add_transpose!(C, A, p, α, β, backend...)
 end
 
-function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
-                      A::AbstractTensorMap{S},
-                      p::Index2Tuple{N₁,N₂},
-                      q::Index2Tuple{N₃,N₃},
+function planartrace!(C::AbstractTensorMap,
+                      A::AbstractTensorMap,
+                      (p₁, p₂)::Index2Tuple,
+                      (q₁, q₂)::Index2Tuple,
                       α::Number,
                       β::Number,
-                      backend::Backend...) where {S,N₁,N₂,N₃}
+                      backend::Backend...)
+    (S = spacetype(C)) == spacetype(A) ||
+        throw(SpaceMismatch("incompatible spacetypes"))
     if BraidingStyle(sectortype(S)) == Bosonic()
         return trace_permute!(C, A, p, q, α, β, backend...)
     end
+    (N₃ = length(q₁)) == length(q₂) ||
+        throw(IndexError("number of trace indices does not match"))
+    N₁, N₂ = length(p₁), length(p₂)
 
     @boundscheck begin
-        all(i -> space(A, p[1][i]) == space(C, i), 1:N₁) ||
-            throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
-                    C = $(codomain(C))←$(domain(C)), p1 = $(p1), p2 = $(p2)"))
-        all(i -> space(A, p[2][i]) == space(C, N₁ + i), 1:N₂) ||
-            throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
-                    C = $(codomain(C))←$(domain(C)), p1 = $(p1), p2 = $(p2)"))
-        all(i -> space(A, q[1][i]) == dual(space(A, q[2][i])), 1:N₃) ||
-            throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
-                    q1 = $(q1), q2 = $(q2)"))
+        numout(C) == N₁ || throw(IndexError("number of output indices does not match"))
+        numin(C) == N₂ || throw(IndexError("number of input indices does not match"))
+        all(i -> space(A, p₁[i]) == space(C, i), 1:N₁) ||
+            throw(SpaceMismatch("trace: A = $(space(A)),
+                    C = $(space(C)), p₁ = $(p₁), p₂ = $(p₂)"))
+        all(i -> space(A, p₂[i]) == space(C, N₁ + i), 1:N₂) ||
+            throw(SpaceMismatch("trace: A = $(space(A)),
+                    C = $(space(C)), p₁ = $(p₁), p₂ = $(p₂)"))
+        all(i -> space(A, q₁[i]) == dual(space(A, q₂[i])), 1:N₃) ||
+            throw(SpaceMismatch("trace: A = $(space(A)),
+                    q1 = $(q₁), q2 = $(q₂)"))
     end
 
     if iszero(β)
@@ -37,23 +43,24 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
         rmul!(C, β)
     end
     for (f₁, f₂) in fusiontrees(A)
-        for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p..., q...)
-            TO.tensortrace!(C[f₁′, f₂′], p, A[f₁, f₂], q, :N, α * coeff, true, backend...)
+        for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p₁, p₂, q₁, q₂)
+            TO.tensortrace!(C[f₁′, f₂′], (p₁, p₂), A[f₁, f₂], (q₁, q₂), :N, α * coeff, true,
+                            backend...)
         end
     end
     return C
 end
 
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
-                         A::AbstractTensorMap{S},
+function planarcontract!(C::AbstractTensorMap,
+                         A::AbstractTensorMap,
                          pA::Index2Tuple,
-                         B::AbstractTensorMap{S},
+                         B::AbstractTensorMap,
                          pB::Index2Tuple,
-                         pAB::Index2Tuple{N₁,N₂},
+                         pAB::Index2Tuple,
                          α::Number,
                          β::Number,
-                         backend::Backend...) where {S,N₁,N₂}
-    if BraidingStyle(sectortype(S)) == Bosonic()
+                         backend::Backend...)
+    if BraidingStyle(sectortype(C)) == Bosonic()
         return contract!(C, A, pA, B, pB, pAB, α, β, backend...)
     end
 
