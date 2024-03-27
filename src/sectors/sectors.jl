@@ -120,6 +120,7 @@ Base.isless(::Trivial, ::Trivial) = false
 #---------------------------------------------
 """
     ⊗(a::I, b::I) where {I<:Sector}
+    fusionproduct(a::I, b::I) where {I<:Sector}
 
 Return an iterable of elements of `c::I` that appear in the fusion product `a ⊗ b`.
 
@@ -128,6 +129,7 @@ Note that every element `c` should appear at most once, fusion degeneracies (if
 """
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
 ⊗(I::Sector) = (I,)
+fusionproduct(a::I, b::Vararg{I}) where {I<:Sector} = ⊗(a, b...)
 
 """
     Nsymbol(a::I, b::I, c::I) where {I<:Sector} -> Integer
