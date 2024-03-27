@@ -37,7 +37,7 @@ export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
 
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
-       frobeniusschur, twist
+       frobeniusschur, twist, otimes
 export fusiontrees, braid, permute, transpose
 export ZNSpace, SU2Irrep, U1Irrep, CU1Irrep
 # other fusion tree manipulations, should not be exported:

@@ -119,7 +119,8 @@ Base.isless(::Trivial, ::Trivial) = false
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
 """
-    ⊗(a::I, b::I) where {I<:Sector}
+    ⊗(a::I, b::I...) where {I<:Sector}
+    otimes(a::I, b::I...) where {I<:Sector}
 
 Return an iterable of elements of `c::I` that appear in the fusion product `a ⊗ b`.
 
@@ -128,6 +129,7 @@ Note that every element `c` should appear at most once, fusion degeneracies (if
 """
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
 ⊗(I::Sector) = (I,)
+const otimes = ⊗
 
 """
     Nsymbol(a::I, b::I, c::I) where {I<:Sector} -> Integer
