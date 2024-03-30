@@ -123,6 +123,7 @@ Base.oneunit(V::ElementarySpace) = oneunit(typeof(V))
 
 """
     ⊕(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
+    oplus(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
 
 Return the corresponding vector space of type `S` that represents the direct sum sum of the
 spaces `V₁`, `V₂`, ... Note that all the individual spaces should have the same value for
@@ -131,6 +132,7 @@ spaces `V₁`, `V₂`, ... Note that all the individual spaces should have the s
 function ⊕ end
 ⊕(V₁::VectorSpace, V₂::VectorSpace) = ⊕(promote(V₁, V₂)...)
 ⊕(V::Vararg{VectorSpace}) = foldl(⊕, V)
+const oplus = ⊕
 
 """
     ⊗(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
