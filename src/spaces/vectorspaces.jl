@@ -157,7 +157,7 @@ Return a single vector space of type `S` that is isomorphic to the fusion produc
 individual spaces `V₁`, `V₂`, ..., or the spaces contained in `P`.
 """
 function fuse end
-fuse(V::ElementarySpace) = V
+fuse(V::ElementarySpace) = isdual(V) ? flip(V) : V
 function fuse(V₁::VectorSpace, V₂::VectorSpace, V₃::VectorSpace...)
     return fuse(fuse(fuse(V₁), fuse(V₂)), V₃...)
 end
