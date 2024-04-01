@@ -22,11 +22,29 @@ ProductSpace{S}(spaces::Vararg{S}) where {S<:ElementarySpace} = ProductSpace{S}(
 function ProductSpace(spaces::Tuple{S,Vararg{S}}) where {S<:ElementarySpace}
     return ProductSpace{S,length(spaces)}(spaces)
 end
-function ProductSpace(space1::S, rspaces::Vararg{S}) where {S<:ElementarySpace}
+function ProductSpace(space1::ElementarySpace, rspaces::Vararg{ElementarySpace})
     return ProductSpace((space1, rspaces...))
 end
 
 ProductSpace(P::ProductSpace) = P
+
+# constructors with conversion behaviour
+function ProductSpace{S,N}(V::Vararg{ElementarySpace,N}) where {S<:ElementarySpace,N}
+    return ProductSpace{S,N}(V)
+end
+function ProductSpace{S}(V::Vararg{ElementarySpace}) where {S<:ElementarySpace}
+    return ProductSpace{S}(V)
+end
+
+function ProductSpace{S,N}(V::Tuple{Vararg{ElementarySpace,N}}) where {S<:ElementarySpace,N}
+    return ProductSpace{S}(convert.(S, V))
+end
+function ProductSpace{S}(V::Tuple{Vararg{ElementarySpace}}) where {S<:ElementarySpace}
+    return ProductSpace{S}(convert.(S, V))
+end
+function ProductSpace(V::Tuple{ElementarySpace,Vararg{ElementarySpace}})
+    return ProductSpace(promote(V...))
+end
 
 # Corresponding methods
 #-----------------------
