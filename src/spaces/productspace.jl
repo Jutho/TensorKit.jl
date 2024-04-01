@@ -26,6 +26,8 @@ function ProductSpace(space1::ElementarySpace, rspaces::Vararg{ElementarySpace})
     return ProductSpace((space1, rspaces...))
 end
 
+ProductSpace(P::ProductSpace) = P
+
 # constructors with conversion behaviour
 function ProductSpace{S,N}(V::Vararg{ElementarySpace,N}) where {S<:ElementarySpace,N}
     return ProductSpace{S,N}(V)
