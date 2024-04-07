@@ -334,6 +334,7 @@ function Base.length(p::CU1ProdIterator)
         return 2
     end
 end
+Base.eltype(::Type{CU1ProdIterator}) = CU1Irrep
 
 ⊗(a::CU1Irrep, b::CU1Irrep) = CU1ProdIterator(a, b)
 
