@@ -5,7 +5,8 @@
 # to correct for this by adding the `istemp = true` flag.
 function _annotate_temporaries(ex, temporaries)
     if isexpr(ex, :(=)) && isexpr(ex.args[2], :call) &&
-       ex.args[2].args[1] ∈ (:tensoralloc_add, :tensoralloc_contract)
+       ex.args[2].args[1] ∈
+       (GlobalRef(TO, :tensoralloc_add), GlobalRef(TO, :tensoralloc_contract))
         lhs = ex.args[1]
         i = findfirst(==(lhs), temporaries)
         if i !== nothing
