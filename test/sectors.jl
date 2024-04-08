@@ -19,6 +19,7 @@ println("------------------------------------")
             @constinferred Bsymbol(s...)
             @constinferred Fsymbol(s..., s...)
             it = @constinferred s[1] ⊗ s[2]
+            @test eltype(it) === I
             @constinferred ⊗(s..., s...)
         end
         @testset "Sector $Istr: Value iterator" begin
