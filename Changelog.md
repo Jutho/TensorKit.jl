@@ -5,6 +5,7 @@ Features that are planned to be implemented before the release of v1.0.0, in no 
 - [ ] Separate `Sectors` module
 - [ ] Make `TrivialTensorMap` and `TensorMap` be the same
 - [ ] Simplify `TensorMap` type to hide `rowr` and `colr`
+- [ ] Change block order in `rowr` / `colr` to speed up particular contractions
 - [ ] Make `AdjointTensorMap` generic
 - [ ] Rewrite planar operations in order to be AD-compatible
 - [ ] Fix rrules for fermionic tensors
