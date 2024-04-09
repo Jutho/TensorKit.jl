@@ -71,7 +71,8 @@ export leftorth, rightorth, leftnull, rightnull,
        leftorth!, rightorth!, leftnull!, rightnull!,
        tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
        isposdef, isposdef!, ishermitian, sylvester
-export braid, braid!, permute, permute!, transpose, transpose!, twist, twist!
+export braid, braid!, permute, permute!, transpose, transpose!, twist, twist!, repartition,
+       repartition!
 export catdomain, catcodomain
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,

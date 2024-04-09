@@ -186,6 +186,45 @@ function LinearAlgebra.transpose(t::AdjointTensorMap{S},
     return adjoint(transpose(adjoint(t), (p₁′, p₂′); copy=copy))
 end
 
+"""
+    repartition!(tdst::AbstractTensorMap{S}, tsrc::AbstractTensorMap{S}) where {S} -> tdst
+
+Write into `tdst` the result of repartitioning the indices of `tsrc`. This is just a special
+case of a transposition that only changes the number of in- and outgoing indices.
+
+See [`repartition`](@ref) for creating a new tensor.
+"""
+function repartition!(tdst::AbstractTensorMap{S}, tsrc::AbstractTensorMap{S}) where {S}
+    numind(tsrc) == numind(tdst) ||
+        throw(ArgumentError("tsrc and tdst should have an equal amount of indices"))
+    all_inds = (codomainind(tsrc)..., reverse(domainind(tsrc))...)
+    p₁ = ntuple(i -> all_inds[i], numout(tdst))
+    p₂ = reverse(ntuple(i -> all_inds[i + numout(tdst)], numin(tdst)))
+    return transpose!(tdst, tsrc, (p₁, p₂))
+end
+
+"""
+    repartition(tsrc::AbstractTensorMap{S}, N₁::Int, N₂::Int; copy::Bool=false) where {S}
+        -> tdst::AbstractTensorMap{S,N₁,N₂}
+
+Return tensor `tdst` obtained by repartitioning the indices of `t`.
+The codomain and domain of `tdst` correspond to the first `N₁` and last `N₂` spaces of `t`,
+respectively.
+
+If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
+
+To repartition into an existing destination, see [repartition!](@ref).
+"""
+function repartition(t::AbstractTensorMap, N₁::Int, N₂::Int=numind(t) - N₁;
+                     copy::Bool=false)
+    N₁ + N₂ == numind(t) ||
+        throw(ArgumentError("Invalid repartition: $(numind(t)) to ($N₁, $N₂)"))
+    all_inds = (codomainind(t)..., reverse(domainind(t))...)
+    p₁ = ntuple(i -> all_inds[i], N₁)
+    p₂ = reverse(ntuple(i -> all_inds[i + N₁], N₂))
+    return transpose(t, (p₁, p₂); copy)
+end
+
 # Twist
 """
     twist!(t::AbstractTensorMap, i::Int; inv::Bool=false)
