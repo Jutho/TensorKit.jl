@@ -215,8 +215,9 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 To repartition into an existing destination, see [repartition!](@ref).
 """
-function repartition(t::AbstractTensorMap, N₁::Int, N₂::Int=numind(t) - N₁;
-                     copy::Bool=false)
+Base.@constprop :aggressive function repartition(t::AbstractTensorMap, N₁::Int,
+                                                 N₂::Int=numind(t) - N₁;
+                                                 copy::Bool=false)
     N₁ + N₂ == numind(t) ||
         throw(ArgumentError("Invalid repartition: $(numind(t)) to ($N₁, $N₂)"))
     all_inds = (codomainind(t)..., reverse(domainind(t))...)
