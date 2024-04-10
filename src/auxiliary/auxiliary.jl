@@ -40,3 +40,12 @@ function _kron(A, B)
     end
     return C
 end
+
+# Compat implementation:
+@static if VERSION < v"1.7"
+    macro constprop(setting, ex)
+        return esc(ex)
+    end
+else
+    using Base: @constprop
+end
