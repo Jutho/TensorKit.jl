@@ -125,12 +125,14 @@ scaling, as well as the selection of a custom backend.
 permute(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}; copy::Bool=false) where {S,N₁,N₂}
 braid(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple, levels::IndexTuple; copy::Bool=false) where {S}
 transpose(::AbstractTensorMap, ::Index2Tuple)
+repartition(::AbstractTensorMap, ::Int, ::Int)
 twist(::AbstractTensorMap, ::Int)
 ```
 ```@docs
 permute!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
 braid!
 transpose!
+repartition!(::AbstractTensorMap{S}, ::AbstractTensorMap{S}) where {S}
 twist!
 ```
 ```@docs

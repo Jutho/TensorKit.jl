@@ -201,22 +201,36 @@ for V in spacelist
                     t2′ = permute(t′, (p1, p2))
                     @test dot(t2′, t2) ≈ dot(t′, t) ≈ dot(transpose(t2′), transpose(t2))
                 end
+
+                t3 = VERSION < v"1.7" ? repartition(t, k) :
+                     @constinferred repartition(t, $k)
+                @test norm(t3) ≈ norm(t)
+                t3′ = @constinferred repartition!(similar(t3), t′)
+                @test norm(t3′) ≈ norm(t′)
+                @test dot(t′, t) ≈ dot(t3′, t3)
             end
         end
         if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Permutations: test via conversion" begin
                 W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
                 t = Tensor(rand, ComplexF64, W)
+                a = convert(Array, t)
                 for k in 0:5
                     for p in permutations(1:5)
                         p1 = ntuple(n -> p[n], k)
                         p2 = ntuple(n -> p[k + n], 5 - k)
                         t2 = permute(t, (p1, p2))
                         a2 = convert(Array, t2)
-                        @test a2 ≈ permutedims(convert(Array, t), (p1..., p2...))
+                        @test a2 ≈ permutedims(a, (p1..., p2...))
                         @test convert(Array, transpose(t2)) ≈
                               permutedims(a2, (5, 4, 3, 2, 1))
                     end
+
+                    t3 = repartition(t, k)
+                    a3 = convert(Array, t3)
+                    @test a3 ≈ permutedims(a,
+                                           (ntuple(identity, k)...,
+                                            reverse(ntuple(i -> i + k, 5 - k))...))
                 end
             end
         end
