@@ -60,8 +60,29 @@ end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
                               α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    for c in blocksectors(tx)
-        VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+    num_threads = get_num_threads_add()
+    lsc = blocksectors(tx)
+    if num_threads == 1 || length(lsc) == 1
+        for c in lsc
+            VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+        end
+    else 
+        # try to sort sectors by size
+        if isa(lsc, AbstractVector)
+            # warning: using `sort!` here is not safe. I found it will lead to a "key ... not found" error when show tx again  
+            lsc = sort(lsc; by=c -> prod(size(block(tx, c))), rev=true)
+        end
+
+        idx = Threads.Atomic{Int64}(1)
+        Threads.@sync for _ in 1:num_threads
+            Threads.@spawn while true
+                i = Threads.atomic_add!(idx, 1)
+                i > length(lsc) && break
+
+                c = lsc[i]
+                VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+            end
+        end
     end
     return ty
 end

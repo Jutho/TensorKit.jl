@@ -246,15 +246,60 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
          domain(tA) == codomain(tB))
         throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
     end
-    for c in blocksectors(tC)
-        if hasblock(tA, c) # then also tB should have such a block
-            A = block(tA, c)
-            B = block(tB, c)
-            C = block(tC, c)
-            mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
-        elseif β != one(β)
-            rmul!(block(tC, c), β)
+
+    num_threads = get_num_threads_mul()
+    if num_threads == 1 || length(blocksectors(tC)) == 1
+        for c in blocksectors(tC)
+            if hasblock(tA, c) # then also tB should have such a block
+                A = block(tA, c)
+                B = block(tB, c)
+                C = block(tC, c)
+                mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
+            elseif β != one(β)
+                rmul!(block(tC, c), β)
+            end
         end
+
+    else
+        lsc = blocksectors(tC)
+        # try to sort sectors by size
+        if isa(lsc, AbstractVector)
+            lsD3 = map(lsc) do c
+                if hasblock(tA, c)
+                    return size(block(tA, c), 1) * size(block(tA, c), 2) *
+                           size(block(tA, c), 2)
+                else
+                    return size(block(tC, c), 1) * size(block(tC, c), 2)
+                end
+            end
+        end
+        lsc = lsc[sortperm(lsD3; rev=true)]
+
+        # producer
+        taskref = Ref{Task}()
+        ch = Channel(; taskref=taskref, spawn=true) do ch
+            for c in lsc
+                put!(ch, c)
+            end
+        end
+
+        # consumers
+        tasks = map(1:num_threads) do _
+            task = Threads.@spawn for c in ch
+                if hasblock(tA, c)
+                    mul!(block(tC, c),
+                         block(tA, c),
+                         block(tB, c),
+                         α, β)
+                elseif β != one(β)
+                    rmul!(block(tC, c), β)
+                end
+            end
+            return errormonitor(task)
+        end
+
+        wait.(tasks)
+        wait(taskref[])
     end
     return tC
 end
