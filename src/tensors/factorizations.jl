@@ -414,7 +414,7 @@ function tsvd!(t::TensorMap;
                alg::Union{SVD,SDD}=SDD(),
                scheduler::Scheduler=default_scheduler(t))
     InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
-    
+
     # early return
     if isempty(blocksectors(t))
         truncerr = zero(real(scalartype(t)))
@@ -447,7 +447,8 @@ function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
     Tvals = values(Tdata)
 
     Uvals = similar(Tvals)
-    Σtype = Core.Compiler.return_type(similar, Tuple{eltype(Tvals),Type{real(scalartype(t))},Int})
+    Σtype = Core.Compiler.return_type(similar,
+                                      Tuple{eltype(Tvals),Type{real(scalartype(t))},Int})
     Σvals = similar(Tvals, Σtype)
     Vvals = similar(Tvals)
     dimsvals = similar(Tvals, Int)
@@ -458,7 +459,7 @@ function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
     end
 
     # TODO: do we need copys of the keys?
-    Udata = SectorDict{eltype(Tkeys), eltype(Uvals)}(copy(Tkeys), Uvals)
+    Udata = SectorDict{eltype(Tkeys),eltype(Uvals)}(copy(Tkeys), Uvals)
     Σdata = SectorDict{eltype(Tkeys),eltype(Σvals)}(copy(Tkeys), Σvals)
     Vdata = SectorDict{eltype(Tkeys),eltype(Vvals)}(copy(Tkeys), Vvals)
     dims = SectorDict{eltype(Tkeys),eltype(dimsvals)}(copy(Tkeys), dimsvals)
