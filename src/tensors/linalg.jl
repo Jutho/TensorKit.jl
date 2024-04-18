@@ -242,7 +242,7 @@ end
 function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
                             tB::AbstractTensorMap, α=true, β=false;
-                            scheduler::Scheduler=SerialScheduler())
+                            scheduler::Scheduler=default_scheduler(tC))
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) &&
          domain(tA) == codomain(tB))
         throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))

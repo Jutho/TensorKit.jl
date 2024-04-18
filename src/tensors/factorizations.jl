@@ -404,7 +404,7 @@ function tsvd!(t::AdjointTensorMap;
                trunc::TruncationScheme=NoTruncation(),
                p::Real=2,
                alg::Union{SVD,SDD}=SDD(),
-               scheduler::Scheduler=SerialScheduler())
+               scheduler::Scheduler=default_scheduler(t))
     u, s, vt, err = tsvd!(adjoint(t); trunc, p, alg, scheduler)
     return adjoint(vt), adjoint(s), adjoint(u), err
 end
@@ -412,7 +412,7 @@ end
 function tsvd!(t::TensorMap;
                trunc::TruncationScheme=NoTruncation(), p::Real=2,
                alg::Union{SVD,SDD}=SDD(),
-               scheduler::Scheduler=SerialScheduler())
+               scheduler::Scheduler=default_scheduler(t))
     InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
     
     # early return
@@ -441,7 +441,7 @@ end
 
 # helper functions
 function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
-                           scheduler::Scheduler=SerialScheduler())
+                           scheduler::Scheduler=default_scheduler(t))
     Tdata = blocks(t)
     Tkeys = keys(Tdata)
     Tvals = values(Tdata)
@@ -467,7 +467,7 @@ function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
 end
 # scheduler ignored for trivial tensormap
 function _compute_svddata!(t::TrivialTensorMap, alg::Union{SVD,SDD};
-                           scheduler::Scheduler=SerialScheduler())
+                           scheduler::Scheduler=default_scheduler(t))
     U, S, V = MatrixAlgebra.svd!(t.data, alg)
 
     Udata = SectorDict(Trivial() => U)

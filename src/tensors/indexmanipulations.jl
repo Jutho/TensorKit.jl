@@ -312,7 +312,7 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
                         α::Number,
                         β::Number,
                         backend::Backend...;
-                        scheduler::Scheduler=SerialScheduler()) where {S,N₁,N₂}
+                        scheduler::Scheduler=default_scheduler(tdst)) where {S,N₁,N₂}
     @boundscheck begin
         all(i -> space(tsrc, p₁[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
@@ -334,18 +334,18 @@ end
 
 # internal methods: no argument types
 function _add_transform!(::Type{Trivial}, tdst, tsrc, p, fusiontreetransform, α, β,
-                         backend...; scheduler::Scheduler=SerialScheduler())
+                         backend...; scheduler::Scheduler)
     TO.tensoradd!(tdst[], p, tsrc[], :N, α, β, backend...)
     return nothing
 end
 function _add_transform!(::Type{I}, tdst, tsrc, p, fusiontreetransform, α, β, backend...;
-                         scheduler::Scheduler=SerialScheduler()) where {I<:Sector}
+                         scheduler::Scheduler) where {I<:Sector}
     return __add_transform!(FusionStyle(I), tdst, tsrc, p, fusiontreetransform, α, β,
                             backend...; scheduler)
 end
 
 function __add_transform!(::UniqueFusion, tdst, tsrc, p, fusiontreetransform, α, β,
-                          backend...; scheduler::Scheduler=SerialScheduler())
+                          backend...; scheduler::Scheduler)
     tforeach(fusiontrees(tsrc); scheduler) do (f₁, f₂)
         (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
         TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
@@ -356,7 +356,7 @@ end
 # TODO: find a way to merge implementations of serial and parallel versions
 # TODO: invert the way fusiontreetransform is made, so we can loop over output trees instead of input trees
 function __add_transform!(::FusionStyle, tdst, tsrc, p, fusiontreetransform, α, β,
-                          backend...; scheduler::Scheduler=SerialScheduler())
+                          backend...; scheduler::Scheduler)
     scale!(tdst, β)
     β′ = One()
     if scheduler isa SerialScheduler
