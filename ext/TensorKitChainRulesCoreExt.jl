@@ -650,4 +650,71 @@ function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{TensorMap},
     return convert(TensorMap, t), v -> (NoTangent(), NoTangent(), convert(Dict, v))
 end
 
+function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
+                              C::AbstractTensorMap, pC::Index2Tuple,
+                              A::AbstractTensorMap, pA::Index2Tuple, conjA::Symbol,
+                              B::AbstractTensorMap, pB::Index2Tuple, conjB::Symbol,
+                              α::Number, β::Number, backend::Backend...)
+    C′ = tensorcontract!(copy(C), pC, A, pA, conjA, B, pB, conjB, α, β, backend...)
+
+    projectA = ProjectTo(A)
+    projectB = ProjectTo(B)
+    projectC = ProjectTo(C)
+    projectα = ProjectTo(α)
+    projectβ = ProjectTo(β)
+
+    function pullback(ΔC′)
+        ΔC = unthunk(ΔC′)
+        ipC = invperm(linearize(pC))
+        pΔC = (TupleTools.getindices(ipC, trivtuple(numout(pA))),
+               TupleTools.getindices(ipC, numout(pA) .+ trivtuple(numin(pB))))
+        dC = @thunk projectC(scale(ΔC, conj(β)))
+        dA = @thunk begin
+            ipA = (invperm(linearize(pA)), ())
+            conjΔC = conjA == :C ? :C : :N
+            conjB′ = conjA == :C ? conjB : _conj(conjB)
+            _dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B), typeof(α)))
+            _dA = tensorcontract!(_dA, ipA,
+                                  ΔC, pΔC, conjΔC,
+                                  B, reverse(pB), conjB′,
+                                  conjA == :C ? α : conj(α), Zero(), backend...)
+            return projectA(_dA)
+        end
+        dB = @thunk begin
+            ipB = (invperm(linearize(pB)), ())
+            conjΔC = conjB == :C ? :C : :N
+            conjA′ = conjB == :C ? conjA : _conj(conjA)
+            _dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A), typeof(α)))
+            _dB = tensorcontract!(_dB, ipB,
+                                  A, reverse(pA), conjA′,
+                                  ΔC, pΔC, conjΔC,
+                                  conjB == :C ? α : conj(α), Zero(), backend...)
+            return projectB(_dB)
+        end
+        dα = @thunk begin
+            _dα = tensorscalar(tensorcontract(((), ()),
+                                              tensorcontract(pC, A, pA, conjA, B, pB,
+                                                             conjB),
+                                              ((), trivtuple(numind(pC))),
+                                              :C, ΔC,
+                                              (trivtuple(numind(pC)), ()), :N,
+                                              backend...))
+            return projectα(_dα)
+        end
+        dβ = @thunk begin
+            _dβ = tensorscalar(tensorcontract(((), ()), C,
+                                              ((), trivtuple(numind(pC))), :C, ΔC,
+                                              (trivtuple(numind(pC)), ()), :N,
+                                              backend...))
+            return projectβ(_dβ)
+        end
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, NoTangent(),
+               dA, NoTangent(), NoTangent(), dB, NoTangent(), NoTangent(), dα, dβ,
+               dbackend...
+    end
+
+    return C′, pullback
+end
+
 end
