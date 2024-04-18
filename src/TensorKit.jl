@@ -91,6 +91,10 @@ using TupleTools
 using TupleTools: StaticLength
 
 using Strided
+using OhMyThreads
+# turn off multithreading by default
+default_scheduler(::Type) = SerialScheduler()
+default_scheduler(t) = default_scheduler(typeof(t))
 
 using VectorInterface
 

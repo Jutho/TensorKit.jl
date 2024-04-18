@@ -4,47 +4,54 @@ VectorInterface.scalartype(T::Type{<:AbstractTensorMap}) = scalartype(storagetyp
 
 # zerovector & zerovector!!
 #---------------------------
-function VectorInterface.zerovector(t::AbstractTensorMap, ::Type{S}) where {S<:Number}
-    return zerovector!(similar(t, S))
+function VectorInterface.zerovector(t::AbstractTensorMap, ::Type{S};
+                                    scheduler::Scheduler=default_scheduler(t)) where {S<:Number}
+    return zerovector!(similar(t, S); scheduler)
 end
-function VectorInterface.zerovector!(t::AbstractTensorMap)
-    for (c, b) in blocks(t)
-        zerovector!(b)
-    end
+function VectorInterface.zerovector!(t::AbstractTensorMap;
+                                     scheduler::Scheduler=default_scheduler(t))
+    tforeach(zerovector!, values(blocks(t)); scheduler)
     return t
 end
-VectorInterface.zerovector!!(t::AbstractTensorMap) = zerovector!(t)
+function VectorInterface.zerovector!!(t::AbstractTensorMap;
+                                      scheduler::Scheduler=default_scheduler(t))
+    return zerovector!(t)
+end
 
 # scale, scale! & scale!!
 #-------------------------
-function VectorInterface.scale(t::AbstractTensorMap, α::Number)
+function VectorInterface.scale(t::AbstractTensorMap, α::Number;
+                               scheduler::Scheduler=default_scheduler(t))
     T = VectorInterface.promote_scale(t, α)
-    return scale!(similar(t, T), t, α)
+    return scale!(similar(t, T), t, α; scheduler)
 end
-function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
-    for (c, b) in blocks(t)
-        scale!(b, α)
-    end
+function VectorInterface.scale!(t::AbstractTensorMap, α::Number;
+                                scheduler::Scheduler=default_scheduler(t))
+    _scale!(c) = scale!(block(t, c), α)
+    tforeach(_scale!, blocksectors(t); scheduler)
     return t
 end
-function VectorInterface.scale!!(t::AbstractTensorMap, α::Number)
+function VectorInterface.scale!!(t::AbstractTensorMap, α::Number;
+                                 scheduler::Scheduler=default_scheduler(t))
     α === One() && return t
     T = VectorInterface.promote_scale(t, α)
-    return T <: scalartype(t) ? scale!(t, α) : scale(t, α)
+    return T <: scalartype(t) ? scale!(t, α; scheduler) : scale(t, α; scheduler)
 end
-function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
+function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number;
+                                scheduler::Scheduler=default_scheduler(ty))
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     for c in blocksectors(tx)
         scale!(block(ty, c), block(tx, c), α)
     end
     return ty
 end
-function VectorInterface.scale!!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
+function VectorInterface.scale!!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number;
+                                 scheduler::Scheduler=default_scheduler(ty))
     T = VectorInterface.promote_scale(tx, α)
     if T <: scalartype(ty)
-        return scale!(ty, tx, α)
+        return scale!(ty, tx, α; scheduler)
     else
-        return scale(tx, α)
+        return scale(tx, α; scheduler)
     end
 end
 
@@ -52,27 +59,30 @@ end
 #-------------------
 # TODO: remove VectorInterface from calls to `add!` when `TensorKit.add!` is renamed
 function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                             α::Number, β::Number)
+                             α::Number, β::Number;
+                             scheduler::Scheduler=default_scheduler(ty))
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     T = VectorInterface.promote_add(ty, tx, α, β)
-    return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
+    return VectorInterface.add!(scale!(similar(ty, T), ty, β; scheduler), tx, α, One();
+                                scheduler)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                              α::Number, β::Number)
+                              α::Number, β::Number;
+                              scheduler::Scheduler=default_scheduler(ty))
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    for c in blocksectors(tx)
-        VectorInterface.add!(block(ty, c), block(tx, c), α, β)
-    end
+    _add!(c) = VectorInterface.add!(block(ty, c), block(tx, c), α, β)
+    tforeach(_add!, blocksectors(tx); scheduler)
     return ty
 end
 function VectorInterface.add!!(ty::AbstractTensorMap, tx::AbstractTensorMap,
-                               α::Number, β::Number)
+                               α::Number, β::Number;
+                               scheduler::Scheduler=default_scheduler(ty))
     # spacecheck is done in add(!)
     T = VectorInterface.promote_add(ty, tx, α, β)
     if T <: scalartype(ty)
-        return VectorInterface.add!(ty, tx, α, β)
+        return VectorInterface.add!(ty, tx, α, β; scheduler)
     else
-        return VectorInterface.add(ty, tx, α, β)
+        return VectorInterface.add(ty, tx, α, β; scheduler)
     end
 end
 

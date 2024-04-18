@@ -311,7 +311,8 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
                         fusiontreetransform,
                         α::Number,
                         β::Number,
-                        backend::Backend...) where {S,N₁,N₂}
+                        backend::Backend...;
+                        scheduler::Scheduler=default_scheduler(tdst)) where {S,N₁,N₂}
     @boundscheck begin
         all(i -> space(tsrc, p₁[i]) == space(tdst, i), 1:N₁) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
@@ -321,74 +322,63 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
             dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
     end
 
-    I = sectortype(S)
+    # special case for trivial permutations
     if p₁ == codomainind(tsrc) && p₂ == domainind(tsrc)
-        add!(tdst, tsrc, α, β)
-    elseif I === Trivial
-        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
-    elseif FusionStyle(I) isa UniqueFusion
-        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
-    else
-        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        return add!(tdst, tsrc, α, β; scheduler)
     end
+
+    _add_transform!(sectortype(S), tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+                    backend...; scheduler)
     return tdst
 end
 
 # internal methods: no argument types
-function _add_trivial_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
+function _add_transform!(::Type{Trivial}, tdst, tsrc, p, fusiontreetransform, α, β,
+                         backend...; scheduler::Scheduler)
     TO.tensoradd!(tdst[], p, tsrc[], :N, α, β, backend...)
     return nothing
 end
-
-function _add_abelian_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
-    if Threads.nthreads() > 1
-        Threads.@sync for (f₁, f₂) in fusiontrees(tsrc)
-            Threads.@spawn _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
-                                               f₁, f₂, α, β, backend...)
-        end
-    else
-        for (f₁, f₂) in fusiontrees(tsrc)
-            _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
-                                f₁, f₂, α, β, backend...)
-        end
-    end
-    return tdst
+function _add_transform!(::Type{I}, tdst, tsrc, p, fusiontreetransform, α, β, backend...;
+                         scheduler::Scheduler) where {I<:Sector}
+    return __add_transform!(FusionStyle(I), tdst, tsrc, p, fusiontreetransform, α, β,
+                            backend...; scheduler)
 end
 
-function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)
-    (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
-    TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
+function __add_transform!(::UniqueFusion, tdst, tsrc, p, fusiontreetransform, α, β,
+                          backend...; scheduler::Scheduler)
+    tforeach(fusiontrees(tsrc); scheduler) do (f₁, f₂)
+        (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
+        TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
+        return nothing
+    end
     return nothing
 end
-
-function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
-    if iszero(β)
-        tdst = zerovector!(tdst)
-    elseif β != 1
-        tdst = scale!(tdst, β)
-    end
-    if Threads.nthreads() > 1
-        Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
-            Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁,
-                                                   s₂, α, β, backend...)
-        end
-    else
-        for (f₁, f₂) in fusiontrees(tsrc)
+# TODO: find a way to merge implementations of serial and parallel versions
+# TODO: invert the way fusiontreetransform is made, so we can loop over output trees instead of input trees
+function __add_transform!(::FusionStyle, tdst, tsrc, p, fusiontreetransform, α, β,
+                          backend...; scheduler::Scheduler)
+    scale!(tdst, β)
+    β′ = One()
+    if scheduler isa SerialScheduler
+        # serial version does not need to care about simultaneous writes
+        tforeach(fusiontrees(tsrc); scheduler) do (f₁, f₂)
             for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-                TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
+                TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β′,
                               backend...)
             end
         end
-    end
-    return nothing
-end
-
-function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, β,
-                                 backend...)
-    for (f₁, f₂) in fusiontrees(tsrc)
-        (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
-        for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-            TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true, backend...)
+    else
+        tforeach(Iterators.product(sectors(codomain(tsrc)), sectors(domain(tsrc)));
+                 scheduler) do (s₁, s₂)
+            # each task will only write to a fixed set out output sectors, so no concurrent writes.
+            for (f₁, f₂) in fusiontrees(tsrc)
+                (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
+                for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
+                    TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β′,
+                                  backend...)
+                end
+            end
+            return nothing
         end
     end
     return nothing

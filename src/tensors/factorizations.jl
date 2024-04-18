@@ -403,23 +403,26 @@ end
 function tsvd!(t::AdjointTensorMap;
                trunc::TruncationScheme=NoTruncation(),
                p::Real=2,
-               alg::Union{SVD,SDD}=SDD())
-    u, s, vt, err = tsvd!(adjoint(t); trunc=trunc, p=p, alg=alg)
+               alg::Union{SVD,SDD}=SDD(),
+               scheduler::Scheduler=default_scheduler(t))
+    u, s, vt, err = tsvd!(adjoint(t); trunc, p, alg, scheduler)
     return adjoint(vt), adjoint(s), adjoint(u), err
 end
 
 function tsvd!(t::TensorMap;
-               trunc::TruncationScheme=NoTruncation(),
-               p::Real=2,
-               alg::Union{SVD,SDD}=SDD())
-    #early return
+               trunc::TruncationScheme=NoTruncation(), p::Real=2,
+               alg::Union{SVD,SDD}=SDD(),
+               scheduler::Scheduler=default_scheduler(t))
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
+
+    # early return
     if isempty(blocksectors(t))
         truncerr = zero(real(scalartype(t)))
         return _empty_svdtensors(t)..., truncerr
     end
 
     S = spacetype(t)
-    Udata, Σdata, Vdata, dims = _compute_svddata!(t, alg)
+    Udata, Σdata, Vdata, dims = _compute_svddata!(t, alg; scheduler)
     if !isa(trunc, NoTruncation)
         Σdata, truncerr = _truncate!(Σdata, trunc, p)
         Udata, Σdata, Vdata, dims = _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
@@ -437,26 +440,42 @@ function tsvd!(t::TensorMap;
 end
 
 # helper functions
+function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD};
+                           scheduler::Scheduler=default_scheduler(t))
+    Tdata = blocks(t)
+    Tkeys = keys(Tdata)
+    Tvals = values(Tdata)
 
-function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD})
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
-    I = sectortype(t)
-    A = storagetype(t)
-    Udata = SectorDict{I,A}()
-    Vdata = SectorDict{I,A}()
-    dims = SectorDict{I,Int}()
-    local Σdata
-    for (c, b) in blocks(t)
-        U, Σ, V = MatrixAlgebra.svd!(b, alg)
-        Udata[c] = U
-        Vdata[c] = V
-        if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
-            Σdata[c] = Σ
-        else
-            Σdata = SectorDict(c => Σ)
-        end
-        dims[c] = length(Σ)
+    Uvals = similar(Tvals)
+    Σtype = Core.Compiler.return_type(similar,
+                                      Tuple{eltype(Tvals),Type{real(scalartype(t))},Int})
+    Σvals = similar(Tvals, Σtype)
+    Vvals = similar(Tvals)
+    dimsvals = similar(Tvals, Int)
+
+    tforeach(enumerate(Tvals); scheduler) do (i, b)
+        Uvals[i], Σvals[i], Vvals[i] = MatrixAlgebra.svd!(b, alg)
+        return dimsvals[i] = length(Σvals[i])
     end
+
+    # TODO: do we need copys of the keys?
+    Udata = SectorDict{eltype(Tkeys),eltype(Uvals)}(copy(Tkeys), Uvals)
+    Σdata = SectorDict{eltype(Tkeys),eltype(Σvals)}(copy(Tkeys), Σvals)
+    Vdata = SectorDict{eltype(Tkeys),eltype(Vvals)}(copy(Tkeys), Vvals)
+    dims = SectorDict{eltype(Tkeys),eltype(dimsvals)}(copy(Tkeys), dimsvals)
+
+    return Udata, Σdata, Vdata, dims
+end
+# scheduler ignored for trivial tensormap
+function _compute_svddata!(t::TrivialTensorMap, alg::Union{SVD,SDD};
+                           scheduler::Scheduler=default_scheduler(t))
+    U, S, V = MatrixAlgebra.svd!(t.data, alg)
+
+    Udata = SectorDict(Trivial() => U)
+    Σdata = SectorDict(Trivial() => S)
+    Vdata = SectorDict(Trivial() => V)
+    dims = SectorDict(Trivial() => length(S))
+
     return Udata, Σdata, Vdata, dims
 end
 

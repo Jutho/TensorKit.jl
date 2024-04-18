@@ -241,24 +241,27 @@ end
 # TensorMap multiplication
 function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
-                            tB::AbstractTensorMap, α=true, β=false)
+                            tB::AbstractTensorMap, α=true, β=false;
+                            scheduler::Scheduler=default_scheduler(tC))
     if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) &&
          domain(tA) == codomain(tB))
         throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
     end
-    for c in blocksectors(tC)
-        if hasblock(tA, c) # then also tB should have such a block
-            A = block(tA, c)
-            B = block(tB, c)
-            C = block(tC, c)
-            mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
-        elseif β != one(β)
-            rmul!(block(tC, c), β)
-        end
-    end
+    _mul!(c) = _mul_block!(c, tC, tA, tB, α, β)
+    tforeach(_mul!, blocksectors(tC); scheduler)
     return tC
 end
-# TODO: reconsider wrapping the blocks in a StridedView, consider spawning threads for different blocks
+function _mul_block!(c, tC, tA, tB, α, β)
+    if hasblock(tA, c) # then also tB should have such a block
+        A = block(tA, c)
+        B = block(tB, c)
+        C = block(tC, c)
+        mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
+    elseif β != one(β)
+        rmul!(block(tC, c), β)
+    end
+    return nothing
+end
 
 # TensorMap inverse
 function Base.inv(t::AbstractTensorMap)
