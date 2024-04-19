@@ -21,7 +21,7 @@ const sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewS
                     NewSU2Irrep ⊠ SU2Irrep, FermionParity ⊠ SU2Irrep ⊠ NewSU2Irrep,
                     Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
-@testset verbose = true "$I" for I in sectorlist
+@testset "$(TensorKitSectors.type_repr(I))" for I in sectorlist
     @include("sectors.jl")
 end
 

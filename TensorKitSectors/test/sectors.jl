@@ -42,7 +42,7 @@ end
     end
 end
 if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
-    @testset "Sector $I: fusion tensor and F-move and R-move" begin
+    @testset "Sector $Istr: fusion tensor and F-move and R-move" begin
         for a in smallset(I), b in smallset(I)
             for c in ⊗(a, b)
                 X1 = permutedims(fusiontensor(a, b, c), (2, 1, 3, 4))
