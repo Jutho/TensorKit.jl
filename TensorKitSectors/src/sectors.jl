@@ -100,12 +100,26 @@ Return an iterable of elements of `c::I` that appear in the fusion product `a �
 Note that every element `c` should appear at most once, fusion degeneracies (if
 `FusionStyle(I) == GenericFusion()`) should be accessed via `Nsymbol(a, b, c)`.
 """
-fusionproduct(::Sector, ::Sector)
-const ⊗ = fusionproduct
-
-⊗(::Trivial, ::Trivial) = (Trivial(),)
-⊗(I::Sector) = (I,)
+function ⊗(::Vararg{Sector}) end
 const otimes = ⊗
+
+⊗(I::Sector) = (I,)
+
+# NOTE: the following inline is extremely important for performance, especially
+# in the case of UniqueFusion, because ⊗(...) is computed very often
+@inline function ⊗(a::I, b::I, c::I, rest::Vararg{I}) where {I<:Sector}
+    if FusionStyle(I) isa UniqueFusion
+        return a ⊗ first(⊗(b, c, rest...))
+    else
+        s = Set{I}()
+        for d in ⊗(b, c, rest...)
+            for e in a ⊗ d
+                push!(s, e)
+            end
+        end
+        return s
+    end
+end
 
 """
     Nsymbol(a::I, b::I, c::I) where {I<:Sector} -> Integer
