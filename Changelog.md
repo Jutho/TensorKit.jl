@@ -21,3 +21,11 @@ This adds the scalar type as a parameter to the `AbstractTensorMap` type. This i
 the contexts where different types of tensors are used (`AdjointTensor`, `BraidingTensor`,
 ...), which still have the same scalartype. Additionally, this removes many specializations
 for methods in order to reduce ambiguity errors.
+
+### `copy(BraidingTensor`
+
+This PR changes the behaviour of `copy` as an instantiator for creating a `TensorMap` from a
+`BraidingTensor`. The rationale is that while this does sometimes happen in Julia `Base`,
+this is always in the context of lazy wrapper types, for which it makes sense to not copy
+the parent and then create a new wrapper. `BraidingTensor` does not wrap anything, so this
+definition makes less sense.

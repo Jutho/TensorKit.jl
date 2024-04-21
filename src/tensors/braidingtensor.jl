@@ -127,7 +127,9 @@ end
 
 Base.similar(::BraidingTensor, T::Type, P::TensorMapSpace) = TensorMap(undef, T, P)
 
-Base.copy(b::BraidingTensor) = copy!(similar(b), b)
+# efficient copy constructor
+Base.copy(b::BraidingTensor) = BraidingTensor(copy(b.V1), copy(b.V2), b.adjoint)
+
 function Base.copy!(t::TensorMap, b::BraidingTensor)
     space(t) == space(b) || throw(SectorMismatch())
     fill!(t, zero(scalartype(t)))
@@ -148,8 +150,8 @@ function Base.copy!(t::TensorMap, b::BraidingTensor)
     end
     return t
 end
-TensorMap(b::BraidingTensor) = copy(b)
-Base.convert(::Type{TensorMap}, b::BraidingTensor) = copy(b)
+TensorMap(b::BraidingTensor) = copy!(similar(b), b)
+Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
@@ -199,7 +201,8 @@ function add_transform!(tdst::AbstractTensorMap,
                         α::Number,
                         β::Number,
                         backend::Backend...)
-    return add_transform!(tdst, copy(tsrc), (p₁, p₂), fusiontreetransform, α, β, backend...)
+    return add_transform!(tdst, TensorMap(tsrc), (p₁, p₂), fusiontreetransform, α, β,
+                          backend...)
 end
 
 # VectorInterface
@@ -213,7 +216,7 @@ end
 function TO.tensoradd!(C::AbstractTensorMap, pC::Index2Tuple,
                        A::BraidingTensor, conjA::Symbol, α::Number, β::Number,
                        backend::Backend...)
-    return TO.tensoradd!(C, pC, copy(A), conjA, α, β, backend...)
+    return TO.tensoradd!(C, pC, TensorMap(A), conjA, α, β, backend...)
 end
 
 # Planar operations
@@ -224,7 +227,7 @@ function planaradd!(C::AbstractTensorMap,
                     A::BraidingTensor, p::Index2Tuple,
                     α::Number, β::Number,
                     backend::Backend...)
-    return planaradd!(C, copy(A), p, α, β, backend...)
+    return planaradd!(C, TensorMap(A), p, α, β, backend...)
 end
 
 function planarcontract!(C::AbstractTensorMap,
@@ -237,7 +240,7 @@ function planarcontract!(C::AbstractTensorMap,
                          backend::Backend...)
     # special case only defined for contracting 2 indices
     length(oindA) == length(cindA) == 2 ||
-        return planarcontract!(C, copy(A), (oindA, cindA), B, (cindB, oindB), (p1, p2),
+        return planarcontract!(C, TensorMap(A), (oindA, cindA), B, (cindB, oindB), (p1, p2),
                                α, β, backend...)
 
     codA, domA = codomainind(A), domainind(A)
@@ -288,7 +291,7 @@ function planarcontract!(C::AbstractTensorMap,
                          backend::Backend...)
     # special case only defined for contracting 2 indices
     length(oindB) == length(cindB) == 2 ||
-        return planarcontract!(C, A, (oindA, cindA), copy(B), (cindB, oindB), (p1, p2),
+        return planarcontract!(C, A, (oindA, cindA), TensorMap(B), (cindB, oindB), (p1, p2),
                                α, β, backend...)
 
     codA, domA = codomainind(A), domainind(A)
@@ -334,7 +337,7 @@ end
 function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
                          B::BraidingTensor, pB::Index2Tuple, pC::Index2Tuple,
                          α::Number, β::Number, backend::Backend...)
-    return planarcontract!(C, copy(A), pA, copy(B), pB, pC, α, β, backend...)
+    return planarcontract!(C, TensorMap(A), pA, TensorMap(B), pB, pC, α, β, backend...)
 end
 
 function planartrace!(C::AbstractTensorMap,
@@ -342,7 +345,7 @@ function planartrace!(C::AbstractTensorMap,
                       p::Index2Tuple, q::Index2Tuple,
                       α::Number, β::Number,
                       backend::Backend...)
-    return planartrace!(C, copy(A), p, q, α, β, backend...)
+    return planartrace!(C, TensorMap(A), p, q, α, β, backend...)
 end
 
 # function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},

@@ -571,7 +571,8 @@ since it assumes a  uniquely defined coupled charge.
 """
 @inline function Base.getindex(t::TensorMap, sectors::Tuple{I,Vararg{I}}) where {I<:Sector}
     I === sectortype(t) || throw(SectorMismatch("Not a valid sectortype for this tensor."))
-    length(sectors) == numind(t) || throw(ArgumentError("Number of sectors does not match."))
+    length(sectors) == numind(t) ||
+        throw(ArgumentError("Number of sectors does not match."))
     FusionStyle(I) isa UniqueFusion ||
         throw(SectorMismatch("Indexing with sectors only possible if unique fusion"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
@@ -757,7 +758,7 @@ function Base.convert(T::Type{<:TensorMap{E,S,N₁,N₂}},
         return t
     else
         data = Dict{sectortype(T),storagetype(T)}(c => convert(storagetype(T), b)
-                                      for (c, b) in blocks(t))
+                                                  for (c, b) in blocks(t))
         return TensorMap(data, codomain(t), domain(t))
     end
 end
