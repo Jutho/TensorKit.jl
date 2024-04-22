@@ -6,10 +6,11 @@ module NewSectors
 export NewSU2Irrep
 
 using HalfIntegers, WignerSymbols
-using TensorKitSectors
+using TensorKit
+using TensorKit: TensorKitSectors
 
-import TensorKitSectors: FusionStyle, BraidingStyle, Nsymbol, Fsymbol, Rsymbol, dim,
-                         fusiontensor, ⊗
+import TensorKit.TensorKitSectors: FusionStyle, BraidingStyle, Nsymbol, Fsymbol, Rsymbol, dim,
+                         fusiontensor, ⊗, SectorValues
 
 struct NewSU2Irrep <: Sector
     j::HalfInt
