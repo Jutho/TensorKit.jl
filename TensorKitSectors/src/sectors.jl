@@ -131,13 +131,10 @@ function Nsymbol end
 
 # trait to describe the fusion of superselection sectors
 abstract type FusionStyle end
-struct UniqueFusion <: FusionStyle # unique fusion output when fusing two sectors
-end
+struct UniqueFusion <: FusionStyle end # unique fusion output when fusing two sectors
 abstract type MultipleFusion <: FusionStyle end
-struct SimpleFusion <: MultipleFusion # multiple fusion but multiplicity free
-end
-struct GenericFusion <: MultipleFusion # multiple fusion with multiplicities
-end
+struct SimpleFusion <: MultipleFusion end # multiple fusion but multiplicity free
+struct GenericFusion <: MultipleFusion end # multiple fusion with multiplicities
 const MultiplicityFreeFusion = Union{UniqueFusion,SimpleFusion}
 
 """
