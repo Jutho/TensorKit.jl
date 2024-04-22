@@ -1,3 +1,7 @@
+# TODO: remove this once separate folders are registered
+import Pkg;
+Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "..", "TensorKitSectors")))
+
 using Test
 using TestExtras
 using Random
