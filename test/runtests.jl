@@ -10,9 +10,6 @@ using Base.Iterators: take, product
 # const SU3Irrep = SUNIrrep{3}
 using LinearAlgebra: LinearAlgebra
 
-include("newsectors.jl")
-using .NewSectors
-
 const TK = TensorKit
 
 Random.seed!(1234)
@@ -49,15 +46,14 @@ function hasfusiontensor(I::Type{<:Sector})
     end
 end
 
-sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, U1Irrep, CU1Irrep, SU2Irrep, NewSU2Irrep,
-              FibonacciAnyon, IsingAnyon, FermionParity, FermionParity ⊠ FermionParity,
-              Z3Irrep ⊠ Z4Irrep, FermionParity ⊠ U1Irrep ⊠ SU2Irrep,
-              FermionParity ⊠ SU2Irrep ⊠ SU2Irrep, NewSU2Irrep ⊠ NewSU2Irrep,
-              NewSU2Irrep ⊠ SU2Irrep, FermionParity ⊠ SU2Irrep ⊠ NewSU2Irrep,
+sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, Z3Irrep ⊠ Z4Irrep,
+              U1Irrep, CU1Irrep, SU2Irrep,
+              FermionParity, FermionParity ⊠ FermionParity,
+              FermionParity ⊠ U1Irrep ⊠ SU2Irrep, FermionParity ⊠ SU2Irrep ⊠ SU2Irrep, # Hubbard-like
+              FibonacciAnyon, IsingAnyon,
               Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()
-include("sectors.jl")
 include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")

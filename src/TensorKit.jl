@@ -163,11 +163,16 @@ Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
 Base.show(io::IO, e::IndexError) = print(io, "IndexError(", e.message, ")")
 
 # typerepr
-type_repr(T::Type) = repr(T)
+# type_repr(T::Type) = repr(T)
 
 # Definitions and methods for superselection sectors (quantum numbers)
 #----------------------------------------------------------------------
-include("sectors/sectors.jl")
+
+include(joinpath(@__DIR__, "..", "TensorKitSectors", "src", "TensorKitSectors.jl"))
+using .TensorKitSectors
+import .TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
+import .TensorKitSectors: dual, type_repr
+import .TensorKitSectors: twist
 
 # Constructing and manipulating fusion trees and iterators thereof
 #------------------------------------------------------------------

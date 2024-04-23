@@ -208,7 +208,7 @@ Base.hash(P::ProductSpace, h::UInt) = hash(P.spaces, h)
 
 # Default construction from product of spaces
 #---------------------------------------------
-⊗(V::ElementarySpace...) = ProductSpace(V...)
+⊗(V::ElementarySpace, Vrest::ElementarySpace...) = ProductSpace(V, Vrest...)
 ⊗(P::ProductSpace) = P
 function ⊗(P1::ProductSpace{S}, P2::ProductSpace{S}) where {S<:ElementarySpace}
     return ProductSpace{S}(tuple(P1.spaces..., P2.spaces...))

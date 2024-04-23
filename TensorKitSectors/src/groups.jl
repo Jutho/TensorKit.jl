@@ -17,10 +17,20 @@ type_repr(::Type{ℤ₂}) = "ℤ₂"
 type_repr(::Type{ℤ₃}) = "ℤ₃"
 type_repr(::Type{ℤ₄}) = "ℤ₄"
 type_repr(::Type{SU₂}) = "SU₂"
+type_repr(T::Type) = repr(T)
 
 const GroupTuple = Tuple{Vararg{Group}}
 
 abstract type ProductGroup{T<:GroupTuple} <: Group end
+
+"""
+    ×(G::Vararg{Type{<:Group}}) -> ProductGroup{Tuple{G...}}
+    times(G::Vararg{Type{<:Group}}) -> ProductGroup{Tuple{G...}}
+
+Construct the direct product of a (list of) groups.
+"""
+function ×(::Vararg{Type{<:Group}}) end
+const times = ×
 
 ×(a::Type{<:Group}, b::Type{<:Group}, c::Type{<:Group}...) = ×(×(a, b), c...)
 ×(G::Type{<:Group}) = ProductGroup{Tuple{G}}
