@@ -320,11 +320,14 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
     if p₁ == codomainind(tsrc) && p₂ == domainind(tsrc)
         @inbounds add!(tdst, tsrc, α, β)
     elseif I === Trivial
-        @inbounds _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        @inbounds _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+                                       backend...)
     elseif FusionStyle(I) isa UniqueFusion
-        @inbounds _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        @inbounds _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+                                       backend...)
     else
-        @inbounds _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        @inbounds _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+                                       backend...)
     end
     return tdst
 end
