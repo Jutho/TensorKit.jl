@@ -27,6 +27,7 @@ function CartesianSpace(dims::AbstractDict; kwargs...)
         throw(SectorMismatch(msg))
     end
 end
+CartesianSpace(g::Base.Generator; kwargs...) = CartesianSpace(g...; kwargs...)
 
 field(::Type{CartesianSpace}) = ℝ
 InnerProductStyle(::Type{CartesianSpace}) = EuclideanProduct()
