@@ -30,19 +30,19 @@ To permute into an existing destination, see [permute!](@ref) and [`add_permute!
 """
 function permute(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂};
                  copy::Bool=false) where {S,N₁,N₂}
-    cod = ProductSpace{S,N₁}(map(n -> space(t, n), p₁))
-    dom = ProductSpace{S,N₂}(map(n -> dual(space(t, n)), p₂))
+    space′ = permute(space(t), (p₁, p₂))
     # share data if possible
     if !copy
         if p₁ === codomainind(t) && p₂ === domainind(t)
             return t
         elseif has_shared_permute(t, (p₁, p₂))
-            return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
+            return TensorMap(reshape(t.data, dim(codomain(space′)), dim(domain(space′))),
+                             codomain(space′), domain(space′))
         end
     end
     # general case
     @inbounds begin
-        return permute!(similar(t, cod ← dom), t, (p₁, p₂))
+        return permute!(similar(t, space′), t, (p₁, p₂))
     end
 end
 function permute(t::AdjointTensorMap{S}, (p₁, p₂)::Index2Tuple;
@@ -118,10 +118,9 @@ function braid(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple, levels::Index
         return t
     end
     # general case
-    cod = ProductSpace{S}(map(n -> space(t, n), p₁))
-    dom = ProductSpace{S}(map(n -> dual(space(t, n)), p₂))
+    space′ = permute(space(t), (p₁, p₂))
     @inbounds begin
-        return braid!(similar(t, cod ← dom), t, (p₁, p₂), levels)
+        return braid!(similar(t, space′), t, (p₁, p₂), levels)
     end
 end
 # TODO: braid for `AdjointTensorMap`; think about how to map the `levels` argument.
@@ -171,10 +170,9 @@ function LinearAlgebra.transpose(t::AbstractTensorMap{S},
         return t
     end
     # general case
-    cod = ProductSpace{S}(map(n -> space(t, n), p₁))
-    dom = ProductSpace{S}(map(n -> dual(space(t, n)), p₂))
+    space′ = permute(space(t), (p₁, p₂))
     @inbounds begin
-        return transpose!(similar(t, cod ← dom), t, (p₁, p₂))
+        return transpose!(similar(t, space′), t, (p₁, p₂))
     end
 end
 
@@ -313,23 +311,20 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
                         β::Number,
                         backend::Backend...) where {S,N₁,N₂}
     @boundscheck begin
-        all(i -> space(tsrc, p₁[i]) == space(tdst, i), 1:N₁) ||
-            throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
-            dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
-        all(i -> space(tsrc, p₂[i]) == space(tdst, N₁ + i), 1:N₂) ||
+        permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
             dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
     end
 
     I = sectortype(S)
     if p₁ == codomainind(tsrc) && p₂ == domainind(tsrc)
-        add!(tdst, tsrc, α, β)
+        @inbounds add!(tdst, tsrc, α, β)
     elseif I === Trivial
-        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        @inbounds _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
     elseif FusionStyle(I) isa UniqueFusion
-        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        @inbounds _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
     else
-        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        @inbounds _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
     end
     return tdst
 end

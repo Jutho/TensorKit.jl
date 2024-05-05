@@ -410,5 +410,8 @@ println("------------------------------------")
         @test W[5] == V5'
         @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
         @test W == deepcopy(W)
+        @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
+        @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
+        @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred W * W'
     end
 end

@@ -59,9 +59,7 @@ end
 function TO.tensoradd_structure(pC::Index2Tuple{N₁,N₂},
                                 A::AbstractTensorMap{S}, conjA::Symbol) where {S,N₁,N₂}
     if conjA == :N
-        cod = ProductSpace{S,N₁}(space.(Ref(A), pC[1]))
-        dom = ProductSpace{S,N₂}(dual.(space.(Ref(A), pC[2])))
-        return dom → cod
+        return permute(space(A), pC)
     else
         return TO.tensoradd_structure(adjointtensorindices(A, pC), adjoint(A), :N)
     end
@@ -128,12 +126,9 @@ function TO.tensorcontract_structure(pC::Index2Tuple{N₁,N₂},
                                      A::AbstractTensorMap{S}, pA::Index2Tuple, conjA,
                                      B::AbstractTensorMap{S}, pB::Index2Tuple,
                                      conjB) where {S,N₁,N₂}
-    spaces1 = TO.flag2op(conjA).(space.(Ref(A), pA[1]))
-    spaces2 = TO.flag2op(conjB).(space.(Ref(B), pB[2]))
-    spaces = (spaces1..., spaces2...)
-    cod = ProductSpace{S,N₁}(getindex.(Ref(spaces), pC[1]))
-    dom = ProductSpace{S,N₂}(dual.(getindex.(Ref(spaces), pC[2])))
-    return dom → cod
+    sA = TO.tensoradd_structure(pA, A, conjA)
+    sB = TO.tensoradd_structure(pB, B, conjB)
+    return permute(sA * sB, pC)
 end
 
 function TO.checkcontractible(tA::AbstractTensorMap{S}, iA::Int, conjA::Symbol,
@@ -165,10 +160,7 @@ function trace_permute!(tdst::AbstractTensorMap{S,N₁,N₂},
         throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
     end
     @boundscheck begin
-        all(i -> space(tsrc, p₁[i]) == space(tdst, i), 1:N₁) ||
-            throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
-                    tdst = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
-        all(i -> space(tsrc, p₂[i]) == space(tdst, N₁ + i), 1:N₂) ||
+        space(tdst) == permute(space(tsrc), (p₁, p₂)) ||
             throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
                     tdst = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
         all(i -> space(tsrc, q₁[i]) == dual(space(tsrc, q₂[i])), 1:N₃) ||
