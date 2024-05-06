@@ -318,15 +318,15 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
 
     I = sectortype(S)
     if p₁ == codomainind(tsrc) && p₂ == domainind(tsrc)
-        @inbounds add!(tdst, tsrc, α, β)
+        add!(tdst, tsrc, α, β)
     elseif I === Trivial
-        @inbounds _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
                                        backend...)
     elseif FusionStyle(I) isa UniqueFusion
-        @inbounds _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
                                        backend...)
     else
-        @inbounds _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
                                        backend...)
     end
     return tdst
@@ -355,7 +355,7 @@ end
 
 function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)
     (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
-    TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
+    @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
     return nothing
 end
 
@@ -373,7 +373,7 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
     else
         for (f₁, f₂) in fusiontrees(tsrc)
             for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-                TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
+                @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
                               backend...)
             end
         end
@@ -386,7 +386,7 @@ function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂,
     for (f₁, f₂) in fusiontrees(tsrc)
         (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
         for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-            TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true, backend...)
+            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true, backend...)
         end
     end
     return nothing
