@@ -412,6 +412,6 @@ println("------------------------------------")
         @test W == deepcopy(W)
         @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
         @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
-        @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred compose(W, W')
+        @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
     end
 end
