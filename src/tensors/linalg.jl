@@ -20,7 +20,7 @@ LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2) = scale(t, inv(norm(t, 
 
 function Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap)
     return mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)),
-                        space(t1) * space(t2)), t1, t2)
+                        compose(space(t1), space(t2))), t1, t2)
 end
 Base.exp(t::AbstractTensorMap) = exp!(copy(t))
 function Base.:^(t::AbstractTensorMap, p::Integer)
@@ -242,7 +242,7 @@ end
 function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
                             tB::AbstractTensorMap, α=true, β=false)
-    space(tA) * space(tB) == space(tC) ||
+    compose(space(tA), space(tB)) == space(tC) ||
         throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
 
     for c in blocksectors(tC)

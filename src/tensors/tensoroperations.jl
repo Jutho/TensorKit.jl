@@ -128,7 +128,7 @@ function TO.tensorcontract_structure(pC::Index2Tuple{N₁,N₂},
                                      conjB) where {S,N₁,N₂}
     sA = TO.tensoradd_structure(pA, A, conjA)
     sB = TO.tensoradd_structure(pB, B, conjB)
-    return permute(sA * sB, pC)
+    return permute(compose(sA, sB), pC)
 end
 
 function TO.checkcontractible(tA::AbstractTensorMap{S}, iA::Int, conjA::Symbol,
