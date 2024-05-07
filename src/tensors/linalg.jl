@@ -18,10 +18,18 @@ Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t)) / α)
 LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real=2) = scale!(t, inv(norm(t, p)))
 LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2) = scale(t, inv(norm(t, p)))
 
-function Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap)
+"""
+    compose(t1::AbstractTensorMap, t2::AbstractTensorMap) -> AbstractTensorMap
+
+Return the `AbstractTensorMap` that implements the composition of the two tensor maps `t1`
+and `t2`.
+"""
+function compose(t1::AbstractTensorMap, t2::AbstractTensorMap)
     return mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)),
                         compose(space(t1), space(t2))), t1, t2)
 end
+Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = compose(t1, t2)
+
 Base.exp(t::AbstractTensorMap) = exp!(copy(t))
 function Base.:^(t::AbstractTensorMap, p::Integer)
     return p < 0 ? Base.power_by_squaring(inv(t), -p) : Base.power_by_squaring(t, p)
