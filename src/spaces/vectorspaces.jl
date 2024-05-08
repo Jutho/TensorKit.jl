@@ -160,6 +160,7 @@ individual spaces `V₁`, `V₂`, ..., or the spaces contained in `P`.
 """
 function fuse end
 fuse(V::ElementarySpace) = isdual(V) ? flip(V) : V
+fuse(V::ElementarySpace, W::ElementarySpace) = fuse(promote(V, W)...)
 function fuse(V₁::VectorSpace, V₂::VectorSpace, V₃::VectorSpace...)
     return fuse(fuse(fuse(V₁), fuse(V₂)), V₃...)
 end
