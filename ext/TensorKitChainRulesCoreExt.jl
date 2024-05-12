@@ -539,9 +539,9 @@ function qr_pullback!(ΔA::AbstractMatrix, Q::AbstractMatrix, R::AbstractMatrix,
     ΔR1 = view(ΔR, 1:p, :)
     ΔR11 = view(ΔR, 1:p, 1:p)
 
-    M = zeros(eltype(R), (p, p))
+    M = similar(R, (p, p))
     ΔR isa AbstractZero || mul!(M, ΔR1, R1')
-    ΔQ isa AbstractZero || mul!(M, Q1', ΔQ1, -1, +1)
+    ΔQ isa AbstractZero || mul!(M, Q1', ΔQ1, -1, !(ΔR isa AbstractZero))
     view(M, lowertriangularind(M)) .= conj.(view(M, uppertriangularind(M)))
     if eltype(M) <: Complex
         Md = view(M, diagind(M))
@@ -593,9 +593,9 @@ function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix,
     ΔL1 = view(ΔL, :, 1:p)
     ΔR11 = view(ΔL, 1:p, 1:p)
 
-    M = zeros(eltype(L), (p, p))
+    M = similar(L, (p, p))
     ΔL isa AbstractZero || mul!(M, L1', ΔL1)
-    ΔQ isa AbstractZero || mul!(M, ΔQ1, Q1', -1, +1)
+    ΔQ isa AbstractZero || mul!(M, ΔQ1, Q1', -1, !(ΔL isa AbstractZero))
     view(M, uppertriangularind(M)) .= conj.(view(M, lowertriangularind(M)))
     if eltype(M) <: Complex
         Md = view(M, diagind(M))
