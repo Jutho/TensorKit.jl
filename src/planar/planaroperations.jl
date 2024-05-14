@@ -139,30 +139,3 @@ function planarcontract(A::AbstractTensorMap{S}, pA::Index2Tuple,
     C = TO.tensoralloc_contract(TC, pAB, A, pA, :N, B, pB, :N)
     return planarcontract!(C, A, pA, B, pB, pAB, α, VectorInterface.Zero(), backend...)
 end
-
-# auxiliary routines
-_cyclicpermute(t::Tuple) = (Base.tail(t)..., t[1])
-_cyclicpermute(t::Tuple{}) = ()
-
-_circshift(::Tuple{}, ::Int) = ()
-_circshift(t::Tuple, n::Int) = ntuple(i -> t[mod1(i - n, length(t))], length(t))
-
-_indexin(v1, v2) = ntuple(n -> findfirst(isequal(v1[n]), v2), length(v1))
-
-function _iscyclicpermutation(v1, v2)
-    length(v1) == length(v2) || return false
-    return iscyclicpermutation(_indexin(v1, v2))
-end
-
-function _findsetcircshift(p_cyclic, p_subset)
-    N = length(p_cyclic)
-    M = length(p_subset)
-    N == M == 0 && return 0
-    i = findfirst(0:(N - 1)) do i
-        return issetequal(getindices(p_cyclic, ntuple(n -> mod1(n + i, N), M)),
-                          p_subset)
-    end
-    isnothing(i) &&
-        throw(ArgumentError("no cyclic permutation of $p_cyclic that matches $p_subset"))
-    return i - 1::Int
-end
