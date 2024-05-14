@@ -202,6 +202,7 @@ include("planar/postprocessors.jl")
 include("planar/macros.jl")
 @specialize
 include("planar/planaroperations.jl")
+include("planar/functions.jl")
 
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")

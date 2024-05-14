@@ -130,12 +130,3 @@ function planarcontract!(C::AbstractTensorMap{S},
 
     return C
 end
-
-function planarcontract(A::AbstractTensorMap{S}, pA::Index2Tuple,
-                        B::AbstractTensorMap{S}, pB::Index2Tuple,
-                        pAB::Index2Tuple{N₁,N₂},
-                        α::Number, backend::Backend...) where {S,N₁,N₂}
-    TC = TO.promote_contract(scalartype(A), scalartype(B), scalartype(α))
-    C = TO.tensoralloc_contract(TC, pAB, A, pA, :N, B, pB, :N)
-    return planarcontract!(C, A, pA, B, pB, pAB, α, VectorInterface.Zero(), backend...)
-end
