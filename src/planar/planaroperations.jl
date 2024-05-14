@@ -71,6 +71,12 @@ function planarcontract!(C::AbstractTensorMap,
 
     return planarcontract!(C, A, pA′, B, pB′, pAB, α, β, backend...)
 end
+
+function _isplanar(inds::Index2Tuple, p::Index2Tuple)
+    return iscyclicpermutation((inds[1]..., inds[2]...),
+                               (p[1]..., reverse(p[2])...))
+end
+
 function planarcontract!(C::AbstractTensorMap{S},
                          A::AbstractTensorMap{S},
                          pA::Index2Tuple{N₁,N₃},
@@ -80,14 +86,19 @@ function planarcontract!(C::AbstractTensorMap{S},
                          α::Number,
                          β::Number,
                          backend::Backend...) where {S,N₁,N₂,N₃}
-    if BraidingStyle(sectortype(S)) == Bosonic()
-        return contract!(C, A, pA, B, pB, pAB, α, β, backend...)
-    end
-
     indA = (codomainind(A), reverse(domainind(A)))
     indB = (codomainind(B), reverse(domainind(B)))
+    indC = (codomainind(C), reverse(domainind(C)))
     pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
-    
+
+    @assert _isplanar(indA, pA′) "not a planar contraction (indA = $indA, pA′ = $pA′)"
+    @assert _isplanar(indB, pB′) "not a planar contraction (pB′ = $pB′)"
+    @assert _isplanar(indC, pAB′) "not a planar contraction (pAB′ = $pAB′)"
+
+    if BraidingStyle(sectortype(spacetype(C))) == Bosonic()
+        return contract!(C, A, pA′, B, pB′, pAB′, α, β, backend...)
+    end
+
     if pA′ == (codomainind(A), domainind(A))
         A′ = A
     else
