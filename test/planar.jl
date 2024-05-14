@@ -27,6 +27,24 @@ function force_planar(tsrc::TensorMap{<:GradedSpace})
     return tdst
 end
 
+using TensorKit: planarcontract_indices
+
+@testset "planarcontract_indices" begin
+    IA = ((:a, :b, :c), (:d,))
+    IB = ((:d,), (:e, :f))
+    IC = ((:a, :b, :c), (:e, :f))
+    pA, pB, pC = planarcontract_indices(IA, IB, IC)
+    @test pA == ((1, 2, 3), (4,))
+    @test pB == ((1,), (2, 3))
+    @test pC == ((1, 2, 3), (4, 5))
+
+    IC = ((:a, :b, :c, :f, :e), ())
+    pA, pB, pC = planarcontract_indices(IA, IB, IC)
+    @test pA == ((1, 2, 3), (4,))
+    @test pB == ((1,), (2, 3))
+    @test pC == ((1, 2, 3, 5, 4), ())
+end
+
 using TensorKit: reorder_planar_indices
 @testset "reorder_indices" begin
     @testset "trivial case" begin
@@ -204,7 +222,7 @@ using TensorKit: reorder_planar_indices
         @test pB == pB′
         @test pAB′ == ((1, 2, 3), (4, 5, 6))
     end
-    
+
     @testset "edge case with no uncontracted indices right" begin
         pA = ((), (1, 2, 3))
         pB = ((2, 1, 3), ())
@@ -217,7 +235,7 @@ using TensorKit: reorder_planar_indices
         @test pB′ == ((1, 3, 2), ())
         @test pAB′ == ((), ())
     end
-    
+
     @testset "something" begin
         pA, pB, pAB = (((1, 2, 3), (4, 5)), ((3, 1), (4, 2)), ((3, 5), (2, 1, 4)))
         indA = ((1, 2, 3), (5, 4))
