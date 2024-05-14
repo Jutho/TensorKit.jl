@@ -44,6 +44,33 @@ function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
     return C
 end
 
+function planarcontract!(C::AbstractTensorMap,
+                         A::AbstractTensorMap, pA::Index2Tuple, conjA::Symbol,
+                         B::AbstractTensorMap, pB::Index2Tuple, conjB::Symbol,
+                         pAB::Index2Tuple,
+                         α::Number, β::Number, backend::Backend...)
+    # get rid of conj arguments by going to adjoint tensormaps
+    if conjA == :N
+        A′ = A
+        pA′ = pA
+    elseif conjA == :C
+        A′ = A'
+        pA′ = adjointtensorindices(A, pA)
+    else
+        throw(ArgumentError("unknown conjugation flag $conjA"))
+    end
+    if conjB == :N
+        B′ = B
+        pB′ = pB
+    elseif conjB == :C
+        B′ = B'
+        pB′ = adjointtensorindices(B, pB)
+    else
+        throw(ArgumentError("unknown conjugation flag $conjB"))
+    end
+
+    return planarcontract!(C, A, pA′, B, pB′, pAB, α, β, backend...)
+end
 function planarcontract!(C::AbstractTensorMap{S},
                          A::AbstractTensorMap{S},
                          pA::Index2Tuple{N₁,N₃},
