@@ -370,6 +370,10 @@ function iscyclicpermutation(v1, v2)
     length(v1) == length(v2) || return false
     return iscyclicpermutation(indexin(v1, v2))
 end
+function iscyclicpermutation(v1::Tuple, v2::Tuple)
+    length(v1) == length(v2) || return false
+    return iscyclicpermutation(TupleTools.indexin(v1, v2))
+end
 
 # clockwise cyclic permutation while preserving (N₁, N₂): foldright & bendleft
 function cycleclockwise(f₁::FusionTree{I}, f₂::FusionTree{I}) where {I<:Sector}

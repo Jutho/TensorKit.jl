@@ -84,7 +84,6 @@ function planarcontract!(C::AbstractTensorMap{S},
         mul!(C′, A′, B′, α, β)
     else
         C′ = A′ * B′
-        
         add_transpose!(C, C′, pAB′, α, β)
     end
 
@@ -128,96 +127,4 @@ function _findsetcircshift(p_cyclic, p_subset)
     isnothing(i) &&
         throw(ArgumentError("no cyclic permutation of $p_cyclic that matches $p_subset"))
     return i - 1::Int
-end
-
-function reorder_planar_indices(indA, pA, indB, pB, pAB)
-    NA₁ = length(pA[1])
-    NA₂ = length(pA[2])
-    NA = NA₁ + NA₂
-    NB₁ = length(pB[1])
-    NB₂ = length(pB[2])
-    NB = NB₁ + NB₂
-    NAB₁ = length(pAB[1])
-    NAB₂ = length(pAB[2])
-    NAB = NAB₁ + NAB₂
-
-    # input checks
-    @assert NA == length(indA[1]) + length(indA[2])
-    @assert NB == length(indB[1]) + length(indB[2])
-    @assert NA₂ == NB₁
-    @assert NAB == NA₁ + NB₂
-
-    # find circshift index of pAB if considered as shifting sets
-    indAB = (ntuple(identity, NA₁), reverse(ntuple(n -> n + NA₁, NB₂)))
-
-    if NAB > 0
-        indAB_lin = (indAB[1]..., indAB[2]...)
-        iAB = _findsetcircshift(indAB_lin, pAB[1])
-        @assert iAB == mod(_findsetcircshift(indAB_lin, pAB[2]) - NAB₁, NAB) "sanity check"
-        indAB_lin = _circshift(indAB_lin, -iAB)
-        # migrate permutations from pAB to pA and pB
-        
-        pAB_lin = (pAB[1]..., reverse(pAB[2])...)
-        permA = getindices(pAB_lin,
-                           ntuple(n -> mod1(n - iAB, NAB), NA₁))
-        permB = reverse(getindices(pAB_lin,
-                                   ntuple(n -> mod1(n - iAB + NA₁, NAB), NB₂)) .- NA₁)
-
-        pA′ = (getindices(pA[1], permA), pA[2])
-        pB′ = (pB[1], getindices(pB[2], permB))
-        pAB′ = (getindices(indAB_lin, ntuple(n -> mod1(n, NAB), NAB₁)), 
-               reverse(getindices(indAB_lin, ntuple(n -> mod1(n + NAB₁, NAB), NAB₂))))
-    else
-        pA′ = pA
-        pB′ = pB
-        pAB′ = pAB
-    end
-
-    # cycle indA to be of the form (oindA..., reverse(cindA)...)
-    indA_lin = (indA[1]..., indA[2]...)
-    if NA₁ != 0
-        iA = findfirst(==(first(pA′[1])), indA_lin) - 1
-        indA_lin = _circshift(indA_lin, -iA)
-    end
-    pc = ntuple(identity, NA₂)
-    @assert all(getindices(indA_lin, ntuple(identity, NA₁)) .== pA′[1]) "sanity check"
-    pA′ = (pA′[1], reverse(getindices(indA_lin, pc .+ NA₁)))
-
-    # cycle indB to be of the form (cindB..., reverse(oindB)...)
-    indB_lin = (indB[1]..., indB[2]...)
-    if NB₂ != 0
-        iB = findfirst(==(first(pB′[2])), indB_lin)
-        indB_lin = _circshift(indB_lin, -iB)
-    end
-    @assert all(getindices(indB_lin, ntuple(identity, NB₂) .+ NB₁) .== reverse(pB′[2])) "sanity check"
-    pB′ = (getindices(indB_lin, pc), pB′[2])
-
-    # if uncontracted indices are empty, we can still make cyclic adjustments
-    if NA₁ == 0 && NA₂ != 0
-        hit = pA[2][findfirst(==(first(pB′[1])), pB[1])]
-        shiftA = findfirst(==(hit), pA′[2]) - 1
-        pA′ = (pA′[1], _circshift(pA′[2], -shiftA))
-    end
-
-    if NB₂ == 0 && NB₁ != 0
-        hit = pB[1][findfirst(==(first(pA′[2])), pA[2])]
-        shiftB = findfirst(==(hit), pB′[1]) - 1
-        pB′ = (_circshift(pB′[1], -shiftB), pB′[2])
-    end
-
-    # make sure this is still the same contraction
-    @assert issetequal(pA[1], pA′[1]) && issetequal(pA[2], pA′[2])
-    @assert issetequal(pB[1], pB′[1]) && issetequal(pB[2], pB′[2])
-    # @assert issetequal(pAB[1], pAB′[1]) && issetequal(pAB[2], pAB′[2]) "pAB = $pAB, pAB′ = $pAB′"
-    @assert issetequal(tuple.(pA[2], pB[1]), tuple.(pA′[2], pB′[1])) "$pA $pB $pA′ $pB′"
-
-    # make sure that everything is now planar
-    @assert _iscyclicpermutation((indA[1]..., (indA[2])...),
-                                 (pA′[1]..., reverse(pA′[2])...)) "indA = $indA, pA′ = $pA′"
-    @assert _iscyclicpermutation((indB[1]..., (indB[2])...),
-                                 (pB′[1]..., reverse(pB′[2])...)) "indB = $indB, pB′ = $pB′"
-    @assert _iscyclicpermutation((indAB[1]..., (indAB[2])...),
-                                 (pAB′[1]..., reverse(pAB′[2])...)) "indAB = $indAB, pAB′ = $pAB′"
-
-    return pA′, pB′, pAB′
 end

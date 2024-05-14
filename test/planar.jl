@@ -43,6 +43,20 @@ using TensorKit: planarcontract_indices
     @test pA == ((1, 2, 3), (4,))
     @test pB == ((1,), (2, 3))
     @test pC == ((1, 2, 3, 5, 4), ())
+
+    IC = ((:c, :f), (:b, :a, :e))
+    pA, pB, pC = planarcontract_indices(IA, IB, IC)
+    @test pA == ((1, 2, 3), (4,))
+    @test pB == ((1,), (2, 3))
+    @test pC == ((3, 5), (2, 1, 4))
+
+    IA = ((:a, :b, :e), (:d, :c))
+    IB = ((:c,), (:e, :f, :g))
+    IC = ((:d, :a, :b), (:f, :g))
+    pA, pB, pC = planarcontract_indices(IA, IB, IC)
+    @test pA == ((4, 1, 2), (5, 3))
+    @test pB == ((2, 1), (3, 4))
+    @test pC == ((1, 2, 3), (4, 5))
 end
 
 using TensorKit: reorder_planar_indices
