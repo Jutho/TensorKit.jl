@@ -1,8 +1,90 @@
+const TensorLabels = Union{Tuple,Vector}
+
+function canonicalize_labels(A::AbstractTensorMap, IA::TensorLabels)
+    numind(A) == length(IA) ||
+        throw(ArgumentError("invalid labels for tensor: $IA for ($(numout(A)), $(numin(A)))"))
+    return (ntuple(i -> IA[i], numout(A)), ntuple(i -> IA[numout(A) + i], numin(A)))
+end
+canonicalize_labels(IA::TensorLabels) = (tuple(IA...), ())
+
+function _isplanar(inds::Index2Tuple, p::Index2Tuple)
+    return iscyclicpermutation((inds[1]..., inds[2]...),
+                               (p[1]..., reverse(p[2])...))
+end
+
+function planartrace_indices(IA::Tuple{Tuple,Tuple}, conjA, IC::Tuple{Tuple,Tuple})
+    IA′ = conjA == :C ? reverse(IA) : IA
+    
+    IA_linear = (IA′[1]..., (IA′[2])...)
+    IC_linear = (IC[1]..., (IC[2])...)
+    
+    p, q1, q2 = TO.trace_indices(IA_linear, IC_linear)
+    
+    if conjA == :C
+        p′ = adjointtensorindices((length(IC[1]), length(IC[2])), p)
+        q′ = adjointtensorindices((length(IA[2]), length(IA[1])), (q1, q2))
+    else
+        p′ = p
+        q′ = (q1, q2)
+    end
+
+    return p′, q′
+end
+function planartrace_indices(IA::Tuple{Tuple,Tuple}, conjA)
+    IA′ = conjA == :C ? reverse(IA) : IA
+    
+    IA_linear = (IA′[1]..., (IA′[2])...)
+    IC_linear = tuple(TO.unique2(IA_linear)...)
+    p, q1, q2 = TO.trace_indices(IA_linear, IC_linear)
+
+    if conjA == :C
+        p′ = adjointtensorindices((length(p[1]), length(p[2])), p)
+        q′ = adjointtensorindices((length(IA[2]), length(IA[1])), (q1, q2))
+    else
+        p′ = p
+        q′ = (q1, q2)
+    end
+    
+    return p′, q′
+end
+
+
 """
     planarcontract_indices(IA, IB, [IC])
 
-Convert a set of tensor labels to a set of indices. Throws an error if this cannot be achieved in a planar manner.
+Convert a set of tensor labels to a set of indices. Throws an error if this cannot be
+achieved in a planar manner.
 """
+function planarcontract_indices(IA::Tuple{Tuple,Tuple}, conjA::Symbol,
+                                IB::Tuple{Tuple,Tuple}, conjB::Symbol,
+                                IC::Tuple{Tuple,Tuple})
+    
+    IA′ = conjA == :C ? reverse(IA) : IA
+    IB′ = conjB == :C ? reverse(IB) : IB
+    
+    pA, pB, pAB = planarcontract_indices(IA′, IB′, IC)
+    
+    # map indices back to original tensor
+    pA′ = conjA == :C ? adjointtensorindices((length(IA[2]), length(IA[1])), pA) : pA
+    pB′ = conjB == :C ? adjointtensorindices((length(IB[2]), length(IB[1])), pB) : pB
+    
+    return pA′, pB′, pAB
+end
+function planarcontract_indices(IA::Tuple{Tuple,Tuple}, conjA::Symbol,
+                                IB::Tuple{Tuple,Tuple}, conjB::Symbol)
+    # map indices to indices of adjoint tensor
+    IA′ = conjA == :C ? reverse(IA) : IA
+    IB′ = conjB == :C ? reverse(IB) : IB
+    
+    pA, pB, pAB = planarcontract_indices(IA′, IB′)
+    
+    # map indices back to original tensor
+    pA′ = conjA == :C ? adjointtensorindices((length(IA[2]), length(IA[1])), pA) : pA
+    pB′ = conjB == :C ? adjointtensorindices((length(IB[2]), length(IB[1])), pB) : pB
+
+    return pA′, pB′, pAB
+end
+
 function planarcontract_indices(IA::Tuple{Tuple,Tuple},
                                 IB::Tuple{Tuple,Tuple},
                                 IC::Tuple{Tuple,Tuple})
@@ -64,7 +146,6 @@ function planarcontract_indices(IA::Tuple{Tuple,Tuple},
 
     # bring IC to the form (IopenA..., IopenB...) (as sets)
     IC′ = IC_linear
-    IopenA
     ctr = 0
     while !issetequal(getindices(IC′, ntuple(identity, length(IopenA))), IopenA)
         IC′ = _cyclicpermute(IC′)
@@ -104,7 +185,7 @@ function planarcontract_indices(IA::Tuple{Tuple,Tuple},
     IB_linear = (IB[1]..., reverse(IB[2])...)
     IAB = (IA_linear..., IB_linear...)
 
-    Icontract = TO.tunique(TO.tsetdiff(IAB, TO.unique2(IAB)))
+    Icontract = TO.tunique(TO.tsetdiff(IAB, tuple(TO.unique2(IAB)...)))
     IopenA = TO.tsetdiff(IA_linear, Icontract)
     IopenB = TO.tsetdiff(IB_linear, Icontract)
 
@@ -170,7 +251,7 @@ function planarcontract_indices(IA::Tuple{Tuple,Tuple},
                                       ntuple(i -> i + length(Icontract), length(IopenB))),
                            IB_nonlinear)))
 
-    pC = (ntuple(identity, length(IopenA)), reverse(ntuple(i -> i + length(IopenA), length(IopenB))))
+    pC = (ntuple(identity, length(IopenA)), ntuple(i -> i + length(IopenA), length(IopenB)))
 
     return pA, pB, pC
 end
@@ -225,7 +306,7 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
         indA_lin = _circshift(indA_lin, -iA)
     end
     pc = ntuple(identity, NA₂)
-    @assert all(getindices(indA_lin, ntuple(identity, NA₁)) .== pA′[1]) "sanity check"
+    @assert all(getindices(indA_lin, ntuple(identity, NA₁)) .== pA′[1]) "sanity check: $indA $pA"
     pA′ = (pA′[1], reverse(getindices(indA_lin, pc .+ NA₁)))
 
     # cycle indB to be of the form (cindB..., reverse(oindB)...)
@@ -234,7 +315,7 @@ function reorder_planar_indices(indA, pA, indB, pB, pAB)
         iB = findfirst(==(first(pB′[2])), indB_lin)
         indB_lin = _circshift(indB_lin, -iB)
     end
-    @assert all(getindices(indB_lin, ntuple(identity, NB₂) .+ NB₁) .== reverse(pB′[2])) "sanity check"
+    @assert all(getindices(indB_lin, ntuple(identity, NB₂) .+ NB₁) .== reverse(pB′[2])) "sanity check: $indB $pB"
     pB′ = (getindices(indB_lin, pc), pB′[2])
 
     # if uncontracted indices are empty, we can still make cyclic adjustments
