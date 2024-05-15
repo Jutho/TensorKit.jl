@@ -1,47 +1,39 @@
-# planar versions of tensor operations add!, trace! and contract!
-function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
-                    A::AbstractTensorMap{S},
-                    p::Index2Tuple{N₁,N₂},
-                    α::Number,
-                    β::Number,
-                    backend::Backend...) where {S,N₁,N₂}
-    return add_transpose!(C, A, p, α, β, backend...)
+# ----------
+# CONJ FLAGS
+# ----------
+
+function planaradd!(C::AbstractTensorMap{S},
+                    A::AbstractTensorMap{S}, conjA::Symbol,
+                    p::Index2Tuple,
+                    α::Number, β::Number, backend::Backend...) where {S}
+    if conjA == :N
+        A′ = A
+        p′ = _canonicalize(p, C)
+    elseif conjA == :C
+        A′ = adjoint(A)
+        p′ = adjointtensorindices(A, _canonicalize(p, C))
+    else
+        throw(ArgumentError("unknown conjugation flag $conjA"))
+    end
+    return add_transpose!(C, A′, p′, α, β, backend...)
 end
 
-function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
-                      A::AbstractTensorMap{S},
-                      p::Index2Tuple{N₁,N₂},
-                      q::Index2Tuple{N₃,N₃},
-                      α::Number,
-                      β::Number,
-                      backend::Backend...) where {S,N₁,N₂,N₃}
-    if BraidingStyle(sectortype(S)) == Bosonic()
-        return trace_permute!(C, A, p, q, α, β, backend...)
+function planartrace!(C::AbstractTensorMap{S}, p::Index2Tuple,
+                      A::AbstractTensorMap{S}, q::Index2Tuple, conjA::Symbol,
+                      α::Number, β::Number, backend::Backend...) where {S}
+    if conjA == :N
+        A′ = A
+        p′ = _canonicalize(p, C)
+        q′ = q
+    elseif conjA == :C
+        A′ = A'
+        p′ = adjointtensorindices(A, _canonicalize(p, C))
+        q′ = adjointtensorindices(A, q)
+    else
+        throw(ArgumentError("unknown conjugation flag $conjA"))
     end
 
-    @boundscheck begin
-        all(i -> space(A, p[1][i]) == space(C, i), 1:N₁) ||
-            throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
-                    C = $(codomain(C))←$(domain(C)), p1 = $(p1), p2 = $(p2)"))
-        all(i -> space(A, p[2][i]) == space(C, N₁ + i), 1:N₂) ||
-            throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
-                    C = $(codomain(C))←$(domain(C)), p1 = $(p1), p2 = $(p2)"))
-        all(i -> space(A, q[1][i]) == dual(space(A, q[2][i])), 1:N₃) ||
-            throw(SpaceMismatch("trace: A = $(codomain(A))←$(domain(A)),
-                    q1 = $(q1), q2 = $(q2)"))
-    end
-
-    if iszero(β)
-        fill!(C, β)
-    elseif !isone(β)
-        rmul!(C, β)
-    end
-    for (f₁, f₂) in fusiontrees(A)
-        for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p..., q...)
-            TO.tensortrace!(C[f₁′, f₂′], p, A[f₁, f₂], q, :N, α * coeff, true, backend...)
-        end
-    end
-    return C
+    return trace_transpose!(C, A′, p′, q′, α, β, backend...)
 end
 
 function planarcontract!(C::AbstractTensorMap,
@@ -49,7 +41,6 @@ function planarcontract!(C::AbstractTensorMap,
                          B::AbstractTensorMap, pB::Index2Tuple, conjB::Symbol,
                          pAB::Index2Tuple,
                          α::Number, β::Number, backend::Backend...)
-    # get rid of conj arguments by going to adjoint tensormaps
     if conjA == :N
         A′ = A
         pA′ = pA
@@ -69,31 +60,62 @@ function planarcontract!(C::AbstractTensorMap,
         throw(ArgumentError("unknown conjugation flag $conjB"))
     end
 
-    return planarcontract!(C, A, pA′, B, pB′, pAB, α, β, backend...)
+    return _planarcontract!(C, A′, pA′, B′, pB′, pAB, α, β, backend...)
 end
 
-function _isplanar(inds::Index2Tuple, p::Index2Tuple)
-    return iscyclicpermutation((inds[1]..., inds[2]...),
-                               (p[1]..., reverse(p[2])...))
+# ---------------
+# IMPLEMENTATIONS
+# ---------------
+
+function trace_transpose!(tdst::AbstractTensorMap{S,N₁,N₂},
+                          tsrc::AbstractTensorMap{S},
+                          (p₁, p₂)::Index2Tuple{N₁,N₂}, (q₁, q₂)::Index2Tuple{N₃,N₃},
+                          α::Number, β::Number, backend::Backend...) where {S,N₁,N₂,N₃}
+    @boundscheck begin
+        space(tdst) == permute(space(tsrc), (p₁, p₂)) ||
+            throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
+                    tdst = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
+        all(i -> space(tsrc, q₁[i]) == dual(space(tsrc, q₂[i])), 1:N₃) ||
+            throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
+                    q₁ = $(q₁), q₂ = $(q₂)"))
+        # TODO: check planarity?
+    end
+    
+    # TODO: not sure if this is worth it
+    if BraidingStyle(sectortype(S)) == Bosonic()
+        return @inbounds trace_permute!(tdst, tsrc, p, q, α, β, backend...)
+    end
+
+    scale!(tdst, β)
+    β′ = One()
+    
+    for (f₁, f₂) in fusiontrees(tsrc)
+        @inbounds A = tsrc[f₁, f₂]
+        for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p₁, p₂, q₁, q₂)
+            @inbounds C = tdst[f₁′, f₂′]
+            TO.tensortrace!(C, (p₁, p₂), A, (q₁, q₂), :N, α * coeff, β′, backend...)
+        end
+    end
+
+    return tdst
 end
 
-function planarcontract!(C::AbstractTensorMap{S},
-                         A::AbstractTensorMap{S},
-                         pA::Index2Tuple{N₁,N₃},
-                         B::AbstractTensorMap{S},
-                         pB::Index2Tuple{N₃,N₂},
-                         pAB::Index2Tuple,
-                         α::Number,
-                         β::Number,
-                         backend::Backend...) where {S,N₁,N₂,N₃}
+# TODO: reuse the same memcost checks as in `contract!`
+function _planarcontract!(C::AbstractTensorMap{S},
+                          A::AbstractTensorMap{S}, pA::Index2Tuple{N₁,N₃},
+                          B::AbstractTensorMap{S}, pB::Index2Tuple{N₃,N₂},
+                          pAB::Index2Tuple,
+                          α::Number, β::Number, backend::Backend...) where {S,N₁,N₂,N₃}
     indA = (codomainind(A), reverse(domainind(A)))
     indB = (codomainind(B), reverse(domainind(B)))
-    indC = (codomainind(C), reverse(domainind(C)))
+    indAB = (ntuple(identity, N₁), reverse(ntuple(i -> i + N₁, N₂)))
+    
+    # TODO: avoid this step once @planar is reimplemented
     pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
 
     @assert _isplanar(indA, pA′) "not a planar contraction (indA = $indA, pA′ = $pA′)"
-    @assert _isplanar(indB, pB′) "not a planar contraction (pB′ = $pB′)"
-    @assert _isplanar(indC, pAB′) "not a planar contraction (pAB′ = $pAB′)"
+    @assert _isplanar(indB, pB′) "not a planar contraction (indB = $indB, pB′ = $pB′)"
+    @assert _isplanar(indAB, pAB′) "not a planar contraction (indAB = $indAB, pAB′ = $pAB′)"
 
     if BraidingStyle(sectortype(spacetype(C))) == Bosonic()
         return contract!(C, A, pA′, B, pB′, pAB′, α, β, backend...)
