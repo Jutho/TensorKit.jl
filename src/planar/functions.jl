@@ -4,6 +4,25 @@
 
 # ------------------------------------------------------------------------------------------
 
+function planarcopy(A, pA::Index2Tuple, conjA::Symbol, α::Number=One(), backend::Backend...)
+    TC = TO.promote_add(scalartype(A), scalartype(α))
+    C = tensoralloc_add(TC, pA, A, conjA)
+    return planaradd!(C, A, pA, conjA, α, Zero(), backend...)
+end
+
+# ------------------------------------------------------------------------------------------
+
+
+function planartrace(A, pA::Index2Tuple, qA::Index2Tuple, conjA::Symbol, α::Number=One(), backend::Backend...)
+    TC = TO.promote_contract(scalartype(A), scalartype(α))
+    C = tensoralloc_add(TC, pA, A, conjA)
+    return planartrace!(C, A, pA, qA, conjA, α, Zero(), backend...)
+end
+
+# ------------------------------------------------------------------------------------------
+
+
+
 """
     planarcontract(A, IA, [conjA], B, IB, [conjB], [IC], [α=1])
     planarcontract(A, pA::Index2Tuple, conjA, B, pB::Index2Tuple, conjB, pAB::Index2Tuple, α=1, [backend]) # expert mode
@@ -24,20 +43,19 @@ See also [`tensorcontract`](@ref).
 """
 function planarcontract end
 
-const Tuple2 = Tuple{Tuple, Tuple}
-
-function planarcontract(A, IA::Tuple2, conjA::Symbol, B, IB::Tuple2, conjB::Symbol, IC::Tuple2,
+function planarcontract(A, IA::TensorLabels, conjA::Symbol, B, IB::TensorLabels, conjB::Symbol, IC::TensorLabels,
                         α::Number=One())
-    @assert length(IA[1]) == numout(A) && length(IA[2]) == numin(A) "invalid IA"
-    @assert length(IB[1]) == numout(B) && length(IB[2]) == numin(B) "invalid IB"
-    pA, pB, pAB = planarcontract_indices(IA, IB, IC)
+    ia = canonicalize_labels(A, IA)
+    ib = canonicalize_labels(B, IB)
+    ic = canonicalize_labels(IC)
+    pA, pB, pAB = planarcontract_indices(ia, ib, ic)
     return planarcontract(A, pA, conjA, B, pB, conjB, pAB, α)
 end
 # default `IC`
-function planarcontract(A, IA::Tuple2, conjA::Symbol, B, IB::Tuple2, conjB::Symbol, α::Number=One())
-    @assert length(IA[1]) == numout(A) && length(IA[2]) == numin(A) "invalid IA"
-    @assert length(IB[1]) == numout(B) && length(IB[2]) == numin(B) "invalid IB"
-    pA, pB, pAB = planarcontract_indices(IA, IB)
+function planarcontract(A, IA::TensorLabels, conjA::Symbol, B, IB::TensorLabels, conjB::Symbol, α::Number=One())
+    ia = canonicalize_labels(A, IA)
+    ib = canonicalize_labels(B, IB)
+    pA, pB, pAB = planarcontract_indices(ia, ib)
     return planarcontract(A, pA, conjA, B, pB, conjB, pAB, α)
 end
 # default `conjA` and `conjB`
@@ -53,7 +71,7 @@ function planarcontract(A, pA::Index2Tuple, conjA::Symbol,
                         B, pB::Index2Tuple, conjB::Symbol,
                         pAB::Index2Tuple, α::Number=One(),
                         backend::Backend...)
-    TC = promote_contract(scalartype(A), scalartype(B), scalartype(α))
-    C = tensoralloc_contract(TC, pAB, A, pA, conjA, B, pB, conjB)
+    TC = TO.promote_contract(scalartype(A), scalartype(B), scalartype(α))
+    C = TO.tensoralloc_contract(TC, pAB, A, pA, conjA, B, pB, conjB)
     return planarcontract!(C, A, pA, conjA, B, pB, conjB, pAB, α, Zero(), backend...)
 end
