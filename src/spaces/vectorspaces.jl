@@ -58,12 +58,11 @@ Return the vector space associated to object `a`.
 """
 function space end
 
-"""
+@doc """
     dim(V::VectorSpace) -> Int
 
 Return the total dimension of the vector space `V` as an Int.
-"""
-function dim end
+""" dim(::VectorSpace)
 
 """
     dual(V::VectorSpace) -> VectorSpace
@@ -106,6 +105,12 @@ const IndexSpace = ElementarySpace
 field(V::ElementarySpace) = field(typeof(V))
 # field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
 
+@doc """
+    dim(V::ElementarySpace, s::Sector) -> Int
+
+Return the degeneracy dimension corresponding to the sector `s` of the vector space `V`.
+""" dim(::ElementarySpace, ::Sector)
+
 """
     oneunit(V::S) where {S<:ElementarySpace} -> S
 
@@ -118,6 +123,7 @@ Base.oneunit(V::ElementarySpace) = oneunit(typeof(V))
 
 """
     ⊕(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
+    oplus(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
 
 Return the corresponding vector space of type `S` that represents the direct sum sum of the
 spaces `V₁`, `V₂`, ... Note that all the individual spaces should have the same value for
@@ -126,6 +132,7 @@ spaces `V₁`, `V₂`, ... Note that all the individual spaces should have the s
 function ⊕ end
 ⊕(V₁::VectorSpace, V₂::VectorSpace) = ⊕(promote(V₁, V₂)...)
 ⊕(V::Vararg{VectorSpace}) = foldl(⊕, V)
+const oplus = ⊕
 
 """
     ⊗(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
@@ -152,7 +159,8 @@ Return a single vector space of type `S` that is isomorphic to the fusion produc
 individual spaces `V₁`, `V₂`, ..., or the spaces contained in `P`.
 """
 function fuse end
-fuse(V::ElementarySpace) = V
+fuse(V::ElementarySpace) = isdual(V) ? flip(V) : V
+fuse(V::ElementarySpace, W::ElementarySpace) = fuse(promote(V, W)...)
 function fuse(V₁::VectorSpace, V₂::VectorSpace, V₃::VectorSpace...)
     return fuse(fuse(fuse(V₁), fuse(V₂)), V₃...)
 end

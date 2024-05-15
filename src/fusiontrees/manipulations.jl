@@ -609,6 +609,14 @@ function planar_trace(f₁::FusionTree{I}, f₂::FusionTree{I},
     return newtrees
 end
 
+"""
+    planar_trace(f::FusionTree{I,N}, q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {I<:Sector,N,N₃}
+        -> <:AbstractDict{FusionTree{I,N-2*N₃}, <:Number}
+
+Perform a planar trace of the uncoupled indices of the fusion tree `f` at `q1` with those at
+`q2`, where `q1[i]` is connected to `q2[i]` for all `i`. The result is returned as a dictionary
+of output trees and corresponding coefficients.
+"""
 function planar_trace(f::FusionTree{I,N},
                       q1::IndexTuple{N₃}, q2::IndexTuple{N₃}) where {I<:Sector,N,N₃}
     u = one(I)
@@ -656,6 +664,13 @@ function planar_trace(f::FusionTree{I,N},
 end
 
 # trace two neighbouring indices of a single fusion tree
+"""
+    elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N} -> <:AbstractDict{FusionTree{I,N-2}, <:Number}
+
+Perform an elementary trace of neighbouring uncoupled indices `i` and
+`i+1` on a fusion tree `f`, and returns the result as a dictionary of output trees and
+corresponding coefficients.
+"""
 function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
     (N > 1 && 1 <= i <= N) ||
         throw(ArgumentError("Cannot trace outputs i=$i and i+1 out of only $N outputs"))
@@ -749,7 +764,7 @@ end
 # -> manipulations that depend on a braiding
 # -> requires both Fsymbol and Rsymbol
 """
-    artin_braid(f::FusionTree, i; inv::Bool = false) -> <:AbstractDict{typeof(t), <:Number}
+    artin_braid(f::FusionTree, i; inv::Bool = false) -> <:AbstractDict{typeof(f), <:Number}
 
 Perform an elementary braid (Artin generator) of neighbouring uncoupled indices `i` and
 `i+1` on a fusion tree `f`, and returns the result as a dictionary of output trees and
@@ -759,7 +774,7 @@ The keyword `inv` determines whether index `i` will braid above or below index `
 applying `artin_braid(f′, i; inv = true)` to all the outputs `f′` of
 `artin_braid(f, i; inv = false)` and collecting the results should yield a single fusion
 tree with non-zero coefficient, namely `f` with coefficient `1`. This keyword has no effect
-if  `BraidingStyle(sectortype(f)) isa SymmetricBraiding`.
+if `BraidingStyle(sectortype(f)) isa SymmetricBraiding`.
 """
 function artin_braid(f::FusionTree{I,N}, i; inv::Bool=false) where {I<:Sector,N}
     1 <= i < N ||

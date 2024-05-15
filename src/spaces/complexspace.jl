@@ -28,6 +28,7 @@ function ComplexSpace(dims::AbstractDict; kwargs...)
         throw(SectorMismatch(msg))
     end
 end
+ComplexSpace(g::Base.Generator; kwargs...) = ComplexSpace(g...; kwargs...)
 
 field(::Type{ComplexSpace}) = ℂ
 InnerProductStyle(::Type{ComplexSpace}) = EuclideanProduct()

@@ -122,7 +122,7 @@ println("------------------------------------")
         # promote_except = ErrorException("promotion of types $(typeof(ℝ^d)) and " *
         #                                 "$(typeof(ℂ^d)) failed to change any arguments")
         # @test_throws promote_except (⊕(ℝ^d, ℂ^d))
-        @test_throws MethodError (⊗(ℝ^d, ℂ^d))
+        @test_throws ErrorException (⊗(ℝ^d, ℂ^d))
         @test @constinferred(⊕(V, V)) == ℂ^(2d)
         @test @constinferred(⊕(V, oneunit(V))) == ℂ^(d + 1)
         @test @constinferred(⊕(V, V, V, V)) == ℂ^(4d)
@@ -290,8 +290,10 @@ println("------------------------------------")
         @test @constinferred(dims(P)) == map(dim, (V1, V2, V3, V4))
         @test @constinferred(dim(P)) == prod(dim, (V1, V2, V3, V4))
         @test @constinferred(dim(P, 2)) == dim(V2)
+        @test @constinferred(dim(one(P))) == 1
         @test first(@constinferred(sectors(P))) ==
               (Trivial(), Trivial(), Trivial(), Trivial())
+        @test first(@constinferred(sectors(one(P)))) == ()
         cube(x) = x^3
         @test @constinferred(cube(V1)) == V1 ⊗ V1 ⊗ V1
         N = 3
@@ -302,6 +304,8 @@ println("------------------------------------")
         @test isempty(blocksectors(P ⊗ ℂ^0))
         @test isempty(@constinferred(sectors(P ⊗ ℂ^0)))
         @test @constinferred(blockdim(P, first(blocksectors(P)))) == dim(P)
+        @test @constinferred(blockdim(P, Trivial())) == dim(P)
+        @test @constinferred(blockdim(one(P), Trivial())) == 1
         @test Base.IteratorEltype(P) == Base.IteratorEltype(typeof(P)) ==
               Base.IteratorEltype(P.spaces)
         @test Base.IteratorSize(P) == Base.IteratorSize(typeof(P)) ==
@@ -340,6 +344,9 @@ println("------------------------------------")
               ProductSpace{ComplexSpace}(())
         @test @constinferred(dims(P)) == map(dim, (V1, V2, V3))
         @test @constinferred(dim(P)) == prod(dim, (V1, V2, V3))
+        @test @constinferred(dim(one(P))) == 1
+        @test first(@constinferred(sectors(one(P)))) == ()
+        @test @constinferred(blockdim(one(P), Irrep[SU₂](0))) == 1
         for s in @constinferred(sectors(P))
             @test hassector(P, s)
             @test @constinferred(dims(P, s)) == dim.((V1, V2, V3), s)
@@ -403,5 +410,8 @@ println("------------------------------------")
         @test W[5] == V5'
         @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
         @test W == deepcopy(W)
+        @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
+        @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
+        @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
     end
 end

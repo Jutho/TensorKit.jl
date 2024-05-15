@@ -62,16 +62,21 @@ Base.eltype(::Type{SectorValues{I}}) where {I<:Sector} = I
 Base.values(::Type{I}) where {I<:Sector} = SectorValues{I}()
 
 # Define a sector for ungraded vector spaces
-struct Trivial <: Sector
-end
+"""
+    Trivial
+
+Singleton type to represent the trivial sector, i.e. the trivial representation of the
+trivial group. This is equivalent to `Rep[ℤ₁]`, or the unit object of the category `Vect` of
+ordinary vector spaces.
+"""
+struct Trivial <: Sector end
 Base.show(io::IO, ::Trivial) = print(io, "Trivial()")
 
 Base.IteratorSize(::Type{SectorValues{Trivial}}) = HasLength()
 Base.length(::SectorValues{Trivial}) = 1
 Base.iterate(::SectorValues{Trivial}, i=false) = return i ? nothing : (Trivial(), true)
 function Base.getindex(::SectorValues{Trivial}, i::Int)
-    return i == 1 ? Trivial() :
-           throw(BoundsError(values(Trivial), i))
+    return i == 1 ? Trivial() : throw(BoundsError(values(Trivial), i))
 end
 findindex(::SectorValues{Trivial}, c::Trivial) = 1
 
@@ -114,7 +119,8 @@ Base.isless(::Trivial, ::Trivial) = false
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------
 """
-    ⊗(a::I, b::I) where {I<:Sector}
+    ⊗(a::I, b::I...) where {I<:Sector}
+    otimes(a::I, b::I...) where {I<:Sector}
 
 Return an iterable of elements of `c::I` that appear in the fusion product `a ⊗ b`.
 
@@ -123,6 +129,7 @@ Note that every element `c` should appear at most once, fusion degeneracies (if
 """
 ⊗(::Trivial, ::Trivial) = (Trivial(),)
 ⊗(I::Sector) = (I,)
+const otimes = ⊗
 
 """
     Nsymbol(a::I, b::I, c::I) where {I<:Sector} -> Integer

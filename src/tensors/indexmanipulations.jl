@@ -30,19 +30,19 @@ To permute into an existing destination, see [permute!](@ref) and [`add_permute!
 """
 function permute(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂};
                  copy::Bool=false) where {S,N₁,N₂}
-    cod = ProductSpace{S,N₁}(map(n -> space(t, n), p₁))
-    dom = ProductSpace{S,N₂}(map(n -> dual(space(t, n)), p₂))
+    space′ = permute(space(t), (p₁, p₂))
     # share data if possible
     if !copy
         if p₁ === codomainind(t) && p₂ === domainind(t)
             return t
         elseif has_shared_permute(t, (p₁, p₂))
-            return TensorMap(reshape(t.data, dim(cod), dim(dom)), cod, dom)
+            return TensorMap(reshape(t.data, dim(codomain(space′)), dim(domain(space′))),
+                             codomain(space′), domain(space′))
         end
     end
     # general case
     @inbounds begin
-        return permute!(similar(t, cod ← dom), t, (p₁, p₂))
+        return permute!(similar(t, space′), t, (p₁, p₂))
     end
 end
 function permute(t::AdjointTensorMap{S}, (p₁, p₂)::Index2Tuple;
@@ -118,10 +118,9 @@ function braid(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple, levels::Index
         return t
     end
     # general case
-    cod = ProductSpace{S}(map(n -> space(t, n), p₁))
-    dom = ProductSpace{S}(map(n -> dual(space(t, n)), p₂))
+    space′ = permute(space(t), (p₁, p₂))
     @inbounds begin
-        return braid!(similar(t, cod ← dom), t, (p₁, p₂), levels)
+        return braid!(similar(t, space′), t, (p₁, p₂), levels)
     end
 end
 # TODO: braid for `AdjointTensorMap`; think about how to map the `levels` argument.
@@ -171,10 +170,9 @@ function LinearAlgebra.transpose(t::AbstractTensorMap{S},
         return t
     end
     # general case
-    cod = ProductSpace{S}(map(n -> space(t, n), p₁))
-    dom = ProductSpace{S}(map(n -> dual(space(t, n)), p₂))
+    space′ = permute(space(t), (p₁, p₂))
     @inbounds begin
-        return transpose!(similar(t, cod ← dom), t, (p₁, p₂))
+        return transpose!(similar(t, space′), t, (p₁, p₂))
     end
 end
 
@@ -184,6 +182,46 @@ function LinearAlgebra.transpose(t::AdjointTensorMap{S},
     p₁′ = map(n -> adjointtensorindex(t, n), p₂)
     p₂′ = map(n -> adjointtensorindex(t, n), p₁)
     return adjoint(transpose(adjoint(t), (p₁′, p₂′); copy=copy))
+end
+
+"""
+    repartition!(tdst::AbstractTensorMap{S}, tsrc::AbstractTensorMap{S}) where {S} -> tdst
+
+Write into `tdst` the result of repartitioning the indices of `tsrc`. This is just a special
+case of a transposition that only changes the number of in- and outgoing indices.
+
+See [`repartition`](@ref) for creating a new tensor.
+"""
+function repartition!(tdst::AbstractTensorMap{S}, tsrc::AbstractTensorMap{S}) where {S}
+    numind(tsrc) == numind(tdst) ||
+        throw(ArgumentError("tsrc and tdst should have an equal amount of indices"))
+    all_inds = (codomainind(tsrc)..., reverse(domainind(tsrc))...)
+    p₁ = ntuple(i -> all_inds[i], numout(tdst))
+    p₂ = reverse(ntuple(i -> all_inds[i + numout(tdst)], numin(tdst)))
+    return transpose!(tdst, tsrc, (p₁, p₂))
+end
+
+"""
+    repartition(tsrc::AbstractTensorMap{S}, N₁::Int, N₂::Int; copy::Bool=false) where {S}
+        -> tdst::AbstractTensorMap{S,N₁,N₂}
+
+Return tensor `tdst` obtained by repartitioning the indices of `t`.
+The codomain and domain of `tdst` correspond to the first `N₁` and last `N₂` spaces of `t`,
+respectively.
+
+If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
+
+To repartition into an existing destination, see [repartition!](@ref).
+"""
+@constprop :aggressive function repartition(t::AbstractTensorMap, N₁::Int,
+                                            N₂::Int=numind(t) - N₁;
+                                            copy::Bool=false)
+    N₁ + N₂ == numind(t) ||
+        throw(ArgumentError("Invalid repartition: $(numind(t)) to ($N₁, $N₂)"))
+    all_inds = (codomainind(t)..., reverse(domainind(t))...)
+    p₁ = ntuple(i -> all_inds[i], N₁)
+    p₂ = reverse(ntuple(i -> all_inds[i + N₁], N₂))
+    return transpose(t, (p₁, p₂); copy)
 end
 
 # Twist
@@ -273,10 +311,7 @@ function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
                         β::Number,
                         backend::Backend...) where {S,N₁,N₂}
     @boundscheck begin
-        all(i -> space(tsrc, p₁[i]) == space(tdst, i), 1:N₁) ||
-            throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
-            dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
-        all(i -> space(tsrc, p₂[i]) == space(tdst, N₁ + i), 1:N₂) ||
+        permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
             dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
     end
@@ -317,7 +352,7 @@ end
 
 function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)
     (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
-    TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
+    @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
     return nothing
 end
 
@@ -335,8 +370,8 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
     else
         for (f₁, f₂) in fusiontrees(tsrc)
             for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-                TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
-                              backend...)
+                @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff,
+                                        true, backend...)
             end
         end
     end
@@ -348,7 +383,8 @@ function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂,
     for (f₁, f₂) in fusiontrees(tsrc)
         (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
         for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-            TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true, backend...)
+            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
+                                    backend...)
         end
     end
     return nothing

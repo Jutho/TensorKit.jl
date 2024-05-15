@@ -13,6 +13,7 @@ export FusionStyle, UniqueFusion, MultipleFusion, MultiplicityFreeFusion,
        SimpleFusion, GenericFusion
 export BraidingStyle, SymmetricBraiding, Bosonic, Fermionic, Anyonic, NoBraiding
 export Trivial, Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
+export ProductSector
 export FermionParity, FermionNumber, FermionSpin
 export FibonacciAnyon, IsingAnyon
 
@@ -29,14 +30,14 @@ export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
 # general vector space methods
-export space, field, dual, dim, dims, fuse, flip, isdual, insertunit
+export space, field, dual, dim, dims, fuse, flip, isdual, insertunit, oplus
 
 # partial order for vector spaces
 export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
 
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
-       frobeniusschur, twist
+       frobeniusschur, twist, otimes
 export fusiontrees, braid, permute, transpose
 export ZNSpace, SU2Irrep, U1Irrep, CU1Irrep
 # other fusion tree manipulations, should not be exported:
@@ -50,9 +51,8 @@ export fℤ₂, fU₁, fSU₂
 export ℤ₂Space, ℤ₃Space, ℤ₄Space, U₁Space, CU₁Space, SU₂Space
 
 # tensor maps
-export domain, codomain, numind, numout, numin, spacetype, storagetype, scalartype
-export domainind, codomainind, allind
-export tensormaptype
+export domain, codomain, numind, numout, numin, domainind, codomainind, allind
+export spacetype, sectortype, storagetype, scalartype, tensormaptype
 export blocksectors, blockdim, block, blocks
 
 # random methods for constructor
@@ -71,7 +71,8 @@ export leftorth, rightorth, leftnull, rightnull,
        leftorth!, rightorth!, leftnull!, rightnull!,
        tsvd!, tsvd, eigen, eigen!, eig, eig!, eigh, eigh!, exp, exp!,
        isposdef, isposdef!, ishermitian, sylvester
-export braid!, permute!, transpose!, twist!
+export braid, braid!, permute, permute!, transpose, transpose!, twist, twist!, repartition,
+       repartition!
 export catdomain, catcodomain
 
 export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQpos,

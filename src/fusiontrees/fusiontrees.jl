@@ -4,13 +4,19 @@
     struct FusionTree{I, N, M, L, T}
 
 Represents a fusion tree of sectors of type `I<:Sector`, fusing (or splitting) `N` uncoupled
-sectors to a coupled sector. (It actually represents a splitting tree, but fusion tree
-is a more common term). The `isdual` field indicates whether an isomorphism is present
-(if the corresponding value is true) or not. The field `uncoupled` contains the sectors
-coming out of the splitting trees, before the possible 𝑍 isomorphism. This fusion tree
-has `M=max(0, N-2)` inner lines. Furthermore, for `FusionStyle(I) isa GenericFusion`,
-the `L=max(0, N-1)` corresponding vertices carry a label of type `T`. If `FusionStyle(I)
-isa MultiplicityFreeFusion, `T = Nothing`.
+sectors to a coupled sector. It actually represents a splitting tree, but fusion tree
+is a more common term.
+
+## Fields
+- `uncoupled::NTuple{N,I}`: the uncoupled sectors coming out of the splitting tree, before
+  the possible 𝑍 isomorphism (see `isdual`).
+- `coupled::I`: the coupled sector.
+- `isdual::NTuple{N,Bool}`: indicates whether a 𝑍 isomorphism is present (`true`) or not
+  (`false`) for each uncoupled sector.
+- `innerlines::NTuple{M,I}`: the labels of the `M=max(0, N-2)` inner lines of the splitting
+  tree.
+- `vertices::NTuple{L,T}`: the `L=max(0, N-1)` labels of type `T` of the vertices of the
+  splitting tree. If `FusionStyle(I) isa MultiplicityFreeFusion`, then `T = Nothing`.
 """
 struct FusionTree{I<:Sector,N,M,L,T}
     uncoupled::NTuple{N,I}

@@ -18,10 +18,18 @@ Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t)) / α)
 LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real=2) = scale!(t, inv(norm(t, p)))
 LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2) = scale(t, inv(norm(t, p)))
 
-function Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap)
+"""
+    compose(t1::AbstractTensorMap, t2::AbstractTensorMap) -> AbstractTensorMap
+
+Return the `AbstractTensorMap` that implements the composition of the two tensor maps `t1`
+and `t2`.
+"""
+function compose(t1::AbstractTensorMap, t2::AbstractTensorMap)
     return mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)),
-                        codomain(t1) ← domain(t2)), t1, t2)
+                        compose(space(t1), space(t2))), t1, t2)
 end
+Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = compose(t1, t2)
+
 Base.exp(t::AbstractTensorMap) = exp!(copy(t))
 function Base.:^(t::AbstractTensorMap, p::Integer)
     return p < 0 ? Base.power_by_squaring(inv(t), -p) : Base.power_by_squaring(t, p)
@@ -148,6 +156,8 @@ end
 # In-place methods
 #------------------
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1
+# TODO: reconsider this strategy, consider spawning different threads for different blocks
+
 # Copy, adjoint! and fill:
 function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
     space(tdst) == space(tsrc) || throw(SpaceMismatch("$(space(tdst)) ≠ $(space(tsrc))"))
@@ -240,10 +250,9 @@ end
 function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
                             tB::AbstractTensorMap, α=true, β=false)
-    if !(codomain(tC) == codomain(tA) && domain(tC) == domain(tB) &&
-         domain(tA) == codomain(tB))
+    compose(space(tA), space(tB)) == space(tC) ||
         throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
-    end
+
     for c in blocksectors(tC)
         if hasblock(tA, c) # then also tB should have such a block
             A = block(tA, c)
@@ -256,6 +265,7 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
     end
     return tC
 end
+# TODO: reconsider wrapping the blocks in a StridedView, consider spawning threads for different blocks
 
 # TensorMap inverse
 function Base.inv(t::AbstractTensorMap)
@@ -420,6 +430,7 @@ end
 # tensor product of tensors
 """
     ⊗(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}, ...) -> TensorMap{S}
+    otimes(t1::AbstractTensorMap{S}, t2::AbstractTensorMap{S}, ...) -> TensorMap{S}
 
 Compute the tensor product between two `AbstractTensorMap` instances, which results in a
 new `TensorMap` instance whose codomain is `codomain(t1) ⊗ codomain(t2)` and whose domain

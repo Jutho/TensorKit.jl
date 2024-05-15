@@ -2,6 +2,13 @@
 #==============================================================================#
 const SectorTuple = Tuple{Vararg{Sector}}
 
+"""
+    ProductSector{T<:SectorTuple}
+
+Represents the Deligne tensor product of sectors. The type parameter `T` is a tuple of the
+component sectors. The recommended way to construct a `ProductSector` is using the
+[`deligneproduct`](@ref) (`⊠`) operator on the components.
+"""
 struct ProductSector{T<:SectorTuple} <: Sector
     sectors::T
 end
@@ -173,7 +180,7 @@ const deligneproduct = ⊠
     deligneproduct(s₁::Sector, s₂::Sector)
 
 Given two sectors `s₁` and `s₂`, which label an isomorphism class of simple objects in a
-fusion category ``C₁`` and ``C₂``, `s1 ⊠ s2` (obtained as `\boxtimes+TAB`) labels the
+fusion category ``C₁`` and ``C₂``, `s1 ⊠ s2` (obtained as `\\boxtimes+TAB`) labels the
 isomorphism class of simple objects in the Deligne tensor product category ``C₁ ⊠ C₂``.
 
 The Deligne tensor product also works in the type domain and for spaces and tensors. For

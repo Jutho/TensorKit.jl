@@ -23,15 +23,60 @@ i.e. a tensor map with only a non-trivial output space.
 const AbstractTensor{S<:IndexSpace,N} = AbstractTensorMap{S,N,0}
 
 # tensor characteristics
+#------------------------
 Base.eltype(::Union{T,Type{T}}) where {T<:AbstractTensorMap} = scalartype(T)
+
+"""
+    spacetype(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Type{S<:IndexSpace}
+
+Return the type of the elementary space `S` of a tensor.
+"""
 spacetype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = S
+
+"""
+    sectortype(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Type{I<:Sector}
+
+Return the type of sector `I` of a tensor.
+"""
 sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = sectortype(S)
+
 function InnerProductStyle(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace}
     return InnerProductStyle(S)
 end
+
+"""
+    field(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Type{𝕂<:Field}
+
+Return the type of field `𝕂` of a tensor.
+"""
 field(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace} = field(S)
+
+"""
+    numout(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
+
+Return the number of output spaces of a tensor. This is equivalent to the number of spaces in the codomain of that tensor.
+
+See also [`numin`](@ref) and [`numind`](@ref).
+"""
 numout(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁
+
+"""
+    numin(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
+
+Return the number of input spaces of a tensor. This is equivalent to the number of spaces in the domain of that tensor.
+
+See also [`numout`](@ref) and [`numind`](@ref).
+"""
 numin(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₂
+
+"""
+    numind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
+
+Return the total number of input and output spaces of a tensor. This is equivalent to the
+total number of spaces in the domain and codomain of that tensor.
+
+See also [`numout`](@ref) and [`numin`](@ref).
+"""
 numind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂} = N₁ + N₂
 
 function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
@@ -51,28 +96,80 @@ similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
 
 const order = numind
 
-# tensormap implementation should provide codomain(t) and domain(t)
+@doc """
+    codomain(t::AbstractTensorMap{S,N₁,N₂}, [i::Int]) -> ProductSpace{S,N₁}
+
+Return the codomain of a tensor, i.e. the product space of the output spaces. If `i` is
+specified, return the `i`-th output space. Implementations should provide `codomain(t)`.
+
+See also [`domain`](@ref) and [`space`](@ref).
+""" codomain
+
 codomain(t::AbstractTensorMap, i) = codomain(t)[i]
+target(t::AbstractTensorMap) = codomain(t) # categorical terminology
+
+@doc """
+    domain(t::AbstractTensorMap{S,N₁,N₂}, [i::Int]) -> ProductSpace{S,N₂}
+
+Return the domain of a tensor, i.e. the product space of the input spaces. If `i` is
+specified, return the `i`-th input space. Implementations should provide `domain(t)`.
+
+See also [`codomain`](@ref) and [`space`](@ref).
+""" domain
+
 domain(t::AbstractTensorMap, i) = domain(t)[i]
 source(t::AbstractTensorMap) = domain(t) # categorical terminology
-target(t::AbstractTensorMap) = codomain(t) # categorical terminology
+
+"""
+    space(t::AbstractTensorMap{S,N₁,N₂}, [i::Int]) -> HomSpace{S,N₁,N₂}
+
+The index information of a tensor, i.e. the `HomSpace` of its domain and codomain. If `i` is specified, return the `i`-th index space.
+"""
 space(t::AbstractTensorMap) = HomSpace(codomain(t), domain(t))
 space(t::AbstractTensorMap, i::Int) = space(t)[i]
+
+"""
+    dim(t::AbstractTensorMap) -> Int
+
+The total number of free parameters of a tensor, discounting the entries that are fixed by
+symmetry. This is also the dimension of the `HomSpace` on which the `TensorMap` is defined.
+"""
 dim(t::AbstractTensorMap) = dim(space(t))
 
-# some index manipulation utilities
+"""
+    codomainind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Tuple{Int}
+
+Return all indices of the codomain of a tensor.
+
+See also [`domainind`](@ref) and [`allind`](@ref).
+"""
 function codomainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂}
     return ntuple(n -> n, N₁)
 end
+codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
+
+"""
+    domainind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Tuple{Int}
+
+Return all indices of the domain of a tensor.
+
+See also [`codomainind`](@ref) and [`allind`](@ref).
+"""
 function domainind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂}
     return ntuple(n -> N₁ + n, N₂)
 end
+domainind(t::AbstractTensorMap) = domainind(typeof(t))
+
+"""
+    allind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Tuple{Int}
+
+Return all indices of a tensor, i.e. the indices of its domain and codomain.
+
+See also [`codomainind`](@ref) and [`domainind`](@ref).
+"""
 function allind(::Type{<:AbstractTensorMap{<:IndexSpace,N₁,N₂}}) where {N₁,N₂}
     return ntuple(n -> n, N₁ + N₂)
 end
-
-codomainind(t::AbstractTensorMap) = codomainind(typeof(t))
-domainind(t::AbstractTensorMap) = domainind(typeof(t))
 allind(t::AbstractTensorMap) = allind(typeof(t))
 
 adjointtensorindex((N₁, N₂)::Tuple{Int,Int}, i) = i <= N₁ ? N₂ + i : i - N₁
@@ -93,6 +190,48 @@ end
 function adjointtensorindices(t::AbstractTensorMap, p::Index2Tuple)
     return adjointtensorindices(t, p[1]), adjointtensorindices(t, p[2])
 end
+
+@doc """
+    blocks(t::AbstractTensorMap) -> SectorDict{<:Sector,<:DenseMatrix}
+
+Return an iterator over all blocks of a tensor, i.e. all coupled sectors and their
+corresponding blocks.
+
+See also [`block`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
+""" blocks
+
+@doc """
+    block(t::AbstractTensorMap, c::Sector) -> DenseMatrix
+
+Return the block of a tensor corresponding to a coupled sector `c`.
+
+See also [`blocks`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
+""" block
+
+"""
+    hasblock(t::AbstractTensorMap, c::Sector) -> Bool
+
+Verify whether a tensor has a block corresponding to a coupled sector `c`.
+"""
+hasblock
+
+@doc """
+    blocksectors(t::AbstractTensorMap)
+
+Return an iterator over all coupled sectors of a tensor.
+""" blocksectors(::AbstractTensorMap)
+
+@doc """
+    blockdim(t::AbstractTensorMap, c::Sector) -> Base.Dims
+
+Return the dimensions of the block of a tensor corresponding to a coupled sector `c`.
+""" blockdim(::AbstractTensorMap, ::Sector)
+
+@doc """
+    fusiontrees(t::AbstractTensorMap)
+
+Return an iterator over all splitting - fusion tree pairs of a tensor.
+""" fusiontrees(::AbstractTensorMap)
 
 # Equality and approximality
 #----------------------------

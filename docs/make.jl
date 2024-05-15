@@ -12,4 +12,4 @@ makedocs(; modules=[TensorKit],
                 "Library" => ["lib/sectors.md", "lib/spaces.md", "lib/tensors.md"],
                 "Index" => ["index/index.md"]])
 
-deploydocs(; repo="github.com/Jutho/TensorKit.jl.git")
+deploydocs(; repo="github.com/Jutho/TensorKit.jl.git", push_preview=true)

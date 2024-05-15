@@ -35,10 +35,13 @@ Fsymbol(::Vararg{PlanarTrivial,6}) = 1
     struct FibonacciAnyon <: Sector
     FibonacciAnyon(s::Symbol)
 
-Represents the anyons (isomorphism classes of simple objects) of the Fibonacci fusion
-category. It can take two values, corresponding to the trivial sector
-`FibonacciAnyon(:I)` and the non-trivial sector `FibonacciAnyon(:τ)` with fusion rules
-``τ ⊗ τ = 1 ⊕ τ``.
+Represents the anyons of the Fibonacci modular fusion category. It can take two values,
+corresponding to the trivial sector `FibonacciAnyon(:I)` and the non-trivial sector
+`FibonacciAnyon(:τ)` with fusion rules ``τ ⊗ τ = 1 ⊕ τ``.
+
+## Fields
+- `isone::Bool`: indicates whether the sector corresponds the to trivial anyon `:I`
+  (`true`), or the non-trivial anyon `:τ` (`false`).
 """
 struct FibonacciAnyon <: Sector
     isone::Bool
@@ -149,10 +152,13 @@ Base.isless(a::FibonacciAnyon, b::FibonacciAnyon) = isless(!a.isone, !b.isone)
     struct IsingAnyon <: Sector
     IsingAnyon(s::Symbol)
 
-Represents the anyons (isomorphism classes of simple objects) of the Ising fusion category.
-It can take three values, corresponding to the trivial sector `IsingAnyon(:I)` and the
-non-trivial sectors `IsingAnyon(:σ)` and `IsingAnyon(:ψ)`, with fusion rules
-``ψ ⊗ ψ = 1``, ``σ ⊗ ψ = σ``, and ``σ ⊗ σ = 1 ⊕ ψ``.
+Represents the anyons of the Ising modular fusion category. It can take three values,
+corresponding to the trivial sector `IsingAnyon(:I)` and the non-trivial sectors
+`IsingAnyon(:σ)` and `IsingAnyon(:ψ)`, with fusion rules ``ψ ⊗ ψ = 1``, ``σ ⊗ ψ = σ``, and
+``σ ⊗ σ = 1 ⊕ ψ``.
+
+## Fields
+- `s::Symbol`: the label of the represented anyon, which can be `:I`, `:σ`, or `:ψ`.
 """
 struct IsingAnyon <: Sector
     s::Symbol

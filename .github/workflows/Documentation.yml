@@ -8,6 +8,7 @@ on:
       - 'release-'
     tags: '*'
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
