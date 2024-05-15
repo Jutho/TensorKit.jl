@@ -1,6 +1,6 @@
 using TensorKit, TensorOperations, Test
 using TensorKit: planaradd!, planartrace!, planarcontract!
-using TensorKit: PlanarTrivial, ℙ
+using TensorKit: PlanarTrivial, ℙ, BraidingTensor
 
 """
     force_planar(obj)
@@ -57,6 +57,14 @@ using TensorKit: planarcontract_indices
     @test pA == ((4, 1, 2), (5, 3))
     @test pB == ((2, 1), (3, 4))
     @test pC == ((1, 2, 3), (4, 5))
+    
+    IA = ((-1, 7), (6,))
+    IB = ((-4, -3, 6), (-2, 7))
+    IC = ((-1, -2), (-3, -4))
+    pA, pB, pAB = planarcontract_indices(IA, IB, IC)
+    @test pA == ((1,), (3, 2))
+    @test pB == ((3, 5), (2, 1, 4))
+    @test pAB == ((1, 4), (2, 3))
 end
 
 using TensorKit: reorder_planar_indices
@@ -270,7 +278,7 @@ end
         p = ((4, 3), (5, 2, 1))
 
         @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
-              planaradd!(C′, A′, p, true, true)
+              planaradd!(C′, A′, :N, p, true, true)
     end
 
     @testset "planartrace" begin
@@ -282,7 +290,7 @@ end
         q = ((1,), (3,))
 
         @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
-              planartrace!(C′, A′, p, q, true, true)
+              planartrace!(C′, p, A′, q, :N, true, true)
     end
 
     @testset "planarcontract" begin
@@ -299,8 +307,25 @@ end
         pAB = ((3, 2, 1), (4, 5))
 
         @test force_planar(tensorcontract!(C, pAB, A, pA, :N, B, pB, :N, true, true)) ≈
-              planarcontract!(C′, A′, pA, B′, pB, pAB, true, true)
+              planarcontract!(C′, A′, pA, :N, B′, pB, :N, pAB, true, true)
     end
+end
+
+@testset "plancon" verbose = true begin
+    V = CartesianSpace(2)
+    A = TensorMap(rand, Float64, V ← V)
+
+    AA = plancon([A, A], [[-1, 1], [1, -2]])
+    AA′ = transpose(A * A, ((1, 2), ()))
+    @test AA ≈ AA′
+
+    AAA = plancon([A, A, A], [[-1, 1], [1, 2], [2, -2]])
+    AAA′ = transpose(A * A * A, ((1, 2), ()))
+    @test AAA ≈ AAA′
+
+    AAA = plancon([A, A, A], [[-1, 1], [1, 2], [2, -2]]; output=((-1,), (-2,)))
+    AAA′ = A * A * A
+    @test AAA ≈ AAA′
 end
 
 @testset "@planar" verbose = true begin
@@ -347,7 +372,10 @@ end
 
         @tensor y[-1 -2; -3] := GL[-1 2; 1] * x[1 3; 4] * O[2 -2; 3 5] * GR[4 5; -3]
         @planar y′[-1 -2; -3] := GL′[-1 2; 1] * x′[1 3; 4] * O′[2 -2; 3 5] * GR′[4 5; -3]
+        y″ = plancon([GL′, x′, O′, GR′], [[-1, 2, 1], [1, 3, 4], [2, -2, 3, 5], [4, 5, -3]];
+                     output=((-1, -2), (-3,)))
         @test force_planar(y) ≈ y′
+        @test force_planar(y) ≈ y″
 
         # ∂AC2
         # -------
@@ -358,7 +386,11 @@ end
                                                          GR[1 2; -3]
         @planar y2′[-1 -2; -3 -4] := GL′[-1 7; 6] * x2′[6 5; 1 3] * O′[7 -2; 5 4] *
                                      O′[4 -4; 3 2] * GR′[1 2; -3]
+        y2″ = plancon([GL′, x2′, O′, O′, GR′],
+                      [[-1, 7, 6], [6, 5, 1, 3], [7, -2, 5, 4],
+                       [4, -4, 3, 2], [1, 2, -3]]; output=((-1, -2), (-3, -4)))
         @test force_planar(y2) ≈ y2′
+        @test force_planar(y2) ≈ y2″
 
         # transfer matrix
         # ----------------
@@ -366,13 +398,22 @@ end
         v′ = force_planar(v)
         @tensor ρ[-1; -2] := x[-1 2; 1] * conj(x[-2 2; 3]) * v[1; 3]
         @planar ρ′[-1; -2] := x′[-1 2; 1] * conj(x′[-2 2; 3]) * v′[1; 3]
+        
+        ρ‴ = ncon([x, x, v], [[-1, 2, 1], [-2, 2, 3], [1, 3]], [false, true, false])
+        ρ″ = plancon([x′, x′, v′], [[-1, 2, 1], [-2, 2, 3], [1, 3]], [false, true, false]; output=((-1,), (-2,)))
         @test force_planar(ρ) ≈ ρ′
-
+        @test force_planar(ρ) ≈ ρ″
+        
         @tensor ρ2[-1 -2; -3] := GL[1 -2; 3] * x[3 2; -3] * conj(x[1 2; -1])
         @plansor ρ3[-1 -2; -3] := GL[1 2; 4] * x[4 5; -3] * τ[2 3; 5 -2] * conj(x[1 3; -1])
         @planar ρ2′[-1 -2; -3] := GL′[1 2; 4] * x′[4 5; -3] * τ[2 3; 5 -2] *
                                   conj(x′[1 3; -1])
+        τtensor = BraidingTensor(space(x′, 2), space(GL′, 2)')
+        ρ2″ = plancon([GL′, x′, τtensor, x′], [[1, 2, 4], [4, 5, -3], [2, 3, 5, -2], [1, 3, -1]],
+                      [false, false, false, true]; output=((-1, -2), (-3,)))
+        
         @test force_planar(ρ2) ≈ ρ2′
+        @test force_planar(ρ2) ≈ ρ2″
         @test ρ2 ≈ ρ3
 
         # Periodic boundary conditions
@@ -389,8 +430,16 @@ end
         @planar O_periodic′[-1 -2; -3 -4] := O′[1 2; -3 6] * f1′[-1; 1 3 5] *
                                              conj(f2′[-4; 6 7 8]) * τ[2 3; 7 4] *
                                              τ[4 5; 8 -2]
+        τtensor1 = BraidingTensor(space(f2′, 3)', space(O′, 2)')
+        τtensor2 = BraidingTensor(space(f2′, 4)', space(O′, 2)')
+        O_periodic″ = plancon([O′, f1′, f2′, τtensor1, τtensor2],
+                              [[1, 2, -3, 6], [-1, 1, 3, 5], [-4, 6, 7, 8], [2, 3, 7, 4],
+                               [4, 5, 8, -2]],
+                              [false, false, true, false, false];
+                              output=((-1, -2), (-3, -4)))
         @test O_periodic1 ≈ O_periodic2
         @test force_planar(O_periodic1) ≈ O_periodic′
+        @test force_planar(O_periodic1) ≈ O_periodic″
     end
 
     @testset "MERA networks" begin
@@ -420,7 +469,16 @@ end
                     ((w′[12 14; 20] * conj(w′[13 14; 23])) * ρ′[18 19 20; 21 22 23])) *
                    w′[16 15; 18]) * conj(w′[16 17; 21]))
         end
+        C″ = tensorscalar(plancon([h′, u′, u′, u′, w′, u′, w′, w′, w′, ρ′, w′, w′],
+                                  [[9, 3, 4, 5, 1, 2], [1, 2, 7, 12], [3, 4, 11, 13],
+                                   [8, 5, 15, 6], [6, 7, 19], [8, 9, 17, 10], [10, 11, 22],
+                                   [12, 14, 20], [13, 14, 23], [18, 19, 20, 21, 22, 23],
+                                   [16, 15, 18], [16, 17, 21]],
+                                  [false, false, true, false, false, true, true, false,
+                                   true, false, false, true]))
+
         @test C ≈ C′
+        @test C ≈ C″
     end
 
     @testset "Issue 93" begin
