@@ -28,8 +28,8 @@ function _canonicalize(p::Index2Tuple{N₁,N₂},
 end
 _canonicalize(p::Index2Tuple, t::AbstractTensorMap) = _canonicalize(linearize(p), t)
 function _canonicalize(p::IndexTuple, t::AbstractTensorMap)
-    p₁ = TupleTools.getindices(p, codomainind(t))
-    p₂ = TupleTools.getindices(p, domainind(t))
+    p₁ = getindices(p, codomainind(t))
+    p₂ = getindices(p, domainind(t))
     return (p₁, p₂)
 end
 
@@ -222,16 +222,16 @@ function contract!(C::AbstractTensorMap{S},
     # find optimal contraction scheme
     hsp = has_shared_permute
     ipC = TupleTools.invperm((p₁..., p₂...))
-    oindAinC = TupleTools.getindices(ipC, ntuple(n -> n, N₁))
-    oindBinC = TupleTools.getindices(ipC, ntuple(n -> n + N₁, N₂))
+    oindAinC = getindices(ipC, ntuple(n -> n, N₁))
+    oindBinC = getindices(ipC, ntuple(n -> n + N₁, N₂))
 
     qA = TupleTools.sortperm(cindA)
-    cindA′ = TupleTools.getindices(cindA, qA)
-    cindB′ = TupleTools.getindices(cindB, qA)
+    cindA′ = getindices(cindA, qA)
+    cindB′ = getindices(cindB, qA)
 
     qB = TupleTools.sortperm(cindB)
-    cindA′′ = TupleTools.getindices(cindA, qB)
-    cindB′′ = TupleTools.getindices(cindB, qB)
+    cindA′′ = getindices(cindA, qB)
+    cindB′′ = getindices(cindB, qB)
 
     dA, dB, dC = dim(A), dim(B), dim(C)
 
@@ -293,8 +293,8 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
         end
     end
     ipC = TupleTools.invperm((p₁..., p₂...))
-    oindAinC = TupleTools.getindices(ipC, ntuple(n -> n, N₁))
-    oindBinC = TupleTools.getindices(ipC, ntuple(n -> n + N₁, N₂))
+    oindAinC = getindices(ipC, ntuple(n -> n, N₁))
+    oindBinC = getindices(ipC, ntuple(n -> n + N₁, N₂))
     if has_shared_permute(C, (oindAinC, oindBinC))
         C′ = permute(C, (oindAinC, oindBinC))
         mul!(C′, A′, B′, α, β)

@@ -87,9 +87,7 @@ end
 
 # Show
 #------
-function Base.summary(t::AdjointTensorMap)
-    return print("AdjointTensorMap(", codomain(t), " ← ", domain(t), ")")
-end
+Base.summary(io::IO, t::AdjointTensorMap) = print(io, "AdjointTensorMap($(space(t)))")
 function Base.show(io::IO, t::AdjointTensorMap{S}) where {S<:IndexSpace}
     if get(io, :compact, false)
         print(io, "AdjointTensorMap(", codomain(t), " ← ", domain(t), ")")

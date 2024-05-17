@@ -370,6 +370,10 @@ function iscyclicpermutation(v1, v2)
     length(v1) == length(v2) || return false
     return iscyclicpermutation(indexin(v1, v2))
 end
+function iscyclicpermutation(v1::Tuple, v2::Tuple)
+    length(v1) == length(v2) || return false
+    return iscyclicpermutation(TupleTools.indexin(v1, v2))
+end
 
 # clockwise cyclic permutation while preserving (N₁, N₂): foldright & bendleft
 function cycleclockwise(f₁::FusionTree{I}, f₂::FusionTree{I}) where {I<:Sector}
@@ -580,11 +584,11 @@ function planar_trace(f₁::FusionTree{I}, f₂::FusionTree{I},
     linearindex = (ntuple(identity, Val(length(f₁)))...,
                    reverse(length(f₁) .+ ntuple(identity, Val(length(f₂))))...)
 
-    q1′ = TupleTools.getindices(linearindex, q1)
-    q2′ = TupleTools.getindices(linearindex, q2)
+    q1′ = getindices(linearindex, q1)
+    q2′ = getindices(linearindex, q2)
     p1′, p2′ = let q′ = (q1′..., q2′...)
-        (map(l -> l - count(l .> q′), TupleTools.getindices(linearindex, p1)),
-         map(l -> l - count(l .> q′), TupleTools.getindices(linearindex, p2)))
+        (map(l -> l - count(l .> q′), getindices(linearindex, p1)),
+         map(l -> l - count(l .> q′), getindices(linearindex, p2)))
     end
 
     u = one(I)

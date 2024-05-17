@@ -79,7 +79,7 @@ export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQ
        SVD, SDD, Polar
 
 # tensor operations
-export @tensor, @tensoropt, @ncon, ncon, @planar, @plansor
+export @tensor, @tensoropt, @ncon, ncon, @planar, @plansor, plancon
 export scalar, add!, contract!
 
 # truncation schemes
@@ -88,7 +88,7 @@ export notrunc, truncerr, truncdim, truncspace, truncbelow
 # Imports
 #---------
 using TupleTools
-using TupleTools: StaticLength
+using TupleTools: StaticLength, getindices
 
 using Strided
 
@@ -196,12 +196,15 @@ include("tensors/braidingtensor.jl")
 # #-----------------------------------------
 @nospecialize
 using Base.Meta: isexpr
+include("planar/indices.jl")
 include("planar/analyzers.jl")
 include("planar/preprocessors.jl")
 include("planar/postprocessors.jl")
 include("planar/macros.jl")
 @specialize
 include("planar/planaroperations.jl")
+include("planar/functions.jl")
+include("planar/plancon.jl")
 
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")

@@ -1,16 +1,21 @@
 module TensorKitChainRulesCoreExt
 
 using TensorOperations
+using TensorOperations: Backend, promote_contract
 using TensorKit
+using TensorKit: planaradd!, planarcontract!, planarcontract, _canonicalize
+using VectorInterface
 using ChainRulesCore
 using LinearAlgebra
 using TupleTools
+using TupleTools: getindices
 
 # Utility
 # -------
 
 _conj(conjA::Symbol) = conjA == :C ? :N : :C
 trivtuple(N) = ntuple(identity, N)
+trivtuple(::Index2Tuple{N₁,N₂}) where {N₁,N₂} = trivtuple(N₁ + N₂)
 
 function _repartition(p::IndexTuple, N₁::Int)
     length(p) >= N₁ ||
@@ -112,18 +117,16 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             ipA = (codomainind(A), domainind(A))
             pB = (allind(B), ())
             dA = zerovector(A,
-                            TensorOperations.promote_contract(scalartype(ΔC),
-                                                              scalartype(B)))
-            dA = tensorcontract!(dA, ipA, ΔC, pΔC, :N, B, pB, :C)
+                            promote_contract(scalartype(ΔC), scalartype(B)))
+            dA = planarcontract!(dA, ΔC, pΔC, :N, B, pB, :C, ipA, One(), Zero())
             return projectA(dA)
         end
         dB_ = @thunk begin
             ipB = (codomainind(B), domainind(B))
             pA = ((), allind(A))
             dB = zerovector(B,
-                            TensorOperations.promote_contract(scalartype(ΔC),
-                                                              scalartype(A)))
-            dB = tensorcontract!(dB, ipB, A, pA, :C, ΔC, pΔC, :N)
+                            promote_contract(scalartype(ΔC), scalartype(A)))
+            dB = planarcontract!(dB, A, pA, :C, ΔC, pΔC, :N, ipB, One(), Zero())
             return projectB(dB)
         end
         return NoTangent(), dA_, dB_
@@ -134,7 +137,7 @@ end
 function ChainRulesCore.rrule(::typeof(permute), tsrc::AbstractTensorMap, p::Index2Tuple;
                               copy::Bool=false)
     function permute_pullback(Δtdst)
-        invp = TensorKit._canonicalize(TupleTools.invperm(linearize(p)), tsrc)
+        invp = _canonicalize(TupleTools.invperm(linearize(p)), tsrc)
         return NoTangent(), permute(unthunk(Δtdst), invp; copy=true), NoTangent()
     end
     return permute(tsrc, p; copy=true), permute_pullback
@@ -630,6 +633,137 @@ function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix,
     end
     ldiv!(LowerTriangular(L11)', ΔA1)
     return ΔA
+end
+
+# Planar rrules
+# --------------
+function ChainRulesCore.rrule(::typeof(TensorKit.planaradd!),
+                              C::AbstractTensorMap,
+                              A::AbstractTensorMap, pA::Index2Tuple, conjA::Symbol,
+                              α::Number, β::Number,
+                              backend::Backend...)
+    C′ = planaradd!(copy(C), A, pA, conjA, α, β, backend...)
+
+    projectA = ProjectTo(A)
+    projectC = ProjectTo(C)
+    projectα = ProjectTo(α)
+    projectβ = ProjectTo(β)
+
+    function planaradd_pullback(ΔC′)
+        ΔC = unthunk(ΔC′)
+
+        dC = @thunk projectC(scale(ΔC, conj(β)))
+        dA = @thunk begin
+            ip = _canonicalize(invperm(linearize(pA)), A)
+            _dA = zerovector(A, VectorInterface.promote_add(ΔC, α))
+            _dA = planaradd!(_dA, ΔC, ip, conjA, conjA == :N ? conj(α) : α, Zero(),
+                             backend...)
+            return projectA(_dA)
+        end
+        dα = @thunk begin
+            _dα = tensorscalar(planarcontract(A, ((), linearize(pA)), _conj(conjA),
+                                              ΔC, (trivtuple(pA), ()), :N,
+                                              ((), ()), One(), backend...))
+            return projectα(_dα)
+        end
+        dβ = @thunk begin
+            _dβ = tensorscalar(planarcontract(C,
+                                              ((), trivtuple(TensorOperations.numind(pA))),
+                                              :C,
+                                              ΔC, (trivtuple(pA), ()), :N,
+                                              ((), ()), One(), backend...))
+            return projectβ(_dβ)
+        end
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, dA, NoTangent(), NoTangent(), dα, dβ, dbackend...
+    end
+
+    return C′, planaradd_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(TensorKit.planarcontract!),
+                              C::AbstractTensorMap,
+                              A::AbstractTensorMap, pA::Index2Tuple, conjA::Symbol,
+                              B::AbstractTensorMap, pB::Index2Tuple, conjB::Symbol,
+                              pAB::Index2Tuple,
+                              α::Number, β::Number, backend::Backend...)
+    # indA = (codomainind(A), reverse(domainind(A)))
+    # indB = (codomainind(B), reverse(domainind(B)))
+    # pA, pB, pAB = TensorKit.reorder_planar_indices(indA, pA, indB, pB, pAB)
+    C′ = planarcontract!(copy(C), A, pA, conjA, B, pB, conjB, pAB, α, β, backend...)
+
+    projectA = ProjectTo(A)
+    projectB = ProjectTo(B)
+    projectC = ProjectTo(C)
+    projectα = ProjectTo(α)
+    projectβ = ProjectTo(β)
+
+    function planarcontract_pullback(ΔC′)
+        ΔC = unthunk(ΔC′)
+        ipAB = invperm(linearize(pAB))
+        pΔC = (getindices(ipAB, trivtuple(length(pA[1]))),
+               getindices(ipAB, length(pA[1]) .+ trivtuple(length(pB[2]))))
+        dC = @thunk projectC(scale(ΔC, conj(β)))
+        dA = @thunk begin
+            ipA = _canonicalize(invperm(linearize(pA)), A)
+            conjΔC = conjA == :C ? :C : :N
+            conjB′ = conjA == :C ? conjB : _conj(conjB)
+            _dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B), typeof(α)))
+            _dA = planarcontract!(_dA, ΔC, pΔC, conjΔC, B, reverse(pB), conjB′, ipA,
+                                  conjA == :C ? α : conj(α), Zero(), backend...)
+            return projectA(_dA)
+        end
+        dB = @thunk begin
+            ipB = _canonicalize((invperm(linearize(pB)), ()), B)
+            conjΔC = conjB == :C ? :C : :N
+            conjA′ = conjB == :C ? conjA : _conj(conjA)
+            _dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A), typeof(α)))
+            _dB = planarcontract!(_dB,
+                                  A, reverse(pA), conjA′,
+                                  ΔC, pΔC, conjΔC,
+                                  ipB, conjB == :C ? α : conj(α), Zero(), backend...)
+            return projectB(_dB)
+        end
+        dα = @thunk begin
+            _dα = tensorscalar(planarcontract(planarcontract(A, pA, conjA,
+                                                             B, pB, conjB,
+                                                             pAB, One(), backend...),
+                                              ((), trivtuple(TensorOperations.numind(pAB))),
+                                              :C,
+                                              ΔC,
+                                              (trivtuple(TensorOperations.numind(pAB)), ()),
+                                              :N,
+                                              ((), ()), One(), backend...))
+            return projectα(_dα)
+        end
+        dβ = @thunk begin
+            p′ = TensorKit.adjointtensorindices(C, trivtuple(pAB))
+            _dβ = tensorscalar(planarcontract(C', ((), p′),
+                                              ΔC, (trivtuple(pAB), ()), ((), ()),
+                                              One(), backend...))
+            return projectβ(_dβ)
+        end
+        dbackend = map(x -> NoTangent(), backend)
+        return NoTangent(), dC, dA, NoTangent(), NoTangent(), dB, NoTangent(), NoTangent(),
+               NoTangent(),
+               dα, dβ, dbackend...
+    end
+
+    return C′, planarcontract_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(TensorKit.planartrace!),
+                              C::AbstractTensorMap,
+                              A::AbstractTensorMap,
+                              p::Index2Tuple, q::Index2Tuple, conjA::Symbol,
+                              α::Number, β::Number, backend::Backend...)
+    C′ = planartrace!(copy(C), A, p, q, conjA, α, β, backend...)
+
+    function planartrace_pullback(ΔC′)
+        return ΔC = unthunk(ΔC′)
+    end
+
+    return C′, planartrace_pullback
 end
 
 # Convert rrules

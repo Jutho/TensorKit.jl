@@ -227,20 +227,21 @@ end
 
 function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
                          A::BraidingTensor{S},
-                         (oindA, cindA)::Index2Tuple{2,2},
+                         pA::Index2Tuple{2,2},
                          B::AbstractTensorMap{S},
-                         (cindB, oindB)::Index2Tuple{2,N₃},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         pB::Index2Tuple{2,N₃},
+                         pAB::Index2Tuple{N₁,N₂},
                          α::Number, β::Number,
                          backend::Backend...) where {S,N₁,N₂,N₃}
-    codA, domA = codomainind(A), domainind(A)
-    codB, domB = codomainind(B), domainind(B)
-    oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
-                                                 oindB, cindB, p1, p2)
+    indA = (codomainind(A), reverse(domainind(A)))
+    indB = (codomainind(B), reverse(domainind(B)))
+    pA, pB, pAB = reorder_planar_indices(indA, pA, indB, pB, pAB)
+    oindA, cindA = pA
+    cindB, oindB = pB
 
     if space(B, cindB[1]) != space(A, cindA[1])' ||
        space(B, cindB[2]) != space(A, cindA[2])'
-        throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($p1, $p2)"))
+        throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($pAB)"))
     end
 
     if BraidingStyle(sectortype(B)) isa Bosonic
@@ -273,20 +274,24 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
 end
 function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
                          A::AbstractTensorMap{S},
-                         (oindA, cindA)::Index2Tuple{N₃,2},
+                         pA::Index2Tuple{N₃,2},
                          B::BraidingTensor{S},
-                         (cindB, oindB)::Index2Tuple{2,2},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
+                         pB::Index2Tuple{2,2},
+                         pAB::Index2Tuple{N₁,N₂},
                          α::Number, β::Number,
                          backend::Backend...) where {S,N₁,N₂,N₃}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
-    oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
-                                                 oindB, cindB, p1, p2)
+
+    indA = (codomainind(A), reverse(domainind(A)))
+    indB = (codomainind(B), reverse(domainind(B)))
+    pA, pB, pAB = reorder_planar_indices(indA, pA, indB, pB, pAB)
+    oindA, cindA = pA
+    cindB, oindB = pB
 
     if space(B, cindB[1]) != space(A, cindA[1])' ||
        space(B, cindB[2]) != space(A, cindA[2])'
-        throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($p1, $p2)"))
+        throw(SpaceMismatch("$(space(C)) ≠ permute($(space(A))[$oindA, $cindA] * $(space(B))[$cindB, $oindB], ($pAB)"))
     end
 
     if BraidingStyle(sectortype(A)) isa Bosonic
