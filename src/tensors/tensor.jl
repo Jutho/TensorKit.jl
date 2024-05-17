@@ -679,9 +679,8 @@ end
 
 # Show
 #------
-function Base.summary(t::TensorMap)
-    return print("TensorMap(", space(t), ")")
-end
+Base.summary(io::IO, t::TensorMap) = print(io, "TensorMap(", space(t), ")")
+
 function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
     if get(io, :compact, false)
         print(io, "TensorMap(", space(t), ")")
