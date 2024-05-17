@@ -233,7 +233,6 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
                          pAB::Index2Tuple{N₁,N₂},
                          α::Number, β::Number,
                          backend::Backend...) where {S,N₁,N₂,N₃}
-
     indA = (codomainind(A), reverse(domainind(A)))
     indB = (codomainind(B), reverse(domainind(B)))
     pA, pB, pAB = reorder_planar_indices(indA, pA, indB, pB, pAB)
@@ -283,13 +282,12 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
                          backend::Backend...) where {S,N₁,N₂,N₃}
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
-    
+
     indA = (codomainind(A), reverse(domainind(A)))
     indB = (codomainind(B), reverse(domainind(B)))
     pA, pB, pAB = reorder_planar_indices(indA, pA, indB, pB, pAB)
     oindA, cindA = pA
     cindB, oindB = pB
-    
 
     if space(B, cindB[1]) != space(A, cindA[1])' ||
        space(B, cindB[2]) != space(A, cindA[2])'
