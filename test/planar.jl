@@ -57,7 +57,7 @@ using TensorKit: planarcontract_indices
     @test pA == ((4, 1, 2), (5, 3))
     @test pB == ((2, 1), (3, 4))
     @test pC == ((1, 2, 3), (4, 5))
-    
+
     IA = ((-1, 7), (6,))
     IB = ((-4, -3, 6), (-2, 7))
     IC = ((-1, -2), (-3, -4))
@@ -278,7 +278,7 @@ end
         p = ((4, 3), (5, 2, 1))
 
         @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
-              planaradd!(C′, A′, :N, p, true, true)
+              planaradd!(C′, A′, p, :N, true, true)
     end
 
     @testset "planartrace" begin
@@ -290,7 +290,7 @@ end
         q = ((1,), (3,))
 
         @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
-              planartrace!(C′, p, A′, q, :N, true, true)
+              planartrace!(C′, A′, p, q, :N, true, true)
     end
 
     @testset "planarcontract" begin
@@ -398,20 +398,22 @@ end
         v′ = force_planar(v)
         @tensor ρ[-1; -2] := x[-1 2; 1] * conj(x[-2 2; 3]) * v[1; 3]
         @planar ρ′[-1; -2] := x′[-1 2; 1] * conj(x′[-2 2; 3]) * v′[1; 3]
-        
+
         ρ‴ = ncon([x, x, v], [[-1, 2, 1], [-2, 2, 3], [1, 3]], [false, true, false])
-        ρ″ = plancon([x′, x′, v′], [[-1, 2, 1], [-2, 2, 3], [1, 3]], [false, true, false]; output=((-1,), (-2,)))
+        ρ″ = plancon([x′, x′, v′], [[-1, 2, 1], [-2, 2, 3], [1, 3]], [false, true, false];
+                     output=((-1,), (-2,)))
         @test force_planar(ρ) ≈ ρ′
         @test force_planar(ρ) ≈ ρ″
-        
+
         @tensor ρ2[-1 -2; -3] := GL[1 -2; 3] * x[3 2; -3] * conj(x[1 2; -1])
         @plansor ρ3[-1 -2; -3] := GL[1 2; 4] * x[4 5; -3] * τ[2 3; 5 -2] * conj(x[1 3; -1])
         @planar ρ2′[-1 -2; -3] := GL′[1 2; 4] * x′[4 5; -3] * τ[2 3; 5 -2] *
                                   conj(x′[1 3; -1])
         τtensor = BraidingTensor(space(x′, 2), space(GL′, 2)')
-        ρ2″ = plancon([GL′, x′, τtensor, x′], [[1, 2, 4], [4, 5, -3], [2, 3, 5, -2], [1, 3, -1]],
+        ρ2″ = plancon([GL′, x′, τtensor, x′],
+                      [[1, 2, 4], [4, 5, -3], [2, 3, 5, -2], [1, 3, -1]],
                       [false, false, false, true]; output=((-1, -2), (-3,)))
-        
+
         @test force_planar(ρ2) ≈ ρ2′
         @test force_planar(ρ2) ≈ ρ2″
         @test ρ2 ≈ ρ3

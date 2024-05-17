@@ -14,12 +14,12 @@ end
 
 function planartrace_indices(IA::Tuple{Tuple,Tuple}, conjA, IC::Tuple{Tuple,Tuple})
     IA′ = conjA == :C ? reverse(IA) : IA
-    
+
     IA_linear = (IA′[1]..., (IA′[2])...)
     IC_linear = (IC[1]..., (IC[2])...)
-    
+
     p, q1, q2 = TO.trace_indices(IA_linear, IC_linear)
-    
+
     if conjA == :C
         p′ = adjointtensorindices((length(IC[1]), length(IC[2])), p)
         q′ = adjointtensorindices((length(IA[2]), length(IA[1])), (q1, q2))
@@ -32,7 +32,7 @@ function planartrace_indices(IA::Tuple{Tuple,Tuple}, conjA, IC::Tuple{Tuple,Tupl
 end
 function planartrace_indices(IA::Tuple{Tuple,Tuple}, conjA)
     IA′ = conjA == :C ? reverse(IA) : IA
-    
+
     IA_linear = (IA′[1]..., (IA′[2])...)
     IC_linear = tuple(TO.unique2(IA_linear)...)
     p, q1, q2 = TO.trace_indices(IA_linear, IC_linear)
@@ -44,10 +44,9 @@ function planartrace_indices(IA::Tuple{Tuple,Tuple}, conjA)
         p′ = p
         q′ = (q1, q2)
     end
-    
+
     return p′, q′
 end
-
 
 """
     planarcontract_indices(IA, IB, [IC])
@@ -58,16 +57,15 @@ achieved in a planar manner.
 function planarcontract_indices(IA::Tuple{Tuple,Tuple}, conjA::Symbol,
                                 IB::Tuple{Tuple,Tuple}, conjB::Symbol,
                                 IC::Tuple{Tuple,Tuple})
-    
     IA′ = conjA == :C ? reverse(IA) : IA
     IB′ = conjB == :C ? reverse(IB) : IB
-    
+
     pA, pB, pAB = planarcontract_indices(IA′, IB′, IC)
-    
+
     # map indices back to original tensor
     pA′ = conjA == :C ? adjointtensorindices((length(IA[2]), length(IA[1])), pA) : pA
     pB′ = conjB == :C ? adjointtensorindices((length(IB[2]), length(IB[1])), pB) : pB
-    
+
     return pA′, pB′, pAB
 end
 function planarcontract_indices(IA::Tuple{Tuple,Tuple}, conjA::Symbol,
@@ -75,9 +73,9 @@ function planarcontract_indices(IA::Tuple{Tuple,Tuple}, conjA::Symbol,
     # map indices to indices of adjoint tensor
     IA′ = conjA == :C ? reverse(IA) : IA
     IB′ = conjB == :C ? reverse(IB) : IB
-    
+
     pA, pB, pAB = planarcontract_indices(IA′, IB′)
-    
+
     # map indices back to original tensor
     pA′ = conjA == :C ? adjointtensorindices((length(IA[2]), length(IA[1])), pA) : pA
     pB′ = conjB == :C ? adjointtensorindices((length(IB[2]), length(IB[1])), pB) : pB

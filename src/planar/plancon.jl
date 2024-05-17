@@ -50,9 +50,9 @@ function planarcontracttree(tensors, network, conjlist, tree::Int, output)
     A = tensors[tree]
     IA = canonicalize_labels(A, network[tree])
     conjA = conjlist[tree] ? :C : :N
-    
+
     pA, qA = planartrace_indices(IA, conjA, output)
-    
+
     if isempty(qA[1]) # no traced indices
         return planarcopy(A, pA, conjA)
         C = tensoralloc_add(scalartype(A), pA, A, conjA)
@@ -81,10 +81,9 @@ function planarcontracttree(tensors, network, conjlist, tree::Int)
               TupleTools.getindices(linearize(IA), pA[2]))
         conjC = :N
     end
-    
+
     return C, IC, conjC
 end
-
 
 function planarcontracttree(tensors, network, conjlist, tree)
     @assert !(tree isa Int) "single-node tree should already have been handled"

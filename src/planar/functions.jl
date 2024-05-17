@@ -12,16 +12,14 @@ end
 
 # ------------------------------------------------------------------------------------------
 
-
-function planartrace(A, pA::Index2Tuple, qA::Index2Tuple, conjA::Symbol, α::Number=One(), backend::Backend...)
+function planartrace(A, pA::Index2Tuple, qA::Index2Tuple, conjA::Symbol, α::Number=One(),
+                     backend::Backend...)
     TC = TO.promote_contract(scalartype(A), scalartype(α))
     C = tensoralloc_add(TC, pA, A, conjA)
     return planartrace!(C, A, pA, qA, conjA, α, Zero(), backend...)
 end
 
 # ------------------------------------------------------------------------------------------
-
-
 
 """
     planarcontract(A, IA, [conjA], B, IB, [conjB], [IC], [α=1])
@@ -43,7 +41,8 @@ See also [`tensorcontract`](@ref).
 """
 function planarcontract end
 
-function planarcontract(A, IA::TensorLabels, conjA::Symbol, B, IB::TensorLabels, conjB::Symbol, IC::TensorLabels,
+function planarcontract(A, IA::TensorLabels, conjA::Symbol, B, IB::TensorLabels,
+                        conjB::Symbol, IC::TensorLabels,
                         α::Number=One())
     ia = canonicalize_labels(A, IA)
     ib = canonicalize_labels(B, IB)
@@ -52,7 +51,8 @@ function planarcontract(A, IA::TensorLabels, conjA::Symbol, B, IB::TensorLabels,
     return planarcontract(A, pA, conjA, B, pB, conjB, pAB, α)
 end
 # default `IC`
-function planarcontract(A, IA::TensorLabels, conjA::Symbol, B, IB::TensorLabels, conjB::Symbol, α::Number=One())
+function planarcontract(A, IA::TensorLabels, conjA::Symbol, B, IB::TensorLabels,
+                        conjB::Symbol, α::Number=One())
     ia = canonicalize_labels(A, IA)
     ib = canonicalize_labels(B, IB)
     pA, pB, pAB = planarcontract_indices(ia, ib)

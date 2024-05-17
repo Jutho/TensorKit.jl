@@ -3,23 +3,23 @@
 # ----------
 
 function planaradd!(C::AbstractTensorMap{S},
-                    A::AbstractTensorMap{S}, conjA::Symbol,
-                    p::Index2Tuple,
+                    A::AbstractTensorMap{S}, pA::Index2Tuple, conjA::Symbol,
                     α::Number, β::Number, backend::Backend...) where {S}
     if conjA == :N
         A′ = A
-        p′ = _canonicalize(p, C)
+        p′ = _canonicalize(pA, C)
     elseif conjA == :C
         A′ = adjoint(A)
-        p′ = adjointtensorindices(A, _canonicalize(p, C))
+        p′ = adjointtensorindices(A, _canonicalize(pA, C))
     else
         throw(ArgumentError("unknown conjugation flag $conjA"))
     end
     return add_transpose!(C, A′, p′, α, β, backend...)
 end
 
-function planartrace!(C::AbstractTensorMap{S}, p::Index2Tuple,
-                      A::AbstractTensorMap{S}, q::Index2Tuple, conjA::Symbol,
+function planartrace!(C::AbstractTensorMap{S},
+                      A::AbstractTensorMap{S}, p::Index2Tuple, q::Index2Tuple,
+                      conjA::Symbol,
                       α::Number, β::Number, backend::Backend...) where {S}
     if conjA == :N
         A′ = A
@@ -80,7 +80,7 @@ function trace_transpose!(tdst::AbstractTensorMap{S,N₁,N₂},
                     q₁ = $(q₁), q₂ = $(q₂)"))
         # TODO: check planarity?
     end
-    
+
     # TODO: not sure if this is worth it
     if BraidingStyle(sectortype(S)) == Bosonic()
         return @inbounds trace_permute!(tdst, tsrc, p, q, α, β, backend...)
@@ -88,7 +88,7 @@ function trace_transpose!(tdst::AbstractTensorMap{S,N₁,N₂},
 
     scale!(tdst, β)
     β′ = One()
-    
+
     for (f₁, f₂) in fusiontrees(tsrc)
         @inbounds A = tsrc[f₁, f₂]
         for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p₁, p₂, q₁, q₂)
@@ -109,7 +109,7 @@ function _planarcontract!(C::AbstractTensorMap{S},
     indA = (codomainind(A), reverse(domainind(A)))
     indB = (codomainind(B), reverse(domainind(B)))
     indAB = (ntuple(identity, N₁), reverse(ntuple(i -> i + N₁, N₂)))
-    
+
     # TODO: avoid this step once @planar is reimplemented
     pA′, pB′, pAB′ = reorder_planar_indices(indA, pA, indB, pB, pAB)
 

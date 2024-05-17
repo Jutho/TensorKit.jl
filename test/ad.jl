@@ -238,40 +238,40 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
             α = randn(T)
             β = randn(T)
-            test_rrule(planaradd!, C, A, p, α, β; atol, rtol)
+            test_rrule(planaradd!, C, A, p, :N, α, β; atol, rtol)
         end
-        
+
         @testset "planarcontract! 1" begin
             A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
             B = TensorMap(randn, T, V[1] ⊗ V[5] ← V[5] ⊗ V[2])
-            pA = ((1, 3, 4), (5, 2))
+            pA = ((4, 3, 1), (5, 2))
             pB = ((2, 4), (1, 3))
-            pAB = ((3, 2, 1), (4, 5))
-            
+            pAB = ((1, 2, 3), (4, 5))
+
             α = randn(T)
             β = randn(T)
 
             C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA, :N,
                                                                   B, pB, :N, false))
-            test_rrule(planarcontract!, C, A, pA, B, pB, pAB, α, β; atol, rtol)
+            test_rrule(planarcontract!, C, A, pA, :N, B, pB, :N, pAB, α, β; atol, rtol)
         end
-        
+
         @testset "planarcontract! 2" begin
             A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
             B = TensorMap(randn, T, V[3] ⊗ V[4] ⊗ V[5] ← V[1] ⊗ V[2])
             pA = ((1, 2), (3, 4, 5))
             pB = ((1, 2, 3), (4, 5))
             pAB = ((1, 2), (3, 4))
-            
+
             α = randn(T)
             β = randn(T)
 
             C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA, :N,
                                                                   B, pB, :N, false))
-            test_rrule(planarcontract!, C, A, pA, B, pB, pAB, α, β; atol, rtol)
+            test_rrule(planarcontract!, C, A, pA, :N, B, pB, :N, pAB, α, β; atol, rtol)
         end
     end
-    
+
     @testset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A)')

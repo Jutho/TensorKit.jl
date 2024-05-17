@@ -52,7 +52,7 @@ end
 # planar operations, immediately inserting them with `GlobalRef`.
 
 # NOTE: work around a somewhat unfortunate interface choice in TensorOperations, which we will correct in the future.
-_planaradd!(C, p, A, α, β, backend...) = planaradd!(C, A, :N, p, α, β, backend...)
+_planaradd!(C, p, A, α, β, backend...) = planaradd!(C, A, p, :N, α, β, backend...)
 _planartrace!(C, p, A, q, α, β, backend...) = planartrace!(C, A, :N, p, q, α, β, backend...)
 function _planarcontract!(C, pAB, A, pA, B, pB, α, β, backend...)
     return planarcontract!(C, A, pA, :N, B, pB, :N, pAB, α, β, backend...)
