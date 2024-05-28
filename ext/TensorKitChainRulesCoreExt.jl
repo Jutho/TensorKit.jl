@@ -757,14 +757,6 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
 
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
-        tΔC::typeof(ΔC) = copy(ΔC)
-        if BraidingStyle(sectortype(ΔC)) isa Fermionic
-            for i in allind(ΔC)
-                if isdual(space(ΔC, i))
-                    twist!(tΔC, i)
-                end
-            end
-        end
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk begin
             ipC = invperm(linearize(pC))
@@ -773,27 +765,19 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
                              backend...)
             return projectA(_dA)
         end
-        dα = let tΔC = tΔC
-            @thunk begin
-                _dα = tensorscalar(tensorcontract(((), ()), A, ((), linearize(pC)),
-                                                  _conj(conjA), tΔC,
-                                                  (trivtuple(TensorOperations.numind(pC)),
-                                                   ()), :N, One(), backend...))
-                return projectα(_dα)
-            end
+        dα = @thunk begin
+            # TODO: this is an inner product implemented as a contraction
+            # for non-symmetric tensors this might be more efficient like this,
+            # but for symmetric tensors an intermediate object will anyways be created
+            # and then it might be more efficient to use an addition and inner product
+            tΔC = twist(ΔC, filter(i -> isdual(space(ΔC, i)), allind(ΔC)))
+            _dα = tensorscalar(tensorcontract(((), ()), A, ((), linearize(pC)),
+                                              _conj(conjA), tΔC,
+                                              (trivtuple(TensorOperations.numind(pC)),
+                                               ()), :N, One(), backend...))
+            return projectα(_dα)
         end
-        dβ = let tΔC = tΔC
-            @thunk begin
-                _dβ = tensorscalar(tensorcontract(((), ()), C,
-                                                  ((),
-                                                   trivtuple(TensorOperations.numind(pC))),
-                                                  :C, tΔC,
-                                                  (trivtuple(TensorOperations.numind(pC)),
-                                                   ()), :N, One(),
-                                                  backend...))
-                return projectβ(_dβ)
-            end
-        end
+        dβ = @thunk projectβ(inner(C, ΔC))
         dbackend = map(x -> NoTangent(), backend)
         return NoTangent(), dC, NoTangent(), dA, NoTangent(), dα, dβ, dbackend...
     end
