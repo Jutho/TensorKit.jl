@@ -4,7 +4,9 @@ using Random
 using FiniteDifferences
 using LinearAlgebra
 
-## Test utility
+_repartition = Base.get_extension(TensorKit, :TensorKitChainRulesCoreExt)._repartition
+
+# Test utility
 # -------------
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap)
     return TensorMap(randn, scalartype(x), space(x))
@@ -63,6 +65,11 @@ end
 precision(::Type{<:Union{Float32,Complex{Float32}}}) = 1e-2
 precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-6
 
+function randindextuple(N::Int)
+    k = rand(0:N)
+    _p = randperm(N)
+    return (tuple(_p[1:k]...), tuple(_p[(k + 1):end]...))
+end
 # rrules for functions that destroy inputs
 # ----------------------------------------
 function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...; kwargs...)
@@ -181,43 +188,56 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         end
 
         @testset "tensoradd!" begin
-            p = ((1, 3, 2), (5, 4))
-            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
-            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ⊗ V[3] ← V[4] ⊗ V[5])
             α = randn(T)
             β = randn(T)
-            test_rrule(tensoradd!, C, p, A, :N, α, β; atol, rtol)
 
-            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
-            test_rrule(tensoradd!, C, p, A, :C, α, β; atol, rtol)
+            # repeat a couple times to get some distribution of arrows
+            for _ in 1:5
+                p = randindextuple(length(V))
+
+                C1 = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
+                test_rrule(tensoradd!, C1, p, A, :N, α, β; atol, rtol)
+
+                C2 = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
+                test_rrule(tensoradd!, C2, p, A, :C, α, β; atol, rtol)
+
+                A = rand(Bool) ? C1 : C2
+            end
         end
 
         @testset "tensorcontract!" begin
-            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
-            B = TensorMap(randn, T, V[3] ⊗ V[1]' ← V[2])
-            pC = ((3, 2), (4, 1))
-            pA = ((2, 4, 5), (1, 3))
-            pB = ((2, 1), (3,))
-            α = randn(T)
-            β = randn(T)
+            for _ in 1:5
+                k1, k2, k3 = rand(1:3, 3)
+                V1 = map(v -> rand(Bool) ? v' : v, rand(V, k1))
+                V2 = map(v -> rand(Bool) ? v' : v, rand(V, k2))
+                V3 = map(v -> rand(Bool) ? v' : v, rand(V, k3))
 
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B, pB, :N, false))
-            test_rrule(tensorcontract!, C, pC, A, pA, :N, B, pB, :N, α, β; atol, rtol)
+                ipA = randindextuple(k1 + k2)
+                pA = _repartition(invperm(linearize(ipA)), k1)
+                ipB = randindextuple(k2 + k3)
+                pB = _repartition(invperm(linearize(ipB)), k2)
+                pAB = randindextuple(k1 + k3)
 
-            A2 = TensorMap(randn, T, V[1]' ⊗ V[2]' ← V[3]' ⊗ V[4]' ⊗ V[5]')
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B, pB, :N, false))
-            test_rrule(tensorcontract!, C, pC, A2, pA, :C, B, pB, :N, α, β; atol, rtol)
+                α = randn(T)
+                β = randn(T)
 
-            B2 = TensorMap(randn, T, V[3]' ⊗ V[1] ← V[2]')
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B2, pB, :C, false))
-            test_rrule(tensorcontract!, C, pC, A, pA, :N, B2, pB, :C, α, β; atol, rtol)
-
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B2, pB, :C, false))
-            test_rrule(tensorcontract!, C, pC, A2, pA, :C, B2, pB, :C, α, β; atol, rtol)
+                for conjA in (:N, :C), conjB in (:N, :C)
+                    A = TensorMap(randn, T,
+                                  permute(prod(V1) ← prod(conjA === :C ? conj.(V2) : V2),
+                                          ipA))
+                    B = TensorMap(randn, T,
+                                  permute(prod(conjB === :C ? conj.(V2) : V2) ← prod(V3),
+                                          ipB))
+                    C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA,
+                                                                          conjA,
+                                                                          B, pB, conjB,
+                                                                          false))
+                    test_rrule(tensorcontract!, C, pAB,
+                               A, pA, conjA, B, pB, conjB,
+                               α, β; atol, rtol)
+                end
+            end
         end
 
         @testset "tensorscalar" begin
