@@ -26,7 +26,7 @@ function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
     return vec, x -> T(from_vec(x), codomain(t), domain(t))
 end
 function FiniteDifferences.to_vec(t::AbstractTensorMap)
-    vec = mapreduce(vcat, blocks(t)) do (c, b)
+    vec = mapreduce(vcat, blocks(t); init=eltype(t)[]) do (c, b)
         if scalartype(t) <: Real
             return reshape(b, :) .* sqrt(dim(c))
         else
