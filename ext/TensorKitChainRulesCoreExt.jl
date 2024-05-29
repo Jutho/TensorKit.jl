@@ -780,7 +780,7 @@ function ChainRulesCore.rrule(::typeof(tensortrace!), C::AbstractTensorMap{S},
         dA = @thunk begin
             ipC = invperm((linearize(pC)..., pA[1]..., pA[2]...))
             E = one!(TO.tensoralloc_add(scalartype(A), pA, A, conjA))
-            conjA === :N && twist!(E, codomainind(E))
+            twist!(E, filter(x -> !isdual(space(E, x)), codomainind(E)))
             _dA = zerovector(A, promote_scale(ΔC, α))
             _dA = tensorproduct!(_dA, (ipC, ()), ΔC,
                                  (trivtuple(TO.numind(pC)), ()), conjA, E,
