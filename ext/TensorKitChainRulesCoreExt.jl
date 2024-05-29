@@ -118,7 +118,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             ipA = (codomainind(A), domainind(A))
             pB = (allind(B), ())
             dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B)))
-            tB = twist(B, filter(x -> isdual(space(B, i)), allind(B)))
+            tB = twist(B, filter(x -> isdual(space(B, x)), allind(B)))
             dA = tensorcontract!(dA, ipA, ΔC, pΔC, :N, tB, pB, :C)
             return projectA(dA)
         end
@@ -126,7 +126,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             ipB = (codomainind(B), domainind(B))
             pA = ((), allind(A))
             dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A)))
-            tA = twist(A, filter(x -> isdual(space(A, i)), allind(A)))
+            tA = twist(A, filter(x -> isdual(space(A, x)), allind(A)))
             dB = tensorcontract!(dB, ipB, tA, pA, :C, ΔC, pΔC, :N)
             return projectB(dB)
         end
@@ -748,7 +748,7 @@ function ChainRulesCore.rrule(::typeof(TO.tensoradd!),
             # for non-symmetric tensors this might be more efficient like this,
             # but for symmetric tensors an intermediate object will anyways be created
             # and then it might be more efficient to use an addition and inner product
-            tΔC = twist(ΔC, filter(i -> isdual(space(ΔC, i)), allind(ΔC)))
+            tΔC = twist(ΔC, filter(x -> isdual(space(ΔC, x)), allind(ΔC)))
             _dα = tensorscalar(tensorcontract(((), ()), A, ((), linearize(pC)),
                                               _conj(conjA), tΔC,
                                               (trivtuple(TO.numind(pC)),
