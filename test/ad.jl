@@ -4,7 +4,11 @@ using Random
 using FiniteDifferences
 using LinearAlgebra
 
-_repartition = Base.get_extension(TensorKit, :TensorKitChainRulesCoreExt)._repartition
+const _repartition = @static if isdefined(Base, :get_extension)
+    Base.get_extension(TensorKit, :TensorKitChainRulesCoreExt)._repartition
+else
+    TensorKit.TensorKitChainRulesCoreExt._repartition
+end
 
 # Test utility
 # -------------
