@@ -784,26 +784,11 @@ function ChainRulesCore.rrule(::typeof(tensortrace!), C::AbstractTensorMap{S},
 
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
-        tΔC::typeof(ΔC) = copy(ΔC)
-        if BraidingStyle(sectortype(ΔC)) isa Fermionic
-            for i in allind(ΔC)
-                if isdual(space(ΔC, i))
-                    twist!(tΔC, i)
-                end
-            end
-        end
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk begin
             ipC = invperm((linearize(pC)..., pA[1]..., pA[2]...))
-            Es = map(pA[1], pA[2]) do i1, i2
-                E = one(TensorOperations.tensoralloc_add(scalartype(A), ((i1,), (i2,)),
-                                                         A, conjA))
-                if BraidingStyle(sectortype(ΔC)) isa Fermionic
-                    conjA == :N ? twist!(E, 1) : E
-                end
-                return E
-            end
-            E = _kron(Es, backend...)
+            E = one!(TensorOperations.tensoralloc_add(scalartype(A), pA, A, conjA))
+            conjA === :N && twist!(E, codomainind(E))
             _dA = zerovector(A, VectorInterface.promote_scale(ΔC, α))
             _dA = tensorproduct!(_dA, (ipC, ()), ΔC,
                                  (trivtuple(TensorOperations.numind(pC)), ()), conjA, E,
@@ -811,28 +796,13 @@ function ChainRulesCore.rrule(::typeof(tensortrace!), C::AbstractTensorMap{S},
                                  conjA == :N ? conj(α) : α, Zero(), backend...)
             return projectA(_dA)
         end
-        dα = let tΔC = tΔC
-            @thunk begin
-                _dα = tensorscalar(tensorcontract(((), ()),
-                                                  tensortrace(pC, A, pA),
-                                                  ((),
-                                                   trivtuple(TensorOperations.numind(pC))),
-                                                  _conj(conjA), tΔC,
-                                                  (trivtuple(TensorOperations.numind(pC)),
-                                                   ()), :N, One(),
-                                                  backend...))
-                return projectα(_dα)
-            end
+        dα = @thunk begin
+            # TODO: this result might be easier to compute as:
+            # C′ = βC + α * trace(A) ⟹ At = (C′ - βC) / α
+            At = tensortrace(pC, A, pA, conjA)
+            return projectα(inner(At, ΔC))
         end
-        dβ = @thunk begin
-            _dβ = tensorscalar(tensorcontract(((), ()), C,
-                                              ((), trivtuple(TensorOperations.numind(pC))),
-                                              :C, tΔC,
-                                              (trivtuple(TensorOperations.numind(pC)), ()),
-                                              :N, One(),
-                                              backend...))
-            return projectβ(_dβ)
-        end
+        dβ = @thunk projectβ(inner(C, ΔC))
         dbackend = map(x -> NoTangent(), backend)
         return NoTangent(), dC, NoTangent(), dA, NoTangent(), NoTangent(), dα, dβ,
                dbackend...
