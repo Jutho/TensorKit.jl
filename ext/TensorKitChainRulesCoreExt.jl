@@ -1,26 +1,22 @@
 module TensorKitChainRulesCoreExt
 
 using TensorOperations
-using TensorOperations: promote_contract, Backend
 using VectorInterface
 using TensorKit
 using ChainRulesCore
 using LinearAlgebra
 using TupleTools
 
+import TensorOperations as TO
+using TensorOperations: Backend, promote_contract
+using VectorInterface: promote_scale, promote_add
+
+ext = Base.get_extension(TensorOperations, :TensorOperationsChainRulesCoreExt)
+const _conj = ext._conj
+const trivtuple = ext.trivtuple
+
 # Utility
 # -------
-
-_conj(conjA::Symbol) = conjA == :C ? :N : :C
-trivtuple(N) = ntuple(identity, N)
-_kron(Es::NTuple{1}, backend::Backend...) = Es[1]
-function _kron(Es::NTuple{N,Any}, backend::Backend...) where {N}
-    E1 = Es[1]
-    E2 = _kron(Base.tail(Es), backend...)
-    p2 = ((), trivtuple(2 * N - 2))
-    p = ((1, (2 .+ trivtuple(N - 1))...), (2, ((N + 1) .+ trivtuple(N - 1))...))
-    return tensorproduct(p, E1, ((1, 2), ()), :N, E2, p2, :N, One(), backend...)
-end
 
 function _repartition(p::IndexTuple, N₁::Int)
     length(p) >= N₁ ||
@@ -121,9 +117,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
         dA_ = @thunk begin
             ipA = (codomainind(A), domainind(A))
             pB = (allind(B), ())
-            dA = zerovector(A,
-                            TensorOperations.promote_contract(scalartype(ΔC),
-                                                              scalartype(B)))
+            dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B)))
             tB = twist(B, filter(x -> isdual(space(B, i)), allind(B)))
             dA = tensorcontract!(dA, ipA, ΔC, pΔC, :N, tB, pB, :C)
             return projectA(dA)
@@ -131,9 +125,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
         dB_ = @thunk begin
             ipB = (codomainind(B), domainind(B))
             pA = ((), allind(A))
-            dB = zerovector(B,
-                            TensorOperations.promote_contract(scalartype(ΔC),
-                                                              scalartype(A)))
+            dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A)))
             tA = twist(A, filter(x -> isdual(space(A, i)), allind(A)))
             dB = tensorcontract!(dB, ipB, tA, pA, :C, ΔC, pΔC, :N)
             return projectB(dB)
@@ -665,12 +657,12 @@ function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{TensorMap},
     return convert(TensorMap, t), v -> (NoTangent(), NoTangent(), convert(Dict, v))
 end
 
-function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
+function ChainRulesCore.rrule(::typeof(TO.tensorcontract!),
                               C::AbstractTensorMap{S}, pC::Index2Tuple,
                               A::AbstractTensorMap{S}, pA::Index2Tuple, conjA::Symbol,
                               B::AbstractTensorMap{S}, pB::Index2Tuple, conjB::Symbol,
                               α::Number, β::Number,
-                              backend::TensorOperations.Backend...) where {S}
+                              backend::Backend...) where {S}
     C′ = tensorcontract!(copy(C), pC, A, pA, conjA, B, pB, conjB, α, β, backend...)
 
     projectA = ProjectTo(A)
@@ -682,17 +674,16 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
         ipC = invperm(linearize(pC))
-        pΔC = (TupleTools.getindices(ipC, trivtuple(TensorOperations.numout(pA))),
-               TupleTools.getindices(ipC,
-                                     TensorOperations.numout(pA) .+
-                                     trivtuple(TensorOperations.numin(pB))))
+        pΔC = (TupleTools.getindices(ipC, trivtuple(TO.numout(pA))),
+               TupleTools.getindices(ipC, TO.numout(pA) .+ trivtuple(TO.numin(pB))))
 
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk begin
             ipA = (invperm(linearize(pA)), ())
             conjΔC = conjA == :C ? :C : :N
             conjB′ = conjA == :C ? conjB : _conj(conjB)
-            _dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B), typeof(α)))
+            _dA = zerovector(A,
+                             promote_contract(scalartype(ΔC), scalartype(B), scalartype(α)))
             tB = twist(B,
                        TupleTools.vcat(filter(x -> !isdual(space(B, x)), pB[1]),
                                        filter(x -> isdual(space(B, x)), pB[2])))
@@ -706,7 +697,8 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
             ipB = (invperm(linearize(pB)), ())
             conjΔC = conjB == :C ? :C : :N
             conjA′ = conjB == :C ? conjA : _conj(conjA)
-            _dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A), typeof(α)))
+            _dB = zerovector(B,
+                             promote_contract(scalartype(ΔC), scalartype(A), scalartype(α)))
             tA = twist(A,
                        TupleTools.vcat(filter(x -> isdual(space(A, x)), pA[1]),
                                        filter(x -> !isdual(space(A, x)), pA[2])))
@@ -730,7 +722,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
     return C′, pullback
 end
 
-function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
+function ChainRulesCore.rrule(::typeof(TO.tensoradd!),
                               C::AbstractTensorMap{S}, pC::Index2Tuple,
                               A::AbstractTensorMap{S}, conjA::Symbol,
                               α::Number, β::Number, backend::Backend...) where {S}
@@ -746,7 +738,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk begin
             ipC = invperm(linearize(pC))
-            _dA = zerovector(A, VectorInterface.promote_add(ΔC, α))
+            _dA = zerovector(A, promote_add(ΔC, α))
             _dA = tensoradd!(_dA, (ipC, ()), ΔC, conjA, conjA == :N ? conj(α) : α, Zero(),
                              backend...)
             return projectA(_dA)
@@ -759,7 +751,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
             tΔC = twist(ΔC, filter(i -> isdual(space(ΔC, i)), allind(ΔC)))
             _dα = tensorscalar(tensorcontract(((), ()), A, ((), linearize(pC)),
                                               _conj(conjA), tΔC,
-                                              (trivtuple(TensorOperations.numind(pC)),
+                                              (trivtuple(TO.numind(pC)),
                                                ()), :N, One(), backend...))
             return projectα(_dα)
         end
@@ -787,12 +779,12 @@ function ChainRulesCore.rrule(::typeof(tensortrace!), C::AbstractTensorMap{S},
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk begin
             ipC = invperm((linearize(pC)..., pA[1]..., pA[2]...))
-            E = one!(TensorOperations.tensoralloc_add(scalartype(A), pA, A, conjA))
+            E = one!(TO.tensoralloc_add(scalartype(A), pA, A, conjA))
             conjA === :N && twist!(E, codomainind(E))
-            _dA = zerovector(A, VectorInterface.promote_scale(ΔC, α))
+            _dA = zerovector(A, promote_scale(ΔC, α))
             _dA = tensorproduct!(_dA, (ipC, ()), ΔC,
-                                 (trivtuple(TensorOperations.numind(pC)), ()), conjA, E,
-                                 ((), trivtuple(TensorOperations.numind(pA))), conjA,
+                                 (trivtuple(TO.numind(pC)), ()), conjA, E,
+                                 ((), trivtuple(TO.numind(pA))), conjA,
                                  conjA == :N ? conj(α) : α, Zero(), backend...)
             return projectA(_dA)
         end
