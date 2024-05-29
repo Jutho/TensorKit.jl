@@ -124,14 +124,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             dA = zerovector(A,
                             TensorOperations.promote_contract(scalartype(ΔC),
                                                               scalartype(B)))
-            tB::typeof(B) = copy(B)
-            if BraidingStyle(sectortype(ΔC)) isa Fermionic
-                for i in allind(B)
-                    if isdual(space(B, i))
-                        twist!(tB, i)
-                    end
-                end
-            end
+            tB = twist(B, filter(x -> isdual(space(B, i)), allind(B)))
             dA = tensorcontract!(dA, ipA, ΔC, pΔC, :N, tB, pB, :C)
             return projectA(dA)
         end
@@ -141,14 +134,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             dB = zerovector(B,
                             TensorOperations.promote_contract(scalartype(ΔC),
                                                               scalartype(A)))
-            tA::typeof(A) = copy(A)
-            if BraidingStyle(sectortype(ΔC)) isa Fermionic
-                for i in allind(A)
-                    if isdual(space(A, i))
-                        twist!(tA, i)
-                    end
-                end
-            end
+            tA = twist(A, filter(x -> isdual(space(A, i)), allind(A)))
             dB = tensorcontract!(dB, ipB, tA, pA, :C, ΔC, pΔC, :N)
             return projectB(dB)
         end
