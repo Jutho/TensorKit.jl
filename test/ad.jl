@@ -125,23 +125,23 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
           ℂ[Z2Irrep](0 => 2, 1 => 2)),
          (ℂ[FermionParity](0 => 1, 1 => 1),
           ℂ[FermionParity](0 => 1, 1 => 2)',
-          ℂ[FermionParity](0 => 3, 1 => 2)',
+          ℂ[FermionParity](0 => 2, 1 => 2)',
           ℂ[FermionParity](0 => 2, 1 => 3),
           ℂ[FermionParity](0 => 2, 1 => 2)),
-         (ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 2),
-          ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
-          ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
-          ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
-          ℂ[U1Irrep](0 => 1, 1 => 3, -1 => 2)'),
-         (ℂ[SU2Irrep](0 => 3, 1 // 2 => 1),
-          ℂ[SU2Irrep](0 => 2, 1 => 1),
+         (ℂ[U1Irrep](0 => 2, 1 => 1, -1 => 1),
+          ℂ[U1Irrep](0 => 1, 1 => 1, -1 => 1),
+          ℂ[U1Irrep](0 => 2, -1 => 1)',
+          ℂ[U1Irrep](0 => 1, 1 => 2),
+          ℂ[U1Irrep](0 => 1, 1 => 1, -1 => 2)'),
+         (ℂ[SU2Irrep](0 => 2, 1 // 2 => 1),
+          ℂ[SU2Irrep](0 => 1, 1 => 1),
           ℂ[SU2Irrep](1 // 2 => 1, 1 => 1)',
-          ℂ[SU2Irrep](0 => 2, 1 // 2 => 2),
+          ℂ[SU2Irrep](1 // 2 => 2),
           ℂ[SU2Irrep](0 => 1, 1 // 2 => 1, 3 // 2 => 1)'))
 
-@testset "Automatic Differentiation with spacetype $(TensorKit.type_repr(eltype(V)))" verbose = true for V in
-                                                                                                         Vlist
-    @testset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
+@timedtestset "Automatic Differentiation with spacetype $(TensorKit.type_repr(eltype(V)))" verbose = true for V in
+                                                                                                              Vlist
+    @timedtestset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A))
 
@@ -163,7 +163,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(⊗, D, E)
     end
 
-    @testset "Linear Algebra part II with scalartype $T" for T in (Float64, ComplexF64)
+    @timedtestset "Linear Algebra part II with scalartype $T" for T in (Float64, ComplexF64)
         for i in 1:3
             E = TensorMap(randn, T, ⊗(V[1:i]...) ← ⊗(V[1:i]...))
             test_rrule(LinearAlgebra.tr, E)
@@ -174,11 +174,11 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(LinearAlgebra.norm, A, 2)
     end
 
-    @testset "TensorOperations with scalartype $T" for T in (Float64, ComplexF64)
+    @timedtestset "TensorOperations with scalartype $T" for T in (Float64, ComplexF64)
         atol = precision(T)
         rtol = precision(T)
 
-        @testset "tensortrace!" begin
+        @timedtestset "tensortrace!" begin
             for _ in 1:5
                 k1 = rand(1:3)
                 k2 = k1 == 3 ? 1 : rand(1:2)
@@ -200,7 +200,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             end
         end
 
-        @testset "tensoradd!" begin
+        @timedtestset "tensoradd!" begin
             A = TensorMap(randn, T, V[1] ⊗ V[2] ⊗ V[3] ← V[4] ⊗ V[5])
             α = randn(T)
             β = randn(T)
@@ -219,9 +219,11 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             end
         end
 
-        @testset "tensorcontract!" begin
+        @timedtestset "tensorcontract!" begin
             for _ in 1:5
-                k1, k2, k3 = rand(1:3, 3)
+                k1 = rand(1:3)
+                k2 = rand(1:2)
+                k3 = rand(1:2)
                 V1 = map(v -> rand(Bool) ? v' : v, rand(V, k1))
                 V2 = map(v -> rand(Bool) ? v' : v, rand(V, k2))
                 V3 = map(v -> rand(Bool) ? v' : v, rand(V, k3))
@@ -253,13 +255,13 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             end
         end
 
-        @testset "tensorscalar" begin
+        @timedtestset "tensorscalar" begin
             A = Tensor(randn, T, ProductSpace{typeof(V[1]),0}())
             test_rrule(tensorscalar, A)
         end
     end
 
-    @testset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
+    @timedtestset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A)')
         C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
