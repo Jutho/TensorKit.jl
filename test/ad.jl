@@ -26,35 +26,23 @@ function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
     return vec, x -> T(from_vec(x), codomain(t), domain(t))
 end
 function FiniteDifferences.to_vec(t::AbstractTensorMap)
-    vec = mapreduce(vcat, blocks(t); init=real(eltype(t)[])) do (c, b)
-        if scalartype(t) <: Real
-            return reshape(b, :) .* sqrt(dim(c))
-        else
-            v = reshape(b, :) .* sqrt(dim(c))
-            return vcat(real(v), imag(v))
-        end
+    vec = mapreduce(vcat, blocks(t); init=scalartype(t)[]) do (c, b)
+        return reshape(b, :) .* sqrt(dim(c))
     end
+    vec_real = scalartype(t) <: Real ? vec : collect(reinterpret(real(scalartype(t)), vec))
 
-    function from_vec(x)
+    function from_vec(x_real)
+        x = scalartype(t) <: Real ? x_real : reinterpret(scalartype(t), x_real)
         t′ = similar(t)
-        T = scalartype(t)
         ctr = 0
         for (c, b) in blocks(t′)
             n = length(b)
-            if T <: Real
-                copyto!(b, reshape(x[(ctr + 1):(ctr + n)], size(b)) ./ sqrt(dim(c)))
-            else
-                v = x[(ctr + 1):(ctr + 2n)]
-                copyto!(b,
-                        complex.(x[(ctr + 1):(ctr + n)], x[(ctr + n + 1):(ctr + 2n)]) ./
-                        sqrt(dim(c)))
-            end
-            ctr += T <: Real ? n : 2n
+            copyto!(b, reshape(view(x, ctr .+ (1:n)), size(b)) ./ sqrt(dim(c)))
+            ctr += n
         end
         return t′
     end
-
-    return vec, from_vec
+    return vec_real, from_vec
 end
 FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
 
