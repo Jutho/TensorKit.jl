@@ -168,7 +168,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
         @timedtestset "tensortrace!" begin
             for _ in 1:5
-                k1 = rand(1:3)
+                k1 = rand(0:3)
                 k2 = k1 == 3 ? 1 : rand(1:2)
                 V1 = map(v -> rand(Bool) ? v' : v, rand(V, k1))
                 V2 = map(v -> rand(Bool) ? v' : v, rand(V, k2))
@@ -211,11 +211,11 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             for _ in 1:5
                 d = 0
                 local V1, V2, V3
-                # retry a couple times to make sure there is at least some nonzero elements
+                # retry a couple times to make sure there are at least some nonzero elements
                 for _ in 1:10
-                    k1 = rand(1:3)
-                    k2 = rand(1:2)
-                    k3 = rand(1:2)
+                    k1 = rand(0:3)
+                    k2 = rand(0:2)
+                    k3 = rand(0:2)
                     V1 = prod(v -> rand(Bool) ? v' : v, rand(V, k1); init=one(V[1]))
                     V2 = prod(v -> rand(Bool) ? v' : v, rand(V, k2); init=one(V[1]))
                     V3 = prod(v -> rand(Bool) ? v' : v, rand(V, k3); init=one(V[1]))
@@ -230,12 +230,13 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
                 α = randn(T)
                 β = randn(T)
+                V2_conj = prod(conj, V2; init=one(V[1]))
 
                 for conjA in (:N, :C), conjB in (:N, :C)
                     A = TensorMap(randn, T,
-                                  permute(V1 ← (conjA === :C ? prod(conj, V2) : V2), ipA))
+                                  permute(V1 ← (conjA === :C ? V2_conj : V2), ipA))
                     B = TensorMap(randn, T,
-                                  permute((conjB === :C ? prod(conj, V2) : V2) ← V3, ipB))
+                                  permute((conjB === :C ? V2_conj : V2) ← V3, ipB))
                     C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA,
                                                                           conjA,
                                                                           B, pB, conjB,
