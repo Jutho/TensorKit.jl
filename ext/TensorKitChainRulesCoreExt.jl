@@ -537,7 +537,7 @@ function qr_pullback!(ΔA::AbstractMatrix, Q::AbstractMatrix, R::AbstractMatrix,
                       rtol::Real=atol > 0 ? 0 : eps(real(eltype(R)))^(3 / 4))
     Rd = view(R, diagind(R))
     tol = atol > 0 ? atol : rtol * maximum(abs, Rd)
-    p = findlast(x -> abs(x) >= tol, Rd)
+    p = findlast(>=(tol) ∘ abs, Rd)
     m, n = size(R)
 
     Q1 = view(Q, :, 1:p)
@@ -590,7 +590,7 @@ function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix,
                       rtol::Real=atol > 0 ? 0 : eps(real(eltype(L)))^(3 / 4))
     Ld = view(L, diagind(L))
     tol = atol > 0 ? atol : rtol * maximum(abs, Ld)
-    p = findlast(x -> abs(x) >= tol, Ld)
+    p = findlast(>=(tol) ∘ abs, Ld)
     m, n = size(L)
 
     L1 = view(L, :, 1:p)
