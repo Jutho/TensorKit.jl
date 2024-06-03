@@ -4,7 +4,13 @@ using Random
 using FiniteDifferences
 using LinearAlgebra
 
-## Test utility
+const _repartition = @static if isdefined(Base, :get_extension)
+    Base.get_extension(TensorKit, :TensorKitChainRulesCoreExt)._repartition
+else
+    TensorKit.TensorKitChainRulesCoreExt._repartition
+end
+
+# Test utility
 # -------------
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap)
     return TensorMap(randn, scalartype(x), space(x))
@@ -20,35 +26,23 @@ function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
     return vec, x -> T(from_vec(x), codomain(t), domain(t))
 end
 function FiniteDifferences.to_vec(t::AbstractTensorMap)
-    vec = mapreduce(vcat, blocks(t)) do (c, b)
-        if scalartype(t) <: Real
-            return reshape(b, :) .* sqrt(dim(c))
-        else
-            v = reshape(b, :) .* sqrt(dim(c))
-            return vcat(real(v), imag(v))
-        end
+    vec = mapreduce(vcat, blocks(t); init=scalartype(t)[]) do (c, b)
+        return reshape(b, :) .* sqrt(dim(c))
     end
+    vec_real = scalartype(t) <: Real ? vec : collect(reinterpret(real(scalartype(t)), vec))
 
-    function from_vec(x)
+    function from_vec(x_real)
+        x = scalartype(t) <: Real ? x_real : reinterpret(scalartype(t), x_real)
         t′ = similar(t)
-        T = scalartype(t)
         ctr = 0
         for (c, b) in blocks(t′)
             n = length(b)
-            if T <: Real
-                copyto!(b, reshape(x[(ctr + 1):(ctr + n)], size(b)) ./ sqrt(dim(c)))
-            else
-                v = x[(ctr + 1):(ctr + 2n)]
-                copyto!(b,
-                        complex.(x[(ctr + 1):(ctr + n)], x[(ctr + n + 1):(ctr + 2n)]) ./
-                        sqrt(dim(c)))
-            end
-            ctr += T <: Real ? n : 2n
+            copyto!(b, reshape(view(x, ctr .+ (1:n)), size(b)) ./ sqrt(dim(c)))
+            ctr += n
         end
         return t′
     end
-
-    return vec, from_vec
+    return vec_real, from_vec
 end
 FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
 
@@ -62,6 +56,12 @@ end
 # Float32 and finite differences don't mix well
 precision(::Type{<:Union{Float32,Complex{Float32}}}) = 1e-2
 precision(::Type{<:Union{Float64,Complex{Float64}}}) = 1e-6
+
+function randindextuple(N::Int, k::Int=rand(0:N))
+    @assert 0 ≤ k ≤ N
+    _p = randperm(N)
+    return (tuple(_p[1:k]...), tuple(_p[(k + 1):end]...))
+end
 
 # rrules for functions that destroy inputs
 # ----------------------------------------
@@ -111,20 +111,25 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
           ℂ[Z2Irrep](0 => 3, 1 => 2)',
           ℂ[Z2Irrep](0 => 2, 1 => 3),
           ℂ[Z2Irrep](0 => 2, 1 => 2)),
+         (ℂ[FermionParity](0 => 1, 1 => 1),
+          ℂ[FermionParity](0 => 1, 1 => 2)',
+          ℂ[FermionParity](0 => 2, 1 => 2)',
+          ℂ[FermionParity](0 => 2, 1 => 3),
+          ℂ[FermionParity](0 => 2, 1 => 2)),
          (ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 2),
           ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
           ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
           ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
           ℂ[U1Irrep](0 => 1, 1 => 3, -1 => 2)'),
-         (ℂ[SU2Irrep](0 => 3, 1 // 2 => 1),
-          ℂ[SU2Irrep](0 => 2, 1 => 1),
+         (ℂ[SU2Irrep](0 => 2, 1 // 2 => 1),
+          ℂ[SU2Irrep](0 => 1, 1 => 1),
           ℂ[SU2Irrep](1 // 2 => 1, 1 => 1)',
-          ℂ[SU2Irrep](0 => 2, 1 // 2 => 2),
+          ℂ[SU2Irrep](1 // 2 => 2),
           ℂ[SU2Irrep](0 => 1, 1 // 2 => 1, 3 // 2 => 1)'))
 
-@testset "Automatic Differentiation with spacetype $(TensorKit.type_repr(eltype(V)))" verbose = true for V in
-                                                                                                         Vlist
-    @testset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
+@timedtestset "Automatic Differentiation with spacetype $(TensorKit.type_repr(eltype(V)))" verbose = true for V in
+                                                                                                              Vlist
+    @timedtestset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A))
 
@@ -146,7 +151,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(⊗, D, E)
     end
 
-    @testset "Linear Algebra part II with scalartype $T" for T in (Float64, ComplexF64)
+    @timedtestset "Linear Algebra part II with scalartype $T" for T in (Float64, ComplexF64)
         for i in 1:3
             E = TensorMap(randn, T, ⊗(V[1:i]...) ← ⊗(V[1:i]...))
             test_rrule(LinearAlgebra.tr, E)
@@ -157,71 +162,99 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(LinearAlgebra.norm, A, 2)
     end
 
-    @testset "TensorOperations with scalartype $T" for T in (Float64, ComplexF64)
+    @timedtestset "TensorOperations with scalartype $T" for T in (Float64, ComplexF64)
         atol = precision(T)
         rtol = precision(T)
 
-        @testset "tensortrace!" begin
-            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[1] ⊗ V[5])
-            pC = ((3, 5), (2,))
-            pA = ((1,), (4,))
+        @timedtestset "tensortrace!" begin
+            for _ in 1:5
+                k1 = rand(0:3)
+                k2 = k1 == 3 ? 1 : rand(1:2)
+                V1 = map(v -> rand(Bool) ? v' : v, rand(V, k1))
+                V2 = map(v -> rand(Bool) ? v' : v, rand(V, k2))
+
+                (_p, _q) = randindextuple(k1 + 2 * k2, k1)
+                p = _repartition(_p, rand(0:k1))
+                q = _repartition(_q, k2)
+                ip = _repartition(invperm(linearize((_p, _q))), rand(0:(k1 + 2 * k2)))
+                A = TensorMap(randn, T, permute(prod(V1) ⊗ prod(V2) ← prod(V2), ip))
+
+                α = randn(T)
+                β = randn(T)
+                for conjA in (:N, :C)
+                    C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, conjA, false))
+                    test_rrule(tensortrace!, C, p, A, q, conjA, α, β; atol, rtol)
+                end
+            end
+        end
+
+        @timedtestset "tensoradd!" begin
+            A = TensorMap(randn, T, V[1] ⊗ V[2] ⊗ V[3] ← V[4] ⊗ V[5])
             α = randn(T)
             β = randn(T)
 
-            C = _randomize!(TensorOperations.tensoralloc_add(T, pC, A, :N, false))
-            test_rrule(tensortrace!, C, pC, A, pA, :N, α, β; atol, rtol)
+            # repeat a couple times to get some distribution of arrows
+            for _ in 1:5
+                p = randindextuple(length(V))
 
-            C = _randomize!(TensorOperations.tensoralloc_add(T, pC, A, :C, false))
-            test_rrule(tensortrace!, C, pC, A, pA, :C, α, β; atol, rtol)
+                C1 = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
+                test_rrule(tensoradd!, C1, p, A, :N, α, β; atol, rtol)
+
+                C2 = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
+                test_rrule(tensoradd!, C2, p, A, :C, α, β; atol, rtol)
+
+                A = rand(Bool) ? C1 : C2
+            end
         end
 
-        @testset "tensoradd!" begin
-            p = ((1, 3, 2), (5, 4))
-            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
-            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
-            α = randn(T)
-            β = randn(T)
-            test_rrule(tensoradd!, C, p, A, :N, α, β; atol, rtol)
+        @timedtestset "tensorcontract!" begin
+            for _ in 1:5
+                d = 0
+                local V1, V2, V3
+                # retry a couple times to make sure there are at least some nonzero elements
+                for _ in 1:10
+                    k1 = rand(0:3)
+                    k2 = rand(0:2)
+                    k3 = rand(0:2)
+                    V1 = prod(v -> rand(Bool) ? v' : v, rand(V, k1); init=one(V[1]))
+                    V2 = prod(v -> rand(Bool) ? v' : v, rand(V, k2); init=one(V[1]))
+                    V3 = prod(v -> rand(Bool) ? v' : v, rand(V, k3); init=one(V[1]))
+                    d = min(dim(V1 ← V2), dim(V1' ← V2), dim(V2 ← V3), dim(V2' ← V3))
+                    d > 0 && break
+                end
+                ipA = randindextuple(length(V1) + length(V2))
+                pA = _repartition(invperm(linearize(ipA)), length(V1))
+                ipB = randindextuple(length(V2) + length(V3))
+                pB = _repartition(invperm(linearize(ipB)), length(V2))
+                pAB = randindextuple(length(V1) + length(V3))
 
-            C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
-            test_rrule(tensoradd!, C, p, A, :C, α, β; atol, rtol)
+                α = randn(T)
+                β = randn(T)
+                V2_conj = prod(conj, V2; init=one(V[1]))
+
+                for conjA in (:N, :C), conjB in (:N, :C)
+                    A = TensorMap(randn, T,
+                                  permute(V1 ← (conjA === :C ? V2_conj : V2), ipA))
+                    B = TensorMap(randn, T,
+                                  permute((conjB === :C ? V2_conj : V2) ← V3, ipB))
+                    C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA,
+                                                                          conjA,
+                                                                          B, pB, conjB,
+                                                                          false))
+                    test_rrule(tensorcontract!, C, pAB,
+                               A, pA, conjA, B, pB, conjB,
+                               α, β; atol, rtol)
+                end
+            end
         end
 
-        @testset "tensorcontract!" begin
-            A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
-            B = TensorMap(randn, T, V[3] ⊗ V[1]' ← V[2])
-            pC = ((3, 2), (4, 1))
-            pA = ((2, 4, 5), (1, 3))
-            pB = ((2, 1), (3,))
-            α = randn(T)
-            β = randn(T)
-
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B, pB, :N, false))
-            test_rrule(tensorcontract!, C, pC, A, pA, :N, B, pB, :N, α, β; atol, rtol)
-
-            A2 = TensorMap(randn, T, V[1]' ⊗ V[2]' ← V[3]' ⊗ V[4]' ⊗ V[5]')
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B, pB, :N, false))
-            test_rrule(tensorcontract!, C, pC, A2, pA, :C, B, pB, :N, α, β; atol, rtol)
-
-            B2 = TensorMap(randn, T, V[3]' ⊗ V[1] ← V[2]')
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A, pA, :N,
-                                                                  B2, pB, :C, false))
-            test_rrule(tensorcontract!, C, pC, A, pA, :N, B2, pB, :C, α, β; atol, rtol)
-
-            C = _randomize!(TensorOperations.tensoralloc_contract(T, pC, A2, pA, :C,
-                                                                  B2, pB, :C, false))
-            test_rrule(tensorcontract!, C, pC, A2, pA, :C, B2, pB, :C, α, β; atol, rtol)
-        end
-
-        @testset "tensorscalar" begin
+        @timedtestset "tensorscalar" begin
             A = Tensor(randn, T, ProductSpace{typeof(V[1]),0}())
             test_rrule(tensorscalar, A)
         end
     end
 
-    @testset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
+    @timedtestset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A)')
         C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])

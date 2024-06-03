@@ -285,13 +285,7 @@ function _contract!(α, A::AbstractTensorMap{S}, B::AbstractTensorMap{S},
     end
     A′ = permute(A, (oindA, cindA); copy=copyA)
     B′ = permute(B, (cindB, oindB))
-    if BraidingStyle(sectortype(S)) isa Fermionic
-        for i in domainind(A′)
-            if !isdual(space(A′, i))
-                A′ = twist!(A′, i)
-            end
-        end
-    end
+    A′ = twist!(A′, filter(i -> !isdual(space(A′, i)), domainind(A′)))
     ipC = TupleTools.invperm((p₁..., p₂...))
     oindAinC = TupleTools.getindices(ipC, ntuple(n -> n, N₁))
     oindBinC = TupleTools.getindices(ipC, ntuple(n -> n + N₁, N₂))
