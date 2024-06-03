@@ -114,6 +114,8 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
     projectA = ProjectTo(A)
     projectB = ProjectTo(B)
     function otimes_pullback(ΔC_)
+        # TODO: this rule is probably better written in terms of inner products,
+        # using planarcontract and adjoint tensormaps would remove the twists.
         ΔC = unthunk(ΔC_)
         pΔC = ((codomainind(A)..., (domainind(A) .+ numout(B))...),
                ((codomainind(B) .+ numout(A))...,
