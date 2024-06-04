@@ -229,25 +229,11 @@ end
     twist!(t::AbstractTensorMap, i::Int; inv::Bool=false) -> t
     twist!(t::AbstractTensorMap, is; inv::Bool=false) -> t
 
-Apply a twist to the `i`th index of `t`, storing the result in `t`.
+Apply a twist to the `i`th index of `t`, or all indices in `is`, storing the result in `t`.
 If `inv=true`, use the inverse twist.
 
 See [`twist`](@ref) for creating a new tensor.
 """
-function twist!(t::AbstractTensorMap, i::Int; inv::Bool=false)
-    if i > numind(t)
-        msg = "Can't twist index $i of a tensor with only $(numind(t)) indices."
-        throw(ArgumentError(msg))
-    end
-    BraidingStyle(sectortype(t)) == Bosonic() && return t
-    N₁ = numout(t)
-    for (f₁, f₂) in fusiontrees(t)
-        θ = i <= N₁ ? twist(f₁.uncoupled[i]) : twist(f₂.uncoupled[i - N₁])
-        inv && (θ = θ')
-        rmul!(t[f₁, f₂], θ)
-    end
-    return t
-end
 function twist!(t::AbstractTensorMap, is; inv::Bool=false)
     if !all(in(allind(t)), is)
         msg = "Can't twist indices $is of a tensor with only $(numind(t)) indices."
