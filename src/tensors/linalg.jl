@@ -53,104 +53,102 @@ function one!(t::AbstractTensorMap)
 end
 
 """
-    id([A::Type{<:DenseMatrix} = Matrix{Float64},] space::VectorSpace) -> TensorMap
+    id([T::Type=Float64,] V::TensorSpace) -> TensorMap
 
-Construct the identity endomorphism on space `space`, i.e. return a `t::TensorMap` with `domain(t) == codomain(t) == V`, where `storagetype(t) = A` can be specified.
+Construct the identity endomorphism on space `V`, i.e. return a `t::TensorMap` with
+`domain(t) == codomain(t) == V`, where either `scalartype(t) = T` if `T` is a `Number` type
+or `storagetype(t) = T` if `T` is a `DenseMatrix` type.
 """
-id(A, V::ElementarySpace) = id(A, ProductSpace(V))
-id(V::VectorSpace) = id(Matrix{Float64}, V)
-function id(::Type{A}, P::ProductSpace) where {A<:DenseMatrix}
-    return one!(TensorMap(s -> A(undef, s), P, P))
+id(V::TensorSpace) = id(Float64, V)
+function id(::Type{A}, V::TensorSpace{S}) where {A<:MatOrNumber,S}
+    W = V ← V
+    N = length(domain(W))
+    t = tensormaptype(S, N, N, A)(undef, codomain(W), domain(W))
+    return one!(t)
 end
 
 """
-    isomorphism([A::Type{<:DenseMatrix} = Matrix{Float64},]
-                    cod::VectorSpace, dom::VectorSpace)
-    -> TensorMap
+    isomorphism([T::Type=Float64,] codomain::TensorSpace, domain::TensorSpace) -> TensorMap
+    isomorphism([T::Type=Float64,] codomain ← domain) -> TensorMap
+    isomorphism([T::Type=Float64,] domain → codomain) -> TensorMap
 
-Return a `t::TensorMap` that implements a specific isomorphism between the codomain `cod`
-and the domain `dom`, and for which `storagetype(t)` can optionally be chosen to be of type
-`A`. If the two spaces do not allow for such an isomorphism, and are thus not isomorphic,
-and error will be thrown. When they are isomorphic, there is no canonical choice for a
-specific isomorphism, but the current choice is such that
-`isomorphism(cod, dom) == inv(isomorphism(dom, cod))`.
+Construct a specific isomorphism between the codomain and the domain, i.e. return a
+`t::TensorMap` where either `scalartype(t) = T` if `T` is a `Number` type or
+`storagetype(t) = T` if `T` is a `DenseMatrix` type. If the spaces are not isomorphic, an
+error will be thrown.
+
+!!! note
+    There is no canonical choice for a specific isomorphism, but the current choice is such
+    that `isomorphism(cod, dom) == inv(isomorphism(dom, cod))`.
 
 See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanProduct()`.
 """
-isomorphism(cod::TensorSpace, dom::TensorSpace) = isomorphism(Matrix{Float64}, cod, dom)
-isomorphism(P::TensorMapSpace) = isomorphism(codomain(P), domain(P))
-function isomorphism(A::Type{<:DenseMatrix}, P::TensorMapSpace)
-    return isomorphism(A, codomain(P), domain(P))
-end
-function isomorphism(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace)
-    return isomorphism(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
-end
-function isomorphism(::Type{A}, cod::ProductSpace, dom::ProductSpace) where {A<:DenseMatrix}
-    cod ≅ dom || throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic"))
-    t = TensorMap(s -> A(undef, s), cod, dom)
-    for (c, b) in blocks(t)
+function isomorphism(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:MatOrNumber,S,N₁,N₂}
+    codomain(V) ≅ domain(V) ||
+        throw(SpaceMismatch("codomain and domain are not isomorphic: $V"))
+    t = tensormaptype(S, N₁, N₂, A)(undef, codomain(V), domain(V))
+    for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
     return t
 end
 
 """
-    unitary([A::Type{<:DenseMatrix} = Matrix{Float64},] cod::VectorSpace, dom::VectorSpace)
-    -> TensorMap
+    unitary([T::Type=Float64,] codomain::TensorSpace, domain::TensorSpace) -> TensorMap
+    unitary([T::Type=Float64,] codomain ← domain) -> TensorMap
+    unitary([T::Type=Float64,] domain → codomain) -> TensorMap
 
-Return a `t::TensorMap` that implements a specific unitary isomorphism between the codomain
-`cod` and the domain `dom`, for which `spacetype(dom)` (`== spacetype(cod)`) must have an
-inner product. Furthermore, `storagetype(t)` can optionally be chosen to be
-of type `A`. If the two spaces do not allow for such an isomorphism, and are thus not
-isomorphic, and error will be thrown. When they are isomorphic, there is no canonical choice
-for a specific isomorphism, but the current choice is such that
-`unitary(cod, dom) == inv(unitary(dom, cod)) = adjoint(unitary(dom, cod))`.
+Construct a specific unitary morphism between the codomain and the domain, i.e. return a
+`t::TensorMap` where either `scalartype(t) = T` if `T` is a `Number` type or
+`storagetype(t) = T` if `T` is a `DenseMatrix` type. If the spaces are not isomorphic, or
+the spacetype does not have a Euclidean inner product, an error will be thrown.
+
+!!! note
+    There is no canonical choice for a specific unitary, but the current choice is such that
+    `unitary(cod, dom) == inv(unitary(dom, cod)) = adjoint(unitary(dom, cod))`.
+
+See also [`isomorphism`](@ref) and [`isometry`](@ref).
 """
-function unitary(cod::TensorSpace{S}, dom::TensorSpace{S}) where {S}
+function unitary(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:MatOrNumber,S,N₁,N₂}
     InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
-    return isomorphism(cod, dom)
-end
-function unitary(P::TensorMapSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
-    return isomorphism(P)
-end
-function unitary(A::Type{<:DenseMatrix}, P::TensorMapSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
-    return isomorphism(A, P)
-end
-function unitary(A::Type{<:DenseMatrix}, cod::TensorSpace{S}, dom::TensorSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
-    return isomorphism(A, cod, dom)
+    return isomorphism(A, V)
 end
 
 """
-    isometry([A::Type{<:DenseMatrix} = Matrix{Float64},] cod::VectorSpace, dom::VectorSpace)
-    -> TensorMap
+    isometry([T::Type=Float64,] codomain::TensorSpace, domain::TensorSpace) -> TensorMap
+    isometry([T::Type=Float64,] codomain ← domain) -> TensorMap
+    isometry([T::Type=Float64,] domain → codomain) -> TensorMap
 
-Return a `t::TensorMap` that implements a specific isometry that embeds the domain `dom`
-into the codomain `cod`, and which requires that `spacetype(dom)` (`== spacetype(cod)`) has
-an Euclidean inner product. An isometry `t` is such that its adjoint `t'` is the left
-inverse of `t`, i.e. `t'*t = id(dom)`, while `t*t'` is some idempotent endomorphism of
-`cod`, i.e. it squares to itself. When `dom` and `cod` do not allow for such an isometric
-inclusion, an error will be thrown.
+Construct a specific isometry between the codomain and the domain, i.e. return a
+`t::TensorMap` where either `scalartype(t) = T` if `T` is a `Number` type or
+`storagetype(t) = T` if `T` is a `DenseMatrix` type. The isometry `t` then satisfies
+`t' * t = id(domain)` and `(t * t')^2 = t * t'`. If the spaces do not allow for such an 
+isometric inclusion, an error will be thrown.
+
+See also [`isomorphism`](@ref) and [`unitary`](@ref).
 """
-isometry(cod::TensorSpace, dom::TensorSpace) = isometry(Matrix{Float64}, cod, dom)
-isometry(P::TensorMapSpace) = isometry(codomain(P), domain(P))
-isometry(A::Type{<:DenseMatrix}, P::TensorMapSpace) = isometry(A, codomain(P), domain(P))
-function isometry(A::Type{<:DenseMatrix}, cod::TensorSpace, dom::TensorSpace)
-    return isometry(A, convert(ProductSpace, cod), convert(ProductSpace, dom))
-end
-function isometry(::Type{A},
-                  cod::ProductSpace{S},
-                  dom::ProductSpace{S}) where {A<:DenseMatrix,S<:ElementarySpace}
+function isometry(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:MatOrNumber,S,N₁,N₂}
     InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:isometry)
-    dom ≾ cod ||
-        throw(SpaceMismatch("codomain $cod and domain $dom do not allow for an isometric mapping"))
-    t = TensorMap(s -> A(undef, s), cod, dom)
-    for (c, b) in blocks(t)
+    domain(V) ≾ codomain(V) ||
+        throw(SpaceMismatch("$V does not allow for an isometric inclusion"))
+    t = tensormaptype(S, N₁, N₂, A)(undef, codomain(V), domain(V))
+    for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
     return t
+end
+
+# expand methods with default arguments
+for morphism in (:isomorphism, :unitary, :isometry)
+    @eval begin
+        $morphism(V::TensorMapSpace) = $morphism(Float64, V)
+        $morphism(codomain::TensorSpace, domain::TensorSpace) = $morphism(codomain ← domain)
+        function $morphism(::Type{T}, codomain::TensorSpace,
+                           domain::TensorSpace) where {T<:MatOrNumber}
+            return $morphism(T, codomain ← domain)
+        end
+        $morphism(t::AbstractTensorMap) = $morphism(storagetype(t), space(t))
+    end
 end
 
 # In-place methods
@@ -441,7 +439,7 @@ function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
     dom1, dom2 = domain(t1), domain(t2)
     cod = cod1 ⊗ cod2
     dom = dom1 ⊗ dom2
-    t = TensorMap(zeros, promote_type(scalartype(t1), scalartype(t2)), cod, dom)
+    t = zeros(promote_type(scalartype(t1), scalartype(t2)), cod ← dom)
     if sectortype(S) === Trivial
         d1 = dim(cod1)
         d2 = dim(cod2)

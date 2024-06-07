@@ -83,7 +83,7 @@ for V in spacelist
         @timedtestset "Basic tensor properties" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
             for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
-                t = Tensor(zeros, T, W)
+                t = @constinferred zeros(T, W)
                 @test @constinferred(hash(t)) == hash(deepcopy(t))
                 @test scalartype(t) == T
                 @test norm(t) == 0
@@ -96,7 +96,7 @@ for V in spacelist
         @timedtestset "Tensor Dict conversion" begin
             W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
             for T in (Int, Float32, ComplexF64)
-                t = TensorMap(rand, T, W)
+                t = @constinferred rand(T, W)
                 d = convert(Dict, t)
                 @test t == convert(TensorMap, d)
             end
@@ -106,9 +106,12 @@ for V in spacelist
                 W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
                 for T in (Int, Float32, ComplexF64)
                     if T == Int
-                        t = TensorMap(sz -> rand(-20:20, sz), W)
+                        t = TensorMap{T}(undef, W)
+                        for (_, b) in blocks(t)
+                            rand!(b, -20:20)
+                        end
                     else
-                        t = TensorMap(randn, T, W)
+                        t = @constinferred randn(T, W)
                     end
                     a = @constinferred convert(Array, t)
                     @test t ≈ @constinferred TensorMap(a, W)
@@ -118,7 +121,7 @@ for V in spacelist
         @timedtestset "Basic linear algebra" begin
             W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
             for T in (Float32, ComplexF64)
-                t = TensorMap(rand, T, W)
+                t = @constinferred rand(T, W)
                 @test scalartype(t) == T
                 @test space(t) == W
                 @test space(t') == W'
@@ -136,7 +139,7 @@ for V in spacelist
                 @test norm(t + t, p) ≈ 2 * norm(t, p)
                 @test norm(t) ≈ norm(t')
 
-                t2 = TensorMap(rand, T, W)
+                t2 = @constinferred rand!(similar(t))
                 β = rand(T)
                 @test @constinferred(dot(β * t2, α * t)) ≈ conj(β) * α * conj(dot(t, t2))
                 @test dot(t2, t) ≈ conj(dot(t, t2))
@@ -159,8 +162,8 @@ for V in spacelist
             @timedtestset "Basic linear algebra: test via conversion" begin
                 W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
                 for T in (Float32, ComplexF64)
-                    t = TensorMap(rand, T, W)
-                    t2 = TensorMap(rand, T, W)
+                    t = rand(T, W)
+                    t2 = @constinferred rand!(similar(t))
                     @test norm(t, 2) ≈ norm(convert(Array, t), 2)
                     @test dot(t2, t) ≈ dot(convert(Array, t2), convert(Array, t))
                     α = rand(T)
@@ -171,7 +174,7 @@ for V in spacelist
             @timedtestset "Real and imaginary parts" begin
                 W = V1 ⊗ V2
                 for T in (Float64, ComplexF64, ComplexF32)
-                    t = TensorMap(randn, T, W, W)
+                    t = @constinferred randn(T, W, W)
                     @test real(convert(Array, t)) == convert(Array, @constinferred real(t))
                     @test imag(convert(Array, t)) == convert(Array, @constinferred imag(t))
                 end
@@ -179,7 +182,7 @@ for V in spacelist
         end
         @timedtestset "Tensor conversion" begin
             W = V1 ⊗ V2
-            t = TensorMap(randn, Float64, W, W)
+            t = @constinferred randn(W ← W)
             @test typeof(convert(TensorMap, t')) == typeof(t)
             tc = complex(t)
             @test convert(typeof(tc), t) == tc
@@ -190,8 +193,8 @@ for V in spacelist
         end
         @timedtestset "Permutations: test via inner product invariance" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-            t = Tensor(rand, ComplexF64, W)
-            t′ = Tensor(rand, ComplexF64, W)
+            t = rand(ComplexF64, W)
+            t′ = randn!(similar(t))
             for k in 0:5
                 for p in permutations(1:5)
                     p1 = ntuple(n -> p[n], k)
@@ -213,7 +216,7 @@ for V in spacelist
         if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Permutations: test via conversion" begin
                 W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-                t = Tensor(rand, ComplexF64, W)
+                t = rand(ComplexF64, W)
                 a = convert(Array, t)
                 for k in 0:5
                     for p in permutations(1:5)
@@ -235,7 +238,7 @@ for V in spacelist
             end
         end
         @timedtestset "Full trace: test self-consistency" begin
-            t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1')
+            t = rand(ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1')
             t2 = permute(t, ((1, 2), (4, 3)))
             s = @constinferred tr(t2)
             @test conj(s) ≈ tr(t2')
@@ -253,7 +256,7 @@ for V in spacelist
             @test ss ≈ s3
         end
         @timedtestset "Partial trace: test self-consistency" begin
-            t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
+            t = rand(ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
             @tensor t2[a, b] := t[c, d, b, d, c, a]
             @tensor t4[a, b, c, d] := t[d, e, b, e, c, a]
             @tensor t5[a, b] := t4[a, b, c, c]
@@ -261,15 +264,15 @@ for V in spacelist
         end
         if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Trace: test via conversion" begin
-                t = Tensor(rand, ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
+                t = rand(ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3')
                 @tensor t2[a, b] := t[c, d, b, d, c, a]
                 @tensor t3[a, b] := convert(Array, t)[c, d, b, d, c, a]
                 @test t3 ≈ convert(Array, t2)
             end
         end
         @timedtestset "Trace and contraction" begin
-            t1 = Tensor(rand, ComplexF64, V1 ⊗ V2 ⊗ V3)
-            t2 = Tensor(rand, ComplexF64, V2' ⊗ V4 ⊗ V1')
+            t1 = rand(ComplexF64, V1 ⊗ V2 ⊗ V3)
+            t2 = rand(ComplexF64, V2' ⊗ V4 ⊗ V1')
             t3 = t1 ⊗ t2
             @tensor ta[a, b] := t1[x, y, a] * t2[y, b, x]
             @tensor tb[a, b] := t3[x, y, a, y, b, x]
@@ -277,11 +280,11 @@ for V in spacelist
         end
         if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Tensor contraction: test via conversion" begin
-                A1 = TensorMap(randn, ComplexF64, V1' * V2', V3')
-                A2 = TensorMap(randn, ComplexF64, V3 * V4, V5)
-                rhoL = TensorMap(randn, ComplexF64, V1, V1)
-                rhoR = TensorMap(randn, ComplexF64, V5, V5)' # test adjoint tensor
-                H = TensorMap(randn, ComplexF64, V2 * V4, V2 * V4)
+                A1 = randn(ComplexF64, V1' * V2', V3')
+                A2 = randn(ComplexF64, V3 * V4, V5)
+                rhoL = randn(ComplexF64, V1, V1)
+                rhoR = randn(ComplexF64, V5, V5)' # test adjoint tensor
+                H = randn(ComplexF64, V2 * V4, V2 * V4)
                 @tensor HrA12[a, s1, s2, c] := rhoL[a, a'] * conj(A1[a', t1, b]) *
                                                A2[b, t2, c'] * rhoR[c', c] *
                                                H[s1, s2, t1, t2]
@@ -299,9 +302,9 @@ for V in spacelist
             W1 = V1 ⊗ V2 ⊗ V3
             W2 = V4 ⊗ V5
             for T in (Float64, ComplexF64)
-                t1 = TensorMap(rand, T, W1, W1)
-                t2 = TensorMap(rand, T, W2, W2)
-                t = TensorMap(rand, T, W1, W2)
+                t1 = rand(T, W1, W1)
+                t2 = rand(T, W2, W2)
+                t = rand(T, W1, W2)
                 @test t1 * (t1 \ t) ≈ t
                 @test (t / t2) * t2 ≈ t
                 @test t1 \ one(t1) ≈ inv(t1)
@@ -318,9 +321,9 @@ for V in spacelist
                 W1 = V1 ⊗ V2 ⊗ V3
                 W2 = V4 ⊗ V5
                 for T in (Float32, Float64, ComplexF32, ComplexF64)
-                    t1 = TensorMap(rand, T, W1, W1)
-                    t2 = TensorMap(rand, T, W2, W2)
-                    t = TensorMap(rand, T, W1, W2)
+                    t1 = rand(T, W1, W1)
+                    t2 = rand(T, W2, W2)
+                    t = rand(T, W1, W2)
                     d1 = dim(W1)
                     d2 = dim(W2)
                     At1 = reshape(convert(Array, t1), d1, d1)
@@ -354,7 +357,7 @@ for V in spacelist
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
             for T in (Float32, ComplexF64)
                 # Test both a normal tensor and an adjoint one.
-                ts = (Tensor(rand, T, W), Tensor(rand, T, W)')
+                ts = (rand(T, W), rand(T, W)')
                 for t in ts
                     @testset "leftorth with $alg" for alg in
                                                       (TensorKit.QR(), TensorKit.QRpos(),
@@ -412,7 +415,7 @@ for V in spacelist
                     end
                 end
                 @testset "empty tensor" begin
-                    t = TensorMap(randn, T, V1 ⊗ V2, typeof(V1)())
+                    t = randn(T, V1 ⊗ V2, typeof(V1)())
                     @testset "leftorth with $alg" for alg in
                                                       (TensorKit.QR(), TensorKit.QRpos(),
                                                        TensorKit.QL(), TensorKit.QLpos(),
@@ -452,7 +455,7 @@ for V in spacelist
                     end
                 end
 
-                t = Tensor(rand, T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
+                t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
                 @testset "eig and isposdef" begin
                     D, V = eigen(t, ((1, 3), (2, 4)))
                     t2 = permute(t, ((1, 3), (2, 4)))
@@ -484,8 +487,8 @@ for V in spacelist
             for T in (Float32, ComplexF64)
                 for p in (1, 2, 3, Inf)
                     # Test both a normal tensor and an adjoint one.
-                    ts = (TensorMap(randn, T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
-                          TensorMap(randn, T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
+                    ts = (randn(T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
+                          randn(T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
                     for t in ts
                         U₀, S₀, V₀, = tsvd(t)
                         t = rmul!(t, 1 / norm(S₀, p))
@@ -515,7 +518,7 @@ for V in spacelist
             @timedtestset "Tensor functions" begin
                 W = V1 ⊗ V2
                 for T in (Float64, ComplexF64)
-                    t = TensorMap(randn, T, W, W)
+                    t = randn(T, W, W)
                     s = dim(W)
                     expt = @constinferred exp(t)
                     @test reshape(convert(Array, expt), (s, s)) ≈
@@ -557,11 +560,11 @@ for V in spacelist
         end
         @timedtestset "Sylvester equation" begin
             for T in (Float32, ComplexF64)
-                tA = TensorMap(rand, T, V1 ⊗ V3, V1 ⊗ V3)
-                tB = TensorMap(rand, T, V2 ⊗ V4, V2 ⊗ V4)
+                tA = rand(T, V1 ⊗ V3, V1 ⊗ V3)
+                tB = rand(T, V2 ⊗ V4, V2 ⊗ V4)
                 tA = 3 // 2 * leftorth(tA; alg=Polar())[1]
                 tB = 1 // 5 * leftorth(tB; alg=Polar())[1]
-                tC = TensorMap(rand, T, V1 ⊗ V3, V2 ⊗ V4)
+                tC = rand(T, V1 ⊗ V3, V2 ⊗ V4)
                 t = @constinferred sylvester(tA, tB, tC)
                 @test codomain(t) == V1 ⊗ V3
                 @test domain(t) == V2 ⊗ V4
@@ -575,8 +578,8 @@ for V in spacelist
         end
         @timedtestset "Tensor product: test via norm preservation" begin
             for T in (Float32, ComplexF64)
-                t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
-                t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
+                t1 = rand(T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)
+                t2 = rand(T, V2 ⊗ V1 ⊗ V3, V1 ⊗ V1)
                 t = @constinferred (t1 ⊗ t2)
                 @test norm(t) ≈ norm(t1) * norm(t2)
             end
@@ -584,8 +587,8 @@ for V in spacelist
         if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Tensor product: test via conversion" begin
                 for T in (Float32, ComplexF64)
-                    t1 = TensorMap(rand, T, V2 ⊗ V3 ⊗ V1, V1)
-                    t2 = TensorMap(rand, T, V2 ⊗ V1 ⊗ V3, V2)
+                    t1 = rand(T, V2 ⊗ V3 ⊗ V1, V1)
+                    t2 = rand(T, V2 ⊗ V1 ⊗ V3, V2)
                     t = @constinferred (t1 ⊗ t2)
                     d1 = dim(codomain(t1))
                     d2 = dim(codomain(t2))
@@ -600,8 +603,8 @@ for V in spacelist
         end
         @timedtestset "Tensor product: test via tensor contraction" begin
             for T in (Float32, ComplexF64)
-                t1 = Tensor(rand, T, V2 ⊗ V3 ⊗ V1)
-                t2 = Tensor(rand, T, V2 ⊗ V1 ⊗ V3)
+                t1 = rand(T, V2 ⊗ V3 ⊗ V1)
+                t2 = rand(T, V2 ⊗ V1 ⊗ V3)
                 t = @constinferred (t1 ⊗ t2)
                 @tensor t′[1, 2, 3, 4, 5, 6] := t1[1, 2, 3] * t2[4, 5, 6]
                 @test t ≈ t′
@@ -615,8 +618,8 @@ end
         V1, V2, V3, V4, V5 = Vlist1
         W1, W2, W3, W4, W5 = Vlist2
         for T in (Float32, ComplexF64)
-            t1 = TensorMap(rand, T, V1 ⊗ V2, V3' ⊗ V4)
-            t2 = TensorMap(rand, T, W2, W1 ⊗ W1')
+            t1 = rand(T, V1 ⊗ V2, V3' ⊗ V4)
+            t2 = rand(T, W2, W1 ⊗ W1')
             t = @constinferred (t1 ⊠ t2)
             d1 = dim(codomain(t1))
             d2 = dim(codomain(t2))

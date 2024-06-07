@@ -5,12 +5,24 @@ function TO.tensorstructure(t::AbstractTensorMap, iA::Int, conjA::Symbol)
     return conjA == :N ? space(t, iA) : conj(space(t, iA))
 end
 
-function TO.tensoralloc(::Type{TT}, structure, istemp=false,
-                        backend::Backend...) where {TT<:AbstractTensorMap}
-    function blockallocator(d)
-        return TO.tensoralloc(storagetype(TT), d, istemp, backend...)
-    end
-    return TensorMap(blockallocator, structure)
+function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, istemp,
+                        backend::Backend...) where {E,S,N₁,N₂,A,
+                                                    TT<:TrivialTensorMap{E,S,N₁,N₂,A}}
+    data = TO.tensoralloc(A, (dim(codomain(structure)), dim(domain(structure))), istemp,
+                          backend...)
+    return TT(data, codomain(structure), domain(structure))
+end
+
+function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, istemp,
+                        backend::Backend...) where {E,S,N₁,N₂,
+                                                    TT<:AbstractTensorMap{E,S,N₁,N₂}}
+    blocksectoriterator = blocksectors(structure)
+    rowr, rowdims = _buildblockstructure(codomain(structure), blocksectoriterator)
+    colr, coldims = _buildblockstructure(domain(structure), blocksectoriterator)
+    A = storagetype(TT)
+    blockallocator(c) = TO.tensoralloc(A, (rowdims[c], coldims[c]), false, backend...)
+    data = SectorDict(c => blockallocator(c) for c in blocksectoriterator)
+    return TT(data, codomain(structure), domain(structure), rowr, colr)
 end
 
 function TO.tensorfree!(t::AbstractTensorMap, backend::Backend...)

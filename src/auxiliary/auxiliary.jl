@@ -49,3 +49,5 @@ end
 else
     using Base: @constprop
 end
+
+const MatOrNumber{T<:Number} = Union{DenseMatrix{T},T}

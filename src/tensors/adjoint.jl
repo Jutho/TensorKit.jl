@@ -20,7 +20,10 @@ const AdjointTrivialTensorMap{E,S,N₁,N₂,A<:DenseMatrix} =
 Base.adjoint(t::TensorMap) = AdjointTensorMap(t)
 Base.adjoint(t::AdjointTensorMap) = t.parent
 
-Base.similar(t::AdjointTensorMap, T::Type, P::TensorMapSpace) = similar(t', T, P)
+function Base.similar(t::AdjointTensorMap, ::Type{TorA},
+                      P::TensorMapSpace) where {TorA<:MatOrNumber}
+    return similar(t', TorA, P)
+end
 
 # Properties
 codomain(t::AdjointTensorMap) = domain(t.parent)

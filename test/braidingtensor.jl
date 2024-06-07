@@ -11,7 +11,7 @@ V3 = GradedSpace{IsingAnyon}(:I => 2, :psi => 1, :sigma => 1)
 for V in (V1, V2, V3)
     @show V
 
-    t = TensorMap(randn, V * V' * V' * V, V * V')
+    t = randn(V * V' * V' * V, V * V')
 
     ττ = TensorMap(BraidingTensor(V, V'))
     @planar2 t1[-1 -2 -3 -4; -5 -6] := τ[-1 -2; 1 2] * t[1 2 -3 -4; -5 -6]

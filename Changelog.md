@@ -2,7 +2,7 @@
 
 Features that are planned to be implemented before the release of v1.0.0, in no particular order.
 
-- [ ] Separate `Sectors` module
+- [x] Separate `Sectors` module
 - [ ] Make `TrivialTensorMap` and `TensorMap` be the same
 - [ ] Simplify `TensorMap` type to hide `rowr` and `colr`
 - [ ] Change block order in `rowr` / `colr` to speed up particular contractions
@@ -29,3 +29,11 @@ This PR changes the behaviour of `copy` as an instantiator for creating a `Tenso
 this is always in the context of lazy wrapper types, for which it makes sense to not copy
 the parent and then create a new wrapper. `BraidingTensor` does not wrap anything, so this
 definition makes less sense.
+
+### Refactor tensormap constructors
+
+This PR refactors the constructors for `TensorMap` to be more in line with `Array`
+constructors in Julia. In particular, this means that the default way to create
+uninitialized tensors is now `TensorMap{E}(undef, codomain ← domain)`, reminiscent of
+`Array{E}(undef, dims)`. Several convenience constructors are also added: `ones`, `zeros`,
+`rand` and `randn` construct tensors when `dims` is replaced by `domain ← codomain`.
