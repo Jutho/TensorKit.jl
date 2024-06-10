@@ -36,6 +36,21 @@ function tsvd(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
     return tsvd!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
+function LinearAlgebra.svdvals(t::AbstractTensorMap)
+    return SectorDict(c => LinearAlgebra.svdvals(b) for (c, b) in blocks(t))
+end
+function LinearAlgebra.svdvals!(t::AbstractTensorMap)
+    return SectorDict(c => LinearAlgebra.svdvals!(b) for (c, b) in blocks(t))
+end
+
+# TODO: decide if we want to keep these specializations:
+function LinearAlgebra.svdvals(t::TrivialTensorMap)
+    return LinearAlgebra.svdvals(t.data)
+end
+function LinearAlgebra.svdvals!(t::TrivialTensorMap)
+    return LinearAlgebra.svdvals!(t.data)
+end
+
 """
     leftorth(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> Q, R
