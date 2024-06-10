@@ -188,6 +188,14 @@ for V in spacelist
             @test Base.promote_typeof(t, tc) == typeof(tc)
             @test Base.promote_typeof(tc, t) == typeof(tc + t)
         end
+        @timedtestset "diag/diagm" begin
+            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+            t = TensorMap(randn, ComplexF64, W)
+            d = LinearAlgebra.diag(t)
+            D = LinearAlgebra.diagm(codomain(t), domain(t), d)
+            @test LinearAlgebra.isdiag(D)
+            @test LinearAlgebra.diag(D) == d
+        end
         @timedtestset "Permutations: test via inner product invariance" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
             t = Tensor(rand, ComplexF64, W)
