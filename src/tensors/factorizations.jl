@@ -182,12 +182,13 @@ function LinearAlgebra.eigvals(t::AbstractTensorMap; kwargs...)
     return LinearAlgebra.eigvals!(copy(t); kwargs...)
 end
 function LinearAlgebra.eigvals!(t::AbstractTensorMap; kwargs...)
-    return SectorDict(c => LinearAlgebra.eigvals!(b; kwargs...) for (c, b) in blocks(t))
+    return SectorDict(c => complex(LinearAlgebra.eigvals!(b; kwargs...))
+                      for (c, b) in blocks(t))
 end
 
 # TODO: decide if we want to keep these specializations:
 function LinearAlgebra.eigvals!(t::TrivialTensorMap; kwargs...)
-    return LinearAlgebra.eigvals!(t.data; kwargs...)
+    return complex(LinearAlgebra.eigvals!(t.data; kwargs...))
 end
 
 """
