@@ -168,6 +168,43 @@ function LinearAlgebra.eigen(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple;
     return eigen!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
+function LinearAlgebra.eigvals(t::AbstractTensorMap; kwargs...)
+    return SectorDict(c => LinearAlgebra.eigvals(b; kwargs...) for (c, b) in blocks(t))
+end
+function LinearAlgebra.eigvals!(t::AbstractTensorMap; kwargs...)
+    return SectorDict(c => LinearAlgebra.eigvals!(b; kwargs...) for (c, b) in blocks(t))
+end
+
+# TODO: decide if we want to keep these specializations:
+function LinearAlgebra.eigvals(t::TrivialTensorMap; kwargs...)
+    return LinearAlgebra.eigvals(t.data; kwargs...)
+end
+function LinearAlgebra.eigvals!(t::TrivialTensorMap; kwargs...)
+    return LinearAlgebra.eigvals!(t.data; kwargs...)
+end
+
+function LinearAlgebra.eigvecs(t::AbstractTensorMap; kwargs...)
+    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:eigvecs)
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("`eigvecs` requires domain and codomain to be the same"))
+    S = spacetype(t)
+    I = sectortype(t)
+    A = storagetype(t)
+    Vdata = SectorDict{I,A}()
+    dims = SectorDict{I,Int}()
+    for (c, b) in blocks(t)
+        vectors = LinearAlgebra.eigvecs(b; kwargs...)
+        Vdata[c] = vectors
+        dims[c] = size(vectors, 2)
+    end
+    if length(domain(t)) == 1
+        W = domain(t)[1]
+    else
+        W = S(dims)
+    end
+    return TensorMap(Vdata, domain(t) ← W)
+end
+
 """
     eig(t::AbstractTensor, (leftind, rightind)::Index2Tuple; kwargs...) -> D, V
 
