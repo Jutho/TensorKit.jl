@@ -221,6 +221,20 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap;
     return (U′, Σ′, V′, ϵ), tsvd!_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(LinearAlgebra.svdvals!), t::AbstractTensorMap)
+    U, S, V = tsvd(t)
+    s = diag(S)
+    project_t = ProjectTo(t)
+
+    function svdvals_pullback(Δs′)
+        Δs = unthunk(Δs′)
+        ΔS = diagm(codomain(S), domain(S), Δs)
+        return NoTangent(), project_t(U * ΔS * V)
+    end
+
+    return s, svdvals_pullback
+end
+
 function ChainRulesCore.rrule(::typeof(TensorKit.eig!), t::AbstractTensorMap; kwargs...)
     D, V = eig(t; kwargs...)
 
@@ -261,6 +275,21 @@ function ChainRulesCore.rrule(::typeof(TensorKit.eigh!), t::AbstractTensorMap; k
     end
 
     return (D, V), eigh!_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(LinearAlgebra.eigvals!), t::AbstractTensorMap;
+                              sortby=nothing, kwargs...)
+    @assert sortby === nothing "only `sortby=nothing` is supported"
+    (D, _), eig_pullback = rrule(TensorKit.eig!, t; kwargs...)
+    d = diag(D)
+    project_t = ProjectTo(t)
+    function eigvals_pullback(Δd′)
+        Δd = unthunk(Δd′)
+        ΔD = diagm(codomain(D), domain(D), Δd)
+        return NoTangent(), project_t(eig_pullback((ΔD, ZeroTangent()))[2])
+    end
+
+    return d, eigvals_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(leftorth!), t::AbstractTensorMap; alg=QRpos())
