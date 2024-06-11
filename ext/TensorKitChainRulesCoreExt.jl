@@ -42,6 +42,7 @@ TensorKit.block(t::ZeroTangent, c::Sector) = t
 # ------------
 
 @non_differentiable TensorKit.TensorMap(f::Function, storagetype, cod, dom)
+@non_differentiable TensorKit.id(args...)
 @non_differentiable TensorKit.isomorphism(args...)
 @non_differentiable TensorKit.isometry(args...)
 @non_differentiable TensorKit.unitary(args...)
