@@ -172,7 +172,9 @@ end
 function ChainRulesCore.rrule(::typeof(norm), a::AbstractTensorMap, p::Real=2)
     p == 2 || error("currently only implemented for p = 2")
     n = norm(a, p)
-    norm_pullback(Δn) = NoTangent(), a * (Δn' + Δn) / (n * 2 + eps(real(eltype(a)))), NoTangent()
+    function norm_pullback(Δn)
+        return NoTangent(), a * (Δn' + Δn) / (n * 2 + eps(real(eltype(a)))), NoTangent()
+    end
     return n, norm_pullback
 end
 
