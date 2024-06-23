@@ -421,12 +421,8 @@ for V in spacelist
 
                         s = LinearAlgebra.svdvals(t2)
                         s′ = LinearAlgebra.diag(S)
-                        if s isa TensorKit.SectorDict
-                            for (c, b) in s
-                                @test b ≈ s′[c]
-                            end
-                        else
-                            @test s ≈ s′
+                        for (c, b) in s
+                            @test b ≈ s′[c]
                         end
                     end
                 end
@@ -479,12 +475,8 @@ for V in spacelist
 
                     d = LinearAlgebra.eigvals(t2; sortby=nothing)
                     d′ = LinearAlgebra.diag(D)
-                    if d isa TensorKit.SectorDict
-                        for (c, b) in d
-                            @test b ≈ d′[c]
-                        end
-                    else
-                        @test d ≈ d′
+                    for (c, b) in d
+                        @test b ≈ d′[c]
                     end
 
                     # Somehow moving these test before the previous one gives rise to errors

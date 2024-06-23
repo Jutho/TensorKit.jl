@@ -41,11 +41,6 @@ function LinearAlgebra.svdvals!(t::AbstractTensorMap)
     return SectorDict(c => LinearAlgebra.svdvals!(b) for (c, b) in blocks(t))
 end
 
-# TODO: decide if we want to keep these specializations:
-function LinearAlgebra.svdvals!(t::TrivialTensorMap)
-    return LinearAlgebra.svdvals!(t.data)
-end
-
 """
     leftorth(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> Q, R
@@ -184,11 +179,6 @@ end
 function LinearAlgebra.eigvals!(t::AbstractTensorMap; kwargs...)
     return SectorDict(c => complex(LinearAlgebra.eigvals!(b; kwargs...))
                       for (c, b) in blocks(t))
-end
-
-# TODO: decide if we want to keep these specializations:
-function LinearAlgebra.eigvals!(t::TrivialTensorMap; kwargs...)
-    return complex(LinearAlgebra.eigvals!(t.data; kwargs...))
 end
 
 """
