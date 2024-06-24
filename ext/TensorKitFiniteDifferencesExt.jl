@@ -1,6 +1,8 @@
 module TensorKitFiniteDifferencesExt
 
 using TensorKit
+using TensorKit: sqrtdim, isqrtdim
+using VectorInterface: scale!
 using FiniteDifferences
 
 function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
@@ -8,23 +10,20 @@ function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
     return vec, x -> T(from_vec(x), codomain(t), domain(t))
 end
 function FiniteDifferences.to_vec(t::AbstractTensorMap)
-    vec = mapreduce(vcat, blocks(t); init=scalartype(t)[]) do (c, b)
-        return reshape(b, :) .* sqrt(dim(c))
-    end
-    vec_real = scalartype(t) <: Real ? vec : collect(reinterpret(real(scalartype(t)), vec))
+    # convert to vector of vectors to make use of existing functionality
+    vec_of_vecs = [b * sqrtdim(c) for (c, b) in blocks(t)]
+    vec, back = FiniteDifferences.to_vec(vec_of_vecs)
 
-    function from_vec(x_real)
-        x = scalartype(t) <: Real ? x_real : reinterpret(scalartype(t), x_real)
+    function from_vec(x)
         t′ = similar(t)
-        ctr = 0
-        for (c, b) in blocks(t′)
-            n = length(b)
-            copyto!(b, reshape(view(x, ctr .+ (1:n)), size(b)) ./ sqrt(dim(c)))
-            ctr += n
+        xvec_of_vecs = back(x)
+        for (i, (c, b)) in enumerate(blocks(t′))
+            scale!(b, xvec_of_vecs[i], isqrtdim(c))
         end
         return t′
     end
-    return vec_real, from_vec
+
+    return vec, from_vec
 end
 FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
 
