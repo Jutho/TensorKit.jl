@@ -16,9 +16,11 @@ WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [weakdeps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
 
 [extensions]
 TensorKitChainRulesCoreExt = "ChainRulesCore"
+TensorKitFiniteDifferencesExt = "FiniteDifferences"
 
 [compat]
 Aqua = "0.6, 0.7, 0.8"
@@ -27,8 +29,8 @@ ChainRulesTestUtils = "1"
 Combinatorics = "1"
 FiniteDifferences = "0.12"
 HalfIntegers = "1"
-LinearAlgebra = "1"
 LRUCache = "1.0.2"
+LinearAlgebra = "1"
 PackageExtensionCompat = "1"
 Random = "1"
 Strided = "2"
