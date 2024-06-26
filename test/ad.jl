@@ -1,5 +1,6 @@
 using ChainRulesCore
 using ChainRulesTestUtils
+using FiniteDifferences: FiniteDifferences
 using Random
 using LinearAlgebra
 
