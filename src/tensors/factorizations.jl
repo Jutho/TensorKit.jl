@@ -36,6 +36,11 @@ function tsvd(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple; kwargs...)
     return tsvd!(permute(t, (p₁, p₂); copy=true); kwargs...)
 end
 
+LinearAlgebra.svdvals(t::AbstractTensorMap) = LinearAlgebra.svdvals!(copy(t))
+function LinearAlgebra.svdvals!(t::AbstractTensorMap)
+    return SectorDict(c => LinearAlgebra.svdvals!(b) for (c, b) in blocks(t))
+end
+
 """
     leftorth(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
                 alg::OrthogonalFactorizationAlgorithm = QRpos()) -> Q, R
@@ -166,6 +171,14 @@ See also `eig` and `eigh`
 function LinearAlgebra.eigen(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple;
                              kwargs...)
     return eigen!(permute(t, (p₁, p₂); copy=true); kwargs...)
+end
+
+function LinearAlgebra.eigvals(t::AbstractTensorMap; kwargs...)
+    return LinearAlgebra.eigvals!(copy(t); kwargs...)
+end
+function LinearAlgebra.eigvals!(t::AbstractTensorMap; kwargs...)
+    return SectorDict(c => complex(LinearAlgebra.eigvals!(b; kwargs...))
+                      for (c, b) in blocks(t))
 end
 
 """

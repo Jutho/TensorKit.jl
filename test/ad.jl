@@ -21,6 +21,27 @@ function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
     end
 end
 
+# make sure that norms are computed correctly:
+function FiniteDifferences.to_vec(t::TensorKit.SectorDict)
+    T = scalartype(valtype(t))
+    vec = mapreduce(vcat, t; init=T[]) do (c, b)
+        return reshape(b, :) .* sqrt(dim(c))
+    end
+    vec_real = T <: Real ? vec : collect(reinterpret(real(T), vec))
+
+    function from_vec(x_real)
+        x = T <: Real ? x_real : reinterpret(T, x_real)
+        ctr = 0
+        return TensorKit.SectorDict(c => (n = length(b);
+                                          b′ = reshape(view(x, ctr .+ (1:n)), size(b)) ./
+                                               sqrt(dim(c));
+                                          ctr += n;
+                                          b′)
+                                    for (c, b) in t)
+    end
+    return vec_real, from_vec
+end
+
 function _randomize!(a::TensorMap)
     for b in values(blocks(a))
         copyto!(b, randn(size(b)))
@@ -43,11 +64,17 @@ end
 function ChainRulesCore.rrule(::typeof(TensorKit.tsvd), args...; kwargs...)
     return ChainRulesCore.rrule(tsvd!, args...; kwargs...)
 end
+function ChainRulesCore.rrule(::typeof(LinearAlgebra.svdvals), args...; kwargs...)
+    return ChainRulesCore.rrule(svdvals!, args...; kwargs...)
+end
 function ChainRulesCore.rrule(::typeof(TensorKit.eig), args...; kwargs...)
     return ChainRulesCore.rrule(eig!, args...; kwargs...)
 end
 function ChainRulesCore.rrule(::typeof(TensorKit.eigh), args...; kwargs...)
     return ChainRulesCore.rrule(eigh!, args...; kwargs...)
+end
+function ChainRulesCore.rrule(::typeof(LinearAlgebra.eigvals), args...; kwargs...)
+    return ChainRulesCore.rrule(eigvals!, args...; kwargs...)
 end
 function ChainRulesCore.rrule(::typeof(TensorKit.leftorth), args...; kwargs...)
     return ChainRulesCore.rrule(leftorth!, args...; kwargs...)
@@ -329,6 +356,17 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, C; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
                        fkwargs=(; trunc=truncdim(2 * dim(c))))
+        end
+
+        let D = LinearAlgebra.eigvals(C)
+            ΔD = diag(TensorMap(randn, complex(scalartype(C)), space(C)))
+            test_rrule(LinearAlgebra.eigvals, C; atol, output_tangent=ΔD,
+                       fkwargs=(; sortby=nothing))
+        end
+
+        let S = LinearAlgebra.svdvals(C)
+            ΔS = diag(TensorMap(randn, real(scalartype(C)), space(C)))
+            test_rrule(LinearAlgebra.svdvals, C; atol, output_tangent=ΔS)
         end
     end
 end
