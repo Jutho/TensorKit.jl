@@ -132,6 +132,15 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
 @timedtestset "Automatic Differentiation with spacetype $(TensorKit.type_repr(eltype(V)))" verbose = true for V in
                                                                                                               Vlist
+    @timedtestset "Basic utility" begin
+        T1 = TensorMap(randn, Float64, V[1] ⊗ V[2] ← V[3] ⊗ V[4])
+        T2 = TensorMap(randn, ComplexF64, V[1] ⊗ V[2] ← V[3] ⊗ V[4])
+
+        P1 = ProjectTo(T1)
+        @test P1(T1) == T1
+        @test P1(T2) == real(T2)
+    end
+
     @timedtestset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = TensorMap(randn, T, space(A))
