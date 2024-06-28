@@ -139,6 +139,12 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         P1 = ProjectTo(T1)
         @test P1(T1) == T1
         @test P1(T2) == real(T2)
+
+        test_rrule(copy, T1)
+        test_rrule(copy, T2)
+
+        test_rrule(convert, Array, T1)
+        test_rrule(TensorMap, convert(Array, T1), space(T1))
     end
 
     @timedtestset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)

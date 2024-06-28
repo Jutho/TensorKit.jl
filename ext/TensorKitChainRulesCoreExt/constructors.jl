@@ -6,8 +6,8 @@
 
 function ChainRulesCore.rrule(::Type{<:TensorMap}, d::DenseArray, args...)
     function TensorMap_pullback(Δt)
-        ∂d = convert(Array, Δt)
-        return NoTangent(), ∂d, fill(NoTangent(), length(args))...
+        ∂d = convert(Array, unthunk(Δt))
+        return NoTangent(), ∂d, ntuple(_ -> NoTangent(), length(args))...
     end
     return TensorMap(d, args...), TensorMap_pullback
 end
@@ -21,7 +21,7 @@ function ChainRulesCore.rrule(::typeof(Base.convert), T::Type{<:Array},
                               t::AbstractTensorMap)
     A = convert(T, t)
     function convert_pullback(ΔA)
-        ∂t = TensorMap(ΔA, codomain(t), domain(t))
+        ∂t = TensorMap(unthunk(ΔA), codomain(t), domain(t))
         return NoTangent(), NoTangent(), ∂t
     end
     return A, convert_pullback
