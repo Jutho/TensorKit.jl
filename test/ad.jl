@@ -163,6 +163,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         test_rrule(LinearAlgebra.adjoint, A)
         test_rrule(LinearAlgebra.norm, A, 2)
+
+        B = TensorMap(randn, T, space(A))
+        test_rrule(LinearAlgebra.dot, A, B)
     end
 
     @timedtestset "TensorOperations with scalartype $T" for T in (Float64, ComplexF64)
