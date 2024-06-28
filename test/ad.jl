@@ -143,8 +143,10 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(copy, T1)
         test_rrule(copy, T2)
 
-        test_rrule(convert, Array, T1)
-        test_rrule(TensorMap, convert(Array, T1), space(T1))
+        T1 isa TrivialTensorMap && test_rrule(convert, Array, T1)
+        T2 isa TrivialTensorMap && test_rrule(TensorMap, convert(Array, T1), space(T1))
+        # TODO: can we make these methods/tests work for generic symmetries?
+        # the main problem here is finitedifferencing generates non-symmetric entries
     end
 
     @timedtestset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)

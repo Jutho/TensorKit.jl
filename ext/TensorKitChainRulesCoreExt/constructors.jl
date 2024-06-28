@@ -17,8 +17,10 @@ function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
     return copy(t), copy_pullback
 end
 
+# this rule does not work for generic symmetries, as we currently have no way to
+# project back onto the symmetric subspace
 function ChainRulesCore.rrule(::typeof(Base.convert), T::Type{<:Array},
-                              t::AbstractTensorMap)
+                              t::TrivialTensorMap)
     A = convert(T, t)
     function convert_pullback(ΔA)
         ∂t = TensorMap(unthunk(ΔA), codomain(t), domain(t))
