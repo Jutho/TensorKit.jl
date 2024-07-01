@@ -30,7 +30,8 @@ end
 
 function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{Dict}, t::AbstractTensorMap)
     out = convert(Dict, t)
-    function convert_pullback(c)
+    function convert_pullback(c′)
+        c = unthunk(c′)
         if haskey(c, :data) # :data is the only thing for which this dual makes sense
             dual = copy(out)
             dual[:data] = c[:data]
