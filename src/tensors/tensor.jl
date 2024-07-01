@@ -350,52 +350,57 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
          size(data) == (dims(codom)..., dims(dom)...))
         throw(DimensionMismatch())
     end
+
     if sectortype(S) === Trivial
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
         return TensorMap{S,N₁,N₂,Trivial,A,Nothing,Nothing}(data2, codom, dom)
-    else
-        t = TensorMap(zeros, eltype(data), codom, dom)
-        ta = convert(Array, t)
-        l = length(ta)
-        dimt = dim(t)
-        basis = zeros(eltype(ta), (l, dimt))
-        qdims = zeros(real(eltype(ta)), (dimt,))
-        i = 1
-        for (c, b) in blocks(t)
-            for k in 1:length(b)
-                b[k] = 1
-                copy!(view(basis, :, i), reshape(convert(Array, t), (l,)))
-                qdims[i] = dim(c)
-                b[k] = 0
-                i += 1
-            end
-        end
-        rhs = reshape(data, (l,))
-        if FusionStyle(sectortype(t)) isa UniqueFusion
-            lhs = basis' * rhs
-        else
-            lhs = Diagonal(qdims) \ (basis' * rhs)
-        end
-        if norm(basis * lhs - rhs) > tol
-            throw(ArgumentError("Data has non-zero elements at incompatible positions"))
-        end
-        if eltype(lhs) != scalartype(t)
-            t2 = TensorMap(zeros, promote_type(eltype(lhs), scalartype(t)), codom, dom)
-        else
-            t2 = t
-        end
-        i = 1
-        for (c, b) in blocks(t2)
-            for k in 1:length(b)
-                b[k] = lhs[i]
-                i += 1
-            end
-        end
-        return t2
     end
+
+    t = TensorMap(zeros, eltype(data), codom, dom)
+    for (f₁, f₂) in fusiontrees(t)
+        c = f₁.coupled
+        d = inv(dim(c))
+
+        # fusiontree part
+        F₁ = convert(Array, f₁)
+        F₂ = convert(Array, f₂)
+        sz1 = size(F₁)
+        sz2 = size(F₂)
+        d1 = TupleTools.front(sz1)
+        d2 = TupleTools.front(sz2)
+        F = reshape(reshape(F₁, TupleTools.prod(d1), sz1[end]) *
+                    reshape(F₂, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
+
+        # data part
+        b = zeros(eltype(data), dims(codomain(t), f₁.uncoupled)...,
+                  dims(domain(t), f₂.uncoupled)...)
+        szbF = _interleave(size(b), size(F))
+        dataslice = sreshape(StridedView(data)[axes(codom, f₁.uncoupled)...,
+                                               axes(dom, f₂.uncoupled)...],
+                             szbF)
+        # project (can this be done in one go?)
+        for k in eachindex(b)
+            b[k] = 1
+            projector = _kron(b, F)
+            t[f₁, f₂][k] = dot(projector, dataslice) * d
+            b[k] = 0
+        end
+    end
+
+    if !isapprox(data, convert(Array, t); atol=tol)
+        throw(ArgumentError("Data has non-zero elements at incompatible positions"))
+    end
+
+    return t
 end
 
+function _interleave(a::Base.Dims{N}, b::Base.Dims{N}) where {N}
+    return ntuple(2N) do i
+        halfi, rem = divrem(i, 2)
+        return getindex(rem == 1 ? a : b, halfi + rem)
+    end
+end
 # Efficient copy constructors
 #-----------------------------
 Base.copy(t::TrivialTensorMap) = typeof(t)(copy(t.data), t.codom, t.dom)
