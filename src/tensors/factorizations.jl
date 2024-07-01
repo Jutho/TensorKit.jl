@@ -428,21 +428,13 @@ function _tsvd!(t, alg::Union{SVD,SDD}, trunc::TruncationScheme, p::Real=2)
 
     S = spacetype(t)
     Udata, Σdata, Vdata, dims = _compute_svddata!(t, alg)
-    if !isa(trunc, NoTruncation)
+    if trunc isa NoTruncation
+        truncerr = abs(zero(scalartype(t)))
+    else
         Σdata, truncerr = _truncate!(Σdata, trunc, p)
         Udata, Σdata, Vdata, dims = _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
-        W = S(dims)
-    else
-        truncerr = abs(zero(scalartype(t)))
-        W = S(dims)
-        # TODO: do we really want this behaviour? this changes the arrows of the S legs, but
-        # only sometimes?
-        if length(domain(t)) == 1 && domain(t)[1] ≅ W
-            W = domain(t)[1]
-        elseif length(codomain(t)) == 1 && codomain(t)[1] ≅ W
-            W = codomain(t)[1]
-        end
     end
+    W = S(dims)
     return _create_svdtensors(t, Udata, Σdata, Vdata, W)..., truncerr
 end
 
