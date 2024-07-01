@@ -4,12 +4,12 @@
 @non_differentiable TensorKit.isometry(args...)
 @non_differentiable TensorKit.unitary(args...)
 
-function ChainRulesCore.rrule(::Type{<:TensorMap}, d::DenseArray, args...)
+function ChainRulesCore.rrule(::Type{<:TensorMap}, d::DenseArray, args...; kwargs...)
     function TensorMap_pullback(Δt)
         ∂d = convert(Array, unthunk(Δt))
         return NoTangent(), ∂d, ntuple(_ -> NoTangent(), length(args))...
     end
-    return TensorMap(d, args...), TensorMap_pullback
+    return TensorMap(d, args...; kwargs...), TensorMap_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
@@ -17,13 +17,12 @@ function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
     return copy(t), copy_pullback
 end
 
-# this rule does not work for generic symmetries, as we currently have no way to
-# project back onto the symmetric subspace
 function ChainRulesCore.rrule(::typeof(Base.convert), T::Type{<:Array},
-                              t::TrivialTensorMap)
+                              t::AbstractTensorMap)
     A = convert(T, t)
     function convert_pullback(ΔA)
-        ∂t = TensorMap(unthunk(ΔA), codomain(t), domain(t))
+        # use constructor to (unconditionally) project back onto symmetric subspace
+        ∂t = TensorMap(unthunk(ΔA), codomain(t), domain(t); tol=Inf)
         return NoTangent(), NoTangent(), ∂t
     end
     return A, convert_pullback
