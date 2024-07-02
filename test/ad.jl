@@ -15,6 +15,7 @@ end
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap)
     return TensorMap(randn, scalartype(x), space(x))
 end
+ChainRulesTestUtils.rand_tangent(::AbstractRNG, ::VectorSpace) = NoTangent()
 function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
                                          expected::AbstractTensorMap, msg=""; kwargs...)
     for (c, b) in blocks(actual)
