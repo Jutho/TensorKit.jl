@@ -350,50 +350,53 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
          size(data) == (dims(codom)..., dims(dom)...))
         throw(DimensionMismatch())
     end
+
     if sectortype(S) === Trivial
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
         return TensorMap{S,N₁,N₂,Trivial,A,Nothing,Nothing}(data2, codom, dom)
-    else
-        t = TensorMap(zeros, eltype(data), codom, dom)
-        ta = convert(Array, t)
-        l = length(ta)
-        dimt = dim(t)
-        basis = zeros(eltype(ta), (l, dimt))
-        qdims = zeros(real(eltype(ta)), (dimt,))
-        i = 1
-        for (c, b) in blocks(t)
-            for k in 1:length(b)
-                b[k] = 1
-                copy!(view(basis, :, i), reshape(convert(Array, t), (l,)))
-                qdims[i] = dim(c)
-                b[k] = 0
-                i += 1
-            end
-        end
-        rhs = reshape(data, (l,))
-        if FusionStyle(sectortype(t)) isa UniqueFusion
-            lhs = basis' * rhs
-        else
-            lhs = Diagonal(qdims) \ (basis' * rhs)
-        end
-        if norm(basis * lhs - rhs) > tol
-            throw(ArgumentError("Data has non-zero elements at incompatible positions"))
-        end
-        if eltype(lhs) != scalartype(t)
-            t2 = TensorMap(zeros, promote_type(eltype(lhs), scalartype(t)), codom, dom)
-        else
-            t2 = t
-        end
-        i = 1
-        for (c, b) in blocks(t2)
-            for k in 1:length(b)
-                b[k] = lhs[i]
-                i += 1
-            end
-        end
-        return t2
     end
+
+    t = TensorMap(undef, eltype(data), codom, dom)
+    project_symmetric!(t, data)
+
+    if !isapprox(data, convert(Array, t); atol=tol)
+        throw(ArgumentError("Data has non-zero elements at incompatible positions"))
+    end
+
+    return t
+end
+
+"""
+    project_symmetric!(t::TensorMap, data::DenseArray) -> TensorMap
+
+Project the data from a dense array `data` into the tensor map `t`. This function discards 
+any data that does not fit the symmetry structure of `t`.
+"""
+function project_symmetric!(t::TensorMap, data::DenseArray)
+    if sectortype(t) === Trivial
+        copy!(t.data, reshape(data, size(t.data)))
+        return t
+    end
+
+    for (f₁, f₂) in fusiontrees(t)
+        F = convert(Array, (f₁, f₂))
+        b = zeros(eltype(data), dims(codomain(t), f₁.uncoupled)...,
+                  dims(domain(t), f₂.uncoupled)...)
+        szbF = _interleave(size(b), size(F))
+        dataslice = sreshape(StridedView(data)[axes(codomain(t), f₁.uncoupled)...,
+                                               axes(domain(t), f₂.uncoupled)...], szbF)
+        # project (can this be done in one go?)
+        d = inv(dim(f₁.coupled))
+        for k in eachindex(b)
+            b[k] = 1
+            projector = _kron(b, F) # probably possible to re-use memory
+            t[f₁, f₂][k] = dot(projector, dataslice) * d
+            b[k] = 0
+        end
+    end
+
+    return t
 end
 
 # Efficient copy constructors

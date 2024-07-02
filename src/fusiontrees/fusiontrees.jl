@@ -207,6 +207,20 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I,N}) where {I,N}
                               Ctail, ((1,), Base.tail(trivialtuple)), :N, true, false)
 end
 
+# TODO: is this piracy?
+function Base.convert(A::Type{<:AbstractArray},
+                      (f₁, f₂)::Tuple{FusionTree{I},FusionTree{I}}) where {I}
+    F₁ = convert(A, f₁)
+    F₂ = convert(A, f₂)
+    sz1 = size(F₁)
+    sz2 = size(F₂)
+    d1 = TupleTools.front(sz1)
+    d2 = TupleTools.front(sz2)
+
+    return reshape(reshape(F₁, TupleTools.prod(d1), sz1[end]) *
+                   reshape(F₂, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
+end
+
 # Show methods
 function Base.show(io::IO, t::FusionTree{I,N,M,K,Nothing}) where {I<:Sector,N,M,K}
     return print(IOContext(io, :typeinfo => I), "FusionTree{", type_repr(I), "}(",
