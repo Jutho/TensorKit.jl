@@ -395,12 +395,6 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
     return t
 end
 
-function _interleave(a::Base.Dims{N}, b::Base.Dims{N}) where {N}
-    return ntuple(2N) do i
-        halfi, rem = divrem(i, 2)
-        return getindex(rem == 1 ? a : b, halfi + rem)
-    end
-end
 # Efficient copy constructors
 #-----------------------------
 Base.copy(t::TrivialTensorMap) = typeof(t)(copy(t.data), t.codom, t.dom)
