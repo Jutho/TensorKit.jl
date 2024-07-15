@@ -151,6 +151,19 @@ for morphism in (:isomorphism, :unitary, :isometry)
     end
 end
 
+# Diagonal tensors
+# ----------------
+# TODO: consider adding a specialised DiagonalTensorMap type
+function LinearAlgebra.diag(t::AbstractTensorMap)
+    return SectorDict(c => LinearAlgebra.diag(b) for (c, b) in blocks(t))
+end
+function LinearAlgebra.diagm(codom::VectorSpace, dom::VectorSpace, v::SectorDict)
+    return TensorMap(SectorDict(c => LinearAlgebra.diagm(blockdim(codom, c),
+                                                         blockdim(dom, c), b)
+                                for (c, b) in v), codom ← dom)
+end
+LinearAlgebra.isdiag(t::AbstractTensorMap) = all(LinearAlgebra.isdiag, values(blocks(t)))
+
 # In-place methods
 #------------------
 # Wrapping the blocks in a StridedView enables multithreading if JULIA_NUM_THREADS > 1

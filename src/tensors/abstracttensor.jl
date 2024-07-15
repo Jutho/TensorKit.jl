@@ -316,14 +316,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap)
         dom = domain(t)
         local A
         for (f₁, f₂) in fusiontrees(t)
-            F₁ = convert(Array, f₁)
-            F₂ = convert(Array, f₂)
-            sz1 = size(F₁)
-            sz2 = size(F₂)
-            d1 = TupleTools.front(sz1)
-            d2 = TupleTools.front(sz2)
-            F = reshape(reshape(F₁, TupleTools.prod(d1), sz1[end]) *
-                        reshape(F₂, TupleTools.prod(d2), sz2[end])', (d1..., d2...))
+            F = convert(Array, (f₁, f₂))
             if !(@isdefined A)
                 if eltype(F) <: Complex
                     T = complex(float(scalartype(t)))

@@ -90,8 +90,8 @@ end
 
 # Show
 #------
-function Base.summary(t::AdjointTensorMap)
-    return print("AdjointTensorMap(", codomain(t), " ← ", domain(t), ")")
+function Base.summary(io::IO, t::AdjointTensorMap)
+    return print(io, "AdjointTensorMap(", codomain(t), " ← ", domain(t), ")")
 end
 function Base.show(io::IO, t::AdjointTensorMap)
     if get(io, :compact, false)

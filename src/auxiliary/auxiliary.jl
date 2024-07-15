@@ -51,3 +51,13 @@ else
 end
 
 const MatOrNumber{T<:Number} = Union{DenseMatrix{T},T}
+
+"""
+    _interleave(a::NTuple{N}, b::NTuple{N}) -> NTuple{2N}
+
+Interleave two tuples of the same length.
+"""
+_interleave(::Tuple{}, ::Tuple{}) = ()
+function _interleave(a::NTuple{N}, b::NTuple{N}) where {N}
+    return (a[1], b[1], _interleave(tail(a), tail(b))...)
+end

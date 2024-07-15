@@ -224,23 +224,23 @@ end
 
 # Twist
 """
-    twist!(t::AbstractTensorMap, i::Int; inv::Bool=false)
-        -> t
+    twist!(t::AbstractTensorMap, i::Int; inv::Bool=false) -> t
+    twist!(t::AbstractTensorMap, is; inv::Bool=false) -> t
 
-Apply a twist to the `i`th index of `t`, storing the result in `t`.
+Apply a twist to the `i`th index of `t`, or all indices in `is`, storing the result in `t`.
 If `inv=true`, use the inverse twist.
 
 See [`twist`](@ref) for creating a new tensor.
 """
-function twist!(t::AbstractTensorMap, i::Int; inv::Bool=false)
-    if i > numind(t)
-        msg = "Can't twist index $i of a tensor with only $(numind(t)) indices."
+function twist!(t::AbstractTensorMap, is; inv::Bool=false)
+    if !all(in(allind(t)), is)
+        msg = "Can't twist indices $is of a tensor with only $(numind(t)) indices."
         throw(ArgumentError(msg))
     end
-    BraidingStyle(sectortype(t)) == Bosonic() && return t
+    (BraidingStyle(sectortype(t)) == Bosonic() || isempty(is)) && return t
     N₁ = numout(t)
     for (f₁, f₂) in fusiontrees(t)
-        θ = i <= N₁ ? twist(f₁.uncoupled[i]) : twist(f₂.uncoupled[i - N₁])
+        θ = prod(i -> i <= N₁ ? twist(f₁.uncoupled[i]) : twist(f₂.uncoupled[i - N₁]), is)
         inv && (θ = θ')
         rmul!(t[f₁, f₂], θ)
     end
@@ -248,15 +248,15 @@ function twist!(t::AbstractTensorMap, i::Int; inv::Bool=false)
 end
 
 """
-    twist(t::AbstractTensorMap, i::Int; inv::Bool=false)
-        -> t
+    twist(tsrc::AbstractTensorMap, i::Int; inv::Bool=false) -> tdst
+    twist(tsrc::AbstractTensorMap, is; inv::Bool=false) -> tdst
 
-Apply a twist to the `i`th index of `t` and return the result as a new tensor.
+Apply a twist to the `i`th index of `tsrc` and return the result as a new tensor.
 If `inv=true`, use the inverse twist.
 
 See [`twist!`](@ref) for storing the result in place.
 """
-twist(t::AbstractTensorMap, i::Int; inv::Bool=false) = twist!(copy(t), i; inv=inv)
+twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
 
 # Fusing and splitting
 # TODO: add functionality for easy fusing and splitting of tensor indices

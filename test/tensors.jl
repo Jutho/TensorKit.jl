@@ -191,6 +191,14 @@ for V in spacelist
             @test Base.promote_typeof(t, tc) == typeof(tc)
             @test Base.promote_typeof(tc, t) == typeof(tc + t)
         end
+        @timedtestset "diag/diagm" begin
+            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+            t = randn(ComplexF64, W)
+            d = LinearAlgebra.diag(t)
+            D = LinearAlgebra.diagm(codomain(t), domain(t), d)
+            @test LinearAlgebra.isdiag(D)
+            @test LinearAlgebra.diag(D) == d
+        end
         @timedtestset "Permutations: test via inner product invariance" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
             t = rand(ComplexF64, W)
@@ -411,7 +419,14 @@ for V in spacelist
                         @test UdU ≈ one(UdU)
                         VVd = V * V'
                         @test VVd ≈ one(VVd)
-                        @test U * S * V ≈ permute(t, ((3, 4, 2), (1, 5)))
+                        t2 = permute(t, ((3, 4, 2), (1, 5)))
+                        @test U * S * V ≈ t2
+
+                        s = LinearAlgebra.svdvals(t2)
+                        s′ = LinearAlgebra.diag(S)
+                        for (c, b) in s
+                            @test b ≈ s′[c]
+                        end
                     end
                 end
                 @testset "empty tensor" begin
@@ -460,6 +475,12 @@ for V in spacelist
                     D, V = eigen(t, ((1, 3), (2, 4)))
                     t2 = permute(t, ((1, 3), (2, 4)))
                     @test t2 * V ≈ V * D
+
+                    d = LinearAlgebra.eigvals(t2; sortby=nothing)
+                    d′ = LinearAlgebra.diag(D)
+                    for (c, b) in d
+                        @test b ≈ d′[c]
+                    end
 
                     # Somehow moving these test before the previous one gives rise to errors
                     # with T=Float32 on x86 platforms. Is this an OpenBLAS issue? 
