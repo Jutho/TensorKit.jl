@@ -197,9 +197,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
                 α = randn(T)
                 β = randn(T)
-                for conjA in (:N, :C)
-                    C = randn!(TensorOperations.tensoralloc_add(T, p, A, conjA, false))
-                    test_rrule(tensortrace!, C, p, A, q, conjA, α, β; atol, rtol)
+                for conjA in (false, true)
+                    C = randn!(TensorOperations.tensoralloc_add(T, A, p, conjA, Val(false)))
+                    test_rrule(tensortrace!, C, A, p, q, conjA, α, β; atol, rtol)
                 end
             end
         end
@@ -213,11 +213,11 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             for _ in 1:5
                 p = randindextuple(length(V))
 
-                C1 = randn!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
-                test_rrule(tensoradd!, C1, p, A, :N, α, β; atol, rtol)
+                C1 = randn!(TensorOperations.tensoralloc_add(T, A, p, false, Val(false)))
+                test_rrule(tensoradd!, C1, A, p, false, α, β; atol, rtol)
 
-                C2 = randn!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
-                test_rrule(tensoradd!, C2, p, A, :C, α, β; atol, rtol)
+                C2 = randn!(TensorOperations.tensoralloc_add(T, A, p, true, Val(false)))
+                test_rrule(tensoradd!, C2, A, p, true, α, β; atol, rtol)
 
                 A = rand(Bool) ? C1 : C2
             end
@@ -248,15 +248,15 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
                 β = randn(T)
                 V2_conj = prod(conj, V2; init=one(V[1]))
 
-                for conjA in (:N, :C), conjB in (:N, :C)
-                    A = randn(T, permute(V1 ← (conjA === :C ? V2_conj : V2), ipA))
-                    B = randn(T, permute((conjB === :C ? V2_conj : V2) ← V3, ipB))
-                    C = randn!(TensorOperations.tensoralloc_contract(T, pAB, A, pA,
+                for conjA in (false, true), conjB in (false, true)
+                    A = randn(T, permute(V1 ← (conjA ? V2_conj : V2), ipA))
+                    B = randn(T, permute((conjB ? V2_conj : V2) ← V3, ipB))
+                    C = randn!(TensorOperations.tensoralloc_contract(T, A, pA,
                                                                      conjA,
-                                                                     B, pB, conjB,
-                                                                     false))
-                    test_rrule(tensorcontract!, C, pAB,
-                               A, pA, conjA, B, pB, conjB,
+                                                                     B, pB, conjB, pAB,
+                                                                     Val(false)))
+                    test_rrule(tensorcontract!, C,
+                               A, pA, conjA, B, pB, conjB, pAB,
                                α, β; atol, rtol)
                 end
             end

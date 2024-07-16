@@ -1,7 +1,7 @@
 name = "TensorKit"
 uuid = "07d1fe3e-3e46-537d-9eac-e9e13d0d4cec"
 authors = ["Jutho Haegeman"]
-version = "0.12.5"
+version = "1.0.0-DEV"
 
 [deps]
 HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
@@ -35,7 +35,7 @@ LinearAlgebra = "1"
 PackageExtensionCompat = "1"
 Random = "1"
 Strided = "2"
-TensorOperations = "4.1"
+TensorOperations = "5"
 Test = "1"
 TestExtras = "0.2"
 TupleTools = "1.1"

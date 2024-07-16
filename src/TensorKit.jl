@@ -95,7 +95,7 @@ using Strided
 using VectorInterface
 
 using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon
-using TensorOperations: IndexTuple, Index2Tuple, linearize, Backend
+using TensorOperations: IndexTuple, Index2Tuple, linearize, AbstractBackend
 const TO = TensorOperations
 
 using LRUCache

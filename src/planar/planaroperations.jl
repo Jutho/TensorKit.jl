@@ -1,23 +1,79 @@
 # planar versions of tensor operations add!, trace! and contract!
+
+# insert default backend
+function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number)
+    return planaradd!(C, A, p, α, β, TO.DefaultBackend())
+end
+# insert default allocator
+function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number, backend::AbstractBackend)
+    return planaradd!(C, A, p, α, β, backend, TO.DefaultAllocator())
+end
+# replace default backend with select_backend mechanism
+function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number, backend::AbstractBackend,
+                    allocator)
+    if backend isa TO.DefaultBackend
+        backend = TO.select_backend(planaradd!, C, A)
+        return planaradd!(C, A, p, α, β, backend, allocator)
+    elseif backend isa TO.NoBackend
+        # error for missing backend
+        TC = typeof(C)
+        TA = typeof(A)
+        throw(ArgumentError("No suitable backend found for planaradd! and tensor types $TC and $TA"))
+    else
+        # error for unknown backend
+        TC = typeof(C)
+        TA = typeof(A)
+        throw(ArgumentError("Unknown backend $backend for planaradd! and tensor types $TC and $TA"))
+    end
+end
+# implementation
 function planaradd!(C::AbstractTensorMap,
                     A::AbstractTensorMap,
                     p::Index2Tuple,
                     α::Number, β::Number,
-                    backend::Backend...)
-    return add_transpose!(C, A, p, α, β, backend...)
+                    backend::AbstractBackend, allocator)
+    return add_transpose!(C, A, p, α, β, backend)
 end
 
+# insert default backend
+function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Number)
+    return planartrace!(C, A, p, q, α, β, TO.DefaultBackend())
+end
+# insert default allocator
+function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Number,
+                      backend::AbstractBackend)
+    return planartrace!(C, A, p, q, α, β, backend, TO.DefaultAllocator())
+end
+# replace default backend with select_backend mechanism
+function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Number,
+                      backend::AbstractBackend, allocator)
+    if backend isa TO.DefaultBackend
+        backend = TO.select_backend(planartrace!, C, A)
+        return planartrace!(C, A, p, q, α, β, backend, allocator)
+    elseif backend isa TO.NoBackend
+        # error for missing backend
+        TC = typeof(C)
+        TA = typeof(A)
+        throw(ArgumentError("No suitable backend found for planartrace! and tensor types $TC and $TA"))
+    else
+        # error for unknown backend
+        TC = typeof(C)
+        TA = typeof(A)
+        throw(ArgumentError("Unknown backend $backend for planartrace! and tensor types $TC and $TA"))
+    end
+end
+# implementation
 function planartrace!(C::AbstractTensorMap,
                       A::AbstractTensorMap,
                       (p₁, p₂)::Index2Tuple,
                       (q₁, q₂)::Index2Tuple,
                       α::Number,
                       β::Number,
-                      backend::Backend...)
+                      backend::AbstractBackend, allocator)
     (S = spacetype(C)) == spacetype(A) ||
         throw(SpaceMismatch("incompatible spacetypes"))
     if BraidingStyle(sectortype(S)) == Bosonic()
-        return trace_permute!(C, A, p, q, α, β, backend...)
+        return trace_permute!(C, A, p, q, α, β, backend)
     end
     (N₃ = length(q₁)) == length(q₂) ||
         throw(IndexError("number of trace indices does not match"))
@@ -42,15 +98,48 @@ function planartrace!(C::AbstractTensorMap,
     elseif !isone(β)
         rmul!(C, β)
     end
+    β′ = One()
     for (f₁, f₂) in fusiontrees(A)
         for ((f₁′, f₂′), coeff) in planar_trace(f₁, f₂, p₁, p₂, q₁, q₂)
-            TO.tensortrace!(C[f₁′, f₂′], (p₁, p₂), A[f₁, f₂], (q₁, q₂), :N, α * coeff, true,
-                            backend...)
+            TO.tensortrace!(C[f₁′, f₂′], A[f₁, f₂], (p₁, p₂), (q₁, q₂), false, α * coeff,
+                            β′,
+                            backend, allocator)
         end
     end
     return C
 end
 
+# insert default backend
+function planarcontract!(C, A, pA::Index2Tuple, B, pB::Index2Tuple, pAB::Index2Tuple,
+                         α::Number, β::Number)
+    return planarcontract!(C, A, pA, B, pB, pAB, α, β, TO.DefaultBackend())
+end
+# insert default allocator
+function planarcontract!(C, A, pA::Index2Tuple, B, pB::Index2Tuple, pAB::Index2Tuple,
+                         α::Number, β::Number, backend::AbstractBackend)
+    return planarcontract!(C, A, pA, B, pB, pAB, α, β, backend, TO.DefaultAllocator())
+end
+# replace default backend with select_backend mechanism
+function planarcontract!(C, A, pA::Index2Tuple, B, pB::Index2Tuple, pAB::Index2Tuple,
+                         α::Number, β::Number, backend::AbstractBackend, allocator)
+    if backend isa TO.DefaultBackend
+        backend = TO.select_backend(planarcontract!, C, A, B)
+        return planarcontract!(C, A, pA, B, pB, pAB, α, β, backend, allocator)
+    elseif backend isa TO.NoBackend
+        # error for missing backend
+        TC = typeof(C)
+        TA = typeof(A)
+        TB = typeof(B)
+        throw(ArgumentError("No suitable backend found for planarcontract! and tensor types $TC, $TA and $TB"))
+    else
+        # error for unknown backend
+        TC = typeof(C)
+        TA = typeof(A)
+        TB = typeof(B)
+        throw(ArgumentError("Unknown backend $backend for planarcontract! and tensor types $TC, $TA and $TB"))
+    end
+end
+# implementation
 function planarcontract!(C::AbstractTensorMap,
                          A::AbstractTensorMap,
                          pA::Index2Tuple,
@@ -59,9 +148,10 @@ function planarcontract!(C::AbstractTensorMap,
                          pAB::Index2Tuple,
                          α::Number,
                          β::Number,
-                         backend::Backend...)
+                         backend::AbstractBackend,
+                         allocator)
     if BraidingStyle(sectortype(C)) == Bosonic()
-        return contract!(C, A, pA, B, pB, pAB, α, β, backend...)
+        return contract!(C, A, pA, B, pB, pAB, α, β, backend, allocator)
     end
 
     codA, domA = codomainind(A), domainind(A)
@@ -74,19 +164,21 @@ function planarcontract!(C::AbstractTensorMap,
     if oindA == codA && cindA == domA
         A′ = A
     else
-        A′ = TO.tensoralloc_add(scalartype(A), (oindA, cindA), A, :N, true)
-        add_transpose!(A′, A, (oindA, cindA), true, false, backend...)
+        A′ = TO.tensoralloc_add(scalartype(A), A, (oindA, cindA), false, Val(true),
+                                allocator)
+        add_transpose!(A′, A, (oindA, cindA), One(), Zero(), backend)
     end
 
     if cindB == codB && oindB == domB
         B′ = B
     else
-        B′ = TensorOperations.tensoralloc_add(scalartype(B), (cindB, oindB), B, :N, true)
-        add_transpose!(B′, B, (cindB, oindB), true, false, backend...)
+        B′ = TensorOperations.tensoralloc_add(scalartype(B), B, (cindB, oindB), false,
+                                              Val(true), allocator)
+        add_transpose!(B′, B, (cindB, oindB), One(), Zero(), backend)
     end
     mul!(C, A′, B′, α, β)
-    (oindA == codA && cindA == domA) || TO.tensorfree!(A′)
-    (cindB == codB && oindB == domB) || TO.tensorfree!(B′)
+    (oindA == codA && cindA == domA) || TO.tensorfree!(A′, allocator)
+    (cindB == codB && oindB == domB) || TO.tensorfree!(B′, allocator)
 
     return C
 end

@@ -269,7 +269,7 @@ twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
                                           p::Index2Tuple{N₁,N₂},
                                           α::Number,
                                           β::Number,
-                                          backend::Backend...) where {E,S,N₁,N₂}
+                                          backend::AbstractBackend...) where {E,S,N₁,N₂}
     treepermuter(f₁, f₂) = permute(f₁, f₂, p[1], p[2])
     return add_transform!(tdst, tsrc, p, treepermuter, α, β, backend...)
 end
@@ -280,7 +280,7 @@ end
                                         levels::IndexTuple,
                                         α::Number,
                                         β::Number,
-                                        backend::Backend...) where {E,S,N₁,N₂}
+                                        backend::AbstractBackend...) where {E,S,N₁,N₂}
     length(levels) == numind(tsrc) ||
         throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(tsrc)) ← $(domain(tsrc))"))
 
@@ -296,7 +296,7 @@ end
                                             p::Index2Tuple{N₁,N₂},
                                             α::Number,
                                             β::Number,
-                                            backend::Backend...) where {E,S,N₁,N₂}
+                                            backend::AbstractBackend...) where {E,S,N₁,N₂}
     treetransposer(f₁, f₂) = transpose(f₁, f₂, p[1], p[2])
     return add_transform!(tdst, tsrc, p, treetransposer, α, β, backend...)
 end
@@ -307,7 +307,7 @@ function add_transform!(tdst::AbstractTensorMap{E,S,N₁,N₂},
                         fusiontreetransform,
                         α::Number,
                         β::Number,
-                        backend::Backend...) where {E,S,N₁,N₂}
+                        backend::AbstractBackend...) where {E,S,N₁,N₂}
     @boundscheck begin
         permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
@@ -329,7 +329,7 @@ end
 
 # internal methods: no argument types
 function _add_trivial_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
-    TO.tensoradd!(tdst[], p, tsrc[], :N, α, β, backend...)
+    TO.tensoradd!(tdst[], tsrc[], p, false, α, β, backend...)
     return nothing
 end
 
@@ -350,7 +350,8 @@ end
 
 function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)
     (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
-    @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, β, backend...)
+    @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
+                            backend...)
     return nothing
 end
 
@@ -360,28 +361,30 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
     elseif β != 1
         tdst = scale!(tdst, β)
     end
+    β′ = One()
     if Threads.nthreads() > 1
         Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
             Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁,
-                                                   s₂, α, β, backend...)
+                                                   s₂, α, β′, backend...)
         end
     else
         for (f₁, f₂) in fusiontrees(tsrc)
             for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-                @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff,
-                                        true, backend...)
+                @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff,
+                                        β′, backend...)
             end
         end
     end
     return nothing
 end
 
+# TODO: β argument is weird here because it has to be 1
 function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, β,
                                  backend...)
     for (f₁, f₂) in fusiontrees(tsrc)
         (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
         for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], p, tsrc[f₁, f₂], :N, α * coeff, true,
+            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
                                     backend...)
         end
     end

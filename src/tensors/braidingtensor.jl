@@ -198,7 +198,7 @@ function add_transform!(tdst::AbstractTensorMap,
                         fusiontreetransform,
                         α::Number,
                         β::Number,
-                        backend::Backend...)
+                        backend::AbstractBackend...)
     return add_transform!(tdst, TensorMap(tsrc), (p₁, p₂), fusiontreetransform, α, β,
                           backend...)
 end
@@ -211,10 +211,11 @@ end
 # ----------------
 # TODO: implement specialized methods
 
-function TO.tensoradd!(C::AbstractTensorMap, pC::Index2Tuple,
-                       A::BraidingTensor, conjA::Symbol, α::Number, β::Number,
-                       backend::Backend...)
-    return TO.tensoradd!(C, pC, TensorMap(A), conjA, α, β, backend...)
+function TO.tensoradd!(C::AbstractTensorMap,
+                       A::BraidingTensor, pA::Index2Tuple, conjA::Symbol,
+                       α::Number, β::Number, backend::AbstractBackend=TO.DefaultBackend(),
+                       allocator=TO.DefaultAllocator())
+    return TO.tensoradd!(C, TensorMap(A), pA, conjA, α, β, backend, allocator)
 end
 
 # Planar operations
@@ -224,8 +225,9 @@ end
 function planaradd!(C::AbstractTensorMap,
                     A::BraidingTensor, p::Index2Tuple,
                     α::Number, β::Number,
-                    backend::Backend...)
-    return planaradd!(C, TensorMap(A), p, α, β, backend...)
+                    backend::AbstractBackend,
+                    allocator)
+    return planaradd!(C, TensorMap(A), p, α, β, backend, allocator)
 end
 
 function planarcontract!(C::AbstractTensorMap,
@@ -235,11 +237,12 @@ function planarcontract!(C::AbstractTensorMap,
                          (cindB, oindB)::Index2Tuple,
                          (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::Backend...)
+                         backend::AbstractBackend,
+                         allocator)
     # special case only defined for contracting 2 indices
     length(oindA) == length(cindA) == 2 ||
         return planarcontract!(C, TensorMap(A), (oindA, cindA), B, (cindB, oindB), (p1, p2),
-                               α, β, backend...)
+                               α, β, backend, allocator)
 
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
@@ -252,7 +255,7 @@ function planarcontract!(C::AbstractTensorMap,
     end
 
     if BraidingStyle(sectortype(B)) isa Bosonic
-        return add_permute!(C, B, (reverse(cindB), oindB), α, β, backend...)
+        return add_permute!(C, B, (reverse(cindB), oindB), α, β, backend)
     end
 
     τ_levels = A.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
@@ -273,8 +276,8 @@ function planarcontract!(C::AbstractTensorMap,
             end
         end
         for ((f₁′, f₂′), coeff) in newtrees
-            TO.tensoradd!(C[f₁′, f₂′], (reverse(cindB), oindB), B[f₁, f₂], :N, α * coeff,
-                          One(), backend...)
+            TO.tensoradd!(C[f₁′, f₂′], B[f₁, f₂], (reverse(cindB), oindB), false, α * coeff,
+                          One(), backend, allocator)
         end
     end
     return C
@@ -286,11 +289,12 @@ function planarcontract!(C::AbstractTensorMap,
                          (cindB, oindB)::Index2Tuple,
                          (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::Backend...)
+                         backend::AbstractBackend,
+                         allocator)
     # special case only defined for contracting 2 indices
     length(oindB) == length(cindB) == 2 ||
         return planarcontract!(C, A, (oindA, cindA), TensorMap(B), (cindB, oindB), (p1, p2),
-                               α, β, backend...)
+                               α, β, backend, allocator)
 
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
@@ -303,7 +307,7 @@ function planarcontract!(C::AbstractTensorMap,
     end
 
     if BraidingStyle(sectortype(A)) isa Bosonic
-        return add_permute!(C, A, (oindA, reverse(cindA)), α, β, backend...)
+        return add_permute!(C, A, (oindA, reverse(cindA)), α, β, backend)
     end
 
     scale!(C, β)
@@ -324,8 +328,8 @@ function planarcontract!(C::AbstractTensorMap,
             end
         end
         for ((f₁′, f₂′), coeff) in newtrees
-            TO.tensoradd!(C[f₁′, f₂′], (oindA, reverse(cindA)), A[f₁, f₂], :N, α * coeff,
-                          One(), backend...)
+            TO.tensoradd!(C[f₁′, f₂′], A[f₁, f₂], (oindA, reverse(cindA)), false, α * coeff,
+                          One(), backend, allocator)
         end
     end
     return C
@@ -333,17 +337,20 @@ end
 
 # ambiguity fix:
 function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
-                         B::BraidingTensor, pB::Index2Tuple, pC::Index2Tuple,
-                         α::Number, β::Number, backend::Backend...)
-    return planarcontract!(C, TensorMap(A), pA, TensorMap(B), pB, pC, α, β, backend...)
+                         B::BraidingTensor, pB::Index2Tuple, pAB::Index2Tuple,
+                         α::Number, β::Number, backend::AbstractBackend,
+                         allocator)
+    return planarcontract!(C, TensorMap(A), pA, TensorMap(B), pB, pAB, α, β, backend,
+                           allocator)
 end
 
 function planartrace!(C::AbstractTensorMap,
                       A::BraidingTensor,
                       p::Index2Tuple, q::Index2Tuple,
                       α::Number, β::Number,
-                      backend::Backend...)
-    return planartrace!(C, TensorMap(A), p, q, α, β, backend...)
+                      backend::AbstractBackend,
+                      allocator)
+    return planartrace!(C, TensorMap(A), p, q, α, β, backend, allocator)
 end
 
 # function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},

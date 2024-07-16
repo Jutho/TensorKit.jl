@@ -37,7 +37,7 @@ end
         C′ = force_planar(C)
         p = ((4, 3), (5, 2, 1))
 
-        @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
+        @test force_planar(tensoradd!(C, A, p, false, true, true)) ≈
               planaradd!(C′, A′, p, true, true)
     end
 
@@ -49,7 +49,7 @@ end
         p = ((4, 2), (5,))
         q = ((1,), (3,))
 
-        @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
+        @test force_planar(tensortrace!(C, A, p, q, false, true, true)) ≈
               planartrace!(C′, A′, p, q, true, true)
     end
 
@@ -66,7 +66,7 @@ end
         pB = ((2, 4), (1, 3))
         pAB = ((3, 2, 1), (4, 5))
 
-        @test force_planar(tensorcontract!(C, pAB, A, pA, :N, B, pB, :N, true, true)) ≈
+        @test force_planar(tensorcontract!(C, A, pA, false, B, pB, false, pAB, true, true)) ≈
               planarcontract!(C′, A′, pA, B′, pB, pAB, true, true)
     end
 end
