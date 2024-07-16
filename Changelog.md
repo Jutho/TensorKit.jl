@@ -8,7 +8,7 @@ Features that are planned to be implemented before the release of v1.0.0, in no 
 - [ ] Change block order in `rowr` / `colr` to speed up particular contractions
 - [ ] Make `AdjointTensorMap` generic
 - [ ] Rewrite planar operations in order to be AD-compatible
-- [ ] Fix rrules for fermionic tensors
+- [x] Fix rrules for fermionic tensors
 - [ ] Fix GPU support
 - [ ] Proper threading support
 - [ ] Rewrite documentation
@@ -22,7 +22,7 @@ the contexts where different types of tensors are used (`AdjointTensor`, `Braidi
 ...), which still have the same scalartype. Additionally, this removes many specializations
 for methods in order to reduce ambiguity errors.
 
-### `copy(BraidingTensor`
+### `copy(BraidingTensor)`
 
 This PR changes the behaviour of `copy` as an instantiator for creating a `TensorMap` from a
 `BraidingTensor`. The rationale is that while this does sometimes happen in Julia `Base`,
@@ -37,3 +37,8 @@ constructors in Julia. In particular, this means that the default way to create
 uninitialized tensors is now `TensorMap{E}(undef, codomain ← domain)`, reminiscent of
 `Array{E}(undef, dims)`. Several convenience constructors are also added: `ones`, `zeros`,
 `rand` and `randn` construct tensors when `dims` is replaced by `domain ← codomain`.
+
+### TensorOperations v5
+
+This PR bumps the compatibility of `TensorOperations` to v5. This is a breaking change
+as there are some changes in the API.
