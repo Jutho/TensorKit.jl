@@ -26,9 +26,8 @@ A Julia package for large-scale tensor computations, with a hint of category the
 [doi-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.8421339.svg
 [doi-url]: https://doi.org/10.5281/zenodo.8421339
 
-[downloads-img]:
-  https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/TensorKit
-[downloads-url]: https://pkgs.genieframework.com?packages=TensorKit
+[downloads-img]: https://img.shields.io/badge/dynamic/json?url=http%3A%2F%2Fjuliapkgstats.com%2Fapi%2Fv1%2Ftotal_downloads%2FTensorKit&query=total_requests&label=Downloads
+[downloads-url]: http://juliapkgstats.com/pkg/TensorKit
 
 [ci-img]: https://github.com/Jutho/TensorKit.jl/actions/workflows/CI.yml/badge.svg
 [ci-url]: https://github.com/Jutho/TensorKit.jl/actions/workflows/CI.yml
