@@ -226,7 +226,7 @@ function dim(a::Sector)
     end
 end
 sqrtdim(a::Sector) = (FusionStyle(a) isa UniqueFusion) ? 1 : sqrt(dim(a))
-isqrtdim(a::Sector) = (FusionStyle(a) isa UniqueFusion) ? 1 : inv(sqrt(dim(a)))
+invsqrtdim(a::Sector) = (FusionStyle(a) isa UniqueFusion) ? 1 : inv(sqrt(dim(a)))
 
 """
     frobeniusschur(a::Sector)
@@ -244,10 +244,10 @@ end
 # Not necessary
 function Asymbol(a::I, b::I, c::I) where {I<:Sector}
     if FusionStyle(I) isa UniqueFusion || FusionStyle(I) isa SimpleFusion
-        (sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) *
+        (sqrtdim(a) * sqrtdim(b) * invsqrtdim(c)) *
         conj(frobeniusschur(a) * Fsymbol(dual(a), a, b, b, one(a), c))
     else
-        reshape((sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) *
+        reshape((sqrtdim(a) * sqrtdim(b) * invsqrtdim(c)) *
                 conj(frobeniusschur(a) * Fsymbol(dual(a), a, b, b, one(a), c)),
                 (Nsymbol(a, b, c), Nsymbol(dual(a), c, b)))
     end
@@ -269,9 +269,9 @@ number. Otherwise it is a square matrix with row and column size
 """
 function Bsymbol(a::I, b::I, c::I) where {I<:Sector}
     if FusionStyle(I) isa UniqueFusion || FusionStyle(I) isa SimpleFusion
-        (sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) * Fsymbol(a, b, dual(b), a, c, one(a))
+        (sqrtdim(a) * sqrtdim(b) * invsqrtdim(c)) * Fsymbol(a, b, dual(b), a, c, one(a))
     else
-        reshape((sqrtdim(a) * sqrtdim(b) * isqrtdim(c)) *
+        reshape((sqrtdim(a) * sqrtdim(b) * invsqrtdim(c)) *
                 Fsymbol(a, b, dual(b), a, c, one(a)),
                 (Nsymbol(a, b, c), Nsymbol(c, dual(b), a)))
     end

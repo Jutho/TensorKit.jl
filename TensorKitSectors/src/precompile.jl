@@ -20,7 +20,7 @@ function precompile_sector(::Type{I}) where {I<:Sector}
 
     precompile(dim, (I,))
     precompile(sqrtdim, (I,))
-    precompile(isqrtdim, (I,))
+    precompile(invsqrtdim, (I,))
     precompile(dual, (I,))
     precompile(twist, (I,))
     precompile(frobeniusschur, (I,))

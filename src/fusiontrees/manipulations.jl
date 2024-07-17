@@ -253,7 +253,7 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     isdual2 = (f₂.isdual..., !(f₁.isdual[N₁]))
     inner2 = N₂ > 1 ? (f₂.innerlines..., c) : ()
 
-    coeff₀ = sqrtdim(c) * isqrtdim(a)
+    coeff₀ = sqrtdim(c) * invsqrtdim(a)
     if f₁.isdual[N₁]
         coeff₀ *= conj(frobeniusschur(dual(b)))
     end

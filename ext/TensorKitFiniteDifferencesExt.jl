@@ -1,7 +1,7 @@
 module TensorKitFiniteDifferencesExt
 
 using TensorKit
-using TensorKit: sqrtdim, isqrtdim
+using TensorKit: sqrtdim, invsqrtdim
 using VectorInterface: scale!
 using FiniteDifferences
 
@@ -18,7 +18,7 @@ function FiniteDifferences.to_vec(t::AbstractTensorMap)
         t′ = similar(t)
         xvec_of_vecs = back(x)
         for (i, (c, b)) in enumerate(blocks(t′))
-            scale!(b, xvec_of_vecs[i], isqrtdim(c))
+            scale!(b, xvec_of_vecs[i], invsqrtdim(c))
         end
         return t′
     end
