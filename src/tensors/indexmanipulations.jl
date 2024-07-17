@@ -12,7 +12,7 @@ See [`permute`](@ref) for creating a new tensor and [`add_permute!`](@ref) for a
 @propagate_inbounds function Base.permute!(tdst::AbstractTensorMap,
                                            tsrc::AbstractTensorMap,
                                            p::Index2Tuple)
-    return add_permute!(tdst, tsrc, p, true, false)
+    return add_permute!(tdst, tsrc, p, One(), Zero())
 end
 
 """
@@ -89,7 +89,7 @@ See [`braid`](@ref) for creating a new tensor and [`add_braid!`](@ref) for a mor
                                     tsrc::AbstractTensorMap,
                                     p::Index2Tuple,
                                     levels::IndexTuple)
-    return add_braid!(tdst, tsrc, p, levels, true, false)
+    return add_braid!(tdst, tsrc, p, levels, One(), Zero())
 end
 
 """
@@ -141,7 +141,7 @@ See [`transpose`](@ref) for creating a new tensor and [`add_transpose!`](@ref) f
 function LinearAlgebra.transpose!(tdst::AbstractTensorMap,
                                   tsrc::AbstractTensorMap,
                                   (p₁, p₂)::Index2Tuple=_transpose_indices(t))
-    return add_transpose!(tdst, tsrc, (p₁, p₂), true, false)
+    return add_transpose!(tdst, tsrc, (p₁, p₂), One(), Zero())
 end
 
 """

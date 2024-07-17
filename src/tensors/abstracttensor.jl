@@ -31,7 +31,7 @@ Base.eltype(::Type{<:AbstractTensorMap{E}}) where {E} = E
 
 Return the type of the elementary space `S` of a tensor.
 """
-spacetype(::Type{<:AbstractTensorMap{E,S}}) where {E,S<:IndexSpace} = S
+spacetype(::Type{<:AbstractTensorMap{<:Any,S}}) where {S} = S
 
 """
     sectortype(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Type{I<:Sector}
@@ -97,7 +97,8 @@ similarstoragetype(t::AbstractTensorMap, T) = similarstoragetype(typeof(t), T)
 const order = numind
 
 @doc """
-    codomain(t::AbstractTensorMap{E,S,N₁,N₂}, [i::Int]) -> ProductSpace{S,N₁}
+    codomain(t::AbstractTensorMap{E,S,N₁,N₂}) -> ProductSpace{S,N₁}
+    codomain(t::AbstractTensorMap{E,S,N₁,N₂}, i::Int) -> S
 
 Return the codomain of a tensor, i.e. the product space of the output spaces. If `i` is
 specified, return the `i`-th output space. Implementations should provide `codomain(t)`.
@@ -109,7 +110,8 @@ codomain(t::AbstractTensorMap, i) = codomain(t)[i]
 target(t::AbstractTensorMap) = codomain(t) # categorical terminology
 
 @doc """
-    domain(t::AbstractTensorMap{E,S,N₁,N₂}, [i::Int]) -> ProductSpace{S,N₂}
+    domain(t::AbstractTensorMap{E,S,N₁,N₂}) -> ProductSpace{S,N₂}
+    domain(t::AbstractTensorMap{E,S,N₁,N₂}, i::Int) -> S
 
 Return the domain of a tensor, i.e. the product space of the input spaces. If `i` is
 specified, return the `i`-th input space. Implementations should provide `domain(t)`.
@@ -121,7 +123,8 @@ domain(t::AbstractTensorMap, i) = domain(t)[i]
 source(t::AbstractTensorMap) = domain(t) # categorical terminology
 
 """
-    space(t::AbstractTensorMap{E,S,N₁,N₂}, [i::Int]) -> HomSpace{S,N₁,N₂}
+    space(t::AbstractTensorMap{E,S,N₁,N₂}) -> HomSpace{S,N₁,N₂}
+    space(t::AbstractTensorMap{E,S,N₁,N₂}, i::Int) -> S
 
 The index information of a tensor, i.e. the `HomSpace` of its domain and codomain. If `i` is specified, return the `i`-th index space.
 """
@@ -168,7 +171,7 @@ Return all indices of a tensor, i.e. the indices of its domain and codomain.
 See also [`codomainind`](@ref) and [`domainind`](@ref).
 """
 function allind(::Type{T}) where {T<:AbstractTensorMap}
-    return ntuple(n -> n, numind(T))
+    return ntuple(identity, numind(T))
 end
 allind(t::AbstractTensorMap) = allind(typeof(t))
 

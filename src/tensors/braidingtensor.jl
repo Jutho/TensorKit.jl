@@ -126,7 +126,7 @@ end
 end
 
 # efficient copy constructor
-Base.copy(b::BraidingTensor{E,S}) where {E,S} = BraidingTensor{E,S}(b.V1, b.V2, b.adjoint)
+Base.copy(b::BraidingTensor) = b
 
 function Base.copy!(t::TensorMap, b::BraidingTensor)
     space(t) == space(b) || throw(SectorMismatch())
