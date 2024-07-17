@@ -1,19 +1,19 @@
 # AdjointTensorMap: lazy adjoint
 #==========================================================#
 """
-    struct AdjointTensorMap{E, S, N₁, N₂, ...} <: AbstractTensorMap{E, S, N₁, N₂}
+    struct AdjointTensorMap{T, S, N₁, N₂, ...} <: AbstractTensorMap{T, S, N₁, N₂}
 
 Specific subtype of [`AbstractTensorMap`](@ref) that is a lazy wrapper for representing the
 adjoint of an instance of [`TensorMap`](@ref).
 """
-struct AdjointTensorMap{E,S,N₁,N₂,I,A,F₁,F₂} <:
-       AbstractTensorMap{E,S,N₁,N₂}
-    parent::TensorMap{E,S,N₂,N₁,I,A,F₂,F₁}
+struct AdjointTensorMap{T,S,N₁,N₂,I,A,F₁,F₂} <:
+       AbstractTensorMap{T,S,N₁,N₂}
+    parent::TensorMap{T,S,N₂,N₁,I,A,F₂,F₁}
 end
 
 #! format: off
-const AdjointTrivialTensorMap{E,S,N₁,N₂,A<:DenseMatrix} =
-    AdjointTensorMap{E,S,N₁,N₂,Trivial,A,Nothing,Nothing}
+const AdjointTrivialTensorMap{T,S,N₁,N₂,A<:DenseMatrix} =
+    AdjointTensorMap{T,S,N₁,N₂,Trivial,A,Nothing,Nothing}
 #! format: on
 
 # Constructor: construct from taking adjoint of a tensor
@@ -32,8 +32,8 @@ domain(t::AdjointTensorMap) = codomain(t.parent)
 blocksectors(t::AdjointTensorMap) = blocksectors(t.parent)
 
 #! format: off
-storagetype(::Type{<:AdjointTrivialTensorMap{E,S,N₁,N₂,A}}) where {E,S,N₁,N₂,A<:DenseMatrix} = A
-storagetype(::Type{<:AdjointTensorMap{E,S,N₁,N₂,I,<:SectorDict{I,A}}}) where {E,S,N₁,N₂,I<:Sector,A<:DenseMatrix} = A
+storagetype(::Type{<:AdjointTrivialTensorMap{T,S,N₁,N₂,A}}) where {T,S,N₁,N₂,A<:DenseMatrix} = A
+storagetype(::Type{<:AdjointTensorMap{T,S,N₁,N₂,I,<:SectorDict{I,A}}}) where {T,S,N₁,N₂,I<:Sector,A<:DenseMatrix} = A
 #! format: on
 
 dim(t::AdjointTensorMap) = dim(t.parent)
@@ -47,8 +47,8 @@ blocks(t::AdjointTensorMap) = (c => b' for (c, b) in blocks(t.parent))
 fusiontrees(::AdjointTrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::AdjointTensorMap) = TensorKeyIterator(t.parent.colr, t.parent.rowr)
 
-function Base.getindex(t::AdjointTensorMap{E,S,N₁,N₂,I},
-                       f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {E,S,N₁,N₂,I}
+function Base.getindex(t::AdjointTensorMap{T,S,N₁,N₂,I},
+                       f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
     c = f₁.coupled
     @boundscheck begin
         c == f₂.coupled || throw(SectorMismatch())
@@ -58,9 +58,9 @@ function Base.getindex(t::AdjointTensorMap{E,S,N₁,N₂,I},
                                                    t.parent.colr[c][f₁]])',
                     (dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...))
 end
-@propagate_inbounds function Base.setindex!(t::AdjointTensorMap{E,S,N₁,N₂,I}, v,
+@propagate_inbounds function Base.setindex!(t::AdjointTensorMap{T,S,N₁,N₂,I}, v,
                                             f₁::FusionTree{I,N₁},
-                                            f₂::FusionTree{I,N₂}) where {E,S,N₁,N₂,I}
+                                            f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
     return copy!(getindex(t, f₁, f₂), v)
 end
 

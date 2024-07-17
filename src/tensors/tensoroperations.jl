@@ -6,8 +6,8 @@ function TO.tensorstructure(t::AbstractTensorMap, iA::Int, conjA::Bool)
 end
 
 function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, istemp::Val,
-                        allocator=TO.DefaultAllocator()) where {E,S,N₁,N₂,A,
-                                                                TT<:TrivialTensorMap{E,S,N₁,
+                        allocator=TO.DefaultAllocator()) where {T,S,N₁,N₂,A,
+                                                                TT<:TrivialTensorMap{T,S,N₁,
                                                                                      N₂,
                                                                                      A}}
     data = TO.tensoralloc(A, (dim(codomain(structure)), dim(domain(structure))), istemp,
@@ -16,8 +16,8 @@ function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, iste
 end
 
 function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, istemp::Val,
-                        allocator=TO.DefaultAllocator()) where {E,S,N₁,N₂,
-                                                                TT<:AbstractTensorMap{E,S,
+                        allocator=TO.DefaultAllocator()) where {T,S,N₁,N₂,
+                                                                TT<:AbstractTensorMap{T,S,
                                                                                       N₁,
                                                                                       N₂}}
     blocksectoriterator = blocksectors(structure)

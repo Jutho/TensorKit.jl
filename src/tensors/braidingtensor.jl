@@ -2,7 +2,7 @@
 # special (2,2) tensor that implements a standard braiding operation
 #====================================================================#
 """
-    struct BraidingTensor{E,S<:IndexSpace} <: AbstractTensorMap{E, S, 2, 2}
+    struct BraidingTensor{T,S<:IndexSpace} <: AbstractTensorMap{T, S, 2, 2}
     BraidingTensor(V1::S, V2::S, adjoint::Bool=false) where {S<:IndexSpace}
 
 Specific subtype of [`AbstractTensorMap`](@ref) for representing the braiding tensor that
@@ -11,11 +11,11 @@ braids the first input over the second input; its inverse can be obtained as the
 It holds that `domain(BraidingTensor(V1, V2)) == V1 ⊗ V2` and
 `codomain(BraidingTensor(V1, V2)) == V2 ⊗ V1`.
 """
-struct BraidingTensor{E,S} <: AbstractTensorMap{E,S,2,2}
+struct BraidingTensor{T,S} <: AbstractTensorMap{T,S,2,2}
     V1::S
     V2::S
     adjoint::Bool
-    function BraidingTensor{E,S}(V1::S, V2::S, adjoint::Bool=false) where {E,S<:IndexSpace}
+    function BraidingTensor{T,S}(V1::S, V2::S, adjoint::Bool=false) where {T,S<:IndexSpace}
         for a in sectors(V1)
             for b in sectors(V2)
                 for c in (a ⊗ b)
@@ -24,7 +24,7 @@ struct BraidingTensor{E,S} <: AbstractTensorMap{E,S,2,2}
                 end
             end
         end
-        return new{E,S}(V1, V2, adjoint)
+        return new{T,S}(V1, V2, adjoint)
         # partial construction: only construct rowr and colr when needed
     end
 end
@@ -40,15 +40,15 @@ function BraidingTensor(V::HomSpace, adjoint::Bool=false)
         throw(SpaceMismatch("Cannot define a braiding on $V"))
     return BraidingTensor(V[1], V[2], adjoint)
 end
-function Base.adjoint(b::BraidingTensor{E,S}) where {E,S}
-    return BraidingTensor{E,S}(b.V1, b.V2, !b.adjoint)
+function Base.adjoint(b::BraidingTensor{T,S}) where {T,S}
+    return BraidingTensor{T,S}(b.V1, b.V2, !b.adjoint)
 end
 
 domain(b::BraidingTensor) = b.adjoint ? b.V2 ⊗ b.V1 : b.V1 ⊗ b.V2
 codomain(b::BraidingTensor) = b.adjoint ? b.V1 ⊗ b.V2 : b.V2 ⊗ b.V1
 
 # TODO: check if this can be removed/is correct
-storagetype(::Type{BraidingTensor{E,S}}) where {E,S} = Matrix{E}
+storagetype(::Type{BraidingTensor{T,S}}) where {T,S} = Matrix{T}
 
 blocksectors(b::BraidingTensor) = blocksectors(b.V1 ⊗ b.V2)
 hasblock(b::BraidingTensor, s::Sector) = s ∈ blocksectors(b)

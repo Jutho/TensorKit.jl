@@ -264,23 +264,23 @@ twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
 #-------------------------------------
 # Full implementations based on `add`
 #-------------------------------------
-@propagate_inbounds function add_permute!(tdst::AbstractTensorMap{E,S,N₁,N₂},
+@propagate_inbounds function add_permute!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                                           tsrc::AbstractTensorMap,
                                           p::Index2Tuple{N₁,N₂},
                                           α::Number,
                                           β::Number,
-                                          backend::AbstractBackend...) where {E,S,N₁,N₂}
+                                          backend::AbstractBackend...) where {T,S,N₁,N₂}
     treepermuter(f₁, f₂) = permute(f₁, f₂, p[1], p[2])
     return add_transform!(tdst, tsrc, p, treepermuter, α, β, backend...)
 end
 
-@propagate_inbounds function add_braid!(tdst::AbstractTensorMap{E,S,N₁,N₂},
+@propagate_inbounds function add_braid!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                                         tsrc::AbstractTensorMap,
                                         p::Index2Tuple{N₁,N₂},
                                         levels::IndexTuple,
                                         α::Number,
                                         β::Number,
-                                        backend::AbstractBackend...) where {E,S,N₁,N₂}
+                                        backend::AbstractBackend...) where {T,S,N₁,N₂}
     length(levels) == numind(tsrc) ||
         throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(tsrc)) ← $(domain(tsrc))"))
 
@@ -291,23 +291,23 @@ end
     return add_transform!(tdst, tsrc, p, treebraider, α, β, backend...)
 end
 
-@propagate_inbounds function add_transpose!(tdst::AbstractTensorMap{E,S,N₁,N₂},
+@propagate_inbounds function add_transpose!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                                             tsrc::AbstractTensorMap,
                                             p::Index2Tuple{N₁,N₂},
                                             α::Number,
                                             β::Number,
-                                            backend::AbstractBackend...) where {E,S,N₁,N₂}
+                                            backend::AbstractBackend...) where {T,S,N₁,N₂}
     treetransposer(f₁, f₂) = transpose(f₁, f₂, p[1], p[2])
     return add_transform!(tdst, tsrc, p, treetransposer, α, β, backend...)
 end
 
-function add_transform!(tdst::AbstractTensorMap{E,S,N₁,N₂},
+function add_transform!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                         tsrc::AbstractTensorMap,
                         (p₁, p₂)::Index2Tuple{N₁,N₂},
                         fusiontreetransform,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend...) where {E,S,N₁,N₂}
+                        backend::AbstractBackend...) where {T,S,N₁,N₂}
     @boundscheck begin
         permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
