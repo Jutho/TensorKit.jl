@@ -17,8 +17,8 @@ end
 TensorKit.block(t::ZeroTangent, c::Sector) = t
 
 ChainRulesCore.ProjectTo(::T) where {T<:AbstractTensorMap} = ProjectTo{T}()
-function (::ProjectTo{T1})(x::T2) where {S,N1,N2,T1<:AbstractTensorMap{S,N1,N2},
-                                         T2<:AbstractTensorMap{S,N1,N2}}
+function (::ProjectTo{T1})(x::T2) where {S,N1,N2,T1<:AbstractTensorMap{<:Any,S,N1,N2},
+                                         T2<:AbstractTensorMap{<:Any,S,N1,N2}}
     T1 === T2 && return x
     y = similar(x, scalartype(T1))
     for (c, b) in blocks(y)

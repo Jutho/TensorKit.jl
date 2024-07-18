@@ -12,15 +12,17 @@ function force_planar(V::GradedSpace)
     return GradedSpace((c ⊠ PlanarTrivial() => dim(V, c) for c in sectors(V))..., isdual(V))
 end
 force_planar(V::ProductSpace) = mapreduce(force_planar, ⊗, V)
-function force_planar(tsrc::TensorMap{ComplexSpace})
-    tdst = TensorMap(undef, scalartype(tsrc),
-                     force_planar(codomain(tsrc)) ← force_planar(domain(tsrc)))
+function force_planar(tsrc::TensorMap{<:Any,ComplexSpace})
+    tdst = TensorMap{scalartype(tsrc)}(undef,
+                                       force_planar(codomain(tsrc)) ←
+                                       force_planar(domain(tsrc)))
     copyto!(blocks(tdst)[PlanarTrivial()], blocks(tsrc)[Trivial()])
     return tdst
 end
-function force_planar(tsrc::TensorMap{<:GradedSpace})
-    tdst = TensorMap(undef, scalartype(tsrc),
-                     force_planar(codomain(tsrc)) ← force_planar(domain(tsrc)))
+function force_planar(tsrc::TensorMap{<:Any,<:GradedSpace})
+    tdst = TensorMap{scalartype(tsrc)}(undef,
+                                       force_planar(codomain(tsrc)) ←
+                                       force_planar(domain(tsrc)))
     for (c, b) in blocks(tsrc)
         copyto!(blocks(tdst)[c ⊠ PlanarTrivial()], b)
     end
@@ -29,32 +31,32 @@ end
 
 @testset "planar methods" verbose = true begin
     @testset "planaradd" begin
-        A = TensorMap(randn, ℂ^2 ⊗ ℂ^3 ← ℂ^6 ⊗ ℂ^5 ⊗ ℂ^4)
-        C = TensorMap(randn, (ℂ^5)' ⊗ (ℂ^6)' ← ℂ^4 ⊗ (ℂ^3)' ⊗ (ℂ^2)')
+        A = randn(ℂ^2 ⊗ ℂ^3 ← ℂ^6 ⊗ ℂ^5 ⊗ ℂ^4)
+        C = randn((ℂ^5)' ⊗ (ℂ^6)' ← ℂ^4 ⊗ (ℂ^3)' ⊗ (ℂ^2)')
         A′ = force_planar(A)
         C′ = force_planar(C)
         p = ((4, 3), (5, 2, 1))
 
-        @test force_planar(tensoradd!(C, p, A, :N, true, true)) ≈
+        @test force_planar(tensoradd!(C, A, p, false, true, true)) ≈
               planaradd!(C′, A′, p, true, true)
     end
 
     @testset "planartrace" begin
-        A = TensorMap(randn, ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^5 ⊗ ℂ^4)
-        C = TensorMap(randn, (ℂ^5)' ⊗ ℂ^3 ← ℂ^4)
+        A = randn(ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^5 ⊗ ℂ^4)
+        C = randn((ℂ^5)' ⊗ ℂ^3 ← ℂ^4)
         A′ = force_planar(A)
         C′ = force_planar(C)
         p = ((4, 2), (5,))
         q = ((1,), (3,))
 
-        @test force_planar(tensortrace!(C, p, A, q, :N, true, true)) ≈
+        @test force_planar(tensortrace!(C, A, p, q, false, true, true)) ≈
               planartrace!(C′, A′, p, q, true, true)
     end
 
     @testset "planarcontract" begin
-        A = TensorMap(randn, ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^5 ⊗ ℂ^4)
-        B = TensorMap(randn, ℂ^2 ⊗ ℂ^4 ← ℂ^4 ⊗ ℂ^3)
-        C = TensorMap(randn, (ℂ^5)' ⊗ (ℂ^2)' ⊗ ℂ^2 ← (ℂ^2)' ⊗ ℂ^4)
+        A = randn(ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^5 ⊗ ℂ^4)
+        B = randn(ℂ^2 ⊗ ℂ^4 ← ℂ^4 ⊗ ℂ^3)
+        C = randn((ℂ^5)' ⊗ (ℂ^2)' ⊗ ℂ^2 ← (ℂ^2)' ⊗ ℂ^4)
 
         A′ = force_planar(A)
         B′ = force_planar(B)
@@ -64,7 +66,7 @@ end
         pB = ((2, 4), (1, 3))
         pAB = ((3, 2, 1), (4, 5))
 
-        @test force_planar(tensorcontract!(C, pAB, A, pA, :N, B, pB, :N, true, true)) ≈
+        @test force_planar(tensorcontract!(C, A, pA, false, B, pB, false, pAB, true, true)) ≈
               planarcontract!(C′, A′, pA, B′, pB, pAB, true, true)
     end
 end
@@ -74,18 +76,18 @@ end
 
     @testset "contractcheck" begin
         V = ℂ^2
-        A = TensorMap(rand, T, V ⊗ V ← V)
-        B = TensorMap(rand, T, V ⊗ V ← V')
+        A = rand(T, V ⊗ V ← V)
+        B = rand(T, V ⊗ V ← V')
         @tensor C1[i j; k l] := A[i j; m] * B[k l; m]
         @tensor contractcheck = true C2[i j; k l] := A[i j; m] * B[k l; m]
         @test C1 ≈ C2
-        B2 = TensorMap(rand, T, V ⊗ V ← V) # wrong duality for third space
+        B2 = rand(T, V ⊗ V ← V) # wrong duality for third space
         @test_throws SpaceMismatch("incompatible spaces for m: $V ≠ $(V')") begin
             @tensor contractcheck = true C3[i j; k l] := A[i j; m] * B2[k l; m]
         end
 
-        A = TensorMap(rand, T, V ← V ⊗ V)
-        B = TensorMap(rand, T, V ⊗ V ← V)
+        A = rand(T, V ← V ⊗ V)
+        B = rand(T, V ⊗ V ← V)
         @planar C1[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
         @planar contractcheck = true C2[i; j] := A[i; k l] * τ[k l; m n] * B[m n; j]
         @test C1 ≈ C2
@@ -101,10 +103,10 @@ end
 
         # ∂AC
         # -------
-        x = TensorMap(randn, T, Vmps ⊗ P ← Vmps)
-        O = TensorMap(randn, T, Vmpo ⊗ P ← P ⊗ Vmpo)
-        GL = TensorMap(randn, T, Vmps ⊗ Vmpo' ← Vmps)
-        GR = TensorMap(randn, T, Vmps ⊗ Vmpo ← Vmps)
+        x = randn(T, Vmps ⊗ P ← Vmps)
+        O = randn(T, Vmpo ⊗ P ← P ⊗ Vmpo)
+        GL = randn(T, Vmps ⊗ Vmpo' ← Vmps)
+        GR = randn(T, Vmps ⊗ Vmpo ← Vmps)
 
         x′ = force_planar(x)
         O′ = force_planar(O)
@@ -117,7 +119,7 @@ end
 
         # ∂AC2
         # -------
-        x2 = TensorMap(randn, T, Vmps ⊗ P ← Vmps ⊗ P')
+        x2 = randn(T, Vmps ⊗ P ← Vmps ⊗ P')
         x2′ = force_planar(x2)
         @tensor contractcheck = true y2[-1 -2; -3 -4] := GL[-1 7; 6] * x2[6 5; 1 3] *
                                                          O[7 -2; 5 4] * O[4 -4; 3 2] *
@@ -128,7 +130,7 @@ end
 
         # transfer matrix
         # ----------------
-        v = TensorMap(randn, T, Vmps ← Vmps)
+        v = randn(T, Vmps ← Vmps)
         v′ = force_planar(v)
         @tensor ρ[-1; -2] := x[-1 2; 1] * conj(x[-2 2; 3]) * v[1; 3]
         @planar ρ′[-1; -2] := x′[-1 2; 1] * conj(x′[-2 2; 3]) * v′[1; 3]
@@ -162,10 +164,10 @@ end
     @testset "MERA networks" begin
         Vmera = ℂ^2
 
-        u = TensorMap(randn, T, Vmera ⊗ Vmera ← Vmera ⊗ Vmera)
-        w = TensorMap(randn, T, Vmera ⊗ Vmera ← Vmera)
-        ρ = TensorMap(randn, T, Vmera ⊗ Vmera ⊗ Vmera ← Vmera ⊗ Vmera ⊗ Vmera)
-        h = TensorMap(randn, T, Vmera ⊗ Vmera ⊗ Vmera ← Vmera ⊗ Vmera ⊗ Vmera)
+        u = randn(T, Vmera ⊗ Vmera ← Vmera ⊗ Vmera)
+        w = randn(T, Vmera ⊗ Vmera ← Vmera)
+        ρ = randn(T, Vmera ⊗ Vmera ⊗ Vmera ← Vmera ⊗ Vmera ⊗ Vmera)
+        h = randn(T, Vmera ⊗ Vmera ⊗ Vmera ← Vmera ⊗ Vmera ⊗ Vmera)
 
         u′ = force_planar(u)
         w′ = force_planar(w)
@@ -193,8 +195,8 @@ end
         T = Float64
         V1 = ℂ^2
         V2 = ℂ^3
-        t1 = TensorMap(rand, T, V1 ← V2)
-        t2 = TensorMap(rand, T, V2 ← V1)
+        t1 = rand(T, V1 ← V2)
+        t2 = rand(T, V2 ← V1)
 
         tr1 = @planar opt = true t1[a; b] * t2[b; a] / 2
         tr2 = @planar opt = true t1[d; a] * t2[b; c] * 1 / 2 * τ[c b; a d]

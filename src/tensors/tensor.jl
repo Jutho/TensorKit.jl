@@ -3,86 +3,109 @@
 #==========================================================#
 #! format: off
 """
-    struct TensorMap{S<:IndexSpace, N₁, N₂, ...} <: AbstractTensorMap{S, N₁, N₂}
+    struct TensorMap{T, S<:IndexSpace, N₁, N₂, ...} <: AbstractTensorMap{T, S, N₁, N₂}
 
 Specific subtype of [`AbstractTensorMap`](@ref) for representing tensor maps (morphisms in
 a tensor category) whose data is stored in blocks of some subtype of `DenseMatrix`.
 """
-struct TensorMap{S<:IndexSpace, N₁, N₂, I<:Sector, A<:Union{<:DenseMatrix,SectorDict{I,<:DenseMatrix}}, F₁, F₂} <: AbstractTensorMap{S, N₁, N₂}
+struct TensorMap{T, S<:IndexSpace, N₁, N₂, I<:Sector, A<:Union{<:DenseMatrix{T},SectorDict{I,<:DenseMatrix{T}}},
+                 F₁, F₂} <: AbstractTensorMap{T, S, N₁, N₂}
     data::A
     codom::ProductSpace{S,N₁}
     dom::ProductSpace{S,N₂}
     rowr::SectorDict{I,FusionTreeDict{F₁,UnitRange{Int}}}
     colr::SectorDict{I,FusionTreeDict{F₂,UnitRange{Int}}}
-    function TensorMap{S, N₁, N₂, I, A, F₁, F₂}(data::A,
+    
+    # uninitialized constructors
+    function TensorMap{T,S,N₁,N₂,Trivial,A,Nothing,Nothing}(::UndefInitializer, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂}) where {T,S<:IndexSpace,N₁,N₂,A<:DenseMatrix{T}}
+        data = A(undef, dim(codom), dim(dom))
+        return TensorMap{T,S,N₁,N₂,Trivial,A,Nothing,Nothing}(data, codom, dom)
+    end
+    function TensorMap{T,S,N₁,N₂,I,A,F₁,F₂}(::UndefInitializer, codom::TensorSpace{S},
+                                            dom::TensorSpace{S}) where {T,S<:IndexSpace,N₁,N₂,
+                                            I<:Sector,A<:SectorDict{I,<:DenseMatrix{T}},F₁,F₂}
+        I === sectortype(S) || throw(SectorMismatch())
+        blocksectoriterator = blocksectors(codom ← dom)
+        rowr, rowdims = _buildblockstructure(codom, blocksectoriterator)
+        colr, coldims = _buildblockstructure(dom, blocksectoriterator)
+        data = SectorDict(c => valtype(A)(undef, rowdims[c], coldims[c]) for c in blocksectoriterator)
+        return TensorMap{T,S,N₁,N₂,I,A,F₁,F₂}(data, codom, dom, rowr, colr)
+    end
+    
+    # constructors from data
+    function TensorMap{T,S,N₁,N₂,I,A,F₁,F₂}(data::A,
                 codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂},
                 rowr::SectorDict{I,FusionTreeDict{F₁,UnitRange{Int}}},
                 colr::SectorDict{I,FusionTreeDict{F₂,UnitRange{Int}}}) where
-                    {S<:IndexSpace, N₁, N₂, I<:Sector, A<:SectorDict{I,<:DenseMatrix},
+                    {T,S<:IndexSpace, N₁, N₂, I<:Sector, A<:SectorDict{I,<:DenseMatrix{T}},
                      F₁<:FusionTree{I,N₁}, F₂<:FusionTree{I,N₂}}
-        T = scalartype(valtype(data))
         T ⊆ field(S) || @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog = 1)
-        return new{S,N₁,N₂,I,A,F₁,F₂}(data, codom, dom, rowr, colr)
+        return new{T,S,N₁,N₂,I,A,F₁,F₂}(data, codom, dom, rowr, colr)
     end
-    function TensorMap{S,N₁,N₂,Trivial,A,Nothing,Nothing}(data::A,
+    function TensorMap{T,S,N₁,N₂,Trivial,A,Nothing,Nothing}(data::A,
                                                           codom::ProductSpace{S,N₁},
                                                           dom::ProductSpace{S,N₂}) where
-             {S<:IndexSpace,N₁,N₂,A<:DenseMatrix}
-        T = scalartype(data)
-        T ⊆ field(S) ||
-            @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog = 1)
-        return new{S,N₁,N₂,Trivial,A,Nothing,Nothing}(data, codom, dom)
+             {T,S<:IndexSpace,N₁,N₂,A<:DenseMatrix{T}}
+        T ⊆ field(S) || @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog = 1)
+        return new{T,S,N₁,N₂,Trivial,A,Nothing,Nothing}(data, codom, dom)
     end
 end
 #! format: on
 
 """
-    Tensor{S, N, I, A, F₁, F₂} = TensorMap{S, N, 0, I, A, F₁, F₂}
+    Tensor{T, S, N, I, A, F₁, F₂} = TensorMap{T, S, N, 0, I, A, F₁, F₂}
 
 Specific subtype of [`AbstractTensor`](@ref) for representing tensors whose data is stored
 in blocks of some subtype of `DenseMatrix`.
 
-A `Tensor{S, N, I, A, F₁, F₂}` is actually a special case `TensorMap{S, N, 0, I, A, F₁, F₂}`,
+A `Tensor{T, S, N, I, A, F₁, F₂}` is actually a special case `TensorMap{T, S, N, 0, I, A, F₁, F₂}`,
 i.e. a tensor map with only a non-trivial output space.
 """
-const Tensor{S,N,I,A,F₁,F₂} = TensorMap{S,N,0,I,A,F₁,F₂}
+const Tensor{T,S,N,I,A,F₁,F₂} = TensorMap{T,S,N,0,I,A,F₁,F₂}
+
 """
-    TrivialTensorMap{S<:IndexSpace, N₁, N₂, A<:DenseMatrix} = TensorMap{S, N₁, N₂, Trivial, 
+    TrivialTensorMap{T, S, N₁, N₂, A<:DenseMatrix} = TensorMap{T, S, N₁, N₂, Trivial, 
                                                                         A, Nothing, Nothing}
 
 A special case of [`TensorMap`](@ref) for representing tensor maps with trivial symmetry,
 i.e., whose `sectortype` is `Trivial`.
 """
-const TrivialTensorMap{S,N₁,N₂,A<:DenseMatrix} = TensorMap{S,N₁,N₂,Trivial,A,
-                                                           Nothing,Nothing}
+const TrivialTensorMap{T,S,N₁,N₂,A<:DenseMatrix} = TensorMap{T,S,N₁,N₂,Trivial,A,Nothing,
+                                                             Nothing}
+
 """
-    TrivialTensor{S, N, A} = TrivialTensorMap{S, N, 0, A}
+    TrivialTensor{T, S, N, A} = TrivialTensorMap{T, S, N, 0, A}
 
 A special case of [`Tensor`](@ref) for representing tensors with trivial symmetry, i.e.,
 whose `sectortype` is `Trivial`.
 """
-const TrivialTensor{S,N,A} = TrivialTensorMap{S,N,0,A}
+const TrivialTensor{T,S,N,A} = TrivialTensorMap{T,S,N,0,A}
+
+# TODO: check if argument order should change
 """
     tensormaptype(::Type{S}, N₁::Int, N₂::Int, [::Type{T}]) where {S<:IndexSpace,T} -> ::Type{<:TensorMap}
 
 Return the fully specified type of a tensor map with elementary space `S`, `N₁` output
 spaces and `N₂` input spaces, either with scalar type `T` or with storage type `T`.
 """
-function tensormaptype(::Type{S}, N₁::Int, N₂::Int, ::Type{T}) where {S,T}
+function tensormaptype(::Type{S}, N₁::Int, N₂::Int,
+                       ::Type{TorA}) where {S,TorA<:MatOrNumber}
     I = sectortype(S)
-    if T <: DenseMatrix
-        M = T
-    elseif T <: Number
-        M = Matrix{T}
+    if TorA <: DenseMatrix
+        M = TorA
+        T = scalartype(TorA)
+    elseif TorA <: Number
+        M = Matrix{TorA}
+        T = TorA
     else
         throw(ArgumentError("the final argument of `tensormaptype` should either be the scalar or the storage type, i.e. a subtype of `Number` or of `DenseMatrix`"))
     end
     if I === Trivial
-        return TensorMap{S,N₁,N₂,I,M,Nothing,Nothing}
+        return TensorMap{T,S,N₁,N₂,I,M,Nothing,Nothing}
     else
         F₁ = fusiontreetype(I, N₁)
         F₂ = fusiontreetype(I, N₂)
-        return TensorMap{S,N₁,N₂,I,SectorDict{I,M},F₁,F₂}
+        return TensorMap{T,S,N₁,N₂,I,SectorDict{I,M},F₁,F₂}
     end
 end
 tensormaptype(S, N₁, N₂=0) = tensormaptype(S, N₁, N₂, Float64)
@@ -100,12 +123,12 @@ blocksectors(t::TensorMap) = keys(t.data)
 
 Return the type of the storage `A` of the tensor map.
 """
-function storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where
-         {N₁,N₂,A<:DenseMatrix}
+function storagetype(::Type{<:TrivialTensorMap{T,S,N₁,N₂,A}}) where
+         {T,S,N₁,N₂,A}
     return A
 end
-function storagetype(::Type{<:TensorMap{<:IndexSpace,N₁,N₂,I,<:SectorDict{I,A}}}) where
-         {N₁,N₂,I<:Sector,A<:DenseMatrix}
+function storagetype(::Type{<:TensorMap{T,S,N₁,N₂,I,<:SectorDict{I,A}}}) where
+         {T,S,N₁,N₂,I<:Sector,A<:DenseMatrix}
     return A
 end
 
@@ -134,8 +157,10 @@ Construct a `TensorMap` by explicitly specifying its block data.
 Alternatively, the domain and codomain can be specified by passing a [`HomSpace`](@ref)
 using the syntax `codomain ← domain` or `domain → codomain`.
 """
-function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpace{S,N₁},
-                   dom::ProductSpace{S,N₂}) where {S<:IndexSpace,N₁,N₂}
+function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix},
+                   V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
+    dom = domain(V)
+    codom = codomain(V)
     I = sectortype(S)
     I == keytype(data) || throw(SectorMismatch())
     if I == Trivial
@@ -157,43 +182,39 @@ function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::ProductSpa
         isempty(b) || size(b) == (rowdims[c], coldims[c]) ||
             throw(DimensionMismatch("wrong size of block for sector $c"))
     end
-    F₁ = fusiontreetype(I, N₁)
-    F₂ = fusiontreetype(I, N₂)
-    if !isreal(I)
-        data2 = SectorDict(c => complex(data[c]) for c in blocksectoriterator)
-        A = typeof(data2)
-        return TensorMap{S,N₁,N₂,I,A,F₁,F₂}(data2, codom, dom, rowr, colr)
+    data2 = if isreal(I)
+        SectorDict(c => data[c] for c in blocksectoriterator)
     else
-        data2 = SectorDict(c => data[c] for c in blocksectoriterator)
-        A = typeof(data2)
-        return TensorMap{S,N₁,N₂,I,A,F₁,F₂}(data2, codom, dom, rowr, colr)
+        SectorDict(c => complex(data[c]) for c in blocksectoriterator)
     end
+    TT = tensormaptype(S, N₁, N₂, valtype(data))
+    return TT(data2, codom, dom, rowr, colr)
+end
+function TensorMap(data::AbstractDict{<:Sector,<:DenseMatrix}, codom::TensorSpace{S},
+                   dom::TensorSpace{S}) where {S}
+    return TensorMap(data, codom ← dom)
 end
 
-# constructor from general callable that produces block data
-function TensorMap(f, codom::ProductSpace{S,N₁},
-                   dom::ProductSpace{S,N₂}) where {S<:IndexSpace,N₁,N₂}
-    I = sectortype(S)
-    if I == Trivial
-        d1 = dim(codom)
-        d2 = dim(dom)
-        data = f((d1, d2))
-        A = typeof(data)
-        return TensorMap{S,N₁,N₂,Trivial,A,Nothing,Nothing}(data, codom, dom)
-    end
-    blocksectoriterator = blocksectors(codom ← dom)
-    rowr, rowdims = _buildblockstructure(codom, blocksectoriterator)
-    colr, coldims = _buildblockstructure(dom, blocksectoriterator)
-    if !isreal(I)
-        data = SectorDict(c => complex(f((rowdims[c], coldims[c])))
-                          for c in blocksectoriterator)
-    else
-        data = SectorDict(c => f((rowdims[c], coldims[c])) for c in blocksectoriterator)
-    end
-    F₁ = fusiontreetype(I, N₁)
-    F₂ = fusiontreetype(I, N₂)
-    A = typeof(data)
-    return TensorMap{S,N₁,N₂,I,A,F₁,F₂}(data, codom, dom, rowr, colr)
+"""
+    TensorMap{T}(undef, codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂})
+                where {T,S,N₁,N₂}
+    TensorMap{T}(undef, codomain ← domain)
+    TensorMap{T}(undef, domain → codomain)
+    # expert mode: select storage type `A`
+    TensorMap{T,S,N₁,N₂,I,A}(undef, codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂})
+
+Construct a `TensorMap` with uninitialized data.
+"""
+function TensorMap{T}(::UndefInitializer, V::TensorMapSpace{S,N₁,N₂}) where {T,S,N₁,N₂}
+    TT = tensormaptype(S, N₁, N₂, T) # construct full type
+    return TT(undef, codomain(V), domain(V))
+end
+function TensorMap{T}(::UndefInitializer, codomain::TensorSpace{S},
+                      domain::TensorSpace{S}) where {T,S}
+    return TensorMap{T}(undef, codomain ← domain)
+end
+function Tensor{T}(::UndefInitializer, V::TensorSpace{S}) where {T,S}
+    return TensorMap{T}(undef, V ← one(V))
 end
 
 # auxiliary function
@@ -219,101 +240,120 @@ function _buildblockstructure(P::ProductSpace{S,N}, blocksectors) where {S<:Inde
     return treeranges, blockdims
 end
 
+@doc """
+    zeros([T=Float64,], codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂}) where {S,N₁,N₂,T}
+    zeros([T=Float64,], codomain ← domain)
+
+Create a `TensorMap` with element type `T`, of all zeros with spaces specified by `codomain` and `domain`.
 """
-    TensorMap([f, eltype,] codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂})
-                where {S<:ElementarySpace,N₁,N₂}
-    TensorMap([f, eltype,], codomain ← domain)
-    TensorMap([f, eltype,], domain → codomain)
+Base.zeros
 
-Construct a `TensorMap` from a general callable that produces block data for each coupled
-sector.
-
-## Arguments
-- `f`: callable object that returns a `DenseMatrix`, or `UndefInitializer`.
-- `eltype::Type{<:Number}`: element type of the data.
-- `codomain::ProductSpace{S,N₁}`: the codomain as a `ProductSpace` of `N₁` spaces of type
-  `S<:ElementarySpace`.
-- `domain::ProductSpace{S,N₂}`: the domain as a `ProductSpace` of `N₂` spaces of type
-  `S<:ElementarySpace`.
-
-If `eltype` is left unspecified, `f` should support the calling syntax `f(::Tuple{Int,Int})`
-such that `f((m, n))` returns a `DenseMatrix` with `size(f((m, n))) == (m, n)`. If `eltype` is
-specified, `f` is instead called as `f(eltype, (m, n))`. In the case where `f` is left
-unspecified or `undef` is passed explicitly, a `TensorMap` with uninitialized data is
-generated.
-
-Alternatively, the domain and codomain can be specified by passing a [`HomSpace`](@ref)
-using the syntax `codomain ← domain` or `domain → codomain`.
+@doc """
+    ones([T=Float64,], codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂}) where {S,N₁,N₂,T}
+    ones([T=Float64,], codomain ← domain)
+    
+Create a `TensorMap` with element type `T`, of all ones with spaces specified by `codomain` and `domain`.
 """
-function TensorMap(f, ::Type{T}, codom::ProductSpace{S},
-                   dom::ProductSpace{S}) where {S<:IndexSpace,T<:Number}
-    return TensorMap(d -> f(T, d), codom, dom)
+Base.ones
+
+for (fname, felt) in ((:zeros, :zero), (:ones, :one))
+    @eval begin
+        function Base.$fname(codomain::TensorSpace{S},
+                             domain::TensorSpace{S}=one(codomain)) where {S<:IndexSpace}
+            return Base.$fname(codomain ← domain)
+        end
+        function Base.$fname(::Type{T}, codomain::TensorSpace{S},
+                             domain::TensorSpace{S}=one(codomain)) where {T,S<:IndexSpace}
+            return Base.$fname(T, codomain ← domain)
+        end
+        Base.$fname(V::TensorMapSpace) = Base.$fname(Float64, V)
+        function Base.$fname(::Type{T}, V::TensorMapSpace) where {T}
+            t = TensorMap{T}(undef, V)
+            fill!(t, $felt(T))
+            return t
+        end
+    end
 end
 
-function TensorMap(::Type{T}, codom::ProductSpace{S},
-                   dom::ProductSpace{S}) where {S<:IndexSpace,T<:Number}
-    return TensorMap(d -> Array{T}(undef, d), codom, dom)
+for randfun in (:rand, :randn, :randexp)
+    randfun! = Symbol(randfun, :!)
+    _docstr = """
+        $randfun([rng=default_rng()], [T=Float64], codomain::ProductSpace{S,N₁},
+                     domain::ProductSpace{S,N₂}) where {S,N₁,N₂,T} -> t
+        $randfun([rng=default_rng()], [T=Float64], codomain ← domain) -> t
+        
+        Generate a tensor `t` with entries generated by `$randfun)`.
+    """
+    _docstr! = """
+        $randfun!([rng=default_rng()], t::AbstractTensorMap) -> t
+        
+    Fill the tensor `t` with entries generated by `$randfun!`.
+    """
+
+    @eval begin
+        @doc $_docstr Random.$randfun
+        @doc $_docstr! Random.$randfun!
+
+        # converting `codomain` and `domain` into `HomSpace`
+        function Random.$randfun(codomain::TensorSpace{S},
+                                 domain::TensorSpace{S}) where {S<:IndexSpace}
+            return Random.$randfun(codomain ← domain)
+        end
+        function Random.$randfun(::Type{T}, codomain::TensorSpace{S},
+                                 domain::TensorSpace{S}) where {T,S<:IndexSpace}
+            return Random.$randfun(T, codomain ← domain)
+        end
+        function Random.$randfun(rng::Random.AbstractRNG, ::Type{T},
+                                 codomain::TensorSpace{S},
+                                 domain::TensorSpace{S}) where {T,S<:IndexSpace}
+            return Random.$randfun(rng, T, codomain ← domain)
+        end
+
+        # accepting single `TensorSpace`
+        Random.$randfun(codomain::TensorSpace) = Random.$randfun(codomain ← one(codomain))
+        function Random.$randfun(::Type{T}, codomain::TensorSpace) where {T}
+            return Random.$randfun(T, codomain ← one(codomain))
+        end
+        function Random.$randfun(rng::Random.AbstractRNG, ::Type{T},
+                                 codomain::TensorSpace) where {T}
+            return Random.$randfun(rng, T, codomain ← one(domain))
+        end
+
+        # filling in default eltype
+        Random.$randfun(V::TensorMapSpace) = Random.$randfun(Float64, V)
+        function Random.$randfun(rng::Random.AbstractRNG, V::TensorMapSpace)
+            return Random.$randfun(rng, Float64, V)
+        end
+
+        # filling in default rng
+        function Random.$randfun(::Type{T}, V::TensorMapSpace) where {T}
+            return Random.$randfun(Random.default_rng(), T, V)
+        end
+        Random.$randfun!(t::AbstractTensorMap) = Random.$randfun!(Random.default_rng(), t)
+
+        # implementation
+        function Random.$randfun(rng::Random.AbstractRNG, ::Type{T},
+                                 V::TensorMapSpace) where {T}
+            t = TensorMap{T}(undef, V)
+            Random.$randfun!(rng, t)
+            return t
+        end
+
+        function Random.$randfun!(rng::Random.AbstractRNG, t::AbstractTensorMap)
+            for (_, b) in blocks(t)
+                Random.$randfun!(rng, b)
+            end
+            return t
+        end
+    end
 end
-
-function TensorMap(::UndefInitializer, ::Type{T}, codom::ProductSpace{S},
-                   dom::ProductSpace{S}) where {S<:IndexSpace,T<:Number}
-    return TensorMap(d -> Array{T}(undef, d), codom, dom)
-end
-
-function TensorMap(::UndefInitializer, codom::ProductSpace{S},
-                   dom::ProductSpace{S}) where {S<:IndexSpace}
-    return TensorMap(undef, Float64, codom, dom)
-end
-
-function TensorMap(::Type{T}, codom::TensorSpace{S},
-                   dom::TensorSpace{S}) where {T<:Number,S<:IndexSpace}
-    return TensorMap(T, convert(ProductSpace, codom), convert(ProductSpace, dom))
-end
-
-function TensorMap(dataorf, codom::TensorSpace{S},
-                   dom::TensorSpace{S}) where {S<:IndexSpace}
-    return TensorMap(dataorf, convert(ProductSpace, codom), convert(ProductSpace, dom))
-end
-
-function TensorMap(dataorf, ::Type{T}, codom::TensorSpace{S},
-                   dom::TensorSpace{S}) where {T<:Number,S<:IndexSpace}
-    return TensorMap(dataorf, T, convert(ProductSpace, codom), convert(ProductSpace, dom))
-end
-
-function TensorMap(codom::TensorSpace{S}, dom::TensorSpace{S}) where {S<:IndexSpace}
-    return TensorMap(Float64, convert(ProductSpace, codom), convert(ProductSpace, dom))
-end
-
-function TensorMap(dataorf, T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace}
-    return TensorMap(dataorf, T, codomain(P), domain(P))
-end
-
-function TensorMap(dataorf, P::TensorMapSpace{S}) where {S<:IndexSpace}
-    return TensorMap(dataorf, codomain(P), domain(P))
-end
-
-function TensorMap(T::Type{<:Number}, P::TensorMapSpace{S}) where {S<:IndexSpace}
-    return TensorMap(T, codomain(P), domain(P))
-end
-
-TensorMap(P::TensorMapSpace{S}) where {S<:IndexSpace} = TensorMap(codomain(P), domain(P))
-
-function Tensor(dataorf, T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace}
-    return TensorMap(dataorf, T, P, one(P))
-end
-
-Tensor(dataorf, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(dataorf, P, one(P))
-
-Tensor(T::Type{<:Number}, P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(T, P, one(P))
-
-Tensor(P::TensorSpace{S}) where {S<:IndexSpace} = TensorMap(P, one(P))
 
 # constructor starting from a dense array
 """
     TensorMap(data::DenseArray, codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂};
                     tol=sqrt(eps(real(float(eltype(data)))))) where {S<:ElementarySpace,N₁,N₂}
-    TensorMap(data, codomain ← domain)
-    TensorMap(data, domain → codomain)
+    TensorMap(data, codomain ← domain; tol=sqrt(eps(real(float(eltype(data))))))
+    TensorMap(data, domain → codomain; tol=sqrt(eps(real(float(eltype(data))))))
 
 Construct a `TensorMap` from a plain multidimensional array.
 
@@ -343,8 +383,10 @@ using the syntax `codomain ← domain` or `domain → codomain`.
     array is possible, and only in the case where the `data` actually respects the specified
     symmetry structure.
 """
-function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSpace{S,N₂};
+function TensorMap(data::DenseArray, V::TensorMapSpace{S,N₁,N₂};
                    tol=sqrt(eps(real(float(eltype(data)))))) where {S<:IndexSpace,N₁,N₂}
+    codom = codomain(V)
+    dom = domain(V)
     (d1, d2) = (dim(codom), dim(dom))
     if !(length(data) == d1 * d2 || size(data) == (d1, d2) ||
          size(data) == (dims(codom)..., dims(dom)...))
@@ -354,10 +396,10 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
     if sectortype(S) === Trivial
         data2 = reshape(data, (d1, d2))
         A = typeof(data2)
-        return TensorMap{S,N₁,N₂,Trivial,A,Nothing,Nothing}(data2, codom, dom)
+        return tensormaptype(S, N₁, N₂, A)(data2, codom, dom)
     end
 
-    t = TensorMap(undef, eltype(data), codom, dom)
+    t = TensorMap{eltype(data)}(undef, codom, dom)
     project_symmetric!(t, data)
 
     if !isapprox(data, convert(Array, t); atol=tol)
@@ -398,52 +440,34 @@ function project_symmetric!(t::TensorMap, data::DenseArray)
 
     return t
 end
+function TensorMap(data::DenseArray, codom::TensorSpace{S},
+                   dom::TensorSpace{S}; kwargs...) where {S}
+    return TensorMap(data, codom ← dom; kwargs...)
+end
 
 # Efficient copy constructors
 #-----------------------------
 Base.copy(t::TrivialTensorMap) = typeof(t)(copy(t.data), t.codom, t.dom)
 Base.copy(t::TensorMap) = typeof(t)(deepcopy(t.data), t.codom, t.dom, t.rowr, t.colr)
 
-# Similar
-#---------
-# 4 arguments
-function Base.similar(t::AbstractTensorMap, T::Type, codomain::VectorSpace,
-                      domain::VectorSpace)
-    return similar(t, T, codomain ← domain)
-end
-# 3 arguments
-function Base.similar(t::AbstractTensorMap, codomain::VectorSpace, domain::VectorSpace)
-    return similar(t, scalartype(t), codomain ← domain)
-end
-function Base.similar(t::AbstractTensorMap, T::Type, codomain::VectorSpace)
-    return similar(t, T, codomain ← one(codomain))
-end
-# 2 arguments
-function Base.similar(t::AbstractTensorMap, codomain::VectorSpace)
-    return similar(t, scalartype(t), codomain ← one(codomain))
-end
-Base.similar(t::AbstractTensorMap, P::TensorMapSpace) = similar(t, scalartype(t), P)
-Base.similar(t::AbstractTensorMap, T::Type) = similar(t, T, space(t))
-# 1 argument
-Base.similar(t::AbstractTensorMap) = similar(t, scalartype(t), space(t))
-
-# actual implementation
-function Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S}) where {T,S}
+# specializations when data can be re-used
+function Base.similar(t::TensorMap, ::Type{TorA},
+                      P::TensorMapSpace{S}) where {TorA<:MatOrNumber,S}
     N₁ = length(codomain(P))
     N₂ = length(domain(P))
     I = sectortype(S)
+
     # speed up specialized cases
-    if I === Trivial
-        data = similar(t.data, T, (dim(codomain(P)), dim(domain(P))))
-        A = typeof(data)
-        return TrivialTensorMap{S,N₁,N₂,A}(data, codomain(P), domain(P))
-    end
-    F₁ = fusiontreetype(I, N₁)
-    F₂ = fusiontreetype(I, N₂)
+    TT = tensormaptype(S, N₁, N₂, TorA)
+    I === Trivial && return TT(undef, codomain(P), domain(P))
+
     if space(t) == P
-        data = SectorDict(c => similar(b, T) for (c, b) in blocks(t))
-        A = typeof(data)
-        return TensorMap{S,N₁,N₂,I,A,F₁,F₂}(data, codomain(P), domain(P), t.rowr, t.colr)
+        data = if TorA <: Number
+            SectorDict(c => similar(b, TorA) for (c, b) in blocks(t))
+        else
+            SectorDict(c => similar(TorA, size(b)) for (c, b) in blocks(t))
+        end
+        return TT(data, codomain(P), domain(P), t.rowr, t.colr)
     end
 
     blocksectoriterator = blocksectors(P)
@@ -465,7 +489,7 @@ function Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S}) where {T
     else
         rowr, rowdims = _buildblockstructure(codomain(P), blocksectoriterator)
     end
-    # try to recylce colr
+    # try to recycle colr
     if domain(P) == codomain(t) && all(c -> haskey(t.rowr, c), blocksectoriterator)
         if length(t.rowr) == length(blocksectoriterator)
             colr = t.rowr
@@ -483,11 +507,10 @@ function Base.similar(t::TensorMap{S}, ::Type{T}, P::TensorMapSpace{S}) where {T
     else
         colr, coldims = _buildblockstructure(domain(P), blocksectoriterator)
     end
-    M = similarstoragetype(t, T)
+    M = storagetype(TT)
     data = SectorDict{I,M}(c => M(undef, (rowdims[c], coldims[c]))
                            for c in blocksectoriterator)
-    A = typeof(data)
-    return TensorMap{S,N₁,N₂,I,A,F₁,F₂}(data, codomain(P), domain(P), rowr, colr)
+    return TT(data, codomain(P), domain(P), rowr, colr)
 end
 
 function Base.complex(t::AbstractTensorMap)
@@ -541,7 +564,7 @@ function block(t::TensorMap, s::Sector)
     end
 end
 
-function blocks(t::TensorMap{<:IndexSpace,N₁,N₂,Trivial}) where {N₁,N₂}
+function blocks(t::TrivialTensorMap)
     return SingletonDict(Trivial() => t.data)
 end
 blocks(t::TensorMap) = t.data
@@ -550,7 +573,7 @@ fusiontrees(t::TrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::TensorMap) = TensorKeyIterator(t.rowr, t.colr)
 
 """
-    Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+    Base.getindex(t::TensorMap
                   sectors::NTuple{N₁+N₂,I}) where {N₁,N₂,I<:Sector} 
         -> StridedViews.StridedView
     t[sectors]
@@ -564,8 +587,10 @@ respectively, then a `StridedViews.StridedView` of size
 This method is only available for the case where `FusionStyle(I) isa UniqueFusion`,
 since it assumes a  uniquely defined coupled charge.
 """
-@inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
-                               sectors::Tuple{Vararg{I}}) where {N₁,N₂,I<:Sector}
+@inline function Base.getindex(t::TensorMap, sectors::Tuple{I,Vararg{I}}) where {I<:Sector}
+    I === sectortype(t) || throw(SectorMismatch("Not a valid sectortype for this tensor."))
+    length(sectors) == numind(t) ||
+        throw(ArgumentError("Number of sectors does not match."))
     FusionStyle(I) isa UniqueFusion ||
         throw(SectorMismatch("Indexing with sectors only possible if unique fusion"))
     s1 = TupleTools.getindices(sectors, codomainind(t))
@@ -587,9 +612,9 @@ end
 end
 
 """
-    Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+    Base.getindex(t::TensorMap{T,S,N₁,N₂,I},
                   f₁::FusionTree{I,N₁},
-                  f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+                  f₂::FusionTree{I,N₂}) where {T,SN₁,N₂,I<:Sector}
         -> StridedViews.StridedView
     t[f₁, f₂]
 
@@ -600,9 +625,9 @@ Return a view into the data slice of `t` corresponding to the splitting - fusion
 represents the slice of `block(t, c)` whose row indices correspond to `f₁.uncoupled` and
 column indices correspond to `f₂.uncoupled`.
 """
-@inline function Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+@inline function Base.getindex(t::TensorMap{T,S,N₁,N₂,I},
                                f₁::FusionTree{I,N₁},
-                               f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+                               f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
     c = f₁.coupled
     @boundscheck begin
         c == f₂.coupled || throw(SectorMismatch())
@@ -616,10 +641,10 @@ column indices correspond to `f₂.uncoupled`.
 end
 
 """
-    Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+    Base.setindex!(t::TensorMap{T,S,N₁,N₂,I},
                    v,
                    f₁::FusionTree{I,N₁},
-                   f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+                   f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
     t[f₁, f₂] = v
 
 Copies `v` into the  data slice of `t` corresponding to the splitting - fusion tree pair
@@ -627,12 +652,13 @@ Copies `v` into the  data slice of `t` corresponding to the splitting - fusion t
 of size `(dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled))` using
 `Base.copy!`.
 
-See also [`Base.getindex(::TensorMap{<:IndexSpace,N₁,N₂,I<:Sector}, ::FusionTree{I<:Sector,N₁}, ::FusionTree{I<:Sector,N₂})`](@ref)
+See also [`Base.getindex(::TensorMap{T,S,N₁,N₂,I<:Sector}, ::FusionTree{I<:Sector,N₁}, ::FusionTree{I<:Sector,N₂})`](@ref)
 """
-@propagate_inbounds function Base.setindex!(t::TensorMap{<:IndexSpace,N₁,N₂,I},
+@propagate_inbounds function Base.setindex!(t::TensorMap{T,S,N₁,N₂,I},
                                             v,
                                             f₁::FusionTree{I,N₁},
-                                            f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+                                            f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,
+                                                                         I<:Sector}
     return copy!(getindex(t, f₁, f₂), v)
 end
 
@@ -685,16 +711,16 @@ end
 function Base.summary(io::IO, t::TensorMap)
     return print(io, "TensorMap(", space(t), ")")
 end
-function Base.show(io::IO, t::TensorMap{S}) where {S<:IndexSpace}
+function Base.show(io::IO, t::TensorMap)
     if get(io, :compact, false)
         print(io, "TensorMap(", space(t), ")")
         return
     end
     println(io, "TensorMap(", space(t), "):")
-    if sectortype(S) == Trivial
+    if sectortype(t) == Trivial
         Base.print_array(io, t[])
         println(io)
-    elseif FusionStyle(sectortype(S)) isa UniqueFusion
+    elseif FusionStyle(sectortype(t)) isa UniqueFusion
         for (f₁, f₂) in fusiontrees(t)
             println(io, "* Data for sector ", f₁.uncoupled, " ← ", f₂.uncoupled, ":")
             Base.print_array(io, t[f₁, f₂])
@@ -711,28 +737,28 @@ end
 
 # Real and imaginary parts
 #---------------------------
-function Base.real(t::AbstractTensorMap{S}) where {S}
+function Base.real(t::AbstractTensorMap)
     # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
     # that the real/imaginary part of a tensor `t` can be obtained by just taking
     # real/imaginary part of the degeneracy data.
-    if isreal(sectortype(S))
+    if isreal(sectortype(t))
         realdata = Dict(k => real(v) for (k, v) in blocks(t))
         return TensorMap(realdata, codomain(t), domain(t))
     else
-        msg = "`real` has not been implemented for `AbstractTensorMap{$(S)}`."
+        msg = "`real` has not been implemented for `$(typeof(t))`."
         throw(ArgumentError(msg))
     end
 end
 
-function Base.imag(t::AbstractTensorMap{S}) where {S}
+function Base.imag(t::AbstractTensorMap)
     # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
     # that the real/imaginary part of a tensor `t` can be obtained by just taking
     # real/imaginary part of the degeneracy data.
-    if isreal(sectortype(S))
+    if isreal(sectortype(t))
         imagdata = Dict(k => imag(v) for (k, v) in blocks(t))
         return TensorMap(imagdata, codomain(t), domain(t))
     else
-        msg = "`imag` has not been implemented for `AbstractTensorMap{$(S)}`."
+        msg = "`imag` has not been implemented for `$(typeof(t))`."
         throw(ArgumentError(msg))
     end
 end
@@ -741,22 +767,23 @@ end
 #---------------------------
 Base.convert(::Type{TensorMap}, t::TensorMap) = t
 function Base.convert(::Type{TensorMap}, t::AbstractTensorMap)
-    return copy!(TensorMap(undef, scalartype(t), codomain(t), domain(t)), t)
+    return copy!(TensorMap{scalartype(t)}(undef, space(t)), t)
 end
 
-function Base.convert(T::Type{TensorMap{S,N₁,N₂,I,A,F₁,F₂}},
-                      t::AbstractTensorMap{S,N₁,N₂}) where {S,N₁,N₂,I,A,F₁,F₂}
-    if typeof(t) == T
+function Base.convert(TT::Type{<:TensorMap{T,S,N₁,N₂}},
+                      t::AbstractTensorMap{<:Any,S,N₁,N₂}) where {T,S,N₁,N₂}
+    if typeof(t) === TT
         return t
     else
-        data = Dict{I,storagetype(T)}(c => convert(storagetype(T), b)
-                                      for (c, b) in blocks(t))
+        data = Dict{sectortype(TT),storagetype(TT)}(c => convert(storagetype(TT), b)
+                                                    for (c, b) in blocks(t))
         return TensorMap(data, codomain(t), domain(t))
     end
 end
 
-function Base.promote_rule(::Type{<:T1},
-                           t2::Type{<:T2}) where {S,N₁,N₂,T1<:TensorMap{S,N₁,N₂},
-                                                  T2<:TensorMap{S,N₁,N₂}}
-    return tensormaptype(S, N₁, N₂, promote_type(storagetype(T1), storagetype(T2)))
+function Base.promote_rule(::Type{<:TT₁},
+                           ::Type{<:TT₂}) where {S,N₁,N₂,
+                                                 TT₁<:TensorMap{<:Any,S,N₁,N₂},
+                                                 TT₂<:TensorMap{<:Any,S,N₁,N₂}}
+    return tensormaptype(S, N₁, N₂, promote_type(storagetype(TT₁), storagetype(TT₂)))
 end

@@ -169,23 +169,16 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I,2}) where {I}
     a, b = f.uncoupled
     isduala, isdualb = f.isdual
     c = f.coupled
-    da, db, dc = dim.((a, b, c))
     μ = (FusionStyle(I) isa GenericFusion) ? f.vertices[1] : 1
     C = convert(A, fusiontensor(a, b, c))[:, :, :, μ]
     X = C
     if isduala
-        Xtemp = X
-        X = similar(Xtemp)
         Za = convert(A, FusionTree((a,), a, (isduala,), ()))
-        TO.tensorcontract!(X, ((1, 2, 3), ()), Za, ((1,), (2,)), :N, Xtemp, ((1,), (2, 3)),
-                           :N, true, false)
+        @tensor X[a′, b, c] := Za[a′, a] * X[a, b, c]
     end
     if isdualb
-        Xtemp = X
-        X = similar(Xtemp)
         Zb = convert(A, FusionTree((b,), b, (isdualb,), ()))
-        TO.tensorcontract!(X, ((2, 1, 3), ()), Zb, ((1,), (2,)), :N, Xtemp, ((2,), (1, 3)),
-                           :N, true, false)
+        @tensor X[a, b′, c] := Zb[b′, b] * X[a, b, c]
     end
     return X
 end
@@ -203,8 +196,10 @@ function Base.convert(A::Type{<:AbstractArray}, f::FusionTree{I,N}) where {I,N}
     d1 = size(C1)
     X = similar(C1, (d1[1], d1[2], Base.tail(dtail)...))
     trivialtuple = ntuple(identity, Val(N))
-    return TO.tensorcontract!(X, ((trivialtuple..., N + 1), ()), C1, ((1, 2), (3,)), :N,
-                              Ctail, ((1,), Base.tail(trivialtuple)), :N, true, false)
+    return TO.tensorcontract!(X,
+                              C1, ((1, 2), (3,)), false,
+                              Ctail, ((1,), Base.tail(trivialtuple)), false,
+                              ((trivialtuple..., N + 1), ()))
 end
 
 # TODO: is this piracy?

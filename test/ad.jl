@@ -13,7 +13,7 @@ end
 # Test utility
 # -------------
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap)
-    return TensorMap(randn, scalartype(x), space(x))
+    return randn!(similar(x))
 end
 ChainRulesTestUtils.rand_tangent(::AbstractRNG, ::VectorSpace) = NoTangent()
 function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
@@ -42,13 +42,6 @@ function FiniteDifferences.to_vec(t::TensorKit.SectorDict)
                                     for (c, b) in t)
     end
     return vec_real, from_vec
-end
-
-function _randomize!(a::TensorMap)
-    for b in values(blocks(a))
-        copyto!(b, randn(size(b)))
-    end
-    return a
 end
 
 # Float32 and finite differences don't mix well
@@ -134,8 +127,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 @timedtestset "Automatic Differentiation with spacetype $(TensorKit.type_repr(eltype(V)))" verbose = true for V in
                                                                                                               Vlist
     @timedtestset "Basic utility" begin
-        T1 = TensorMap(randn, Float64, V[1] ⊗ V[2] ← V[3] ⊗ V[4])
-        T2 = TensorMap(randn, ComplexF64, V[1] ⊗ V[2] ← V[3] ⊗ V[4])
+        T1 = randn(Float64, V[1] ⊗ V[2] ← V[3] ⊗ V[4])
+        T2 = randn(ComplexF64, V[1] ⊗ V[2] ← V[3] ⊗ V[4])
 
         P1 = ProjectTo(T1)
         @test P1(T1) == T1
@@ -150,8 +143,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
     end
 
     @timedtestset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
-        A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
-        B = TensorMap(randn, T, space(A))
+        A = randn(T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+        B = randn(T, space(A))
 
         test_rrule(+, A, B)
         test_rrule(-, A)
@@ -161,27 +154,27 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(*, α, A)
         test_rrule(*, A, α)
 
-        C = TensorMap(randn, T, domain(A), codomain(A))
+        C = randn(T, domain(A), codomain(A))
         test_rrule(*, A, C)
 
         test_rrule(permute, A, ((1, 3, 2), (5, 4)))
 
-        D = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3])
-        E = TensorMap(randn, T, V[4] ← V[5])
+        D = randn(T, V[1] ⊗ V[2] ← V[3])
+        E = randn(T, V[4] ← V[5])
         test_rrule(⊗, D, E)
     end
 
     @timedtestset "Linear Algebra part II with scalartype $T" for T in (Float64, ComplexF64)
         for i in 1:3
-            E = TensorMap(randn, T, ⊗(V[1:i]...) ← ⊗(V[1:i]...))
+            E = randn(T, ⊗(V[1:i]...) ← ⊗(V[1:i]...))
             test_rrule(LinearAlgebra.tr, E)
         end
 
-        A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+        A = randn(T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         test_rrule(LinearAlgebra.adjoint, A)
         test_rrule(LinearAlgebra.norm, A, 2)
 
-        B = TensorMap(randn, T, space(A))
+        B = randn(T, space(A))
         test_rrule(LinearAlgebra.dot, A, B)
     end
 
@@ -200,19 +193,19 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
                 p = _repartition(_p, rand(0:k1))
                 q = _repartition(_q, k2)
                 ip = _repartition(invperm(linearize((_p, _q))), rand(0:(k1 + 2 * k2)))
-                A = TensorMap(randn, T, permute(prod(V1) ⊗ prod(V2) ← prod(V2), ip))
+                A = randn(T, permute(prod(V1) ⊗ prod(V2) ← prod(V2), ip))
 
                 α = randn(T)
                 β = randn(T)
-                for conjA in (:N, :C)
-                    C = _randomize!(TensorOperations.tensoralloc_add(T, p, A, conjA, false))
-                    test_rrule(tensortrace!, C, p, A, q, conjA, α, β; atol, rtol)
+                for conjA in (false, true)
+                    C = randn!(TensorOperations.tensoralloc_add(T, A, p, conjA, Val(false)))
+                    test_rrule(tensortrace!, C, A, p, q, conjA, α, β; atol, rtol)
                 end
             end
         end
 
         @timedtestset "tensoradd!" begin
-            A = TensorMap(randn, T, V[1] ⊗ V[2] ⊗ V[3] ← V[4] ⊗ V[5])
+            A = randn(T, V[1] ⊗ V[2] ⊗ V[3] ← V[4] ⊗ V[5])
             α = randn(T)
             β = randn(T)
 
@@ -220,11 +213,11 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             for _ in 1:5
                 p = randindextuple(length(V))
 
-                C1 = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :N, false))
-                test_rrule(tensoradd!, C1, p, A, :N, α, β; atol, rtol)
+                C1 = randn!(TensorOperations.tensoralloc_add(T, A, p, false, Val(false)))
+                test_rrule(tensoradd!, C1, A, p, false, α, β; atol, rtol)
 
-                C2 = _randomize!(TensorOperations.tensoralloc_add(T, p, A, :C, false))
-                test_rrule(tensoradd!, C2, p, A, :C, α, β; atol, rtol)
+                C2 = randn!(TensorOperations.tensoralloc_add(T, A, p, true, Val(false)))
+                test_rrule(tensoradd!, C2, A, p, true, α, β; atol, rtol)
 
                 A = rand(Bool) ? C1 : C2
             end
@@ -255,33 +248,31 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
                 β = randn(T)
                 V2_conj = prod(conj, V2; init=one(V[1]))
 
-                for conjA in (:N, :C), conjB in (:N, :C)
-                    A = TensorMap(randn, T,
-                                  permute(V1 ← (conjA === :C ? V2_conj : V2), ipA))
-                    B = TensorMap(randn, T,
-                                  permute((conjB === :C ? V2_conj : V2) ← V3, ipB))
-                    C = _randomize!(TensorOperations.tensoralloc_contract(T, pAB, A, pA,
-                                                                          conjA,
-                                                                          B, pB, conjB,
-                                                                          false))
-                    test_rrule(tensorcontract!, C, pAB,
-                               A, pA, conjA, B, pB, conjB,
+                for conjA in (false, true), conjB in (false, true)
+                    A = randn(T, permute(V1 ← (conjA ? V2_conj : V2), ipA))
+                    B = randn(T, permute((conjB ? V2_conj : V2) ← V3, ipB))
+                    C = randn!(TensorOperations.tensoralloc_contract(T, A, pA,
+                                                                     conjA,
+                                                                     B, pB, conjB, pAB,
+                                                                     Val(false)))
+                    test_rrule(tensorcontract!, C,
+                               A, pA, conjA, B, pB, conjB, pAB,
                                α, β; atol, rtol)
                 end
             end
         end
 
         @timedtestset "tensorscalar" begin
-            A = Tensor(randn, T, ProductSpace{typeof(V[1]),0}())
+            A = randn(T, ProductSpace{typeof(V[1]),0}())
             test_rrule(tensorscalar, A)
         end
     end
 
     @timedtestset "Factorizations with scalartype $T" for T in (Float64, ComplexF64)
-        A = TensorMap(randn, T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
-        B = TensorMap(randn, T, space(A)')
-        C = TensorMap(randn, T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
-        H = TensorMap(randn, T, V[3] ⊗ V[4] ← V[3] ⊗ V[4])
+        A = randn(T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+        B = randn(T, space(A)')
+        C = randn(T, V[1] ⊗ V[2] ← V[1] ⊗ V[2])
+        H = randn(T, V[3] ⊗ V[4] ← V[3] ⊗ V[4])
         H = (H + H') / 2
         atol = precision(T)
 
@@ -298,8 +289,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         end
 
         let (D, V) = eig(C)
-            ΔD = TensorMap(randn, scalartype(D), space(D))
-            ΔV = TensorMap(randn, scalartype(V), space(V))
+            ΔD = randn(scalartype(D), space(D))
+            ΔV = randn(scalartype(V), space(V))
             gaugepart = V' * ΔV
             for (c, b) in blocks(gaugepart)
                 mul!(block(ΔV, c), inv(block(V, c))', Diagonal(diag(b)), -1, 1)
@@ -308,8 +299,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         end
 
         let (D, U) = eigh′(H)
-            ΔD = TensorMap(randn, scalartype(D), space(D))
-            ΔU = TensorMap(randn, scalartype(U), space(U))
+            ΔD = randn(scalartype(D), space(D))
+            ΔU = randn(scalartype(U), space(U))
             if T <: Complex
                 gaugepart = U' * ΔU
                 for (c, b) in blocks(gaugepart)
@@ -320,9 +311,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         end
 
         let (U, S, V, ϵ) = tsvd(A)
-            ΔU = TensorMap(randn, scalartype(U), space(U))
-            ΔS = TensorMap(randn, scalartype(S), space(S))
-            ΔV = TensorMap(randn, scalartype(V), space(V))
+            ΔU = randn(scalartype(U), space(U))
+            ΔS = randn(scalartype(S), space(S))
+            ΔV = randn(scalartype(V), space(V))
             if T <: Complex # remove gauge dependent components
                 gaugepart = U' * ΔU + V * ΔV'
                 for (c, b) in blocks(gaugepart)
@@ -334,18 +325,18 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             allS = mapreduce(x -> diag(x[2]), vcat, blocks(S))
             truncval = (maximum(allS) + minimum(allS)) / 2
             U, S, V, ϵ = tsvd(A; trunc=truncerr(truncval))
-            ΔU = TensorMap(randn, scalartype(U), space(U))
-            ΔS = TensorMap(randn, scalartype(S), space(S))
-            ΔV = TensorMap(randn, scalartype(V), space(V))
+            ΔU = randn(scalartype(U), space(U))
+            ΔS = randn(scalartype(S), space(S))
+            ΔV = randn(scalartype(V), space(V))
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, A; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
                        fkwargs=(; trunc=truncerr(truncval)))
         end
 
         let (U, S, V, ϵ) = tsvd(B)
-            ΔU = TensorMap(randn, scalartype(U), space(U))
-            ΔS = TensorMap(randn, scalartype(S), space(S))
-            ΔV = TensorMap(randn, scalartype(V), space(V))
+            ΔU = randn(scalartype(U), space(U))
+            ΔS = randn(scalartype(S), space(S))
+            ΔV = randn(scalartype(V), space(V))
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, B; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
 
@@ -353,40 +344,40 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
                                                        for (c, b) in blocks(S)))
 
             U, S, V, ϵ = tsvd(B; trunc=truncspace(Vtrunc))
-            ΔU = TensorMap(randn, scalartype(U), space(U))
-            ΔS = TensorMap(randn, scalartype(S), space(S))
-            ΔV = TensorMap(randn, scalartype(V), space(V))
+            ΔU = randn(scalartype(U), space(U))
+            ΔS = randn(scalartype(S), space(S))
+            ΔV = randn(scalartype(V), space(V))
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, B; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
                        fkwargs=(; trunc=truncspace(Vtrunc)))
         end
 
         let (U, S, V, ϵ) = tsvd(C)
-            ΔU = TensorMap(randn, scalartype(U), space(U))
-            ΔS = TensorMap(randn, scalartype(S), space(S))
-            ΔV = TensorMap(randn, scalartype(V), space(V))
+            ΔU = randn(scalartype(U), space(U))
+            ΔS = randn(scalartype(S), space(S))
+            ΔV = randn(scalartype(V), space(V))
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, C; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0))
 
             c, = TensorKit.MatrixAlgebra._argmax(x -> sqrt(dim(x[1])) * maximum(diag(x[2])),
                                                  blocks(S))
             U, S, V, ϵ = tsvd(C; trunc=truncdim(2 * dim(c)))
-            ΔU = TensorMap(randn, scalartype(U), space(U))
-            ΔS = TensorMap(randn, scalartype(S), space(S))
-            ΔV = TensorMap(randn, scalartype(V), space(V))
+            ΔU = randn(scalartype(U), space(U))
+            ΔS = randn(scalartype(S), space(S))
+            ΔV = randn(scalartype(V), space(V))
             T <: Complex && remove_svdgauge_depence!(ΔU, ΔV, U, S, V)
             test_rrule(tsvd, C; atol, output_tangent=(ΔU, ΔS, ΔV, 0.0),
                        fkwargs=(; trunc=truncdim(2 * dim(c))))
         end
 
         let D = LinearAlgebra.eigvals(C)
-            ΔD = diag(TensorMap(randn, complex(scalartype(C)), space(C)))
+            ΔD = diag(randn(complex(scalartype(C)), space(C)))
             test_rrule(LinearAlgebra.eigvals, C; atol, output_tangent=ΔD,
                        fkwargs=(; sortby=nothing))
         end
 
         let S = LinearAlgebra.svdvals(C)
-            ΔS = diag(TensorMap(randn, real(scalartype(C)), space(C)))
+            ΔS = diag(randn(real(scalartype(C)), space(C)))
             test_rrule(LinearAlgebra.svdvals, C; atol, output_tangent=ΔS)
         end
     end

@@ -1,26 +1,29 @@
 # AdjointTensorMap: lazy adjoint
 #==========================================================#
 """
-    struct AdjointTensorMap{S<:IndexSpace, N₁, N₂, ...} <: AbstractTensorMap{S, N₁, N₂}
+    struct AdjointTensorMap{T, S, N₁, N₂, ...} <: AbstractTensorMap{T, S, N₁, N₂}
 
 Specific subtype of [`AbstractTensorMap`](@ref) that is a lazy wrapper for representing the
 adjoint of an instance of [`TensorMap`](@ref).
 """
-struct AdjointTensorMap{S<:IndexSpace,N₁,N₂,I<:Sector,A,F₁,F₂} <:
-       AbstractTensorMap{S,N₁,N₂}
-    parent::TensorMap{S,N₂,N₁,I,A,F₂,F₁}
+struct AdjointTensorMap{T,S,N₁,N₂,I,A,F₁,F₂} <:
+       AbstractTensorMap{T,S,N₁,N₂}
+    parent::TensorMap{T,S,N₂,N₁,I,A,F₂,F₁}
 end
 
 #! format: off
-const AdjointTrivialTensorMap{S<:IndexSpace,N₁,N₂,A<:DenseMatrix} =
-    AdjointTensorMap{S,N₁,N₂,Trivial,A,Nothing,Nothing}
+const AdjointTrivialTensorMap{T,S,N₁,N₂,A<:DenseMatrix} =
+    AdjointTensorMap{T,S,N₁,N₂,Trivial,A,Nothing,Nothing}
 #! format: on
 
 # Constructor: construct from taking adjoint of a tensor
 Base.adjoint(t::TensorMap) = AdjointTensorMap(t)
 Base.adjoint(t::AdjointTensorMap) = t.parent
 
-Base.similar(t::AdjointTensorMap, T::Type, P::TensorMapSpace) = similar(t', T, P)
+function Base.similar(t::AdjointTensorMap, ::Type{TorA},
+                      P::TensorMapSpace) where {TorA<:MatOrNumber}
+    return similar(t', TorA, P)
+end
 
 # Properties
 codomain(t::AdjointTensorMap) = domain(t.parent)
@@ -29,8 +32,8 @@ domain(t::AdjointTensorMap) = codomain(t.parent)
 blocksectors(t::AdjointTensorMap) = blocksectors(t.parent)
 
 #! format: off
-storagetype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,Trivial,A}}) where {N₁,N₂,A<:DenseMatrix} = A
-storagetype(::Type{<:AdjointTensorMap{<:IndexSpace,N₁,N₂,I,<:SectorDict{I,A}}}) where {N₁, N₂,I<:Sector,A<:DenseMatrix} = A
+storagetype(::Type{<:AdjointTrivialTensorMap{T,S,N₁,N₂,A}}) where {T,S,N₁,N₂,A<:DenseMatrix} = A
+storagetype(::Type{<:AdjointTensorMap{T,S,N₁,N₂,I,<:SectorDict{I,A}}}) where {T,S,N₁,N₂,I<:Sector,A<:DenseMatrix} = A
 #! format: on
 
 dim(t::AdjointTensorMap) = dim(t.parent)
@@ -44,8 +47,8 @@ blocks(t::AdjointTensorMap) = (c => b' for (c, b) in blocks(t.parent))
 fusiontrees(::AdjointTrivialTensorMap) = ((nothing, nothing),)
 fusiontrees(t::AdjointTensorMap) = TensorKeyIterator(t.parent.colr, t.parent.rowr)
 
-function Base.getindex(t::AdjointTensorMap{S,N₁,N₂,I},
-                       f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {S,N₁,N₂,I}
+function Base.getindex(t::AdjointTensorMap{T,S,N₁,N₂,I},
+                       f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
     c = f₁.coupled
     @boundscheck begin
         c == f₂.coupled || throw(SectorMismatch())
@@ -55,9 +58,9 @@ function Base.getindex(t::AdjointTensorMap{S,N₁,N₂,I},
                                                    t.parent.colr[c][f₁]])',
                     (dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...))
 end
-@propagate_inbounds function Base.setindex!(t::AdjointTensorMap{S,N₁,N₂}, v,
+@propagate_inbounds function Base.setindex!(t::AdjointTensorMap{T,S,N₁,N₂,I}, v,
                                             f₁::FusionTree{I,N₁},
-                                            f₂::FusionTree{I,N₂}) where {S,N₁,N₂,I}
+                                            f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
     return copy!(getindex(t, f₁, f₂), v)
 end
 
@@ -90,16 +93,16 @@ end
 function Base.summary(io::IO, t::AdjointTensorMap)
     return print(io, "AdjointTensorMap(", codomain(t), " ← ", domain(t), ")")
 end
-function Base.show(io::IO, t::AdjointTensorMap{S}) where {S<:IndexSpace}
+function Base.show(io::IO, t::AdjointTensorMap)
     if get(io, :compact, false)
         print(io, "AdjointTensorMap(", codomain(t), " ← ", domain(t), ")")
         return
     end
     println(io, "AdjointTensorMap(", codomain(t), " ← ", domain(t), "):")
-    if sectortype(S) == Trivial
+    if sectortype(t) === Trivial
         Base.print_array(io, t[])
         println(io)
-    elseif FusionStyle(sectortype(S)) isa UniqueFusion
+    elseif FusionStyle(sectortype(t)) isa UniqueFusion
         for (f₁, f₂) in fusiontrees(t)
             println(io, "* Data for sector ", f₁.uncoupled, " ← ", f₂.uncoupled, ":")
             Base.print_array(io, t[f₁, f₂])

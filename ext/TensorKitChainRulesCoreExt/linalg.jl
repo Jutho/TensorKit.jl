@@ -42,7 +42,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             pB = (allind(B), ())
             dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B)))
             tB = twist(B, filter(x -> isdual(space(B, x)), allind(B)))
-            dA = tensorcontract!(dA, ipA, ΔC, pΔC, :N, tB, pB, :C)
+            dA = tensorcontract!(dA, ΔC, pΔC, false, tB, pB, true, ipA)
             return projectA(dA)
         end
         dB_ = @thunk begin
@@ -50,7 +50,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             pA = ((), allind(A))
             dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A)))
             tA = twist(A, filter(x -> isdual(space(A, x)), allind(A)))
-            dB = tensorcontract!(dB, ipB, tA, pA, :C, ΔC, pΔC, :N)
+            dB = tensorcontract!(dB, tA, pA, true, ΔC, pΔC, false, ipB)
             return projectB(dB)
         end
         return NoTangent(), dA_, dB_

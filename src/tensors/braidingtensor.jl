@@ -2,7 +2,7 @@
 # special (2,2) tensor that implements a standard braiding operation
 #====================================================================#
 """
-    struct BraidingTensor{S<:IndexSpace} <: AbstractTensorMap{S, 2, 2}
+    struct BraidingTensor{T,S<:IndexSpace} <: AbstractTensorMap{T, S, 2, 2}
     BraidingTensor(V1::S, V2::S, adjoint::Bool=false) where {S<:IndexSpace}
 
 Specific subtype of [`AbstractTensorMap`](@ref) for representing the braiding tensor that
@@ -11,12 +11,11 @@ braids the first input over the second input; its inverse can be obtained as the
 It holds that `domain(BraidingTensor(V1, V2)) == V1 ⊗ V2` and
 `codomain(BraidingTensor(V1, V2)) == V2 ⊗ V1`.
 """
-struct BraidingTensor{S<:IndexSpace,A} <: AbstractTensorMap{S,2,2}
+struct BraidingTensor{T,S} <: AbstractTensorMap{T,S,2,2}
     V1::S
     V2::S
     adjoint::Bool
-    function BraidingTensor{S,A}(V1::S, V2::S,
-                                 adjoint::Bool=false) where {S<:IndexSpace,A<:DenseMatrix}
+    function BraidingTensor{T,S}(V1::S, V2::S, adjoint::Bool=false) where {T,S<:IndexSpace}
         for a in sectors(V1)
             for b in sectors(V2)
                 for c in (a ⊗ b)
@@ -25,30 +24,31 @@ struct BraidingTensor{S<:IndexSpace,A} <: AbstractTensorMap{S,2,2}
                 end
             end
         end
-        return new{S,A}(V1, V2, adjoint)
+        return new{T,S}(V1, V2, adjoint)
         # partial construction: only construct rowr and colr when needed
     end
 end
 function BraidingTensor(V1::S, V2::S, adjoint::Bool=false) where {S<:IndexSpace}
     if BraidingStyle(sectortype(S)) isa SymmetricBraiding
-        return BraidingTensor{S,Matrix{Float64}}(V1, V2, adjoint)
+        return BraidingTensor{Float64,S}(V1, V2, adjoint)
     else
-        return BraidingTensor{S,Matrix{ComplexF64}}(V1, V2, adjoint)
+        return BraidingTensor{ComplexF64,S}(V1, V2, adjoint)
     end
 end
-function BraidingTensor(V::HomSpace{S}, adjoint::Bool=false) where {S<:IndexSpace}
+function BraidingTensor(V::HomSpace, adjoint::Bool=false)
     domain(V) == reverse(codomain(V)) ||
         throw(SpaceMismatch("Cannot define a braiding on $V"))
     return BraidingTensor(V[1], V[2], adjoint)
 end
-function Base.adjoint(b::BraidingTensor{S,A}) where {S<:IndexSpace,A<:DenseMatrix}
-    return BraidingTensor{S,A}(b.V1, b.V2, !b.adjoint)
+function Base.adjoint(b::BraidingTensor{T,S}) where {T,S}
+    return BraidingTensor{T,S}(b.V1, b.V2, !b.adjoint)
 end
 
 domain(b::BraidingTensor) = b.adjoint ? b.V2 ⊗ b.V1 : b.V1 ⊗ b.V2
 codomain(b::BraidingTensor) = b.adjoint ? b.V1 ⊗ b.V2 : b.V2 ⊗ b.V1
 
-storagetype(::Type{BraidingTensor{S,A}}) where {S<:IndexSpace,A<:DenseMatrix} = A
+# TODO: check if this can be removed/is correct
+storagetype(::Type{BraidingTensor{T,S}}) where {T,S} = Matrix{T}
 
 blocksectors(b::BraidingTensor) = blocksectors(b.V1 ⊗ b.V2)
 hasblock(b::BraidingTensor, s::Sector) = s ∈ blocksectors(b)
@@ -87,8 +87,8 @@ function fusiontrees(b::BraidingTensor)
     return TensorKeyIterator(rowr, colr)
 end
 
-function Base.getindex(b::BraidingTensor{S}) where {S}
-    sectortype(S) == Trivial || throw(SectorMismatch())
+function Base.getindex(b::BraidingTensor)
+    sectortype(b) === Trivial || throw(SectorMismatch())
     (V1, V2) = domain(b)
     d = (dim(V2), dim(V1), dim(V1), dim(V2))
     return sreshape(StridedView(block(b, Trivial())), d)
@@ -125,9 +125,9 @@ end
     end
 end
 
-Base.similar(::BraidingTensor, T::Type, P::TensorMapSpace) = TensorMap(undef, T, P)
+# efficient copy constructor
+Base.copy(b::BraidingTensor) = b
 
-Base.copy(b::BraidingTensor) = copy!(similar(b), b)
 function Base.copy!(t::TensorMap, b::BraidingTensor)
     space(t) == space(b) || throw(SectorMismatch())
     fill!(t, zero(scalartype(t)))
@@ -148,8 +148,8 @@ function Base.copy!(t::TensorMap, b::BraidingTensor)
     end
     return t
 end
-TensorMap(b::BraidingTensor) = copy(b)
-Base.convert(::Type{TensorMap}, b::BraidingTensor) = copy(b)
+TensorMap(b::BraidingTensor) = copy!(similar(b), b)
+Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
@@ -192,14 +192,15 @@ blocks(b::BraidingTensor) = blocks(TensorMap(b))
 # Index manipulations
 # -------------------
 has_shared_permute(t::BraidingTensor, args...) = false
-function add_transform!(tdst::AbstractTensorMap{S,N₁,N₂},
-                        tsrc::BraidingTensor{S},
-                        (p₁, p₂)::Index2Tuple{N₁,N₂},
+function add_transform!(tdst::AbstractTensorMap,
+                        tsrc::BraidingTensor,
+                        (p₁, p₂)::Index2Tuple,
                         fusiontreetransform,
                         α::Number,
                         β::Number,
-                        backend::Backend...) where {S,N₁,N₂}
-    return add_transform!(tdst, copy(tsrc), (p₁, p₂), fusiontreetransform, α, β, backend...)
+                        backend::AbstractBackend...)
+    return add_transform!(tdst, TensorMap(tsrc), (p₁, p₂), fusiontreetransform, α, β,
+                          backend...)
 end
 
 # VectorInterface
@@ -209,30 +210,40 @@ end
 # TensorOperations
 # ----------------
 # TODO: implement specialized methods
-function TO.tensoradd!(C::AbstractTensorMap{S,N₁,N₂}, pC::Index2Tuple{N₁,N₂},
-                       A::BraidingTensor{S}, conjA::Symbol, α::Number, β::Number,
-                       backend::Backend...) where {S,N₁,N₂}
-    return TO.tensoradd!(C, pC, copy(A), conjA, α, β, backend...)
+
+function TO.tensoradd!(C::AbstractTensorMap,
+                       A::BraidingTensor, pA::Index2Tuple, conjA::Symbol,
+                       α::Number, β::Number, backend::AbstractBackend=TO.DefaultBackend(),
+                       allocator=TO.DefaultAllocator())
+    return TO.tensoradd!(C, TensorMap(A), pA, conjA, α, β, backend, allocator)
 end
 
 # Planar operations
 # -----------------
-function planaradd!(C::AbstractTensorMap{S,N₁,N₂},
-                    A::BraidingTensor{S},
-                    p::Index2Tuple{N₁,N₂},
+# TODO: implement specialized methods
+
+function planaradd!(C::AbstractTensorMap,
+                    A::BraidingTensor, p::Index2Tuple,
                     α::Number, β::Number,
-                    backend::Backend...) where {S,N₁,N₂}
-    return planaradd!(C, copy(A), p, α, β, backend...)
+                    backend::AbstractBackend,
+                    allocator)
+    return planaradd!(C, TensorMap(A), p, α, β, backend, allocator)
 end
 
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
-                         A::BraidingTensor{S},
-                         (oindA, cindA)::Index2Tuple{2,2},
-                         B::AbstractTensorMap{S},
-                         (cindB, oindB)::Index2Tuple{2,N₃},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
+function planarcontract!(C::AbstractTensorMap,
+                         A::BraidingTensor,
+                         (oindA, cindA)::Index2Tuple,
+                         B::AbstractTensorMap,
+                         (cindB, oindB)::Index2Tuple,
+                         (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::Backend...) where {S,N₁,N₂,N₃}
+                         backend::AbstractBackend,
+                         allocator)
+    # special case only defined for contracting 2 indices
+    length(oindA) == length(cindA) == 2 ||
+        return planarcontract!(C, TensorMap(A), (oindA, cindA), B, (cindB, oindB), (p1, p2),
+                               α, β, backend, allocator)
+
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -244,7 +255,7 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     end
 
     if BraidingStyle(sectortype(B)) isa Bosonic
-        return add_permute!(C, B, (reverse(cindB), oindB), α, β, backend...)
+        return add_permute!(C, B, (reverse(cindB), oindB), α, β, backend)
     end
 
     τ_levels = A.adjoint ? (1, 2, 2, 1) : (2, 1, 1, 2)
@@ -265,20 +276,26 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
             end
         end
         for ((f₁′, f₂′), coeff) in newtrees
-            TO.tensoradd!(C[f₁′, f₂′], (reverse(cindB), oindB), B[f₁, f₂], :N, α * coeff,
-                          One(), backend...)
+            TO.tensoradd!(C[f₁′, f₂′], B[f₁, f₂], (reverse(cindB), oindB), false, α * coeff,
+                          One(), backend, allocator)
         end
     end
     return C
 end
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
-                         A::AbstractTensorMap{S},
-                         (oindA, cindA)::Index2Tuple{N₃,2},
-                         B::BraidingTensor{S},
-                         (cindB, oindB)::Index2Tuple{2,2},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
+function planarcontract!(C::AbstractTensorMap,
+                         A::AbstractTensorMap,
+                         (oindA, cindA)::Index2Tuple,
+                         B::BraidingTensor,
+                         (cindB, oindB)::Index2Tuple,
+                         (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::Backend...) where {S,N₁,N₂,N₃}
+                         backend::AbstractBackend,
+                         allocator)
+    # special case only defined for contracting 2 indices
+    length(oindB) == length(cindB) == 2 ||
+        return planarcontract!(C, A, (oindA, cindA), TensorMap(B), (cindB, oindB), (p1, p2),
+                               α, β, backend, allocator)
+
     codA, domA = codomainind(A), domainind(A)
     codB, domB = codomainind(B), domainind(B)
     oindA, cindA, oindB, cindB = reorder_indices(codA, domA, codB, domB, oindA, cindA,
@@ -290,7 +307,7 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
     end
 
     if BraidingStyle(sectortype(A)) isa Bosonic
-        return add_permute!(C, A, (oindA, reverse(cindA)), α, β, backend...)
+        return add_permute!(C, A, (oindA, reverse(cindA)), α, β, backend)
     end
 
     scale!(C, β)
@@ -311,48 +328,29 @@ function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
             end
         end
         for ((f₁′, f₂′), coeff) in newtrees
-            TO.tensoradd!(C[f₁′, f₂′], (oindA, reverse(cindA)), A[f₁, f₂], :N, α * coeff,
-                          One(), backend...)
+            TO.tensoradd!(C[f₁′, f₂′], A[f₁, f₂], (oindA, reverse(cindA)), false, α * coeff,
+                          One(), backend, allocator)
         end
     end
     return C
 end
-function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},
-                         A::BraidingTensor{S},
-                         (oindA, cindA)::Index2Tuple{2,2},
-                         B::BraidingTensor{S},
-                         (cindB, oindB)::Index2Tuple{2,2},
-                         (p1, p2)::Index2Tuple{N₁,N₂},
-                         α::Number, β::Number,
-                         backend::Backend...) where {S,N₁,N₂}
-    return planarcontract!(C, copy(A), (oindA, cindA), B, (cindB, oindB), (p1, p2), α, β,
-                           backend...)
+
+# ambiguity fix:
+function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
+                         B::BraidingTensor, pB::Index2Tuple, pAB::Index2Tuple,
+                         α::Number, β::Number, backend::AbstractBackend,
+                         allocator)
+    return planarcontract!(C, TensorMap(A), pA, TensorMap(B), pB, pAB, α, β, backend,
+                           allocator)
 end
 
-# Fallback cases for planarcontract!
-# TODO: implement specialised cases for contracting 0, 1, 3 and 4 indices
-function planarcontract!(C::AbstractTensorMap{S}, A::BraidingTensor{S}, pA::Index2Tuple,
-                         B::BraidingTensor{S}, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...) where {S}
-    return planarcontract!(C, copy(A), pA, copy(B), pB, α, β, backend...)
-end
-function planarcontract!(C::AbstractTensorMap{S}, A::BraidingTensor{S}, pA::Index2Tuple,
-                         B::AbstractTensorMap{S}, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...) where {S}
-    return planarcontract!(C, copy(A), pA, B, pB, α, β, backend...)
-end
-function planarcontract!(C::AbstractTensorMap{S}, A::AbstractTensorMap{S}, pA::Index2Tuple,
-                         B::BraidingTensor{S}, pB::Index2Tuple, α::Number, β::Number,
-                         backend::Backend...) where {S}
-    return planarcontract!(C, A, pA, copy(B), pB, α, β, backend...)
-end
-
-function planartrace!(C::AbstractTensorMap{S,N₁,N₂},
-                      A::BraidingTensor{S},
-                      p::Index2Tuple{N₁,N₂}, q::Index2Tuple{N₃,N₃},
+function planartrace!(C::AbstractTensorMap,
+                      A::BraidingTensor,
+                      p::Index2Tuple, q::Index2Tuple,
                       α::Number, β::Number,
-                      backend::Backend...) where {S,N₁,N₂,N₃}
-    return planartrace!(C, copy(A), p, q, α, β, backend...)
+                      backend::AbstractBackend,
+                      allocator)
+    return planartrace!(C, TensorMap(A), p, q, α, β, backend, allocator)
 end
 
 # function planarcontract!(C::AbstractTensorMap{S,N₁,N₂},

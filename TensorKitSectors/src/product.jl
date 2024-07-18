@@ -74,7 +74,7 @@ function Nsymbol(a::P, b::P, c::P) where {P<:ProductSector}
 end
 
 _firstsector(x::ProductSector) = x.sectors[1]
-_tailsector(x::ProductSector) = ProductSector(tail(x.sectors))
+_tailsector(x::ProductSector) = ProductSector(Base.tail(x.sectors))
 
 function Fsymbol(a::P, b::P, c::P, d::P, e::P, f::P) where {P<:ProductSector}
     heads = map(_firstsector, (a, b, c, d, e, f))
@@ -196,7 +196,6 @@ group representations, we have `Irrep[G₁] ⊠ Irrep[G₂] == Irrep[G₁ × G�
 ⊠(s1::Sector, p2::ProductSector) = ProductSector(tuple(s1, p2.sectors...))
 ⊠(p1::ProductSector, p2::ProductSector) = ProductSector(tuple(p1.sectors..., p2.sectors...))
 
-# grow types from the left using Base.tuple_type_cons
 ⊠(I1::Type{Trivial}, I2::Type{Trivial}) = Trivial
 ⊠(I1::Type{Trivial}, I2::Type{<:ProductSector}) = I2
 ⊠(I1::Type{Trivial}, I2::Type{<:Sector}) = I2
