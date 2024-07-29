@@ -85,7 +85,8 @@ function Base.iterate(it::FusionTreeIterator{I}) where {I<:Sector}
     f = FusionTree(out, coupled, it.isdual, lines, vertexlabels)
     return f, (out, lines, vertices, states)
 end
-function Base.iterate(it::FusionTreeIterator{I}, (out, lines, vertices, states)) where {I<:Sector}
+function Base.iterate(it::FusionTreeIterator{I},
+                      (out, lines, vertices, states)) where {I<:Sector}
     coupled = it.coupled
     next = _fusiontree_iterate(it.uncouplediterators, coupled, out, lines, vertices, states)
     next === nothing && return nothing
@@ -96,13 +97,12 @@ function Base.iterate(it::FusionTreeIterator{I}, (out, lines, vertices, states))
 end
 
 @inline function _labelvertices(uncoupled::NTuple{2,I}, coupled::I, lines::Tuple{},
-                       vertices::Tuple{Int}) where {I<:Sector}
+                                vertices::Tuple{Int}) where {I<:Sector}
     return (vertex_ind2label(vertices[1], uncoupled..., coupled),)
 end
 
 @inline function _labelvertices(uncoupled::NTuple{N,I}, coupled::I, lines,
-                       vertices) where {I<:Sector,N}
-
+                                vertices) where {I<:Sector,N}
     a = lines[end]
     b = uncoupled[end]
     c = coupled
@@ -138,10 +138,11 @@ end
     return (a, b), (), (n,), (outstate1, outstate2)
 end
 
-@inline function _fusiontree_iterate(uncoupledsectors::NTuple{2}, c::I, out, lines, vertices, states) where {I<:Sector}
+@inline function _fusiontree_iterate(uncoupledsectors::NTuple{2}, c::I, out, lines,
+                                     vertices, states) where {I<:Sector}
     a, b = out
     n = vertices[1]
-    n < Nsymbol(a, b, c) && return out, lines, (n+1,), states
+    n < Nsymbol(a, b, c) && return out, lines, (n + 1,), states
     outiter1 = uncoupledsectors[1]
     outiter2 = uncoupledsectors[2]
     outstate1, outstate2 = states
@@ -167,7 +168,8 @@ end
     return (a, b), (), (n,), (outstate1, outstate2)
 end
 
-@inline function _fusiontree_iterate(uncoupledsectors::NTuple{N}, coupled::I) where {N, I<:Sector}
+@inline function _fusiontree_iterate(uncoupledsectors::NTuple{N},
+                                     coupled::I) where {N,I<:Sector}
     outiterN = uncoupledsectors[N]
     nextout = iterate(outiterN)
     nextout === nothing && return nothing
@@ -204,7 +206,8 @@ end
     return out, lines, vertices, states
 end
 
-@inline function _fusiontree_iterate(uncoupledsectors::NTuple{N}, coupled::I, out, lines, vertices, states) where {N, I<:Sector}
+@inline function _fusiontree_iterate(uncoupledsectors::NTuple{N}, coupled::I, out, lines,
+                                     vertices, states) where {N,I<:Sector}
     a = lines[end]
     b = out[end]
     c = coupled
@@ -212,14 +215,15 @@ end
     restlines = Base.front(lines)
     restvertices = Base.front(vertices)
     reststates = Base.front(Base.front(states))
-    rest = _fusiontree_iterate(Base.front(uncoupledsectors), a, restout, restlines, restvertices, reststates)
+    rest = _fusiontree_iterate(Base.front(uncoupledsectors), a, restout, restlines,
+                               restvertices, reststates)
     outiterN = uncoupledsectors[N]
     vertexiterN = c ⊗ dual(b)
     outstateN = states[end]
-    vertexstateN = states[end-1]
+    vertexstateN = states[end - 1]
     while isnothing(rest)
         n = vertices[end]
-        n < Nsymbol(a, b, c) && return out, lines, (restvertices..., n+1), states
+        n < Nsymbol(a, b, c) && return out, lines, (restvertices..., n + 1), states
         nextline = iterate(vertexiterN, vertexstateN)
         while isnothing(nextline)
             nextout = iterate(outiterN, outstateN)
