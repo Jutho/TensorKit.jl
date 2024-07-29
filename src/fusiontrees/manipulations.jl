@@ -90,7 +90,7 @@ function insertat(f₁::FusionTree{I}, i, f₂::FusionTree{I,2}) where {I}
         for e in a ⊗ b
             inner′ = TupleTools.insertafter(inner, i - 2, (e,))
             Fmat = Fsymbol(a, b, c, d, e, e′)
-            for μ in 1:size(Fmat, 1), ν in 1:size(Fmat, 2)
+            for μ in axes(Fmat, 1), ν in axes(Fmat, 2)
                 coeff = conj(Fmat[μ, ν, κ, λ])
                 iszero(coeff) && continue
                 vertices′ = TupleTools.setindex(f₁.vertices, ν, i - 1)
@@ -160,7 +160,7 @@ operation is the inverse of `insertat` in the sense that if
         (f, FusionTree{I}((f.coupled,), f.coupled, (false,), (), ()))
     elseif M === 1
         isdual1 = (f.isdual[1],)
-        isdual2 = Base.setindex(f.isdual, false, 1)
+        isdual2 = TupleTools.setindex(f.isdual, false, 1)
         f₁ = FusionTree{I}((f.uncoupled[1],), f.uncoupled[1], isdual1, (), ())
         f₂ = FusionTree{I}(f.uncoupled, f.coupled, isdual2, f.innerlines, f.vertices)
         return f₁, f₂
@@ -243,10 +243,10 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     a = N₁ == 1 ? one(I) : (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
     b = f₁.uncoupled[N₁]
 
-    uncoupled1 = Base.front(f₁.uncoupled)
-    isdual1 = Base.front(f₁.isdual)
-    inner1 = N₁ > 2 ? Base.front(f₁.innerlines) : ()
-    vertices1 = N₁ > 1 ? Base.front(f₁.vertices) : ()
+    uncoupled1 = TupleTools.front(f₁.uncoupled)
+    isdual1 = TupleTools.front(f₁.isdual)
+    inner1 = N₁ > 2 ? TupleTools.front(f₁.innerlines) : ()
+    vertices1 = N₁ > 1 ? TupleTools.front(f₁.vertices) : ()
     f₁′ = FusionTree(uncoupled1, a, isdual1, inner1, vertices1)
 
     uncoupled2 = (f₂.uncoupled..., dual(b))
@@ -266,7 +266,7 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
         local newtrees
         Bmat = Bsymbol(a, b, c)
         μ = N₁ > 1 ? f₁.vertices[end] : 1
-        for ν in 1:size(Bmat, 2)
+        for ν in axes(Bmat, 2)
             coeff = coeff₀ * Bmat[μ, ν]
             iszero(coeff) && continue
             vertices2 = N₂ > 0 ? (f₂.vertices..., ν) : ()
@@ -726,12 +726,12 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
             push!(newtrees, f′ => coeff)
             return newtrees
         end
-        uncoupled_ = Base.front(f.uncoupled)
-        inner_ = Base.front(f.innerlines)
+        uncoupled_ = TupleTools.front(f.uncoupled)
+        inner_ = TupleTools.front(f.innerlines)
         coupled_ = f.innerlines[end]
         @assert coupled_ == dual(b)
-        isdual_ = Base.front(f.isdual)
-        vertices_ = Base.front(f.vertices)
+        isdual_ = TupleTools.front(f.isdual)
+        vertices_ = TupleTools.front(f.vertices)
         f_ = FusionTree(uncoupled_, coupled_, isdual_, inner_, vertices_)
         fs = FusionTree((b,), b, (!f.isdual[1],), (), ())
         for (f_′, coeff) in merge(fs, f_, one(I), 1)
@@ -811,7 +811,7 @@ function artin_braid(f::FusionTree{I,N}, i; inv::Bool=false) where {I<:Sector,N}
             μ = vertices[1]
             Rmat = inv ? Rsymbol(b, a, c)' : Rsymbol(a, b, c)
             local newtrees
-            for ν in 1:size(Rmat, 2)
+            for ν in axes(Rmat, 2)
                 R = oftype(oneT, Rmat[μ, ν])
                 iszero(R) && continue
                 vertices′ = TupleTools.setindex(vertices, ν, 1)
