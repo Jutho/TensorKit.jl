@@ -143,12 +143,9 @@ sector `blocksector`.
 """
 function fusiontrees(P::ProductSpace{S,N}, blocksector::I) where {S,N,I}
     I == sectortype(S) || throw(SectorMismatch())
-    if N == 0
-        return FusionTreeIterator{I,N,Tuple{I}}((), blocksector, ())
-    else
-        return FusionTreeIterator(map(sectors, P.spaces), blocksector,
-                                  map(isdual, P.spaces))
-    end
+    uncoupled = map(sectors, P.spaces)
+    isdualflags = map(isdual, P.spaces)
+    return FusionTreeIterator(uncoupled, blocksector, isdualflags)
 end
 
 """

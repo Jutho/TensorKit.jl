@@ -9,7 +9,7 @@ uncoupled sector labels and isomorphisms `uncoupled` and `isdual` respectively.
 function fusiontrees(uncoupled::NTuple{N,I}, coupled::I,
                      isdual::NTuple{N,Bool}) where {N,I<:Sector}
     uncouplediterators = map(tuple, uncoupled)
-    return FusionTreeIterator{I,N,Tuple{I}}(uncouplediterators, coupled, isdual)
+    return FusionTreeIterator(uncouplediterators, coupled, isdual)
 end
 function fusiontrees(uncoupled::Tuple{Vararg{I}}, coupled::I) where {I<:Sector}
     isdual = ntuple(n -> false, length(uncoupled))
@@ -26,15 +26,15 @@ end
 # Base.iterate(s::Sector, ::Any) = nothing
 # TODO: reconsider whether this is desirable; currently it conflicts with the iteration of `ProductSector`
 
-struct FusionTreeIterator{I<:Sector,N,G}
-    uncouplediterators::NTuple{N,G} # iterators over uncoupled sectors
+struct FusionTreeIterator{I<:Sector,N,T<:NTuple{N}}
+    uncouplediterators::T # iterators over uncoupled sectors
     coupled::I
     isdual::NTuple{N,Bool}
 end
 
 Base.IteratorSize(::FusionTreeIterator) = Base.SizeUnknown()
 Base.IteratorEltype(::FusionTreeIterator) = Base.HasEltype()
-Base.eltype(::Type{FusionTreeIterator{I,N,G}}) where {I<:Sector,N,G} = fusiontreetype(I, N)
+Base.eltype(::Type{<:FusionTreeIterator{I,N}}) where {I<:Sector,N} = fusiontreetype(I, N)
 
 Base.length(iter::FusionTreeIterator) = _fusiondim(iter.uncouplediterators, iter.coupled)
 _fusiondim(::Tuple{}, c::I) where {I<:Sector} = Int(one(c) == c)
