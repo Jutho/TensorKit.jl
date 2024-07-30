@@ -135,6 +135,23 @@ function Base.axes(P::ProductSpace{<:ElementarySpace,N},
 end
 
 """
+    fusiontrees(P::ProductSpace, blocksector::Sector)
+
+Return an iterator over all fusion trees that can be formed by fusing the sectors present
+in the different spaces that make up the `ProductSpace` instance, resulting in the coupled
+sector `blocksector`.
+"""
+function fusiontrees(P::ProductSpace{S,N}, blocksector::I) where {S,N,I}
+    I == sectortype(S) || throw(SectorMismatch())
+    if N == 0
+        return FusionTreeIterator{I,N,Tuple{I}}((), blocksector, ())
+    else
+        return FusionTreeIterator(map(sectors, P.spaces), blocksector,
+                                  map(isdual, P.spaces))
+    end
+end
+
+"""
     blocksectors(P::ProductSpace)
 
 Return an iterator over the different unique coupled sector labels, i.e. the different
@@ -173,15 +190,7 @@ Query whether a coupled sector `c` appears with nonzero dimension in `P`, i.e. w
 
 See also [`blockdim`](@ref) and [`blocksectors`](@ref).
 """
-function hasblock(P::ProductSpace, c::Sector)
-    sectortype(P) == typeof(c) || throw(SectorMismatch())
-    for s in sectors(P)
-        if !isempty(fusiontrees(s, c))
-            return true
-        end
-    end
-    return false
-end
+hasblock(P::ProductSpace, c::Sector) = !isempty(fusiontrees(P, c))
 
 """
     blockdim(P::ProductSpace, c::Sector)
@@ -195,9 +204,8 @@ See also [`hasblock`](@ref) and [`blocksectors`](@ref).
 function blockdim(P::ProductSpace, c::Sector)
     sectortype(P) == typeof(c) || throw(SectorMismatch())
     d = 0
-    for s in sectors(P)
-        ds = dim(P, s)
-        d += length(fusiontrees(s, c)) * ds
+    for f in fusiontrees(P, c)
+        d += dim(P, f.uncoupled)
     end
     return d
 end
@@ -260,13 +268,7 @@ end
 Base.length(P::ProductSpace) = length(P.spaces)
 Base.getindex(P::ProductSpace, n::Integer) = P.spaces[n]
 
-@inline function Base.iterate(P::ProductSpace, ::Val{i}=Val(1)) where {i}
-    if i > length(P)
-        return nothing
-    else
-        return P.spaces[i], Val(i + 1)
-    end
-end
+Base.iterate(P::ProductSpace, args...) = Base.iterate(P.spaces, args...)
 Base.indexed_iterate(P::ProductSpace, args...) = Base.indexed_iterate(P.spaces, args...)
 
 Base.eltype(::Type{<:ProductSpace{S}}) where {S<:ElementarySpace} = S
