@@ -223,19 +223,17 @@ function _buildblockstructure(P::ProductSpace{S,N}, blocksectors) where {S<:Inde
     F = fusiontreetype(I, N)
     treeranges = SectorDict{I,FusionTreeDict{F,UnitRange{Int}}}()
     blockdims = SectorDict{I,Int}()
-    for s in sectors(P)
-        for c in blocksectors
-            offset = get!(blockdims, c, 0)
-            treerangesc = get!(treeranges, c) do
-                return FusionTreeDict{F,UnitRange{Int}}()
-            end
-            for f in fusiontrees(s, c, map(isdual, P.spaces))
-                r = (offset + 1):(offset + dim(P, s))
-                push!(treerangesc, f => r)
-                offset = last(r)
-            end
-            blockdims[c] = offset
+    for c in blocksectors
+        offset = 0
+        treerangesc = FusionTreeDict{F,UnitRange{Int}}()
+        for f in fusiontrees(P, c)
+            s = f.uncoupled
+            r = (offset + 1):(offset + dim(P, s))
+            treerangesc[f] = r
+            offset = last(r)
         end
+        treeranges[c] = treerangesc
+        blockdims[c] = offset
     end
     return treeranges, blockdims
 end

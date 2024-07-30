@@ -15,6 +15,7 @@ end
 
 Base.getindex(s::ProductSector, i::Int) = getindex(s.sectors, i)
 Base.iterate(s::ProductSector, args...) = iterate(s.sectors, args...)
+Base.indexed_iterate(s::ProductSector, args...) = Base.indexed_iterate(s.sectors, args...)
 
 _sectors(::Type{Tuple{}}) = ()
 Base.@pure function _sectors(::Type{T}) where {T<:SectorTuple}
