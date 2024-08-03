@@ -15,6 +15,7 @@ end
 
 Base.getindex(s::ProductSector, i::Int) = getindex(s.sectors, i)
 Base.iterate(s::ProductSector, args...) = iterate(s.sectors, args...)
+Base.indexed_iterate(s::ProductSector, args...) = Base.indexed_iterate(s.sectors, args...)
 
 _sectors(::Type{Tuple{}}) = ()
 Base.@pure function _sectors(::Type{T}) where {T<:SectorTuple}
@@ -29,25 +30,24 @@ function Base.size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple}
 end
 Base.length(P::SectorValues{<:ProductSector}) = *(size(P)...)
 
-function Base.iterate(::SectorValues{ProductSector{T}}, args...) where {T<:SectorTuple}
-    next = iterate(product(values.(_sectors(T))...), args...)
-    next === nothing && return nothing
-    val, state = next
-    return ProductSector{T}(val), state
+function _length(iter::SectorValues{I}) where {I<:Sector}
+    return Base.IteratorSize(iter) === Base.IsInfinite() ? typemax(Int) : length(iter)
+end
+function _size(::SectorValues{ProductSector{T}}) where {T<:SectorTuple}
+    return map(s -> _length(values(s)), _sectors(T))
 end
 function Base.getindex(P::SectorValues{ProductSector{T}}, i::Int) where {T<:SectorTuple}
-    Base.IteratorSize(P) isa IsInfinite &&
-        throw(ArgumentError("cannot index into infinite product sector"))
-    return ProductSector{T}(getindex.(values.(_sectors(T)),
-                                      Tuple(CartesianIndices(size(P))[i])))
+    I = manhattan_to_multidimensional_index(i, _size(P))
+    return ProductSector{T}(getindex.(values.(_sectors(T)), I))
 end
 function findindex(P::SectorValues{ProductSector{T}},
-                   c::ProductSector{T}) where
-         {T<:SectorTuple}
-    Base.IteratorSize(P) isa IsInfinite &&
-        throw(ArgumentError("cannot index into infinite product sector"))
-    return LinearIndices(size(P))[CartesianIndex(findindex.(values.(_sectors(T)),
-                                                            c.sectors))]
+                   c::ProductSector{T}) where {T<:SectorTuple}
+    return to_manhattan_index(findindex.(values.(_sectors(T)), c.sectors), _size(P))
+end
+
+function Base.iterate(P::SectorValues{ProductSector{T}}, i = 1) where {T<:SectorTuple}
+    Base.IteratorSize(P) != Base.IsInfinite() && i > length(P) && return nothing
+    return getindex(P, i), i + 1
 end
 
 ProductSector{T}(args...) where {T<:SectorTuple} = ProductSector{T}(args)
@@ -166,8 +166,8 @@ dim(p::ProductSector) = *(dim.(p.sectors)...)
 
 Base.isequal(p1::ProductSector, p2::ProductSector) = isequal(p1.sectors, p2.sectors)
 Base.hash(p::ProductSector, h::UInt) = hash(p.sectors, h)
-function Base.isless(p1::ProductSector{T}, p2::ProductSector{T}) where {T}
-    return isless(reverse(p1.sectors), reverse(p2.sectors))
+function Base.isless(p1::P, p2::P) where {P<:ProductSector}
+    return isless(findindex(values(P), p1), findindex(values(P), p2))
 end
 
 # Default construction from tensor product of sectors
