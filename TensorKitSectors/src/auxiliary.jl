@@ -14,8 +14,10 @@ function _kron(A, B)
     return C
 end
 
-# Manhattan based distance enumeration: t is supposed to be one-based index
+# Manhattan based distance enumeration: I is supposed to be one-based index
 # TODO: is there any way to make this faster?
+
+# forward mapping from multidimensional to single Manhattan index
 @inline function num_manhattan_points(d::Int, sz::Dims{1})
     return Int(sz[1] > d)
 end
@@ -51,9 +53,8 @@ function to_manhattan_index(I::Dims{N}, sz::Dims{N}) where {N}
     return index + localoffset(d, I, sz)
 end
 
-
-
-@inline invertlocaloffset(d, offset, sz::Tuple{Int}) = (d+1,)
+# inverse mapping
+@inline invertlocaloffset(d, offset, sz::Tuple{Int}) = (d + 1,)
 @inline function invertlocaloffset(d, offset, sz)
     i₁ = 1
     while i₁ < sz[1]
