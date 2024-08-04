@@ -1,6 +1,7 @@
 using Test
 using TestExtras
 using Random
+# using TensorKit: TensorKitSectors
 using TensorKitSectors
 using TensorOperations
 using Base.Iterators: take, product

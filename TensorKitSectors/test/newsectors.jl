@@ -75,4 +75,9 @@ end
 Base.hash(s::NewSU2Irrep, h::UInt) = hash(s.j, h)
 Base.isless(s1::NewSU2Irrep, s2::NewSU2Irrep) = isless(s1.j, s2.j)
 
+function Base.getindex(::SectorValues{NewSU2Irrep}, i::Int)
+    return 1 <= i ? NewSU2Irrep(half(i - 1)) : throw(BoundsError(values(NewSU2Irrep), i))
+end
+TensorKitSectors.findindex(::SectorValues{NewSU2Irrep}, s::NewSU2Irrep) = twice(s.j) + 1
+
 end # module NewSectors
