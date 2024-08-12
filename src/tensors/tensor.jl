@@ -358,9 +358,10 @@ function TensorMap(data::DenseArray, codom::ProductSpace{S,N₁}, dom::ProductSp
     end
 
     t = TensorMap(undef, eltype(data), codom, dom)
-    project_symmetric!(t, data)
+    data2 = reshape(data, (dims(codom)..., dims(dom)...))
+    project_symmetric!(t, data2)
 
-    if !isapprox(data, convert(Array, t); atol=tol)
+    if !isapprox(data2, convert(Array, t); atol=tol)
         throw(ArgumentError("Data has non-zero elements at incompatible positions"))
     end
 
