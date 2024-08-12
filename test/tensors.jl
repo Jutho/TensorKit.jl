@@ -117,7 +117,7 @@ for V in spacelist
                     @test t ≈ @constinferred TensorMap(a, W)
                     # also test if input is matrix
                     a2 = reshape(a, prod(dim, codomain(t)), prod(dim, domain(t)))
-                    @test a2 ≈ @constinferred convert(Array, t, (codomain(t), domain(t)))
+                    @test t ≈ @constinferred TensorMap(a2, codomain(t), domain(t))
                 end
             end
         end
