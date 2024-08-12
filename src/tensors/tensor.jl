@@ -400,9 +400,10 @@ function TensorMap(data::DenseArray, V::TensorMapSpace{S,N₁,N₂};
     end
 
     t = TensorMap{eltype(data)}(undef, codom, dom)
-    project_symmetric!(t, data)
+    data2 = reshape(data, (dims(codom)..., dims(dom)...))
+    project_symmetric!(t, data2)
 
-    if !isapprox(data, convert(Array, t); atol=tol)
+    if !isapprox(data2, convert(Array, t); atol=tol)
         throw(ArgumentError("Data has non-zero elements at incompatible positions"))
     end
 
