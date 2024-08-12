@@ -115,6 +115,9 @@ for V in spacelist
                     end
                     a = @constinferred convert(Array, t)
                     @test t ≈ @constinferred TensorMap(a, W)
+                    # also test if input is matrix
+                    a2 = reshape(a, prod(dim, codomain(t)), prod(dim, domain(t)))
+                    @test t ≈ @constinferred TensorMap(a2, codomain(t), domain(t))
                 end
             end
         end
