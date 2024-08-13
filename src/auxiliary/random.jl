@@ -29,7 +29,8 @@ See also [`randuniform`](@ref) and [`randnormal`](@ref).
 """
 randisometry(dims::Base.Dims{2}) = randisometry(Float64, dims)
 function randisometry(::Type{T}, dims::Base.Dims{2}) where {T<:Number}
-    return dims[1] >= dims[2] ? _leftorth!(randnormal(T, dims), QRpos(), 0)[1] :
+    return dims[1] >= dims[2] ?
+           MatrixAlgebra.leftorth!(randnormal(T, dims), QRpos(), 0)[1] :
            throw(DimensionMismatch("cannot create isometric matrix with dimensions $dims; isometry needs to be tall or square"))
 end
 
