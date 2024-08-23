@@ -80,12 +80,10 @@ Return whether the topological data (Fsymbol, Rsymbol) of the sector is real or 
 which case it is complex).
 """
 function Base.isreal(I::Type{<:Sector})
-    u = one(I)
     if BraidingStyle(I) isa HasBraiding
-        return (eltype(Fsymbol(u, u, u, u, u, u)) <: Real) &&
-               (eltype(Rsymbol(u, u, u)) <: Real)
+        return Feltype(I) <: Real && Reltype(I) <: Real
     else
-        return (eltype(Fsymbol(u, u, u, u, u, u)) <: Real)
+        return Feltype(I) <: Real
     end
 end
 
@@ -183,6 +181,9 @@ it is a rank 4 array of size
 `(Nsymbol(a, b, e), Nsymbol(e, c, d), Nsymbol(b, c, f), Nsymbol(a, f, d))`.
 """
 function Fsymbol end
+
+# scalar type of the F symbols
+Feltype(I::Type{<:Sector}) = eltype(Core.Compiler.return_type(Fsymbol, NTuple{6,I}))
 
 # If a I::Sector with `fusion(I) == GenericFusion` fusion wants to have custom vertex
 # labels, a specialized method for `vertindex2label` should be added
@@ -328,6 +329,8 @@ number. Otherwise it is a square matrix with row and column size
 `Nsymbol(a,b,c) == Nsymbol(b,a,c)`.
 """
 function Rsymbol end
+
+Reltype(I::Type{<:Sector}) = eltype(Core.Compiler.return_type(Rsymbol, NTuple{3,I}))
 
 # properties that can be determined in terms of the R symbol
 
