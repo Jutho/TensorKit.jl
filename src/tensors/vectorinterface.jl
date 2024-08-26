@@ -1,6 +1,6 @@
 # scalartype
 #------------
-VectorInterface.scalartype(T::Type{<:AbstractTensorMap}) = scalartype(storagetype(T))
+VectorInterface.scalartype(::Type{TT}) where {T,TT<:AbstractTensorMap{T}} = scalartype(T)
 
 # zerovector & zerovector!!
 #---------------------------
