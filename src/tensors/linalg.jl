@@ -401,7 +401,7 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
 end
 
 # concatenate tensors
-function catdomain(t1::T, t2::T) where {S,N₁,T<:AbstractTensorMap{<:Any,S,N₁,1}}
+function catdomain(t1::TT, t2::TT) where {S,N₁,TT<:AbstractTensorMap{<:Any,S,N₁,1}}
     codomain(t1) == codomain(t2) ||
         throw(SpaceMismatch("codomains of tensors to concatenate must match:\n" *
                             "$(codomain(t1)) ≠ $(codomain(t2))"))
@@ -411,14 +411,15 @@ function catdomain(t1::T, t2::T) where {S,N₁,T<:AbstractTensorMap{<:Any,S,N₁
         throw(SpaceMismatch("cannot horizontally concatenate tensors whose domain has non-matching duality"))
 
     V = V1 ⊕ V2
-    t = TensorMap(undef, promote_type(scalartype(t1), scalartype(t2)), codomain(t1), V)
+    T = promote_type(scalartype(t1), scalartype(t2))
+    t = TensorMap{T}(undef, codomain(t1), V)
     for c in sectors(V)
         block(t, c)[:, 1:dim(V1, c)] .= block(t1, c)
         block(t, c)[:, dim(V1, c) .+ (1:dim(V2, c))] .= block(t2, c)
     end
     return t
 end
-function catcodomain(t1::T, t2::T) where {S,N₂,T<:AbstractTensorMap{<:Any,S,1,N₂}}
+function catcodomain(t1::TT, t2::TT) where {S,N₂,TT<:AbstractTensorMap{<:Any,S,1,N₂}}
     domain(t1) == domain(t2) ||
         throw(SpaceMismatch("domains of tensors to concatenate must match:\n" *
                             "$(domain(t1)) ≠ $(domain(t2))"))
@@ -428,7 +429,8 @@ function catcodomain(t1::T, t2::T) where {S,N₂,T<:AbstractTensorMap{<:Any,S,1,
         throw(SpaceMismatch("cannot vertically concatenate tensors whose codomain has non-matching duality"))
 
     V = V1 ⊕ V2
-    t = TensorMap(undef, promote_type(scalartype(t1), scalartype(t2)), V, domain(t1))
+    T = promote_type(scalartype(t1), scalartype(t2))
+    t = TensorMap{T}(undef, V, domain(t1))
     for c in sectors(V)
         block(t, c)[1:dim(V1, c), :] .= block(t1, c)
         block(t, c)[dim(V1, c) .+ (1:dim(V2, c)), :] .= block(t2, c)
