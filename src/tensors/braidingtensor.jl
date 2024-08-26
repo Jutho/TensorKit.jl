@@ -28,6 +28,9 @@ struct BraidingTensor{T,S} <: AbstractTensorMap{T,S,2,2}
         # partial construction: only construct rowr and colr when needed
     end
 end
+function BraidingTensor{T}(V1::S, V2::S, adjoint::Bool=false) where {T,S<:IndexSpace}
+    return BraidingTensor{T,S}(V1, V2, adjoint)
+end
 function BraidingTensor(V1::S, V2::S, adjoint::Bool=false) where {S<:IndexSpace}
     if BraidingStyle(sectortype(S)) isa SymmetricBraiding
         return BraidingTensor{Float64,S}(V1, V2, adjoint)
@@ -38,7 +41,12 @@ end
 function BraidingTensor(V::HomSpace, adjoint::Bool=false)
     domain(V) == reverse(codomain(V)) ||
         throw(SpaceMismatch("Cannot define a braiding on $V"))
-    return BraidingTensor(V[1], V[2], adjoint)
+    return BraidingTensor(V[2], V[1], adjoint)
+end
+function BraidingTensor{T}(V::HomSpace, adjoint::Bool=false) where {T}
+    domain(V) == reverse(codomain(V)) ||
+        throw(SpaceMismatch("Cannot define a braiding on $V"))
+    return BraidingTensor{T}(V[2], V[1], adjoint)
 end
 function Base.adjoint(b::BraidingTensor{T,S}) where {T,S}
     return BraidingTensor{T,S}(b.V1, b.V2, !b.adjoint)
@@ -54,6 +62,10 @@ blocksectors(b::BraidingTensor) = blocksectors(b.V1 ⊗ b.V2)
 hasblock(b::BraidingTensor, s::Sector) = s ∈ blocksectors(b)
 
 function fusiontrees(b::BraidingTensor)
+    if sectortype(b) === Trivial
+        return ((nothing, nothing),)
+    end
+
     codom = codomain(b)
     dom = domain(b)
     I = sectortype(b)
@@ -71,7 +83,6 @@ function fusiontrees(b::BraidingTensor)
                 offset1 = last(r)
             end
         end
-        dim1 = offset1
         offset2 = 0
         for s2 in sectors(dom)
             for f₂ in fusiontrees(s2, c, map(isdual, dom.spaces))
@@ -80,7 +91,6 @@ function fusiontrees(b::BraidingTensor)
                 offset2 = last(r)
             end
         end
-        dim2 = offset2
         push!(rowr, c => rowrc)
         push!(colr, c => colrc)
     end
@@ -123,6 +133,10 @@ end
         end
         return sreshape(StridedView(data), d)
     end
+end
+@inline function Base.getindex(b::BraidingTensor, ::Nothing, ::Nothing)
+    sectortype(b) === Trivial || throw(SectorMismatch())
+    return getindex(b)
 end
 
 # efficient copy constructor
