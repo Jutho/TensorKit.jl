@@ -25,7 +25,7 @@ function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, iste
     colr, coldims = _buildblockstructure(domain(structure), blocksectoriterator)
     A = storagetype(TT)
     blockallocator(c) = TO.tensoralloc(A, (rowdims[c], coldims[c]), istemp, allocator)
-    data = SectorDict(c => blockallocator(c) for c in blocksectoriterator)
+    data = SectorDict{sectortype(TT),A}(c => blockallocator(c) for c in blocksectoriterator)
     return TT(data, codomain(structure), domain(structure), rowr, colr)
 end
 
@@ -127,7 +127,8 @@ function TO.tensorcontract_type(TC,
                                 B::AbstractTensorMap, ::Index2Tuple, ::Bool,
                                 ::Index2Tuple{N₁,N₂}) where {N₁,N₂}
     M = similarstoragetype(A, TC)
-    M == similarstoragetype(B, TC) || throw(ArgumentError("incompatible storage types"))
+    M == similarstoragetype(B, TC) ||
+        throw(ArgumentError("incompatible storage types:\n$(M) ≠ $(similarstoragetype(B, TC))"))
     spacetype(A) == spacetype(B) || throw(SpaceMismatch("incompatible space types"))
     return tensormaptype(spacetype(A), N₁, N₂, M)
 end

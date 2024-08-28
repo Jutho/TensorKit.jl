@@ -278,6 +278,15 @@ function Base.similar(::AbstractTensorMap, ::Type{TorA},
     return TT(undef, codomain(P), domain(P))
 end
 
+# implementation in type-domain
+function Base.similar(::Type{TT}, P::TensorMapSpace) where {TT<:AbstractTensorMap}
+    return TensorMap{scalartype(TT)}(undef, P)
+end
+function Base.similar(::Type{TT}, cod::TensorSpace{S},
+                      dom::TensorSpace{S}) where {TT<:AbstractTensorMap,S}
+    return TensorMap{scalartype(TT)}(undef, cod, dom)
+end
+
 # Equality and approximality
 #----------------------------
 function Base.:(==)(t1::AbstractTensorMap, t2::AbstractTensorMap)

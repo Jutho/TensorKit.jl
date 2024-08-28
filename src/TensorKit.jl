@@ -26,6 +26,7 @@ export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
 export IndexSpace, TensorSpace, TensorMapSpace
 export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, TrivialTensorMap # tensors and tensor properties
+export BraidingTensor
 export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 

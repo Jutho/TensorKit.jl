@@ -1,4 +1,5 @@
 using TensorKit, TensorOperations, Test
+using TensorKit: BraidingTensor
 using TensorKit: planaradd!, planartrace!, planarcontract!
 using TensorKit: PlanarTrivial, ℙ
 
@@ -27,6 +28,24 @@ function force_planar(tsrc::TensorMap{<:Any,<:GradedSpace})
         copyto!(blocks(tdst)[c ⊠ PlanarTrivial()], b)
     end
     return tdst
+end
+
+@testset "Braiding tensor" begin
+    V1 = ℂ^2 ⊗ ℂ^3 ← ℂ^3 ⊗ ℂ^2
+    t1 = @constinferred BraidingTensor(V1)
+    @test space(t1) == V1
+    @test codomain(t1) == codomain(V1)
+    @test domain(t1) == domain(V1)
+    @test scalartype(t1) == Float64
+    @test storagetype(t1) == Matrix{Float64}
+    t2 = @constinferred BraidingTensor{ComplexF64}(V1)
+    @test scalartype(t2) == ComplexF64
+    @test storagetype(t2) == Matrix{ComplexF64}
+
+    V2 = ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^3
+    @test_throws SpaceMismatch BraidingTensor(V2)
+
+    @test adjoint(t1) isa BraidingTensor
 end
 
 @testset "planar methods" verbose = true begin
