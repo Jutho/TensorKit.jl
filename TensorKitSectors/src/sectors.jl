@@ -81,9 +81,9 @@ which case it is complex).
 """
 function Base.isreal(I::Type{<:Sector})
     if BraidingStyle(I) isa HasBraiding
-        return Feltype(I) <: Real && Reltype(I) <: Real
+        return Fscalartype(I) <: Real && Rscalartype(I) <: Real
     else
-        return Feltype(I) <: Real
+        return Fscalartype(I) <: Real
     end
 end
 
@@ -183,7 +183,7 @@ it is a rank 4 array of size
 function Fsymbol end
 
 # scalar type of the F symbols
-Feltype(I::Type{<:Sector}) = eltype(Core.Compiler.return_type(Fsymbol, NTuple{6,I}))
+Fscalartype(I::Type{<:Sector}) = eltype(Core.Compiler.return_type(Fsymbol, NTuple{6,I}))
 
 # If a I::Sector with `fusion(I) == GenericFusion` fusion wants to have custom vertex
 # labels, a specialized method for `vertindex2label` should be added
@@ -330,7 +330,7 @@ number. Otherwise it is a square matrix with row and column size
 """
 function Rsymbol end
 
-Reltype(I::Type{<:Sector}) = eltype(Core.Compiler.return_type(Rsymbol, NTuple{3,I}))
+Rscalartype(I::Type{<:Sector}) = eltype(Core.Compiler.return_type(Rsymbol, NTuple{3,I}))
 
 # properties that can be determined in terms of the R symbol
 

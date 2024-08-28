@@ -201,23 +201,23 @@ Base.isreal(::Type{SU2Irrep}) = true
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
 
-Feltype(::Type{SU2Irrep}) = Float64
+Fscalartype(::Type{SU2Irrep}) = Float64
 function Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
                  s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep)
     if all(==(_su2one), (s1, s2, s3, s4, s5, s6))
         return 1.0
     else
         return sqrtdim(s5) * sqrtdim(s6) *
-               WignerSymbols.racahW(Feltype(SU2Irrep), s1.j, s2.j,
+               WignerSymbols.racahW(Fscalartype(SU2Irrep), s1.j, s2.j,
                                     s4.j, s3.j, s5.j, s6.j)
     end
 end
 
-Reltype(::Type{SU2Irrep}) = Feltype(SU2Irrep)
+Rscalartype(::Type{SU2Irrep}) = Fscalartype(SU2Irrep)
 function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
-    Nsymbol(sa, sb, sc) || return zero(Reltype(SU2Irrep))
-    return iseven(convert(Int, sa.j + sb.j - sc.j)) ? one(Reltype(SU2Irrep)) :
-           -one(Reltype(SU2Irrep))
+    Nsymbol(sa, sb, sc) || return zero(Rscalartype(SU2Irrep))
+    return iseven(convert(Int, sa.j + sb.j - sc.j)) ? one(Rscalartype(SU2Irrep)) :
+           -one(Rscalartype(SU2Irrep))
 end
 
 function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep)
@@ -354,7 +354,7 @@ function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
                          (c.j == a.j + b.j) | (c.j == abs(a.j - b.j))))
 end
 
-Feltype(::Type{CU1Irrep}) = Float64
+Fscalartype(::Type{CU1Irrep}) = Float64
 function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
                  d::CU1Irrep, e::CU1Irrep, f::CU1Irrep)
     Nabe = convert(Int, Nsymbol(a, b, e))
@@ -362,7 +362,7 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
     Nbcf = convert(Int, Nsymbol(b, c, f))
     Nafd = convert(Int, Nsymbol(a, f, d))
 
-    T = Feltype(CU1Irrep)
+    T = Fscalartype(CU1Irrep)
     Nabe * Necd * Nbcf * Nafd == 0 && return zero(T)
 
     op = CU1Irrep(0, 0)
@@ -393,7 +393,7 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
         if d == a
             if e.j == 0
                 if f.j == 0
-                    return f.s == 1 ? T(-0.5) : T(0.5)
+                    return f.s == 1 ? T(-1 // 2) : T(1 // 2)
                 else
                     return e.s == 1 ? -s : s
                 end
@@ -443,9 +443,9 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
     return one(T)
 end
 
-Reltype(::Type{CU1Irrep}) = Feltype(CU1Irrep)
+Rscalartype(::Type{CU1Irrep}) = Fscalartype(CU1Irrep)
 function Rsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
-    R = convert(Reltype(CU1Irrep), Nsymbol(a, b, c))
+    R = convert(Rscalartype(CU1Irrep), Nsymbol(a, b, c))
     return c.s == 1 && a.j > 0 ? -R : R
 end
 
