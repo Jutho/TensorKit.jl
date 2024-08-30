@@ -197,27 +197,26 @@ findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j) + 1
 dim(s::SU2Irrep) = twice(s.j) + 1
 
 FusionStyle(::Type{SU2Irrep}) = SimpleFusion()
+sectorscalartype(::Type{SU2Irrep}) = Float64
 Base.isreal(::Type{SU2Irrep}) = true
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
 
-Fscalartype(::Type{SU2Irrep}) = Float64
 function Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
                  s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep)
     if all(==(_su2one), (s1, s2, s3, s4, s5, s6))
         return 1.0
     else
         return sqrtdim(s5) * sqrtdim(s6) *
-               WignerSymbols.racahW(Fscalartype(SU2Irrep), s1.j, s2.j,
+               WignerSymbols.racahW(sectorscalartype(SU2Irrep), s1.j, s2.j,
                                     s4.j, s3.j, s5.j, s6.j)
     end
 end
 
-Rscalartype(::Type{SU2Irrep}) = Fscalartype(SU2Irrep)
 function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
-    Nsymbol(sa, sb, sc) || return zero(Rscalartype(SU2Irrep))
-    return iseven(convert(Int, sa.j + sb.j - sc.j)) ? one(Rscalartype(SU2Irrep)) :
-           -one(Rscalartype(SU2Irrep))
+    Nsymbol(sa, sb, sc) || return zero(sectorscalartype(SU2Irrep))
+    return iseven(convert(Int, sa.j + sb.j - sc.j)) ? one(sectorscalartype(SU2Irrep)) :
+           -one(sectorscalartype(SU2Irrep))
 end
 
 function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep)
@@ -346,6 +345,7 @@ Base.eltype(::Type{CU1ProdIterator}) = CU1Irrep
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
 
 FusionStyle(::Type{CU1Irrep}) = SimpleFusion()
+sectorscalartype(::Type{CU1Irrep}) = Float64
 Base.isreal(::Type{CU1Irrep}) = true
 
 function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
@@ -354,7 +354,6 @@ function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
                          (c.j == a.j + b.j) | (c.j == abs(a.j - b.j))))
 end
 
-Fscalartype(::Type{CU1Irrep}) = Float64
 function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
                  d::CU1Irrep, e::CU1Irrep, f::CU1Irrep)
     Nabe = convert(Int, Nsymbol(a, b, e))
@@ -362,7 +361,7 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
     Nbcf = convert(Int, Nsymbol(b, c, f))
     Nafd = convert(Int, Nsymbol(a, f, d))
 
-    T = Fscalartype(CU1Irrep)
+    T = sectorscalartype(CU1Irrep)
     Nabe * Necd * Nbcf * Nafd == 0 && return zero(T)
 
     op = CU1Irrep(0, 0)
@@ -443,9 +442,8 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
     return one(T)
 end
 
-Rscalartype(::Type{CU1Irrep}) = Fscalartype(CU1Irrep)
 function Rsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
-    R = convert(Rscalartype(CU1Irrep), Nsymbol(a, b, c))
+    R = convert(sectorscalartype(CU1Irrep), Nsymbol(a, b, c))
     return c.s == 1 && a.j > 0 ? -R : R
 end
 
