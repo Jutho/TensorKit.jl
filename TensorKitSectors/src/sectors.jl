@@ -74,20 +74,27 @@ Return the conjugate label `conj(a)`.
 dual(a::Sector) = conj(a)
 
 """
+    sectorscalartype(I::Type{<:Sector}) -> Type
+
+Return the scalar type of the topological data (Fsymbol, Rsymbol) of the sector `I`.
+"""
+function sectorscalartype(::Type{I}) where {I<:Sector}
+    if BraidingStyle(I) isa NoBraiding
+        return eltype(Core.Compiler.return_type(Fsymbol, NTuple{6,I}))
+    else
+        Feltype = eltype(Core.Compiler.return_type(Fsymbol, NTuple{6,I}))
+        Reltype = eltype(Core.Compiler.return_type(Rsymbol, NTuple{3,I}))
+        return Base.promote_op(*, Feltype, Reltype)
+    end
+end
+
+"""
     isreal(::Type{<:Sector}) -> Bool
 
 Return whether the topological data (Fsymbol, Rsymbol) of the sector is real or not (in
 which case it is complex).
 """
-function Base.isreal(I::Type{<:Sector})
-    u = one(I)
-    if BraidingStyle(I) isa HasBraiding
-        return (eltype(Fsymbol(u, u, u, u, u, u)) <: Real) &&
-               (eltype(Rsymbol(u, u, u)) <: Real)
-    else
-        return (eltype(Fsymbol(u, u, u, u, u, u)) <: Real)
-    end
-end
+Base.isreal(I::Type{<:Sector}) = sectorscalartype(I) <: Real
 
 # FusionStyle: the most important aspect of Sector
 #---------------------------------------------

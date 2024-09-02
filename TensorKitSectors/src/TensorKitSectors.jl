@@ -10,6 +10,7 @@ export Sector, Group, AbstractIrrep
 export Irrep
 
 export Nsymbol, Fsymbol, Rsymbol, Asymbol, Bsymbol
+export sectorscalartype
 export dim, sqrtdim, invsqrtdim, frobeniusschur, twist, fusiontensor, dual
 export otimes, deligneproduct, times
 export FusionStyle, UniqueFusion, MultipleFusion, SimpleFusion, GenericFusion,

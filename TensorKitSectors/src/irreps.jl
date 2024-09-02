@@ -197,22 +197,26 @@ findindex(::SectorValues{SU2Irrep}, s::SU2Irrep) = twice(s.j) + 1
 dim(s::SU2Irrep) = twice(s.j) + 1
 
 FusionStyle(::Type{SU2Irrep}) = SimpleFusion()
+sectorscalartype(::Type{SU2Irrep}) = Float64
 Base.isreal(::Type{SU2Irrep}) = true
 
 Nsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep) = WignerSymbols.δ(sa.j, sb.j, sc.j)
+
 function Fsymbol(s1::SU2Irrep, s2::SU2Irrep, s3::SU2Irrep,
                  s4::SU2Irrep, s5::SU2Irrep, s6::SU2Irrep)
     if all(==(_su2one), (s1, s2, s3, s4, s5, s6))
         return 1.0
     else
         return sqrtdim(s5) * sqrtdim(s6) *
-               WignerSymbols.racahW(Float64, s1.j, s2.j,
+               WignerSymbols.racahW(sectorscalartype(SU2Irrep), s1.j, s2.j,
                                     s4.j, s3.j, s5.j, s6.j)
     end
 end
+
 function Rsymbol(sa::SU2Irrep, sb::SU2Irrep, sc::SU2Irrep)
-    Nsymbol(sa, sb, sc) || return 0.0
-    return iseven(convert(Int, sa.j + sb.j - sc.j)) ? 1.0 : -1.0
+    Nsymbol(sa, sb, sc) || return zero(sectorscalartype(SU2Irrep))
+    return iseven(convert(Int, sa.j + sb.j - sc.j)) ? one(sectorscalartype(SU2Irrep)) :
+           -one(sectorscalartype(SU2Irrep))
 end
 
 function fusiontensor(a::SU2Irrep, b::SU2Irrep, c::SU2Irrep)
@@ -341,6 +345,7 @@ Base.eltype(::Type{CU1ProdIterator}) = CU1Irrep
 dim(c::CU1Irrep) = ifelse(c.j == zero(HalfInt), 1, 2)
 
 FusionStyle(::Type{CU1Irrep}) = SimpleFusion()
+sectorscalartype(::Type{CU1Irrep}) = Float64
 Base.isreal(::Type{CU1Irrep}) = true
 
 function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
@@ -348,6 +353,7 @@ function Nsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
                   ifelse(c.s == 1, (a.j == b.j) & ((a.s == b.s == 2) | (a.s != b.s)),
                          (c.j == a.j + b.j) | (c.j == abs(a.j - b.j))))
 end
+
 function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
                  d::CU1Irrep, e::CU1Irrep, f::CU1Irrep)
     Nabe = convert(Int, Nsymbol(a, b, e))
@@ -355,45 +361,46 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
     Nbcf = convert(Int, Nsymbol(b, c, f))
     Nafd = convert(Int, Nsymbol(a, f, d))
 
-    Nabe * Necd * Nbcf * Nafd == 0 && return 0.0
+    T = sectorscalartype(CU1Irrep)
+    Nabe * Necd * Nbcf * Nafd == 0 && return zero(T)
 
     op = CU1Irrep(0, 0)
     om = CU1Irrep(0, 1)
 
     if a == op || b == op || c == op
-        return 1.0
+        return one(T)
     end
     if (a == b == om) || (a == c == om) || (b == c == om)
-        return 1.0
+        return one(T)
     end
     if a == om
         if d.j == zero(HalfInt)
-            return 1.0
+            return one(T)
         else
-            return (d.j == c.j - b.j) ? -1.0 : 1.0
+            return (d.j == c.j - b.j) ? -one(T) : one(T)
         end
     end
     if b == om
-        return (d.j == abs(a.j - c.j)) ? -1.0 : 1.0
+        return (d.j == abs(a.j - c.j)) ? -one(T) : one(T)
     end
     if c == om
-        return (d.j == a.j - b.j) ? -1.0 : 1.0
+        return (d.j == a.j - b.j) ? -one(T) : one(T)
     end
     # from here on, a, b, c are neither 0+ or 0-
-    s = sqrt(2) / 2
+    s = T(sqrt(2) / 2)
     if a == b == c
         if d == a
             if e.j == 0
                 if f.j == 0
-                    return f.s == 1 ? -0.5 : 0.5
+                    return f.s == 1 ? T(-1 // 2) : T(1 // 2)
                 else
                     return e.s == 1 ? -s : s
                 end
             else
-                return f.j == 0 ? s : 0.0
+                return f.j == 0 ? s : zero(T)
             end
         else
-            return 1.0
+            return one(T)
         end
     end
     if a == b # != c
@@ -404,7 +411,7 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
                 return s
             end
         else
-            return 1.0
+            return one(T)
         end
     end
     if b == c
@@ -415,27 +422,28 @@ function Fsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep,
                 return f.s == 1 ? -s : s
             end
         else
-            return 1.0
+            return one(T)
         end
     end
     if a == c
         if d == b
             if e.j == f.j
-                return 0.0
+                return zero(T)
             else
-                return 1.0
+                return one(T)
             end
         else
-            return d.s == 1 ? -1.0 : 1.0
+            return d.s == 1 ? -one(T) : one(T)
         end
     end
     if d == om
-        return b.j == a.j + c.j ? -1.0 : 1.0
+        return b.j == a.j + c.j ? -one(T) : one(T)
     end
-    return 1.0
+    return one(T)
 end
+
 function Rsymbol(a::CU1Irrep, b::CU1Irrep, c::CU1Irrep)
-    R = convert(Float64, Nsymbol(a, b, c))
+    R = convert(sectorscalartype(CU1Irrep), Nsymbol(a, b, c))
     return c.s == 1 && a.j > 0 ? -R : R
 end
 
