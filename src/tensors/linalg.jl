@@ -269,7 +269,7 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
             A = block(tA, c)
             B = block(tB, c)
             C = block(tC, c)
-            mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
+            MatrixAlgebra.matmul!(C, A, B, α, β)
         elseif β != one(β)
             rmul!(block(tC, c), β)
         end

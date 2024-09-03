@@ -53,7 +53,6 @@ module MatrixAlgebra
 # CUDA package extension.
 
 # TODO: other methods to include here:
-# mul! (possibly call matmul! instead)
 # adjoint!
 # sylvester
 # exp!
@@ -62,6 +61,8 @@ module MatrixAlgebra
 
 using LinearAlgebra
 using LinearAlgebra: BlasFloat, BlasReal, BlasComplex, checksquare
+using Strided
+using Strided.StridedViews: isstrided
 
 using ..TensorKit: OrthogonalFactorizationAlgorithm,
                    QL, QLpos, QR, QRpos, LQ, LQpos, RQ, RQpos, SVD, SDD, Polar
@@ -86,6 +87,17 @@ end
 
 safesign(s::Real) = ifelse(s < zero(s), -one(s), +one(s))
 safesign(s::Complex) = ifelse(iszero(s), one(s), s / abs(s))
+
+function matmul!(C::AbstractMatrix{<:BlasFloat}, A::AbstractMatrix{<:BlasFloat},
+                 B::AbstractMatrix{<:BlasFloat}, α::Number, β::Number)
+    if isstrided(A) && isstrided(B) && isstrided(C)
+        # Allow Strided multithreading
+        LinearAlgebra.mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
+    else
+        LinearAlgebra.mul!(C, A, B, α, β)
+    end
+    return C
+end
 
 function leftorth!(A::StridedMatrix{<:BlasFloat}, alg::Union{QR,QRpos}, atol::Real)
     iszero(atol) || throw(ArgumentError("nonzero atol not supported by $alg"))
