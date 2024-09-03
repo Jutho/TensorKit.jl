@@ -227,21 +227,12 @@ function LinearAlgebra.norm(t::AbstractTensorMap, p::Real=2)
 end
 function _norm(blockiter, p::Real, init::Real)
     if p == Inf
-        return mapreduce(max, blockiter; init=init) do (c, b)
-            return isempty(b) ? init : oftype(init, LinearAlgebra.normInf(b))
-        end
-    elseif p == 2
-        return sqrt(mapreduce(+, blockiter; init=init) do (c, b)
-                        return isempty(b) ? init :
-                               oftype(init, dim(c) * LinearAlgebra.norm2(b)^2)
-                    end)
-    elseif p == 1
-        return mapreduce(+, blockiter; init=init) do (c, b)
-            return isempty(b) ? init : oftype(init, dim(c) * sum(abs, b))
+        return maximum(blockiter; init) do (c, b)
+            return isempty(b) ? init : oftype(init, LinearAlgebra.norm(b, p))
         end
     elseif p > 0
-        s = mapreduce(+, blockiter; init=init) do (c, b)
-            return isempty(b) ? init : oftype(init, dim(c) * LinearAlgebra.normp(b, p)^p)
+        s = sum(blockiter; init) do (c, b)
+            return isempty(b) ? init : oftype(init, LinearAlgebra.norm(b, p)^p)
         end
         return s^inv(oftype(s, p))
     else
