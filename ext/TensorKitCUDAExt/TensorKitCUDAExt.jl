@@ -9,5 +9,6 @@ using TensorKit: SectorDict
 using Random: Random
 
 include("cutensormap.jl")
+include("cuda_fixes.jl")
 
 end

@@ -106,3 +106,7 @@ function Base.convert(::Type{CuTensorMap}, d::Dict{Symbol,Any})
         return TensorMap(data, codomain, domain)
     end
 end
+
+function Base.getindex(t::TrivialCuTensorMap)
+    return reshape(t.data, (dims(codomain(t))..., dims(domain(t))...))
+end
