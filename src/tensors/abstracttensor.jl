@@ -319,16 +319,16 @@ end
 # Conversion to Array:
 #----------------------
 # probably not optimized for speed, only for checking purposes
-function Base.convert(::Type{Array}, t::AbstractTensorMap)
+function Base.convert(::Type{TA}, t::AbstractTensorMap) where {TA<:AbstractArray}
     I = sectortype(t)
     if I === Trivial
-        convert(Array, t[])
+        convert(TA, t[])
     else
         cod = codomain(t)
         dom = domain(t)
         local A
         for (f₁, f₂) in fusiontrees(t)
-            F = convert(Array, (f₁, f₂))
+            F = convert(TA, (f₁, f₂))
             if !(@isdefined A)
                 if eltype(F) <: Complex
                     T = complex(float(scalartype(t)))
@@ -340,7 +340,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap)
                 A = fill(zero(T), (dims(cod)..., dims(dom)...))
             end
             Aslice = StridedView(A)[axes(cod, f₁.uncoupled)..., axes(dom, f₂.uncoupled)...]
-            axpy!(1, StridedView(_kron(convert(Array, t[f₁, f₂]), F)), Aslice)
+            axpy!(1, StridedView(_kron(convert(TA, t[f₁, f₂]), F)), Aslice)
         end
         return A
     end
