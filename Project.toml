@@ -16,14 +16,17 @@ VectorInterface = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [weakdeps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
 
 [extensions]
+TensorKitAdaptExt = "Adapt"
 TensorKitChainRulesCoreExt = "ChainRulesCore"
 TensorKitFiniteDifferencesExt = "FiniteDifferences"
 
 [compat]
+Adapt = "4"
 Aqua = "0.6, 0.7, 0.8"
 ChainRulesCore = "1"
 ChainRulesTestUtils = "1"
@@ -44,6 +47,7 @@ WignerSymbols = "1,2"
 julia = "1.6"
 
 [extras]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 ChainRulesTestUtils = "cdddcdb0-9152-4a09-a978-84456f9df70a"
@@ -57,4 +61,4 @@ TestExtras = "5ed8adda-3752-4e41-b88a-e8b09835ee3a"
 WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [targets]
-test = ["Aqua", "Combinatorics", "HalfIntegers", "LinearAlgebra", "TensorOperations", "Test", "TestExtras", "WignerSymbols", "ChainRulesCore", "ChainRulesTestUtils", "FiniteDifferences"]
+test = ["Aqua", "Adapt", "Combinatorics", "HalfIntegers", "LinearAlgebra", "TensorOperations", "Test", "TestExtras", "WignerSymbols", "ChainRulesCore", "ChainRulesTestUtils", "FiniteDifferences"]
