@@ -4,16 +4,15 @@ authors = ["Jutho Haegeman"]
 version = "1.0.0-DEV"
 
 [deps]
-HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
 LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PackageExtensionCompat = "65ce6f38-6b18-4e1d-a461-8949797d7930"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Strided = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
+TensorKitSectors = "13a9c161-d5da-41f0-bcbd-e1a08ae0647f"
 TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 VectorInterface = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
-WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [weakdeps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
@@ -29,18 +28,17 @@ ChainRulesCore = "1"
 ChainRulesTestUtils = "1"
 Combinatorics = "1"
 FiniteDifferences = "0.12"
-HalfIntegers = "1"
 LRUCache = "1.0.2"
 LinearAlgebra = "1"
 PackageExtensionCompat = "1"
 Random = "1"
 Strided = "2"
+TensorKitSectors = "0.1"
 TensorOperations = "5"
 Test = "1"
 TestExtras = "0.2"
 TupleTools = "1.1"
 VectorInterface = "0.4"
-WignerSymbols = "1,2"
 julia = "1.6"
 
 [extras]
@@ -49,12 +47,10 @@ ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 ChainRulesTestUtils = "cdddcdb0-9152-4a09-a978-84456f9df70a"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
-HalfIntegers = "f0d1745a-41c9-11e9-1dd9-e5d34d218721"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestExtras = "5ed8adda-3752-4e41-b88a-e8b09835ee3a"
-WignerSymbols = "9f57e263-0b3d-5e2e-b1be-24f2bb48858b"
 
 [targets]
-test = ["Aqua", "Combinatorics", "HalfIntegers", "LinearAlgebra", "TensorOperations", "Test", "TestExtras", "WignerSymbols", "ChainRulesCore", "ChainRulesTestUtils", "FiniteDifferences"]
+test = ["Aqua", "Combinatorics", "LinearAlgebra", "TensorOperations", "Test", "TestExtras", "ChainRulesCore", "ChainRulesTestUtils", "FiniteDifferences"]

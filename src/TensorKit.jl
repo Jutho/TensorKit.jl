@@ -101,8 +101,10 @@ const TO = TensorOperations
 
 using LRUCache
 
-using HalfIntegers
-using WignerSymbols
+using TensorKitSectors
+import TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
+import TensorKitSectors: dual, type_repr
+import TensorKitSectors: twist
 
 using Base: @boundscheck, @propagate_inbounds, OneTo, tail, front,
             tuple_type_head, tuple_type_tail, tuple_type_cons,
@@ -164,18 +166,6 @@ end
 IndexError() = IndexError{Nothing}(nothing)
 Base.show(io::IO, ::IndexError{Nothing}) = print(io, "IndexError()")
 Base.show(io::IO, e::IndexError) = print(io, "IndexError(", e.message, ")")
-
-# typerepr
-# type_repr(T::Type) = repr(T)
-
-# Definitions and methods for superselection sectors (quantum numbers)
-#----------------------------------------------------------------------
-
-include(joinpath(@__DIR__, "..", "TensorKitSectors", "src", "TensorKitSectors.jl"))
-using .TensorKitSectors
-import .TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
-import .TensorKitSectors: dual, type_repr
-import .TensorKitSectors: twist
 
 # Constructing and manipulating fusion trees and iterators thereof
 #------------------------------------------------------------------
