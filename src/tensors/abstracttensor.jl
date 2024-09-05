@@ -345,3 +345,34 @@ function Base.convert(::Type{TA}, t::AbstractTensorMap) where {TA<:AbstractArray
         return A
     end
 end
+
+# Show
+# ----
+function Base.show(io::IO, t::AbstractTensorMap)
+    summary(io, t)
+    if get(io, :compact, false)
+        return nothing
+    end
+    println(io, ":")
+    if sectortype(t) == Trivial
+        Base.print_array(io, t[])
+        println(io)
+    elseif FusionStyle(sectortype(t)) isa UniqueFusion
+        for (f₁, f₂) in fusiontrees(t)
+            println(io, "* Data for sector ", f₁.uncoupled, " ← ", f₂.uncoupled, ":")
+            Base.print_array(io, t[f₁, f₂])
+            println(io)
+        end
+    else
+        for (f₁, f₂) in fusiontrees(t)
+            println(io, "* Data for fusiontree ", f₁, " ← ", f₂, ":")
+            Base.print_array(io, t[f₁, f₂])
+            println(io)
+        end
+        #     for (c, b) in blocks(t)
+        #         println(io, "* Data for sector ", c, ":")
+        #         Base.print_array(io, b)
+        #         println(io)
+        #     end
+    end
+end
