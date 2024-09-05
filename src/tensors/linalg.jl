@@ -18,15 +18,27 @@ Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t)) / α)
 LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real=2) = scale!(t, inv(norm(t, p)))
 LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2) = scale(t, inv(norm(t, p)))
 
+# destination allocation for matrix multiplication
+function compose_dest(A::AbstractTensorMap, B::AbstractTensorMap)
+    TC = TO.promote_contract(scalartype(A), scalartype(B), One)
+    pA = (codomainind(A), domainind(A))
+    pB = (codomainind(B), domainind(B))
+    pAB = (codomainind(A), ntuple(i -> i + numout(A), numin(B)))
+    return TO.tensoralloc_contract(TC,
+                                   A, pA, false,
+                                   B, pB, false,
+                                   pAB, Val(false))
+end
+
 """
     compose(t1::AbstractTensorMap, t2::AbstractTensorMap) -> AbstractTensorMap
 
 Return the `AbstractTensorMap` that implements the composition of the two tensor maps `t1`
 and `t2`.
 """
-function compose(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    return mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)),
-                        compose(space(t1), space(t2))), t1, t2)
+function compose(A::AbstractTensorMap, B::AbstractTensorMap)
+    C = compose_dest(A, B)
+    return mul!(C, A, B)
 end
 Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = compose(t1, t2)
 
