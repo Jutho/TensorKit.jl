@@ -31,3 +31,29 @@ function TensorKit._truncate!(V::SectorDict{I,<:CuVector}, trunc::TruncationCuto
     return V, truncerr
 end
 
+for N in (1, 2)
+    @eval function Base.convert(::Type{CuArray}, f::TensorKit.FusionTree{I,$N}) where {I}
+        return convert(CuArray{float(TensorKit.sectorscalartype(I))}, f)
+    end
+end
+function Base.convert(::Type{CuArray}, f::FusionTree{I,N}) where {I,N}
+    return convert(CuArray{float(TensorKit.sectorscalartype(I))}, f)
+end
+
+function Base.getindex(t::CuTensorMap{T,S,N₁,N₂,I},
+                       f₁::FusionTree{I,N₁},
+                       f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
+    @info "hi"
+    c = f₁.coupled
+    @boundscheck begin
+        c == f₂.coupled || throw(SectorMismatch())
+        haskey(t.rowr[c], f₁) || throw(SectorMismatch())
+        haskey(t.colr[c], f₂) || throw(SectorMismatch())
+    end
+    @inbounds begin
+        d = (dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...)
+        return reshape(view(t.data[c], t.rowr[c][f₁], t.colr[c][f₂]), d)
+    end
+end
+
+end
