@@ -28,7 +28,7 @@ struct TensorMap{T, S<:IndexSpace, N₁, N₂, I<:Sector, A<:Union{<:DenseMatrix
         blocksectoriterator = blocksectors(codom ← dom)
         rowr, rowdims = _buildblockstructure(codom, blocksectoriterator)
         colr, coldims = _buildblockstructure(dom, blocksectoriterator)
-        data = SectorDict(c => valtype(A)(undef, rowdims[c], coldims[c]) for c in blocksectoriterator)
+        data = A(c => valtype(A)(undef, rowdims[c], coldims[c]) for c in blocksectoriterator)
         return TensorMap{T,S,N₁,N₂,I,A,F₁,F₂}(data, codom, dom, rowr, colr)
     end
     
@@ -92,6 +92,13 @@ function tensormaptype(::Type{S}, N₁::Int, N₂::Int,
                        ::Type{TorA}) where {S,TorA<:MatOrNumber}
     I = sectortype(S)
     if TorA <: DenseMatrix
+        if isconcretetype(TorA)
+            M = TorA
+            T = scalartype(TorA)
+        else
+            M = Core.Compiler.return_type(similar, Tuple{Type{TorA},Tuple{Int,Int}})
+            T = scalartype(M)
+        end
         M = TorA
         T = scalartype(TorA)
     elseif TorA <: Number
@@ -459,7 +466,8 @@ function Base.similar(t::TensorMap, ::Type{TorA},
     I = sectortype(S)
 
     # speed up specialized cases
-    TT = tensormaptype(S, N₁, N₂, TorA)
+    A = TorA <: Number ? similarstoragetype(t, TorA) : TorA
+    TT = tensormaptype(S, N₁, N₂, A)
     I === Trivial && return TT(undef, codomain(P), domain(P))
 
     if space(t) == P
@@ -768,7 +776,8 @@ end
 #---------------------------
 Base.convert(::Type{TensorMap}, t::TensorMap) = t
 function Base.convert(::Type{TensorMap}, t::AbstractTensorMap)
-    return copy!(TensorMap{scalartype(t)}(undef, space(t)), t)
+    TT = tensormaptype(spacetype(t), numout(t), numin(t), storagetype(t))
+    return copy!(TT(undef, codomain(t), domain(t)), t)
 end
 
 function Base.convert(TT::Type{<:TensorMap{T,S,N₁,N₂}},

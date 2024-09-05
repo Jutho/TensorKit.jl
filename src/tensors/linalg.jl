@@ -173,7 +173,7 @@ LinearAlgebra.isdiag(t::AbstractTensorMap) = all(LinearAlgebra.isdiag, values(bl
 function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
     space(tdst) == space(tsrc) || throw(SpaceMismatch("$(space(tdst)) ≠ $(space(tsrc))"))
     for c in blocksectors(tdst)
-        copy!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
+        copy!(block(tdst, c), block(tsrc, c))
     end
     return tdst
 end
@@ -445,7 +445,9 @@ function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
     dom1, dom2 = domain(t1), domain(t2)
     cod = cod1 ⊗ cod2
     dom = dom1 ⊗ dom2
-    t = zeros(promote_type(scalartype(t1), scalartype(t2)), cod ← dom)
+    TT = tensormaptype(S, length(cod), length(dom),
+                       promote_type(storagetype(t1), storagetype(t2)))
+    t = zerovector!(TT(undef, cod, dom))
     if sectortype(S) === Trivial
         d1 = dim(cod1)
         d2 = dim(cod2)
