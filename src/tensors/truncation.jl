@@ -53,7 +53,6 @@ function _truncate!(v::AbstractVector, trunc::TruncationError, p::Real=2)
 end
 
 function _truncate!(v::AbstractVector, trunc::TruncationDimension, p::Real=2)
-    S = real(eltype(v))
     dtrunc = min(length(v), trunc.dim)
     truncerr = norm(view(v, (dtrunc + 1):length(v)), p)
     resize!(v, dtrunc)
@@ -67,13 +66,9 @@ end
 ########################
 ########################
 function _truncate!(v::AbstractVector, trunc::TruncationCutoff, p::Real=2)
-    S = real(eltype(v))
-    dtrunc = findlast(Base.Fix2(>, trunc.ϵ), v)
-    if dtrunc === nothing
-        dtrunc = 0
-    end
-    dtrunc = min(dtrunc + trunc.add_back, length(v))
-    truncerr = norm(view(v, (dtrunc + 1):length(v)), p)
+    dtrunc = min(something(findfirst(<(trunc.ϵ), v), length(v) + 1) - 1 + trunc.add_back,
+                 length(v))
+    truncerr = norm(@view(V[(dtrunc + 1):end]), p)
     resize!(v, dtrunc)
     return v, truncerr
 end
@@ -169,25 +164,20 @@ function _truncate!(V::SectorVectorDict, trunc::TruncationCutoff, p=2)
     I = keytype(V)
     S = real(eltype(valtype(V)))
     truncdim = SectorDict{I,Int}(c => length(v) for (c, v) in V)
-    next_val = SectorDict{I,Array{S}}(c => [zero(S)] for (c, v) in V)
+    next_val = SectorDict(c => view(v, 1:length(v)) for (c, v) in V)
     for (c, v) in V
-        newdim = findlast(Base.Fix2(>, trunc.ϵ), v)
-        if newdim === nothing
-            truncdim[c] = 0
-            next_val[c] = v
-        else
-            truncdim[c] = newdim
-            next_val[c] = v[(newdim + 1):end]
-        end
+        newdim = something(findfirst(<(trunc.ϵ), v), length(v) + 1) - 1
+        # newdim = findlast(Base.Fix2(>, trunc.ϵ), v)
+        truncdim[c] = newdim
+        next_val[c] = @view v[(newdim + 1):end]
     end
-    for i in 1:(trunc.add_back)
+    for _ in 1:(trunc.add_back)
         key_max = argmax(next_val)
-        length(next_val[key_max]) == 0 && break
+        isempty(next_val[key_max]) && break
         truncdim[key_max] += 1
-        next_val[key_max] = next_val[key_max][2:end]
+        next_val[key_max] = @view next_val[2:end]
     end
-    truncerr = _norm((c => view(v, (truncdim[c] + 1):length(v)) for (c, v) in V), p,
-                     zero(S))
+    truncerr = _norm(next_val, p, zero(S))
     for (c, v) in V
         resize!(v, truncdim[c])
     end
