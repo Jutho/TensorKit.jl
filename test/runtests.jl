@@ -69,4 +69,7 @@ println()
 @testset "Aqua" verbose = true begin
     using Aqua
     Aqua.test_all(TensorKit)
+using CUDA
+CUDA.functional() && @testset "CuTensorKit" begin
+    include("cutensor.jl")
 end
