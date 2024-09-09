@@ -117,7 +117,7 @@ function Base.copy!(t::TensorMap, b::BraidingTensor)
             braiddict = artin_braid(f₂, 1; inv=b.adjoint)
             r = convert(scalartype(t), get(braiddict, f₁, zero(valtype(braiddict))))
         end
-        for i in 1:size(data, 1), j in 1:size(data, 2)
+        @inbounds for i in axes(data, 1), j in axes(data, 2)
             data[i, j, j, i] = r
         end
     end
@@ -126,39 +126,48 @@ end
 TensorMap(b::BraidingTensor) = copy!(similar(b), b)
 Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
+# TODO: fix this!
+# block(b::BraidingTensor, s::Sector) = block(TensorMap(b), s)
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
-    (V1, V2) = domain(b)
-    if sectortype(b) == Trivial
+
+    # TODO: probably always square?
+    m = blockdim(codomain(b), s)
+    n = blockdim(domain(b), s)
+    data = Matrix{eltype(b)}(undef, (m, n))
+
+    length(data) == 0 && return data # s ∉ blocksectors(b)
+
+    data = fill!(data, zero(scalartype(b)))
+
+    V1, V2 = domain(b)
+    if sectortype(b) === Trivial
         d1, d2 = dim(V1), dim(V2)
-        n = d1 * d2
-        data = fill!(storagetype(b)(undef, (n, n)), zero(scalartype(b)))
-        si = 1 + d2 * d1 * d1
-        sj = d2 + d2 * d1
-        @inbounds for i in 1:d2, j in 1:d1
-            data[(i - 1) * si + (j - 1) * sj + 1] = one(scalartype(b))
+        subblock = sreshape(StridedView(data), (d1, d2, d2, d1))
+        @inbounds for i in axes(subblock, 1), j in axes(subblock, 2)
+            subblock[i, j, j, i] = one(scalartype(b))
         end
         return data
     end
-    n = blockdim(domain(b), s)
-    data = fill!(storagetype(b)(undef, (n, n)), zero(scalartype(b)))
-    iter = fusiontrees(b) # actually contains information about ranges as well
-    for (f₂, r2) in iter.colr[s]
-        for (f₁, r1) in iter.rowr[s]
-            a1, a2 = f₂.uncoupled
-            d1 = dim(V1, a1)
-            d2 = dim(V2, a2)
-            f₁.uncoupled == (a2, a1) || continue
-            braiddict = artin_braid(f₂, 1; inv=b.adjoint)
-            r = convert(scalartype(b), get(braiddict, f₁, zero(valtype(braiddict))))
-            si = 1 + n * d1
-            sj = d2 + n
-            start = first(r1) + (first(r2) - 1) * n
-            @inbounds for i in 1:d2, j in 1:d1
-                data[(i - 1) * si + (j - 1) * sj + start] = r
-            end
+
+    structure = fusionblockstructure(b)
+    for ((f1, f2), (sz, str, _)) in
+        zip(structure.fusiontreelist, structure.fusiontreestructure)
+        if (f1.uncoupled != reverse(f2.uncoupled)) || !(f1.coupled == f2.coupled == s)
+            continue
+        end
+
+        braiddict = artin_braid(f2, 1; inv=b.adjoint)
+        haskey(braiddict, f1) || continue
+        r = braiddict[f1]
+
+        # discard offset because single block
+        subblock = StridedView(data, sz, str)
+        @inbounds for i in axes(subblock, 1), j in axes(subblock, 2)
+            subblock[i, j, j, i] = r
         end
     end
+
     return data
 end
 
