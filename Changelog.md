@@ -42,3 +42,8 @@ uninitialized tensors is now `TensorMap{E}(undef, codomain ← domain)`, reminis
 
 This PR bumps the compatibility of `TensorOperations` to v5. This is a breaking change
 as there are some changes in the API.
+
+### TensorKitSectors
+
+This promotes TensorKitSectors to its own package, in order to make the dependencies
+lighter and to separate the concerns of the two packages.
