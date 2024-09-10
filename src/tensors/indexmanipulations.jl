@@ -40,8 +40,12 @@ function permute(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple{N₁,N₂};
         end
     end
     # general case
+    tdst = similar(t, space′)
+    if !isbitstype(eltype(tdst))
+        tdst = zerovector!!(tdst)
+    end
     @inbounds begin
-        return permute!(similar(t, space′), t, (p₁, p₂))
+        return permute!(tdst, t, (p₁, p₂))
     end
 end
 function permute(t::AdjointTensorMap, (p₁, p₂)::Index2Tuple; copy::Bool=false)
@@ -117,8 +121,12 @@ function braid(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple, levels::IndexTup
     end
     # general case
     space′ = permute(space(t), (p₁, p₂))
+    tdst = similar(t, space′)
+    if !isbitstype(eltype(tdst))
+        tdst = zerovector!!(tdst)
+    end
     @inbounds begin
-        return braid!(similar(t, space′), t, (p₁, p₂), levels)
+        return braid!(tdst, t, (p₁, p₂), levels)
     end
 end
 # TODO: braid for `AdjointTensorMap`; think about how to map the `levels` argument.
@@ -169,8 +177,12 @@ function LinearAlgebra.transpose(t::AbstractTensorMap,
     end
     # general case
     space′ = permute(space(t), (p₁, p₂))
+    tdst = similar(t, space′)
+    if !isbitstype(eltype(tdst))
+        tdst = zerovector!!(tdst)
+    end
     @inbounds begin
-        return transpose!(similar(t, space′), t, (p₁, p₂))
+        return transpose!(tdst, t, (p₁, p₂))
     end
 end
 

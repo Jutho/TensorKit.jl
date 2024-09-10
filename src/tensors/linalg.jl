@@ -18,15 +18,27 @@ Base.:\(α::Number, t::AbstractTensorMap) = *(t, one(scalartype(t)) / α)
 LinearAlgebra.normalize!(t::AbstractTensorMap, p::Real=2) = scale!(t, inv(norm(t, p)))
 LinearAlgebra.normalize(t::AbstractTensorMap, p::Real=2) = scale(t, inv(norm(t, p)))
 
+# destination allocation for matrix multiplication:
+# make sure elements are assigned if not isbits
+function compose_dest(A::AbstractTensorMap, B::AbstractTensorMap)
+    C = similar(A, Base.promote_op(LinearAlgebra.matprod, scalartype(A), scalartype(B)),
+                codomain(A) ← domain(B))
+    if !isbitstype(scalartype(C))
+        return zerovector!!(C)
+    else
+        return C
+    end
+end
+
 """
     compose(t1::AbstractTensorMap, t2::AbstractTensorMap) -> AbstractTensorMap
 
 Return the `AbstractTensorMap` that implements the composition of the two tensor maps `t1`
 and `t2`.
 """
-function compose(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    return mul!(similar(t1, promote_type(scalartype(t1), scalartype(t2)),
-                        compose(space(t1), space(t2))), t1, t2)
+function compose(A::AbstractTensorMap, B::AbstractTensorMap)
+    C = compose_dest(A, B)
+    return mul!(C, A, B)
 end
 Base.:*(t1::AbstractTensorMap, t2::AbstractTensorMap) = compose(t1, t2)
 
