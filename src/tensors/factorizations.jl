@@ -16,7 +16,7 @@ A truncation parameter `trunc` can be specified for the new internal dimension, 
 case a truncated singular value decomposition will be computed. Choices are:
 *   `notrunc()`: no truncation (default);
 *   `truncerr(η::Real)`: truncates such that the p-norm of the truncated singular values is
-    smaller than `η` times the p-norm of all singular values;
+    smaller than `η`;
 *   `truncdim(χ::Int)`: truncates such that the equivalent total dimension of the internal
     vector space is no larger than `χ`;
 *   `truncspace(V)`: truncates such that the dimension of the internal vector space is
