@@ -55,8 +55,7 @@ function FusionTree{I}(uncoupled::NTuple{N,Any}, coupled,
                              convert(I, coupled), isdual,
                              map(s -> convert(I, s), innerlines), vertices)
     else
-        vertices′ = ntuple(n -> nothing, max(0, N - 1))
-        if vertices == vertices′ || all(isone, vertices)
+        if all(isone, vertices)
             fusiontreetype(I, N)(map(s -> convert(I, s), uncoupled),
                                  convert(I, coupled), isdual,
                                  map(s -> convert(I, s), innerlines), vertices)
@@ -71,9 +70,8 @@ function FusionTree(uncoupled::NTuple{N,I}, coupled::I,
     if FusionStyle(I) isa GenericFusion
         fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices)
     else
-        vertices′ = ntuple(n -> nothing, max(0, N - 1))
-        if vertices == vertices′ || all(isone, vertices)
-            fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices′)
+        if all(isone, vertices)
+            fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices)
         else
             throw(ArgumentError("Incorrect fusion vertices"))
         end
