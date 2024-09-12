@@ -43,9 +43,9 @@ const Tensor{T,S,N,A} = TensorMap{T,S,N,0,A}
 # `tensormaptype(S, N₁, N₂, A)` and so could thus be replaced with `TensorMap{S, N₁, N₂, A}`
 function tensormaptype(S::Type{<:IndexSpace}, N₁, N₂, TorA::Type)
     if TorA <: Number
-        return TensorMap{TorA, S, N₁, N₂, Vector{TorA}}
+        return TensorMap{TorA,S,N₁,N₂,Vector{TorA}}
     elseif TorA <: DenseVector
-        return TensorMap{scalartype(TorA), S, N₁, N₂, TorA}
+        return TensorMap{scalartype(TorA),S,N₁,N₂,TorA}
     else
         throw(ArgumentError("invalid type for TensorMap data: $TorA"))
     end
@@ -91,11 +91,12 @@ end
 # constructor starting from vector = independent data (N₁ + N₂ = 1 is special cased below)
 # documentation is captured by the case where `data` is a general array
 # here, we force the `T` argument to distinguish it from the more general constructor below
-function TensorMap{T}(data::A, V::TensorMapSpace{S,N₁,N₂}) where {T,S,N₁,N₂,A<:DenseVector{T}}
+function TensorMap{T}(data::A,
+                      V::TensorMapSpace{S,N₁,N₂}) where {T,S,N₁,N₂,A<:DenseVector{T}}
     return TensorMap{T,S,N₁,N₂,A}(data, V)
 end
 function TensorMap{T}(data::DenseVector{T}, codomain::TensorSpace{S},
-                      domain::TensorSpace{S}) where {T, S}
+                      domain::TensorSpace{S}) where {T,S}
     return TensorMap(data, codomain ← domain)
 end
 
@@ -121,17 +122,17 @@ using the syntax `codomain ← domain` or `domain → codomain`.
 """
 function TensorMap(data::AbstractDict{<:Sector,<:AbstractMatrix},
                    V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
-    
     T = eltype(valtype(data))
     t = TensorMap{T}(undef, V)
     for (c, b) in blocks(t)
         haskey(data, c) || throw(SectorMismatch("no data for block sector $c"))
         datac = data[c]
-        size(datac) == size(b) || throw(DimensionMismatch("wrong size of block for sector $c"))
+        size(datac) == size(b) ||
+            throw(DimensionMismatch("wrong size of block for sector $c"))
         copy!(b, datac)
     end
     for (c, b) in data
-        c ∈ blocksectors(t) || isempty(b) || 
+        c ∈ blocksectors(t) || isempty(b) ||
             throw(SectorMismatch("data for block sector $c not expected"))
     end
     return t
@@ -292,7 +293,6 @@ cases.
 """
 function TensorMap(data::AbstractArray, V::TensorMapSpace{S,N₁,N₂};
                    tol=sqrt(eps(real(float(eltype(data)))))) where {S<:IndexSpace,N₁,N₂}
-
     T = eltype(data)
     if ndims(data) == 1 && length(data) == dim(V)
         if data isa DenseVector # refer to specific data-capturing constructor
@@ -346,7 +346,7 @@ function project_symmetric!(t::TensorMap, data::DenseArray)
         for (f₁, f₂) in fusiontrees(t)
             F = convert(Array, (f₁, f₂))
             dataslice = sview(data, axes(codomain(t), f₁.uncoupled)...,
-                                                axes(domain(t), f₂.uncoupled)...)
+                              axes(domain(t), f₂.uncoupled)...)
             if FusionStyle(I) === UniqueFusion()
                 Fscalar = first(F) # contains a single element
                 scale!(t[f₁, f₂], dataslice, conj(Fscalar))
@@ -357,10 +357,11 @@ function project_symmetric!(t::TensorMap, data::DenseArray)
                 indset2 = 2 .* indset1
                 indset3 = indset2 .- 1
                 TensorOperations.tensorcontract!(subblock,
-                    F, ((), indset1), true,
-                    sreshape(dataslice, szbF), (indset3, indset2), false,
-                    (indset1, ()),
-                    inv(dim(f₁.coupled)), false)
+                                                 F, ((), indset1), true,
+                                                 sreshape(dataslice, szbF),
+                                                 (indset3, indset2), false,
+                                                 (indset1, ()),
+                                                 inv(dim(f₁.coupled)), false)
             end
         end
     end
@@ -605,5 +606,5 @@ function Base.promote_rule(::Type{<:TT₁},
                                                  TT₂<:TensorMap{<:Any,S,N₁,N₂}}
     T = promote_type(scalartype(TT₁), scalartype(TT₂))
     A = promote_type(storagetype(TT₁), storagetype(TT₂))
-    return TensorMap{T, S, N₁, N₂, A}
+    return TensorMap{T,S,N₁,N₂,A}
 end

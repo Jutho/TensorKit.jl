@@ -299,7 +299,7 @@ end
 function Base.inv(t::AbstractTensorMap)
     cod = codomain(t)
     dom = domain(t)
-    cod ≅ dom || 
+    cod ≅ dom ||
         throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
     tinv = TensorMap{scalartype(t)}(undef, dom, cod)
     for (c, b) in blocks(t)

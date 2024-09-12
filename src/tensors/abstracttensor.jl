@@ -206,7 +206,6 @@ See also [`block`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasbl
 """
 blocks(t::AbstractTensorMap) = SectorDict(c => block(t, c) for c in blocksectors(t)) # TODO: make iterator
 
-
 @doc """
     block(t::AbstractTensorMap, c::Sector) -> DenseMatrix
 
@@ -344,7 +343,6 @@ Base.similar(t::AbstractTensorMap) = similar(t, storagetype(t), space(t))
 # generic implementation for AbstractTensorMap -> returns `TensorMap`
 function Base.similar(t::AbstractTensorMap, ::Type{TorA},
                       P::TensorMapSpace{S}) where {TorA,S}
-
     if TorA <: Number
         T = TorA
         A = similarstoragetype(t, T)

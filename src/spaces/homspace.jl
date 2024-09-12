@@ -199,17 +199,19 @@ function tensorstructure(W::HomSpace, ::NoCache)
         outer_offset = last(blockrange)
         blockstructure[c] = (blocksize, blockrange)
     end
-    fusiontreeindices = sizehint!(FusionTreeDict{Tuple{F₁,F₂},Int}(), length(fusiontreelist))
-    for i = 1:length(fusiontreelist)
+    fusiontreeindices = sizehint!(FusionTreeDict{Tuple{F₁,F₂},Int}(),
+                                  length(fusiontreelist))
+    for i in 1:length(fusiontreelist)
         fusiontreeindices[fusiontreelist[i]] = i
     end
     totaldim = outer_offset
-    structure = TensorStructure(totaldim, blockstructure, fusiontreelist, fusiontreeranges, fusiontreeindices)
+    structure = TensorStructure(totaldim, blockstructure,
+                                fusiontreelist, fusiontreeranges, fusiontreeindices)
     return structure
 end
 
 function tensorstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
-    cache::D = get!(task_local_storage(), :_local_tensorstructure_cache) do 
+    cache::D = get!(task_local_storage(), :_local_tensorstructure_cache) do
         return D()
     end
     N₁ = length(codomain(W))
@@ -218,7 +220,7 @@ function tensorstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
     F₁ = fusiontreetype(I, N₁)
     F₂ = fusiontreetype(I, N₂)
     structure::TensorStructure{I,F₁,F₂} = get!(cache, W) do
-        tensorstructure(W, NoCache())
+        return tensorstructure(W, NoCache())
     end
     return structure
 end
@@ -237,4 +239,3 @@ function tensorstructure(W::HomSpace, ::GlobalCache)
     end
     return structure
 end
-
