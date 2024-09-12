@@ -137,11 +137,11 @@ end
 
 # Block and fusion tree ranges: structure information for building tensors
 #--------------------------------------------------------------------------
-struct TensorStructure{I,F₁,F₂}
+struct FusionBlockStructure{I,F₁,F₂}
     totaldim::Int
     blockstructure::SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}
     fusiontreelist::Vector{Tuple{F₁,F₂}}
-    fusiontreeranges::Vector{Tuple{UnitRange{Int},UnitRange{Int}}}
+    fusiontreestructure::Vector{Tuple{Tuple{Int,Int},Tuple{Int,Int},Int}}
     fusiontreeindices::FusionTreeDict{Tuple{F₁,F₂},Int}
 end
 
@@ -159,9 +159,9 @@ function CacheStyle(I::Type{<:Sector})
     # end
 end
 
-tensorstructure(W::HomSpace) = tensorstructure(W, CacheStyle(sectortype(W)))
+fusionblockstructure(W::HomSpace) = fusionblockstructure(W, CacheStyle(sectortype(W)))
 
-function tensorstructure(W::HomSpace, ::NoCache)
+function fusionblockstructure(W::HomSpace, ::NoCache)
     codom = codomain(W)
     dom = domain(W)
     N₁ = length(codom)
@@ -170,47 +170,62 @@ function tensorstructure(W::HomSpace, ::NoCache)
     F₁ = fusiontreetype(I, N₁)
     F₂ = fusiontreetype(I, N₂)
 
-    blockstructure = SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}()
+    # output structure
+    blockstructure = SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}() # size, range
     fusiontreelist = Vector{Tuple{F₁,F₂}}()
-    fusiontreeranges = Vector{Tuple{UnitRange{Int},UnitRange{Int}}}()
-    outer_offset = 0
+    fusiontreestructure = Vector{Tuple{Tuple{Int,Int},Tuple{Int,Int},Int}}() # size, strides, offset
+
+    # temporary data structures
+    splittingtrees = Vector{F₁}()
+    splittingstructure = Vector{Tuple{Int, Int}}()
+
+    # main computational routine
+    blockoffset = 0
     for c in blocksectors(W)
-        inner_offset₂ = 0
-        inner_offset₁ = 0
+        empty!(splittingtrees)
+        empty!(splittingstructure)
+
+        offset₁ = 0
+        for f₁ in fusiontrees(codom, c)
+            push!(splittingtrees, f₁)
+            d₁ = dim(codom, f₁.uncoupled)
+            push!(splittingstructure, (offset₁, d₁))
+            offset₁ += d₁
+        end
+        blockdim₁ = offset₁
+        strides = (1, blockdim₁)
+
+        offset₂ = 0
         for f₂ in fusiontrees(dom, c)
             s₂ = f₂.uncoupled
             d₂ = dim(dom, s₂)
-            r₂ = (inner_offset₂ + 1):(inner_offset₂ + d₂)
-            inner_offset₂ = last(r₂)
-            # TODO:  # now we run the code below for every f₂; should we do this separately
-            inner_offset₁ = 0 # reset here to avoid multiple counting
-            for f₁ in fusiontrees(codom, c)
-                s₁ = f₁.uncoupled
-                d₁ = dim(codom, s₁)
-                r₁ = (inner_offset₁ + 1):(inner_offset₁ + d₁)
-                inner_offset₁ = last(r₁)
+            for (f₁, (offset₁, d₁)) in zip(splittingtrees, splittingstructure)
                 push!(fusiontreelist, (f₁, f₂))
-                push!(fusiontreeranges, (r₁, r₂))
+                totaloffset = blockoffset + offset₂ * blockdim₁ + offset₁
+                push!(fusiontreestructure, ((d₁, d₂), strides, totaloffset))
             end
+            offset₂ += d₂
         end
-        blocksize = (inner_offset₁, inner_offset₂)
-        blocklength = blocksize[1] * blocksize[2]
-        blockrange = (outer_offset + 1):(outer_offset + blocklength)
-        outer_offset = last(blockrange)
+        blockdim₂ = offset₂
+        blocksize = (blockdim₁, blockdim₂)
+        blocklength = blockdim₁ * blockdim₂
+        blockrange = (blockoffset + 1):(blockoffset + blocklength)
+        blockoffset = last(blockrange)
         blockstructure[c] = (blocksize, blockrange)
     end
+    
     fusiontreeindices = sizehint!(FusionTreeDict{Tuple{F₁,F₂},Int}(),
                                   length(fusiontreelist))
-    for i in 1:length(fusiontreelist)
-        fusiontreeindices[fusiontreelist[i]] = i
+    for (i, f₁₂) in enumerate(fusiontreelist)
+        fusiontreeindices[f₁₂] = i
     end
-    totaldim = outer_offset
-    structure = TensorStructure(totaldim, blockstructure,
-                                fusiontreelist, fusiontreeranges, fusiontreeindices)
+    totaldim = blockoffset
+    structure = FusionBlockStructure{I,F₁,F₂}(totaldim, blockstructure,
+                                fusiontreelist, fusiontreestructure, fusiontreeindices)
     return structure
 end
 
-function tensorstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
+function fusionblockstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
     cache::D = get!(task_local_storage(), :_local_tensorstructure_cache) do
         return D()
     end
@@ -219,23 +234,23 @@ function tensorstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
     I = sectortype(W)
     F₁ = fusiontreetype(I, N₁)
     F₂ = fusiontreetype(I, N₂)
-    structure::TensorStructure{I,F₁,F₂} = get!(cache, W) do
-        return tensorstructure(W, NoCache())
+    structure::FusionBlockStructure{I,F₁,F₂} = get!(cache, W) do
+        return fusionblockstructure(W, NoCache())
     end
     return structure
 end
 
-const GLOBAL_TENSORSTRUCTURE_CACHE = LRU{Any,Any}(; maxsize=10^4)
+const GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE = LRU{Any,Any}(; maxsize=10^4)
 # 10^4 different tensor spaces should be enough for most purposes
-function tensorstructure(W::HomSpace, ::GlobalCache)
-    cache = GLOBAL_TENSORSTRUCTURE_CACHE
+function fusionblockstructure(W::HomSpace, ::GlobalCache)
+    cache = GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE
     N₁ = length(codomain(W))
     N₂ = length(domain(W))
     I = sectortype(W)
     F₁ = fusiontreetype(I, N₁)
     F₂ = fusiontreetype(I, N₂)
-    structure::TensorStructure{I,F₁,F₂} = get!(cache, W) do
-        return tensorstructure(W, NoCache())
+    structure::FusionBlockStructure{I,F₁,F₂} = get!(cache, W) do
+        return fusionblockstructure(W, NoCache())
     end
     return structure
 end

@@ -133,12 +133,12 @@ The index information of a tensor, i.e. the `HomSpace` of its domain and codomai
 space(t::AbstractTensorMap, i::Int) = space(t)[i]
 
 """
-    tensorstructure(t::AbstractTensorMap) -> TensorStructure
+    fusionblockstructure(t::AbstractTensorMap) -> TensorStructure
 
 Return the necessary structure information to decompose a tensor in blocks labeled by
 coupled sectors and in subblocks labeled by a splitting-fusion tree couple.
 """
-tensorstructure(t::AbstractTensorMap) = tensorstructure(space(t))
+fusionblockstructure(t::AbstractTensorMap) = fusionblockstructure(space(t))
 
 """
     dim(t::AbstractTensorMap) -> Int
@@ -146,7 +146,7 @@ tensorstructure(t::AbstractTensorMap) = tensorstructure(space(t))
 The total number of free parameters of a tensor, discounting the entries that are fixed by
 symmetry. This is also the dimension of the `HomSpace` on which the `TensorMap` is defined.
 """
-dim(t::AbstractTensorMap) = tensorstructure(t).totaldim
+dim(t::AbstractTensorMap) = fusionblockstructure(t).totaldim
 
 """
     codomainind(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Tuple{Int}
@@ -219,7 +219,7 @@ See also [`blocks`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasb
 
 Return an iterator over all coupled sectors of a tensor.
 """
-blocksectors(t::AbstractTensorMap) = keys(tensorstructure(t).blockstructure)
+blocksectors(t::AbstractTensorMap) = keys(fusionblockstructure(t).blockstructure)
 
 """
     hasblock(t::AbstractTensorMap, c::Sector) -> Bool
@@ -239,7 +239,7 @@ hasblock(t::AbstractTensorMap, c::Sector) = c ∈ blocksectors(t)
 
 Return an iterator over all splitting - fusion tree pairs of a tensor.
 """
-fusiontrees(t::AbstractTensorMap) = tensorstructure(t).fusiontreelist
+fusiontrees(t::AbstractTensorMap) = fusionblockstructure(t).fusiontreelist
 
 # auxiliary function
 @inline function trivial_fusiontree(t::AbstractTensorMap)

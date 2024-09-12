@@ -14,7 +14,7 @@ struct TensorMap{T, S<:IndexSpace, N₁, N₂, A<:DenseVector{T}} <: AbstractTen
     
     # uninitialized constructors
     function TensorMap{T,S,N₁,N₂,A}(::UndefInitializer, space::TensorMapSpace{S,N₁,N₂}) where {T,S<:IndexSpace,N₁,N₂,A<:DenseVector{T}}
-        d = tensorstructure(space).totaldim
+        d = fusionblockstructure(space).totaldim
         data = A(undef, d)
         return TensorMap{T,S,N₁,N₂,A}(data, space)
     end
@@ -411,7 +411,7 @@ end
 #-------------------------------------------------
 function block(t::TensorMap, s::Sector)
     sectortype(t) == typeof(s) || throw(SectorMismatch())
-    structure = tensorstructure(t).blockstructure
+    structure = fusionblockstructure(t).blockstructure
     if haskey(structure, s)
         (d₁, d₂), r = structure[s]
         return reshape(view(t.data, r), (d₁, d₂))
@@ -444,17 +444,16 @@ column indices correspond to `f₂.uncoupled`.
 @inline function Base.getindex(t::TensorMap{T,S,N₁,N₂},
                                f₁::FusionTree{I,N₁},
                                f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
-    structure = tensorstructure(t)
+    structure = fusionblockstructure(t)
     @boundscheck begin
         haskey(structure.fusiontreeindices, (f₁, f₂)) || throw(SectorMismatch())
     end
     @inbounds begin
         i = structure.fusiontreeindices[(f₁, f₂)]
-        c = f₁.coupled
-        (d₁, d₂), r = structure.blockstructure[c]
-        r₁, r₂ = structure.fusiontreeranges[i]
+        sz, str, offset = structure.fusiontreestructure[i]
+        subblock = StridedView(t.data, sz, str, offset)
         d = (dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...)
-        return sreshape(sreshape(sview(t.data, r), (d₁, d₂))[r₁, r₂], d)
+        return sreshape(subblock, d)
     end
 end
 # The following is probably worth special casing for trivial tensors
