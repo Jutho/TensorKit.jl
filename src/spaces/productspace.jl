@@ -135,20 +135,6 @@ function Base.axes(P::ProductSpace{<:ElementarySpace,N},
 end
 
 """
-    fusiontrees(P::ProductSpace, blocksector::Sector)
-
-Return an iterator over all fusion trees that can be formed by fusing the sectors present
-in the different spaces that make up the `ProductSpace` instance, resulting in the coupled
-sector `blocksector`.
-"""
-function fusiontrees(P::ProductSpace{S,N}, blocksector::I) where {S,N,I}
-    I == sectortype(S) || throw(SectorMismatch())
-    uncoupled = map(sectors, P.spaces)
-    isdualflags = map(isdual, P.spaces)
-    return FusionTreeIterator(uncoupled, blocksector, isdualflags)
-end
-
-"""
     blocksectors(P::ProductSpace)
 
 Return an iterator over the different unique coupled sector labels, i.e. the different
@@ -177,6 +163,20 @@ function blocksectors(P::ProductSpace{S,N}) where {S,N}
         end
     end
     return bs
+end
+
+"""
+    fusiontrees(P::ProductSpace, blocksector::Sector)
+
+Return an iterator over all fusion trees that can be formed by fusing the sectors present
+in the different spaces that make up the `ProductSpace` instance into the coupled sector
+`blocksector`.
+"""
+function fusiontrees(P::ProductSpace{S,N}, blocksector::I) where {S,N,I}
+    I == sectortype(S) || throw(SectorMismatch())
+    uncoupled = map(sectors, P.spaces)
+    isdualflags = map(isdual, P.spaces)
+    return FusionTreeIterator(uncoupled, blocksector, isdualflags)
 end
 
 """

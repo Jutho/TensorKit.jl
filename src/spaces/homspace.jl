@@ -87,9 +87,9 @@ function blocksectors(W::HomSpace)
     if N₁ == 0 || N₂ == 0
         return (one(I),)
     elseif N₂ <= N₁
-        return filter!(c -> hasblock(codom, c), collect(blocksectors(dom)))
+        return sort!(filter!(c -> hasblock(codom, c), collect(blocksectors(dom))))
     else
-        return filter!(c -> hasblock(dom, c), collect(blocksectors(codom)))
+        return sort!(filter!(c -> hasblock(dom, c), collect(blocksectors(codom))))
     end
 end
 
@@ -134,3 +134,107 @@ function compose(W::HomSpace{S}, V::HomSpace{S}) where {S}
     domain(W) == codomain(V) || throw(SpaceMismatch("$(domain(W)) ≠ $(codomain(V))"))
     return HomSpace(codomain(W), domain(V))
 end
+
+# Block and fusion tree ranges: structure information for building tensors
+#--------------------------------------------------------------------------
+struct TensorStructure{I,F₁,F₂}
+    totaldim::Int
+    blockstructure::SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}
+    fusiontreelist::Vector{Tuple{F₁,F₂}}
+    fusiontreeranges::Vector{Tuple{UnitRange{Int},UnitRange{Int}}}
+    fusiontreeindices::FusionTreeDict{Tuple{F₁,F₂},Int}
+end
+
+abstract type CacheStyle end
+struct NoCache <: CacheStyle end
+struct TaskLocalCache{D<:AbstractDict} <: CacheStyle end
+struct GlobalCache <: CacheStyle end
+
+function CacheStyle(I::Type{<:Sector})
+    return GlobalCache()
+    # if FusionStyle(I) === UniqueFusion()
+    #     return TaskLocalCache{SectorDict{I,Any}}()
+    # else
+    #     return GlobalCache()
+    # end
+end
+
+tensorstructure(W::HomSpace) = tensorstructure(W, CacheStyle(sectortype(W)))
+
+function tensorstructure(W::HomSpace, ::NoCache)
+    codom = codomain(W)
+    dom = domain(W)
+    N₁ = length(codom)
+    N₂ = length(dom)
+    I = sectortype(W)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+
+    blockstructure = SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}()
+    fusiontreelist = Vector{Tuple{F₁,F₂}}()
+    fusiontreeranges = Vector{Tuple{UnitRange{Int},UnitRange{Int}}}()
+    outer_offset = 0
+    for c in blocksectors(W)
+        inner_offset₂ = 0
+        inner_offset₁ = 0
+        for f₂ in fusiontrees(dom, c)
+            s₂ = f₂.uncoupled
+            d₂ = dim(dom, s₂)
+            r₂ = (inner_offset₂ + 1):(inner_offset₂ + d₂)
+            inner_offset₂ = last(r₂)
+            # TODO:  # now we run the code below for every f₂; should we do this separately
+            inner_offset₁ = 0 # reset here to avoid multiple counting
+            for f₁ in fusiontrees(codom, c)
+                s₁ = f₁.uncoupled
+                d₁ = dim(codom, s₁)
+                r₁ = (inner_offset₁ + 1):(inner_offset₁ + d₁)
+                inner_offset₁ = last(r₁)
+                push!(fusiontreelist, (f₁, f₂))
+                push!(fusiontreeranges, (r₁, r₂))
+            end
+        end
+        blocksize = (inner_offset₁, inner_offset₂)
+        blocklength = blocksize[1] * blocksize[2]
+        blockrange = (outer_offset + 1):(outer_offset + blocklength)
+        outer_offset = last(blockrange)
+        blockstructure[c] = (blocksize, blockrange)
+    end
+    fusiontreeindices = sizehint!(FusionTreeDict{Tuple{F₁,F₂},Int}(), length(fusiontreelist))
+    for i = 1:length(fusiontreelist)
+        fusiontreeindices[fusiontreelist[i]] = i
+    end
+    totaldim = outer_offset
+    structure = TensorStructure(totaldim, blockstructure, fusiontreelist, fusiontreeranges, fusiontreeindices)
+    return structure
+end
+
+function tensorstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
+    cache::D = get!(task_local_storage(), :_local_tensorstructure_cache) do 
+        return D()
+    end
+    N₁ = length(codomain(W))
+    N₂ = length(domain(W))
+    I = sectortype(W)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+    structure::TensorStructure{I,F₁,F₂} = get!(cache, W) do
+        tensorstructure(W, NoCache())
+    end
+    return structure
+end
+
+const GLOBAL_TENSORSTRUCTURE_CACHE = LRU{Any,Any}(; maxsize=10^4)
+# 10^4 different tensor spaces should be enough for most purposes
+function tensorstructure(W::HomSpace, ::GlobalCache)
+    cache = GLOBAL_TENSORSTRUCTURE_CACHE
+    N₁ = length(codomain(W))
+    N₂ = length(domain(W))
+    I = sectortype(W)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+    structure::TensorStructure{I,F₁,F₂} = get!(cache, W) do
+        return tensorstructure(W, NoCache())
+    end
+    return structure
+end
+

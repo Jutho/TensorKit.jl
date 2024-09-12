@@ -8,9 +8,7 @@ function VectorInterface.zerovector(t::AbstractTensorMap, ::Type{S}) where {S<:N
     return zerovector!(similar(t, S))
 end
 function VectorInterface.zerovector!(t::AbstractTensorMap)
-    for (c, b) in blocks(t)
-        zerovector!(b)
-    end
+    zerovector!(t.data)
     return t
 end
 VectorInterface.zerovector!!(t::AbstractTensorMap) = zerovector!(t)
@@ -22,9 +20,7 @@ function VectorInterface.scale(t::AbstractTensorMap, α::Number)
     return scale!(similar(t, T), t, α)
 end
 function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
-    for (c, b) in blocks(t)
-        scale!(b, α)
-    end
+    scale!(t.data, α)
     return t
 end
 function VectorInterface.scale!!(t::AbstractTensorMap, α::Number)
@@ -34,9 +30,7 @@ function VectorInterface.scale!!(t::AbstractTensorMap, α::Number)
 end
 function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    for c in blocksectors(tx)
-        scale!(block(ty, c), block(tx, c), α)
-    end
+    scale!(ty.data, tx.data, α)
     return ty
 end
 function VectorInterface.scale!!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
@@ -55,14 +49,12 @@ function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
                              α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     T = VectorInterface.promote_add(ty, tx, α, β)
-    return VectorInterface.add!(scale!(similar(ty, T), ty, β), tx, α)
+    return add!(scale!(similar(ty, T), ty, β), tx, α)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
                               α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
-    for c in blocksectors(tx)
-        VectorInterface.add!(block(ty, c), block(tx, c), α, β)
-    end
+    add!(ty.data, tx.data, α, β)
     return ty
 end
 function VectorInterface.add!!(ty::AbstractTensorMap, tx::AbstractTensorMap,
@@ -70,9 +62,9 @@ function VectorInterface.add!!(ty::AbstractTensorMap, tx::AbstractTensorMap,
     # spacecheck is done in add(!)
     T = VectorInterface.promote_add(ty, tx, α, β)
     if T <: scalartype(ty)
-        return VectorInterface.add!(ty, tx, α, β)
+        return add!(ty, tx, α, β)
     else
-        return VectorInterface.add(ty, tx, α, β)
+        return add(ty, tx, α, β)
     end
 end
 
@@ -84,7 +76,7 @@ function VectorInterface.inner(tx::AbstractTensorMap, ty::AbstractTensorMap)
     T = VectorInterface.promote_inner(tx, ty)
     s = zero(T)
     for c in blocksectors(tx)
-        s += convert(T, dim(c)) * dot(block(tx, c), block(ty, c))
+        s += convert(T, dim(c)) * inner(block(tx, c), block(ty, c))
     end
     return s
 end

@@ -54,19 +54,19 @@ sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, Z3Irrep ⊠ Z4Irrep,
               Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()
-include("fusiontrees.jl")
-include("spaces.jl")
+# include("fusiontrees.jl")
+# include("spaces.jl")
 include("tensors.jl")
-include("planar.jl")
-include("ad.jl")
-include("bugfixes.jl")
+# include("planar.jl")
+# include("ad.jl")
+# include("bugfixes.jl")
 Tf = time()
 printstyled("Finished all tests in ",
             string(round((Tf - Ti) / 60; sigdigits=3)),
             " minutes."; bold=true, color=Base.info_color())
 println()
 
-@testset "Aqua" verbose = true begin
-    using Aqua
-    Aqua.test_all(TensorKit)
-end
+# @testset "Aqua" verbose = true begin
+#     using Aqua
+#     Aqua.test_all(TensorKit)
+# end

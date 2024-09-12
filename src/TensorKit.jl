@@ -175,34 +175,34 @@ include("fusiontrees/fusiontrees.jl")
 #-------------------------------------------
 include("spaces/vectorspaces.jl")
 
-# # Definitions and methods for tensors
-# #-------------------------------------
-# # general definitions
+# Definitions and methods for tensors
+#-------------------------------------
+# general definitions
 include("tensors/abstracttensor.jl")
-include("tensors/tensortreeiterator.jl")
+# include("tensors/tensortreeiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
 include("tensors/linalg.jl")
 include("tensors/vectorinterface.jl")
-include("tensors/tensoroperations.jl")
-include("tensors/indexmanipulations.jl")
-include("tensors/truncation.jl")
-include("tensors/factorizations.jl")
-include("tensors/braidingtensor.jl")
+# include("tensors/tensoroperations.jl")
+# include("tensors/indexmanipulations.jl")
+# include("tensors/truncation.jl")
+# include("tensors/factorizations.jl")
+# include("tensors/braidingtensor.jl")
 
 # # Planar macros and related functionality
 # #-----------------------------------------
-@nospecialize
-using Base.Meta: isexpr
-include("planar/analyzers.jl")
-include("planar/preprocessors.jl")
-include("planar/postprocessors.jl")
-include("planar/macros.jl")
-@specialize
-include("planar/planaroperations.jl")
+# @nospecialize
+# using Base.Meta: isexpr
+# include("planar/analyzers.jl")
+# include("planar/preprocessors.jl")
+# include("planar/postprocessors.jl")
+# include("planar/macros.jl")
+# @specialize
+# include("planar/planaroperations.jl")
 
-# deprecations: to be removed in version 1.0 or sooner
-include("auxiliary/deprecate.jl")
+# # deprecations: to be removed in version 1.0 or sooner
+# include("auxiliary/deprecate.jl")
 
 # Extensions
 # ----------

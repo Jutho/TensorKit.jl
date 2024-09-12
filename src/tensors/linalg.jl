@@ -57,13 +57,20 @@ end
 
 Construct the identity endomorphism on space `V`, i.e. return a `t::TensorMap` with
 `domain(t) == codomain(t) == V`, where either `scalartype(t) = T` if `T` is a `Number` type
-or `storagetype(t) = T` if `T` is a `DenseMatrix` type.
+or `storagetype(t) = T` if `T` is a `DenseVector` type.
 """
 id(V::TensorSpace) = id(Float64, V)
-function id(::Type{A}, V::TensorSpace{S}) where {A<:MatOrNumber,S}
+function id(::Type{A}, V::TensorSpace{S}) where {A,S}
     W = V ← V
-    N = length(domain(W))
-    t = tensormaptype(S, N, N, A)(undef, codomain(W), domain(W))
+    if A <: Number
+        t = TensorMap{A}(undef, W)
+    elseif A <: DenseVector
+        T = scalartype(A)
+        N = length(codomain(W))
+        t = TensorMap{T,S,N,N,A}(undef, W)
+    else
+        throw(ArgumentError("`id` only supports Number or DenseVector subtypes as first argument"))
+    end
     return one!(t)
 end
 
@@ -74,7 +81,7 @@ end
 
 Construct a specific isomorphism between the codomain and the domain, i.e. return a
 `t::TensorMap` where either `scalartype(t) = T` if `T` is a `Number` type or
-`storagetype(t) = T` if `T` is a `DenseMatrix` type. If the spaces are not isomorphic, an
+`storagetype(t) = T` if `T` is a `DenseVector` type. If the spaces are not isomorphic, an
 error will be thrown.
 
 !!! note
@@ -83,10 +90,17 @@ error will be thrown.
 
 See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanProduct()`.
 """
-function isomorphism(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:MatOrNumber,S,N₁,N₂}
+function isomorphism(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:VecOrNumber,S,N₁,N₂}
     codomain(V) ≅ domain(V) ||
         throw(SpaceMismatch("codomain and domain are not isomorphic: $V"))
-    t = tensormaptype(S, N₁, N₂, A)(undef, codomain(V), domain(V))
+    if A <: Number
+        t = TensorMap{A}(undef, V)
+    elseif A <: DenseVector
+        T = scalartype(A)
+        t = TensorMap{T,S,N₁,N₂,A}(undef, V)
+    else
+        throw(ArgumentError("`isomorphism` only supports Number or DenseVector subtypes as first argument"))
+    end
     for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
@@ -100,7 +114,7 @@ end
 
 Construct a specific unitary morphism between the codomain and the domain, i.e. return a
 `t::TensorMap` where either `scalartype(t) = T` if `T` is a `Number` type or
-`storagetype(t) = T` if `T` is a `DenseMatrix` type. If the spaces are not isomorphic, or
+`storagetype(t) = T` if `T` is a `DenseVector` type. If the spaces are not isomorphic, or
 the spacetype does not have a Euclidean inner product, an error will be thrown.
 
 !!! note
@@ -109,7 +123,7 @@ the spacetype does not have a Euclidean inner product, an error will be thrown.
 
 See also [`isomorphism`](@ref) and [`isometry`](@ref).
 """
-function unitary(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:MatOrNumber,S,N₁,N₂}
+function unitary(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:VecOrNumber,S,N₁,N₂}
     InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
     return isomorphism(A, V)
 end
@@ -121,17 +135,24 @@ end
 
 Construct a specific isometry between the codomain and the domain, i.e. return a
 `t::TensorMap` where either `scalartype(t) = T` if `T` is a `Number` type or
-`storagetype(t) = T` if `T` is a `DenseMatrix` type. The isometry `t` then satisfies
+`storagetype(t) = T` if `T` is a `DenseVector` type. The isometry `t` then satisfies
 `t' * t = id(domain)` and `(t * t')^2 = t * t'`. If the spaces do not allow for such an 
 isometric inclusion, an error will be thrown.
 
 See also [`isomorphism`](@ref) and [`unitary`](@ref).
 """
-function isometry(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:MatOrNumber,S,N₁,N₂}
+function isometry(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:VecOrNumber,S,N₁,N₂}
     InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:isometry)
     domain(V) ≾ codomain(V) ||
         throw(SpaceMismatch("$V does not allow for an isometric inclusion"))
-    t = tensormaptype(S, N₁, N₂, A)(undef, codomain(V), domain(V))
+    if A <: Number
+        t = TensorMap{A}(undef, V)
+    elseif A <: DenseVector
+        T = scalartype(A)
+        t = TensorMap{T,S,N₁,N₂,A}(undef, V)
+    else
+        throw(ArgumentError("`isometry` only supports Number or DenseVector subtypes as first argument"))
+    end
     for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
@@ -144,7 +165,7 @@ for morphism in (:isomorphism, :unitary, :isometry)
         $morphism(V::TensorMapSpace) = $morphism(Float64, V)
         $morphism(codomain::TensorSpace, domain::TensorSpace) = $morphism(codomain ← domain)
         function $morphism(::Type{T}, codomain::TensorSpace,
-                           domain::TensorSpace) where {T<:MatOrNumber}
+                           domain::TensorSpace) where {T<:VecOrNumber}
             return $morphism(T, codomain ← domain)
         end
         $morphism(t::AbstractTensorMap) = $morphism(storagetype(t), space(t))
@@ -172,15 +193,11 @@ LinearAlgebra.isdiag(t::AbstractTensorMap) = all(LinearAlgebra.isdiag, values(bl
 # Copy, adjoint! and fill:
 function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
     space(tdst) == space(tsrc) || throw(SpaceMismatch("$(space(tdst)) ≠ $(space(tsrc))"))
-    for c in blocksectors(tdst)
-        copy!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
-    end
+    copy!(tdst.data, tsrc.data)
     return tdst
 end
 function Base.fill!(t::AbstractTensorMap, value::Number)
-    for (c, b) in blocks(t)
-        fill!(b, value)
-    end
+    fill!(t.data, value)
     return t
 end
 function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
@@ -269,32 +286,27 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
             A = block(tA, c)
             B = block(tB, c)
             C = block(tC, c)
-            mul!(StridedView(C), StridedView(A), StridedView(B), α, β)
+            mul!(C, A, B, α, β)
         elseif β != one(β)
             rmul!(block(tC, c), β)
         end
     end
     return tC
 end
-# TODO: reconsider wrapping the blocks in a StridedView, consider spawning threads for different blocks
+# TODO: consider spawning threads for different blocks, support backends
 
 # TensorMap inverse
 function Base.inv(t::AbstractTensorMap)
     cod = codomain(t)
     dom = domain(t)
-    for c in union(blocksectors(cod), blocksectors(dom))
-        blockdim(cod, c) == blockdim(dom, c) ||
-            throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+    cod ≅ dom || 
+        throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+    tinv = TensorMap{scalartype(t)}(undef, dom, cod)
+    for (c, b) in blocks(t)
+        binv = MatrixAlgebra.one!(block(tinv, c))
+        ldiv!(lu(b), binv)
     end
-    if sectortype(t) === Trivial
-        return TensorMap(inv(block(t, Trivial())), domain(t) ← codomain(t))
-    else
-        data = empty(t.data)
-        for (c, b) in blocks(t)
-            data[c] = inv(b)
-        end
-        return TensorMap(data, domain(t) ← codomain(t))
-    end
+    return tinv
 end
 function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
     if sectortype(t) === Trivial
