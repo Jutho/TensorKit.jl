@@ -38,7 +38,7 @@ spacetype(::Type{<:AbstractTensorMap{<:Any,S}}) where {S} = S
 
 Return the type of sector `I` of a tensor.
 """
-sectortype(::Type{<:AbstractTensorMap{<:Any,S}}) where {S} = sectortype(S)
+sectortype(::Type{TT}) where {TT<:AbstractTensorMap} = sectortype(spacetype(TT))
 
 function InnerProductStyle(::Type{TT}) where {TT<:AbstractTensorMap}
     return InnerProductStyle(spacetype(TT))

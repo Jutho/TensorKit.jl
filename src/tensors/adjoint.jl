@@ -6,30 +6,31 @@
 Specific subtype of [`AbstractTensorMap`](@ref) that is a lazy wrapper for representing the
 adjoint of an instance of [`AbstractTensorMap`](@ref).
 """
-struct AdjointTensorMap{T,S,N₁,N₂,TT<:AbstractTensorMap{T,S,N₁,N₂}} <:
+struct AdjointTensorMap{T,S,N₁,N₂,TT<:AbstractTensorMap{T,S,N₂,N₁}} <:
        AbstractTensorMap{T,S,N₁,N₂}
     parent::TT
 end
+Base.parent(t::AdjointTensorMap) = t.parent
 
 # Constructor: construct from taking adjoint of a tensor
-Base.adjoint(t::AdjointTensorMap) = t.parent
+Base.adjoint(t::AdjointTensorMap) = parent(t)
 Base.adjoint(t::AbstractTensorMap) = AdjointTensorMap(t)
 
 # Properties
-space(t::AdjointTensorMap) = adjoint(space(t'))
-dim(t::AdjointTensorMap) = dim(t')
+space(t::AdjointTensorMap) = adjoint(space(parent(t)))
+dim(t::AdjointTensorMap) = dim(parent(t))
 storagetype(::Type{AdjointTensorMap{T,S,N₁,N₂,TT}}) where {T,S,N₁,N₂,TT} = storagetype(TT)
 
 # Blocks and subblocks
 #----------------------
-blocksectors(t::AdjointTensorMap) = blocksectors(t')
-block(t::AdjointTensorMap, s::Sector) = block(t', s)'
+blocksectors(t::AdjointTensorMap) = blocksectors(parent(t))
+block(t::AdjointTensorMap, s::Sector) = block(parent(t), s)'
 
 function Base.getindex(t::AdjointTensorMap{T,S,N₁,N₂},
                        f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
-    parent = t'
-    subblock = getindex(parent, f₂, f₁)
-    return permutedims(conj(subblock), (domainind(parent)..., codomainind(parent)...))
+    tp = parent(t)
+    subblock = getindex(tp, f₂, f₁)
+    return permutedims(conj(subblock), (domainind(tp)..., codomainind(tp)...))
 end
 function Base.setindex!(t::AdjointTensorMap{T,S,N₁,N₂}, v,
                         f₁::FusionTree{I,N₁},

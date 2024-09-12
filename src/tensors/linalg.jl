@@ -60,18 +60,10 @@ Construct the identity endomorphism on space `V`, i.e. return a `t::TensorMap` w
 or `storagetype(t) = T` if `T` is a `DenseVector` type.
 """
 id(V::TensorSpace) = id(Float64, V)
-function id(::Type{A}, V::TensorSpace{S}) where {A,S}
+function id(A::Type, V::TensorSpace{S}) where {S}
     W = V ← V
-    if A <: Number
-        t = TensorMap{A}(undef, W)
-    elseif A <: DenseVector
-        T = scalartype(A)
         N = length(codomain(W))
-        t = TensorMap{T,S,N,N,A}(undef, W)
-    else
-        throw(ArgumentError("`id` only supports Number or DenseVector subtypes as first argument"))
-    end
-    return one!(t)
+    return one!(tensormaptype(S, N, N, A)(undef, W))
 end
 
 """
@@ -90,17 +82,10 @@ error will be thrown.
 
 See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanProduct()`.
 """
-function isomorphism(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:VecOrNumber,S,N₁,N₂}
+function isomorphism(A::Type, V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
     codomain(V) ≅ domain(V) ||
         throw(SpaceMismatch("codomain and domain are not isomorphic: $V"))
-    if A <: Number
-        t = TensorMap{A}(undef, V)
-    elseif A <: DenseVector
-        T = scalartype(A)
-        t = TensorMap{T,S,N₁,N₂,A}(undef, V)
-    else
-        throw(ArgumentError("`isomorphism` only supports Number or DenseVector subtypes as first argument"))
-    end
+    t = tensormaptype(S, N₁, N₂, A)(undef, V)
     for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
@@ -141,18 +126,11 @@ isometric inclusion, an error will be thrown.
 
 See also [`isomorphism`](@ref) and [`unitary`](@ref).
 """
-function isometry(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:VecOrNumber,S,N₁,N₂}
+function isometry(A::Type, V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
     InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:isometry)
     domain(V) ≾ codomain(V) ||
         throw(SpaceMismatch("$V does not allow for an isometric inclusion"))
-    if A <: Number
-        t = TensorMap{A}(undef, V)
-    elseif A <: DenseVector
-        T = scalartype(A)
-        t = TensorMap{T,S,N₁,N₂,A}(undef, V)
-    else
-        throw(ArgumentError("`isometry` only supports Number or DenseVector subtypes as first argument"))
-    end
+    t = tensormaptype(S, N₁, N₂, A)(undef, V)
     for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
@@ -485,9 +463,9 @@ function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
         d2 = dim(cod2)
         d3 = dim(dom1)
         d4 = dim(dom2)
-        m1 = reshape(t1[], (d1, 1, d3, 1))
-        m2 = reshape(t2[], (1, d2, 1, d4))
-        m = reshape(t[], (d1, d2, d3, d4))
+        m1 = sreshape(t1[trivial_fusiontree(t1)...], (d1, 1, d3, 1))
+        m2 = sreshape(t2[trivial_fusiontree(t2)...], (1, d2, 1, d4))
+        m = sreshape(t[trivial_fusiontree(t)...], (d1, d2, d3, d4))
         m .= m1 .* m2
     else
         for (f1l, f1r) in fusiontrees(t1)
@@ -504,9 +482,9 @@ function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
                                 d2 = dim(cod2, f2l.uncoupled)
                                 d3 = dim(dom1, f1r.uncoupled)
                                 d4 = dim(dom2, f2r.uncoupled)
-                                m1 = reshape(t1[f1l, f1r], (d1, 1, d3, 1))
-                                m2 = reshape(t2[f2l, f2r], (1, d2, 1, d4))
-                                m = reshape(t[fl, fr], (d1, d2, d3, d4))
+                                m1 = sreshape(t1[f1l, f1r], (d1, 1, d3, 1))
+                                m2 = sreshape(t2[f2l, f2r], (1, d2, 1, d4))
+                                m = sreshape(t[fl, fr], (d1, d2, d3, d4))
                                 m .+= coeff1 .* conj(coeff2) .* m1 .* m2
                             end
                         end

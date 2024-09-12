@@ -47,7 +47,7 @@ function tensormaptype(S::Type{<:IndexSpace}, N₁, N₂, TorA::Type)
     elseif TorA <: DenseVector
         return TensorMap{scalartype(TorA),S,N₁,N₂,TorA}
     else
-        throw(ArgumentError("invalid type for TensorMap data: $TorA"))
+        throw(ArgumentError("argument $TorA should specify a scalar type (`<:Number`) or a storage type `<:DenseVector{<:Number}`"))
     end
 end
 

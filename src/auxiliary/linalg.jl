@@ -68,8 +68,8 @@ using ..TensorKit: OrthogonalFactorizationAlgorithm,
 
 # TODO: define for CuMatrix if we support this
 function one!(A::StridedMatrix)
-    A[:] .= 0
-    A[diagind(A)] .= 1
+    length(A) > 0 || return A
+    copyto!(A, LinearAlgebra.I)
     return A
 end
 
