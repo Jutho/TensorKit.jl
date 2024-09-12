@@ -594,8 +594,8 @@ function Base.convert(TT::Type{TensorMap{T,S,N₁,N₂,A}},
     if typeof(t) === TT
         return t
     else
-        data = convert(A, t.data)
-        return TensorMap(data, space(t))
+        tnew = TT(undef, space(t))
+        return copy!(tnew, t)
     end
 end
 

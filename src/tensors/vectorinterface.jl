@@ -8,6 +8,12 @@ function VectorInterface.zerovector(t::AbstractTensorMap, ::Type{S}) where {S<:N
     return zerovector!(similar(t, S))
 end
 function VectorInterface.zerovector!(t::AbstractTensorMap)
+    for (c, b) in blocks(t)
+        zerovector!(b)
+    end
+    return t
+end
+function VectorInterface.zerovector!(t::TensorMap)
     zerovector!(t.data)
     return t
 end
@@ -20,6 +26,12 @@ function VectorInterface.scale(t::AbstractTensorMap, α::Number)
     return scale!(similar(t, T), t, α)
 end
 function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
+    for (c, b) in blocks(t)
+        scale!(b, α)
+    end
+    return t
+end
+function VectorInterface.scale!(t::TensorMap, α::Number)
     scale!(t.data, α)
     return t
 end
@@ -29,6 +41,13 @@ function VectorInterface.scale!!(t::AbstractTensorMap, α::Number)
     return T <: scalartype(t) ? scale!(t, α) : scale(t, α)
 end
 function VectorInterface.scale!(ty::AbstractTensorMap, tx::AbstractTensorMap, α::Number)
+    space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
+    for ((cy, by), (cx, bx)) in zip(blocks(ty), blocks(tx))
+        scale!(by, bx, α)
+    end
+    return ty
+end
+function VectorInterface.scale!(ty::TensorMap, tx::TensorMap, α::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     scale!(ty.data, tx.data, α)
     return ty
@@ -52,6 +71,14 @@ function VectorInterface.add(ty::AbstractTensorMap, tx::AbstractTensorMap,
     return add!(scale!(similar(ty, T), ty, β), tx, α)
 end
 function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
+                              α::Number, β::Number)
+    space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
+    for ((cy, by), (cx, bx)) in zip(blocks(ty), blocks(tx))
+        add!(StridedView(by), StridedView(bx), α, β)
+    end
+    return ty
+end
+function VectorInterface.add!(ty::TensorMap, tx::TensorMap,
                               α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     add!(ty.data, tx.data, α, β)
