@@ -62,16 +62,14 @@ end
 function Base.iterate(it::FusionTreeIterator{I,0},
                       state=(it.coupled != one(I))) where {I<:Sector}
     state && return nothing
-    T = vertex_labeltype(I)
-    tree = FusionTree{I,0,0,0,T}((), one(I), (), (), ())
+    tree = FusionTree{I}((), one(I), (), (), ())
     return tree, true
 end
 
 function Base.iterate(it::FusionTreeIterator{I,1},
                       state=!(it.coupled ∈ it.uncouplediterators[1])) where {I<:Sector}
     state && return nothing
-    T = vertex_labeltype(I)
-    tree = FusionTree{I,1,0,0,T}((it.coupled,), it.coupled, it.isdual, (), ())
+    tree = FusionTree{I}((it.coupled,), it.coupled, it.isdual, (), ())
     return tree, true
 end
 
@@ -81,8 +79,7 @@ function Base.iterate(it::FusionTreeIterator{I}) where {I<:Sector}
     next = _fusiontree_iterate(it.uncouplediterators, coupled)
     next === nothing && return nothing
     out, lines, vertices, states = next
-    vertexlabels = _labelvertices(out, coupled, lines, vertices)
-    f = FusionTree(out, coupled, it.isdual, lines, vertexlabels)
+    f = FusionTree{I}(out, coupled, it.isdual, lines, vertices)
     return f, (out, lines, vertices, states)
 end
 function Base.iterate(it::FusionTreeIterator{I},
@@ -91,28 +88,8 @@ function Base.iterate(it::FusionTreeIterator{I},
     next = _fusiontree_iterate(it.uncouplediterators, coupled, out, lines, vertices, states)
     next === nothing && return nothing
     out, lines, vertices, states = next
-    vertexlabels = _labelvertices(out, it.coupled, lines, vertices)
-    f = FusionTree(out, coupled, it.isdual, lines, vertexlabels)
+    f = FusionTree{I}(out, coupled, it.isdual, lines, vertices)
     return f, (out, lines, vertices, states)
-end
-
-@inline function _labelvertices(uncoupled::NTuple{2,I}, coupled::I, lines::Tuple{},
-                                vertices::Tuple{Int}) where {I<:Sector}
-    return (vertex_ind2label(vertices[1], uncoupled..., coupled),)
-end
-
-@inline function _labelvertices(uncoupled::NTuple{N,I}, coupled::I, lines,
-                                vertices) where {I<:Sector,N}
-    a = lines[end]
-    b = uncoupled[end]
-    c = coupled
-    μ = vertices[end]
-    resttree = Base.front(uncoupled)
-    restlines = Base.front(lines)
-    restvertices = Base.front(vertices)
-    rest = _labelvertices(resttree, a, restlines, restvertices)
-    l = vertex_ind2label(μ, a, b, c)
-    return (rest..., l)
 end
 
 @inline function _fusiontree_iterate(uncoupledsectors::NTuple{2}, c::I) where {I<:Sector}

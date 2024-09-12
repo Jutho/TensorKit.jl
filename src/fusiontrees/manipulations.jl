@@ -217,7 +217,7 @@ function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
     if !(c in f₁.coupled ⊗ f₂.coupled)
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
     end
-    f₀ = FusionTree((f₁.coupled, f₂.coupled), c, (false, false), (), (μ,))
+    f₀ = FusionTree{I}((f₁.coupled, f₂.coupled), c, (false, false), (), (μ,))
     f, coeff = first(insertat(f₀, 1, f₁)) # takes fast path, single output
     @assert coeff == one(coeff)
     return insertat(f, N₁ + 1, f₂)

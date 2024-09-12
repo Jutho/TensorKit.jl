@@ -1,7 +1,7 @@
 # Fusion trees:
 #==============================================================================#
 """
-    struct FusionTree{I, N, M, L, T}
+    struct FusionTree{I, N, M, L}
 
 Represents a fusion tree of sectors of type `I<:Sector`, fusing (or splitting) `N` uncoupled
 sectors to a coupled sector. It actually represents a splitting tree, but fusion tree
@@ -15,21 +15,22 @@ is a more common term.
   (`false`) for each uncoupled sector.
 - `innerlines::NTuple{M,I}`: the labels of the `M=max(0, N-2)` inner lines of the splitting
   tree.
-- `vertices::NTuple{L,T}`: the `L=max(0, N-1)` labels of type `T` of the vertices of the
-  splitting tree. If `FusionStyle(I) isa MultiplicityFreeFusion`, then `T = Nothing`.
+- `vertices::NTuple{L,Int}`: the integer values of the `L=max(0, N-1)` vertices of the
+  splitting tree. If `FusionStyle(I) isa MultiplicityFreeFusion`, then `vertices` is simply
+  equal to the constant value `ntuple(n->1, L)`.
 """
-struct FusionTree{I<:Sector,N,M,L,T}
+struct FusionTree{I<:Sector,N,M,L}
     uncoupled::NTuple{N,I}
     coupled::I
     isdual::NTuple{N,Bool}
     innerlines::NTuple{M,I} # M = N-2
-    vertices::NTuple{L,T} # L = N-1
-    function FusionTree{I,N,M,L,T}(uncoupled::NTuple{N,I},
+    vertices::NTuple{L,Int} # L = N-1
+    function FusionTree{I,N,M,L}(uncoupled::NTuple{N,I},
                                    coupled::I,
                                    isdual::NTuple{N,Bool},
                                    innerlines::NTuple{M,I},
-                                   vertices::NTuple{L,T}) where
-             {I<:Sector,N,M,L,T}
+                                   vertices::NTuple{L,Int}) where
+             {I<:Sector,N,M,L}
         # if N == 0
         #     @assert coupled == one(coupled)
         # elseif N == 1
@@ -43,12 +44,12 @@ struct FusionTree{I<:Sector,N,M,L,T}
         #     end
         #     @assert coupled ∈ ⊗(innerlines[N-2], uncoupled[N])
         # end
-        return new{I,N,M,L,T}(uncoupled, coupled, isdual, innerlines, vertices)
+        return new{I,N,M,L}(uncoupled, coupled, isdual, innerlines, vertices)
     end
 end
 function FusionTree{I}(uncoupled::NTuple{N,Any}, coupled,
                        isdual::NTuple{N,Bool}, innerlines,
-                       vertices=ntuple(n -> nothing, max(0, N - 1))) where {I<:Sector,N}
+                       vertices=ntuple(n -> 1, max(0, N - 1))) where {I<:Sector,N}
     if FusionStyle(I) isa GenericFusion
         fusiontreetype(I, N)(map(s -> convert(I, s), uncoupled),
                              convert(I, coupled), isdual,
@@ -66,7 +67,7 @@ function FusionTree{I}(uncoupled::NTuple{N,Any}, coupled,
 end
 function FusionTree(uncoupled::NTuple{N,I}, coupled::I,
                     isdual::NTuple{N,Bool}, innerlines,
-                    vertices=ntuple(n -> nothing, max(0, N - 1))) where {I<:Sector,N}
+                    vertices=ntuple(n -> 1, max(0, N - 1))) where {I<:Sector,N}
     if FusionStyle(I) isa GenericFusion
         fusiontreetype(I, N)(uncoupled, coupled, isdual, innerlines, vertices)
     else
@@ -140,11 +141,11 @@ Base.isequal(f₁::FusionTree, f₂::FusionTree) = false
 # Facilitate getting correct fusion tree types
 function fusiontreetype(::Type{I}, N::Int) where {I<:Sector}
     if N === 0
-        FusionTree{I,0,0,0,vertex_labeltype(I)}
+        FusionTree{I,0,0,0}
     elseif N === 1
-        FusionTree{I,1,0,0,vertex_labeltype(I)}
+        FusionTree{I,1,0,0}
     else
-        FusionTree{I,N,N - 2,N - 1,vertex_labeltype(I)}
+        FusionTree{I,N,N - 2,N - 1}
     end
 end
 
@@ -217,14 +218,15 @@ function Base.convert(A::Type{<:AbstractArray},
 end
 
 # Show methods
-function Base.show(io::IO, t::FusionTree{I,N,M,K,Nothing}) where {I<:Sector,N,M,K}
-    return print(IOContext(io, :typeinfo => I), "FusionTree{", type_repr(I), "}(",
-                 t.uncoupled, ", ", t.coupled, ", ", t.isdual, ", ", t.innerlines, ")")
-end
 function Base.show(io::IO, t::FusionTree{I}) where {I<:Sector}
-    return print(IOContext(io, :typeinfo => I), "FusionTree{", type_repr(I), "}(",
-                 t.uncoupled, ", ", t.coupled, ", ", t.isdual, ",",
-                 t.innerlines, ", ", t.vertices, ")")
+    if FusionStyle(I) isa GenericFusion
+        return print(IOContext(io, :typeinfo => I), "FusionTree{", type_repr(I), "}(",
+                     t.uncoupled, ", ", t.coupled, ", ", t.isdual, ", ", t.innerlines, ", ",
+                     t.vertices, ")")
+    else
+        return print(IOContext(io, :typeinfo => I), "FusionTree{", type_repr(I), "}(",
+                     t.uncoupled, ", ", t.coupled, ", ", t.isdual, ", ", t.innerlines, ")")
+    end
 end
 
 # Manipulate fusion trees
