@@ -9,15 +9,19 @@ ti = time()
     out = ntuple(n -> randsector(I), N)
     isdual = ntuple(n -> rand(Bool), N)
     in = rand(collect(⊗(out...)))
-    numtrees = count(n -> true, fusiontrees(out, in, isdual))
+    numtrees = length(fusiontrees(out, in, isdual))
+    @test numtrees == count(n -> true, fusiontrees(out, in, isdual))
     while !(0 < numtrees < 30)
         out = ntuple(n -> randsector(I), N)
         in = rand(collect(⊗(out...)))
-        numtrees = count(n -> true, fusiontrees(out, in, isdual))
+        numtrees = length(fusiontrees(out, in, isdual))
+        @test numtrees == count(n -> true, fusiontrees(out, in, isdual))
     end
     it = @constinferred fusiontrees(out, in, isdual)
     @constinferred Nothing iterate(it)
-    f = @constinferred first(it)
+    f, s = iterate(it)
+    @constinferred Nothing iterate(it, s)
+    @test f == @constinferred first(it)
     @testset "Fusion tree $Istr: printing" begin
         @test eval(Meta.parse(sprint(show, f))) == f
     end
