@@ -77,8 +77,8 @@ end
 
 # TODO: define for CuMatrix if we support this
 function one!(A::DenseMatrix)
-    Threads.@threads for j in 1:size(A, 2)
-        @simd for i in 1:size(A, 1)
+    Threads.@threads for j in axes(A, 2)
+        @simd for i in axes(A, 1)
             @inbounds A[i, j] = i == j
         end
     end
