@@ -26,10 +26,10 @@ struct FusionTree{I<:Sector,N,M,L}
     innerlines::NTuple{M,I} # M = N-2
     vertices::NTuple{L,Int} # L = N-1
     function FusionTree{I,N,M,L}(uncoupled::NTuple{N,I},
-                                   coupled::I,
-                                   isdual::NTuple{N,Bool},
-                                   innerlines::NTuple{M,I},
-                                   vertices::NTuple{L,Int}) where
+                                 coupled::I,
+                                 isdual::NTuple{N,Bool},
+                                 innerlines::NTuple{M,I},
+                                 vertices::NTuple{L,Int}) where
              {I<:Sector,N,M,L}
         # if N == 0
         #     @assert coupled == one(coupled)

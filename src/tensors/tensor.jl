@@ -283,7 +283,7 @@ In other cases, new memory will be allocated.
 
 Note that in the case of `N₁ + N₂ = 1`, case 3 also amounts to `data` being a vector, whereas
 when `N₁ + N₂ == 2`, case 2 and case 3 both require `data` to be a matrix. Such ambiguous cases
-are resolved by checking the size of `data` in an attempt to capture all support all possible
+are resolved by checking the size of `data` in an attempt to support all possible
 cases.
 
 !!! note
@@ -603,7 +603,7 @@ function Base.promote_rule(::Type{<:TT₁},
                            ::Type{<:TT₂}) where {S,N₁,N₂,
                                                  TT₁<:TensorMap{<:Any,S,N₁,N₂},
                                                  TT₂<:TensorMap{<:Any,S,N₁,N₂}}
-    T = promote_type(scalartype(TT₁), scalartype(TT₂))
-    A = promote_type(storagetype(TT₁), storagetype(TT₂))
+    A = VectorInterface.promote_add(storagetype(TT₁), storagetype(TT₂))
+    T = scalartype(A)
     return TensorMap{T,S,N₁,N₂,A}
 end

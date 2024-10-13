@@ -177,7 +177,7 @@ function fusionblockstructure(W::HomSpace, ::NoCache)
 
     # temporary data structures
     splittingtrees = Vector{F₁}()
-    splittingstructure = Vector{Tuple{Int, Int}}()
+    splittingstructure = Vector{Tuple{Int,Int}}()
 
     # main computational routine
     blockoffset = 0
@@ -213,7 +213,7 @@ function fusionblockstructure(W::HomSpace, ::NoCache)
         blockoffset = last(blockrange)
         blockstructure[c] = (blocksize, blockrange)
     end
-    
+
     fusiontreeindices = sizehint!(FusionTreeDict{Tuple{F₁,F₂},Int}(),
                                   length(fusiontreelist))
     for (i, f₁₂) in enumerate(fusiontreelist)
@@ -221,7 +221,8 @@ function fusionblockstructure(W::HomSpace, ::NoCache)
     end
     totaldim = blockoffset
     structure = FusionBlockStructure{I,F₁,F₂}(totaldim, blockstructure,
-                                fusiontreelist, fusiontreestructure, fusiontreeindices)
+                                              fusiontreelist, fusiontreestructure,
+                                              fusiontreeindices)
     return structure
 end
 

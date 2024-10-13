@@ -62,7 +62,7 @@ or `storagetype(t) = T` if `T` is a `DenseVector` type.
 id(V::TensorSpace) = id(Float64, V)
 function id(A::Type, V::TensorSpace{S}) where {S}
     W = V ← V
-        N = length(codomain(W))
+    N = length(codomain(W))
     return one!(tensormaptype(S, N, N, A)(undef, W))
 end
 
@@ -239,19 +239,19 @@ function _norm(blockiter, p::Real, init::Real)
             return isempty(b) ? init : oftype(init, LinearAlgebra.normInf(b))
         end
     elseif p == 2
-        return sqrt(mapreduce(+, blockiter; init=init) do (c, b)
-                        return isempty(b) ? init :
-                               oftype(init, dim(c) * LinearAlgebra.norm2(b)^2)
-                    end)
+        n² = mapreduce(+, blockiter; init=init) do (c, b)
+            return isempty(b) ? init : oftype(init, dim(c) * LinearAlgebra.norm2(b)^2)
+        end
+        return sqrt(n²)
     elseif p == 1
         return mapreduce(+, blockiter; init=init) do (c, b)
             return isempty(b) ? init : oftype(init, dim(c) * sum(abs, b))
         end
     elseif p > 0
-        s = mapreduce(+, blockiter; init=init) do (c, b)
+        nᵖ = mapreduce(+, blockiter; init=init) do (c, b)
             return isempty(b) ? init : oftype(init, dim(c) * LinearAlgebra.normp(b, p)^p)
         end
-        return s^inv(oftype(s, p))
+        return (nᵖ)^inv(oftype(nᵖ, p))
     else
         msg = "Norm with non-positive p is not defined for `AbstractTensorMap`"
         throw(ArgumentError(msg))
@@ -286,122 +286,120 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
 end
 # TODO: consider spawning threads for different blocks, support backends
 
-# TensorMap inverse
-function Base.inv(t::AbstractTensorMap)
-    cod = codomain(t)
-    dom = domain(t)
-    cod ≅ dom ||
-        throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
-    tinv = TensorMap{scalartype(t)}(undef, dom, cod)
-    for (c, b) in blocks(t)
-        binv = MatrixAlgebra.one!(block(tinv, c))
-        ldiv!(lu(b), binv)
-    end
-    return tinv
-end
-function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
-    if sectortype(t) === Trivial
-        return TensorMap(pinv(block(t, Trivial()); kwargs...), domain(t) ← codomain(t))
-    else
-        data = empty(t.data)
-        for (c, b) in blocks(t)
-            data[c] = pinv(b; kwargs...)
-        end
-        return TensorMap(data, domain(t) ← codomain(t))
-    end
-end
-function Base.:(\)(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    codomain(t1) == codomain(t2) ||
-        throw(SpaceMismatch("non-matching codomains in t1 \\ t2"))
-    if sectortype(t1) === Trivial
-        data = block(t1, Trivial()) \ block(t2, Trivial())
-        return TensorMap(data, domain(t1) ← domain(t2))
-    else
-        cod = codomain(t1)
-        data = SectorDict(c => block(t1, c) \ block(t2, c)
-                          for c in blocksectors(codomain(t1)))
-        return TensorMap(data, domain(t1) ← domain(t2))
-    end
-end
-function Base.:(/)(t1::AbstractTensorMap, t2::AbstractTensorMap)
-    domain(t1) == domain(t2) ||
-        throw(SpaceMismatch("non-matching domains in t1 / t2"))
-    if sectortype(t1) === Trivial
-        data = block(t1, Trivial()) / block(t2, Trivial())
-        return TensorMap(data, codomain(t1) ← codomain(t2))
-    else
-        data = SectorDict(c => block(t1, c) / block(t2, c)
-                          for c in blocksectors(domain(t1)))
-        return TensorMap(data, codomain(t1) ← codomain(t2))
-    end
-end
+# # TensorMap inverse
+# function Base.inv(t::AbstractTensorMap)
+#     cod = codomain(t)
+#     dom = domain(t)
+#     cod ≅ dom ||
+#         throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+#     tinv = similar(t, dom, cod)
+#     for (c, b) in blocks(t)
+#         binv = MatrixAlgebra.one!(block(tinv, c))
+#         ldiv!(lu(b), binv)
+#     end
+#     return tinv
+# end
+# function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
+#     if sectortype(t) === Trivial
+#         return TensorMap(pinv(block(t, Trivial()); kwargs...), domain(t) ← codomain(t))
+#     else
+#         tpinv = similar(t, domain(t) ← codomain(t))
+#         for (c, b) in blocks(t)
+#             copy!(block(tpinv, c), pinv(b; kwargs...))
+#         end
+#         return TensorMap(data, domain(t) ← codomain(t))
+#     end
+# end
+# function Base.:(\)(t1::AbstractTensorMap, t2::AbstractTensorMap)
+#     codomain(t1) == codomain(t2) ||
+#         throw(SpaceMismatch("non-matching codomains in t1 \\ t2"))
+#     if sectortype(t1) === Trivial
+#         data = block(t1, Trivial()) \ block(t2, Trivial())
+#         return TensorMap(data, domain(t1) ← domain(t2))
+#     else
+#         T = promote_type(scalartype(t1), scalartype(t2))
+#         t = similar(t1, domain(t1) ← domain(t2), T)
+#         for (c, b) in blocks(t)
+#             copy!(b, block(t1, c) \ block(t2, c))
+#         end
+#         return t
+#     end
+# end
+# function Base.:(/)(t1::AbstractTensorMap, t2::AbstractTensorMap)
+#     domain(t1) == domain(t2) ||
+#         throw(SpaceMismatch("non-matching domains in t1 / t2"))
+#     if sectortype(t1) === Trivial
+#         data = block(t1, Trivial()) / block(t2, Trivial())
+#         return TensorMap(data, codomain(t1) ← codomain(t2))
+#     else
+#         T = promote_type(scalartype(t1), scalartype(t2))
+#         t = similar(t1, codomain(t1) ← codomain(t2), T)
+#         for (c, b) in blocks(t)
+#             copy!(b, block(t1, c) / block(t2, c))
+#         end
+#         return t
+#     end
+# end
 
-# TensorMap exponentation:
-function exp!(t::TensorMap)
-    domain(t) == codomain(t) ||
-        error("Exponentional of a tensor only exist when domain == codomain.")
-    for (c, b) in blocks(t)
-        copy!(b, LinearAlgebra.exp!(b))
-    end
-    return t
-end
+# # TensorMap exponentation:
+# function exp!(t::TensorMap)
+#     domain(t) == codomain(t) ||
+#         error("Exponentional of a tensor only exist when domain == codomain.")
+#     for (c, b) in blocks(t)
+#         copy!(b, LinearAlgebra.exp!(b))
+#     end
+#     return t
+# end
 
-# Sylvester equation with TensorMap objects:
-function LinearAlgebra.sylvester(A::AbstractTensorMap,
-                                 B::AbstractTensorMap,
-                                 C::AbstractTensorMap)
-    (codomain(A) == domain(A) == codomain(C) && codomain(B) == domain(B) == domain(C)) ||
-        throw(SpaceMismatch())
-    cod = domain(A)
-    dom = codomain(B)
-    sylABC(c) = sylvester(block(A, c), block(B, c), block(C, c))
-    data = SectorDict(c => sylABC(c) for c in blocksectors(cod ← dom))
-    return TensorMap(data, cod ← dom)
-end
+# # Sylvester equation with TensorMap objects:
+# function LinearAlgebra.sylvester(A::AbstractTensorMap,
+#                                  B::AbstractTensorMap,
+#                                  C::AbstractTensorMap)
+#     (codomain(A) == domain(A) == codomain(C) && codomain(B) == domain(B) == domain(C)) ||
+#         throw(SpaceMismatch())
+#     cod = domain(A)
+#     dom = codomain(B)
+#     T = promote_type(scalartype(A), scalartype(B), scalartype(C))
+#     t = similar(C, cod ← dom, T)
+#     for (c, b) in blocks(t)
+#         copy!(b, sylvester(block(A, c), block(B, c), block(C, c)))
+#     end
+#     return t
+# end
 
-# functions that map ℝ to (a subset of) ℝ
-for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh)
-    sf = string(f)
-    @eval function Base.$f(t::AbstractTensorMap)
-        domain(t) == codomain(t) ||
-            error("$sf of a tensor only exist when domain == codomain.")
-        I = sectortype(t)
-        T = similarstoragetype(t, float(scalartype(t)))
-        if sectortype(t) === Trivial
-            local data::T
-            if scalartype(t) <: Real
-                data = real($f(block(t, Trivial())))
-            else
-                data = $f(block(t, Trivial()))
-            end
-            return TensorMap(data, codomain(t), domain(t))
-        else
-            if scalartype(t) <: Real
-                datadict = SectorDict{I,T}(c => real($f(b)) for (c, b) in blocks(t))
-            else
-                datadict = SectorDict{I,T}(c => $f(b) for (c, b) in blocks(t))
-            end
-            return TensorMap(datadict, codomain(t), domain(t))
-        end
-    end
-end
-# functions that don't map ℝ to (a subset of) ℝ
-for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
-    sf = string(f)
-    @eval function Base.$f(t::AbstractTensorMap)
-        domain(t) == codomain(t) ||
-            error("$sf of a tensor only exist when domain == codomain.")
-        I = sectortype(t)
-        T = similarstoragetype(t, complex(float(scalartype(t))))
-        if sectortype(t) === Trivial
-            data::T = $f(block(t, Trivial()))
-            return TensorMap(data, codomain(t), domain(t))
-        else
-            datadict = SectorDict{I,T}(c => $f(b) for (c, b) in blocks(t))
-            return TensorMap(datadict, codomain(t), domain(t))
-        end
-    end
-end
+# # functions that map ℝ to (a subset of) ℝ
+# for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh)
+#     sf = string(f)
+#     @eval function Base.$f(t::AbstractTensorMap)
+#         domain(t) == codomain(t) ||
+#             error("$sf of a tensor only exist when domain == codomain.")
+#         if sectortype(t) === Trivial
+#             return TensorMap(MatrixAlgebra.$f(block(t, Trivial())), codomain(t), domain(t))
+#         else
+#             tf = similar(t)
+#             for (c, b) in blocks(t)
+#                 copy!(block(tf, c), MatrixAlgebra.$f(b))
+#             end
+#             return tf
+#         end
+#     end
+# end
+# # functions that don't map ℝ to (a subset of) ℝ
+# for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
+#     sf = string(f)
+#     @eval function Base.$f(t::AbstractTensorMap)
+#         domain(t) == codomain(t) ||
+#             error("$sf of a tensor only exist when domain == codomain.")
+#         T = similarstoragetype(t, complex(float(scalartype(t))))
+#         if sectortype(t) === Trivial
+#             data::T = $f(block(t, Trivial()))
+#             return TensorMap(data, codomain(t), domain(t))
+#         else
+#             datadict = SectorDict{I,T}(c => $f(b) for (c, b) in blocks(t))
+#             return TensorMap(datadict, codomain(t), domain(t))
+#         end
+#     end
+# end
 
 # concatenate tensors
 function catdomain(t1::TT, t2::TT) where {S,N₁,TT<:AbstractTensorMap{<:Any,S,N₁,1}}
@@ -473,9 +471,7 @@ function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
                 c1 = f1l.coupled # = f1r.coupled
                 c2 = f2l.coupled # = f2r.coupled
                 for c in c1 ⊗ c2
-                    degeneracyiter = FusionStyle(c) isa GenericFusion ?
-                                     (1:Nsymbol(c1, c2, c)) : (nothing,)
-                    for μ in degeneracyiter
+                    for μ in 1:Nsymbol(c1, c2, c)
                         for (fl, coeff1) in merge(f1l, f2l, c, μ)
                             for (fr, coeff2) in merge(f1r, f2r, c, μ)
                                 d1 = dim(cod1, f1l.uncoupled)
@@ -504,11 +500,15 @@ function ⊠(t1::AbstractTensorMap, t2::AbstractTensorMap)
     I2 = sectortype(S2)
     codom1 = codomain(t1) ⊠ one(S2)
     dom1 = domain(t1) ⊠ one(S2)
-    data1 = SectorDict{I1 ⊠ I2,storagetype(t1)}(c ⊠ one(I2) => b for (c, b) in blocks(t1))
-    t1′ = TensorMap(data1, codom1, dom1)
+    t1′ = similar(t1, codom1 ← dom1)
+    for (c, b) in blocks(t1)
+        copy!(block(t1′, c ⊠ one(I2)), b)
+    end
     codom2 = one(S1) ⊠ codomain(t2)
     dom2 = one(S1) ⊠ domain(t2)
-    data2 = SectorDict{I1 ⊠ I2,storagetype(t2)}(one(I1) ⊠ c => b for (c, b) in blocks(t2))
-    t2′ = TensorMap(data2, codom2, dom2)
+    t2′ = similar(t2, codom2 ← dom2)
+    for (c, b) in blocks(t2)
+        copy!(block(t2′, one(I1) ⊠ c), b)
+    end
     return t1′ ⊗ t2′
 end

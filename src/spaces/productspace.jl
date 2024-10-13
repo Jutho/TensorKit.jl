@@ -207,9 +207,14 @@ function blockdim(P::ProductSpace, c::Sector)
     return d
 end
 
-Base.:(==)(P1::ProductSpace, P2::ProductSpace) = (P1.spaces == P2.spaces)
+function Base.:(==)(P1::ProductSpace{S,N},
+                    P2::ProductSpace{S,N}) where {S<:ElementarySpace,N}
+    return (P1.spaces == P2.spaces)
+end
+Base.:(==)(P1::ProductSpace, P2::ProductSpace) = false
 
-Base.hash(P::ProductSpace, h::UInt) = hash(P.spaces, h)
+# hashing S is necessary to have different hashes for empty productspace with different S
+Base.hash(P::ProductSpace{S}, h::UInt) where {S} = hash(P.spaces, hash(S, h))
 
 # Default construction from product of spaces
 #---------------------------------------------

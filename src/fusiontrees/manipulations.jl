@@ -200,7 +200,7 @@ operation is the inverse of `insertat` in the sense that if
 end
 
 """
-    merge(f₁::FusionTree{I, N₁}, f₂::FusionTree{I, N₂}, c::I, μ = nothing)
+    merge(f₁::FusionTree{I, N₁}, f₂::FusionTree{I, N₂}, c::I, μ = 1)
     -> <:AbstractDict{<:FusionTree{I, N₁+N₂}, <:Number}
 
 Merge two fusion trees together to a linear combination of fusion trees whose uncoupled
@@ -210,19 +210,26 @@ sectors are those of `f₁` followed by those of `f₂`, and where the two coupl
 the coupled sectors of `f₁` and `f₂` to `c` needs to be specified.
 """
 function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
-               c::I, μ=nothing) where {I,N₁,N₂}
-    if FusionStyle(I) isa GenericFusion && μ === nothing
+               c::I) where {I,N₁,N₂}
+    if FusionStyle(I) isa GenericFusion
         throw(ArgumentError("vertex label for merging required"))
     end
+    return merge(f₁, f₂, c, 1)
+end
+function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
+               c::I, μ) where {I,N₁,N₂}
     if !(c in f₁.coupled ⊗ f₂.coupled)
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
+    end
+    if μ > Nsymbol(f₁.coupled, f₂.coupled, c)
+        throw(ArgumentError("invalid fusion vertex label $μ"))
     end
     f₀ = FusionTree{I}((f₁.coupled, f₂.coupled), c, (false, false), (), (μ,))
     f, coeff = first(insertat(f₀, 1, f₁)) # takes fast path, single output
     @assert coeff == one(coeff)
     return insertat(f, N₁ + 1, f₂)
 end
-function merge(f₁::FusionTree{I,0}, f₂::FusionTree{I,0}, c::I, μ=nothing) where {I}
+function merge(f₁::FusionTree{I,0}, f₂::FusionTree{I,0}, c::I, μ) where {I}
     c == one(I) ||
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
     return fusiontreedict(I)(f₁ => Fsymbol(c, c, c, c, c, c)[1, 1, 1, 1])
@@ -259,7 +266,7 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     end
     if FusionStyle(I) isa MultiplicityFreeFusion
         coeff = coeff₀ * Bsymbol(a, b, c)
-        vertices2 = N₂ > 0 ? (f₂.vertices..., nothing) : ()
+        vertices2 = N₂ > 0 ? (f₂.vertices..., 1) : ()
         f₂′ = FusionTree(uncoupled2, a, isdual2, inner2, vertices2)
         return SingletonDict((f₁′, f₂′) => coeff)
     else
@@ -319,7 +326,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
         end
         for c in c1 ⊗ c2
             c ∈ cset || continue
-            for μ in (hasmultiplicities ? (1:Nsymbol(c1, c2, c)) : (nothing,))
+            for μ in 1:Nsymbol(c1, c2, c)
                 fc = FusionTree((c1, c2), c, (!isduala, false), (), (μ,))
                 for (fl′, coeff1) in insertat(fc, 2, f₁)
                     N₁ > 1 && fl′.innerlines[1] != one(I) && continue
