@@ -274,7 +274,7 @@ ti = time()
 
         @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), 1)
         if !(FusionStyle(I) isa GenericFusion)
-            @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), nothing)
+            @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), 1)
             @constinferred TK.merge(f1, f2, first(in1 ⊗ in2))
         end
         @test dim(in1) * dim(in2) ≈ sum(abs2(coeff) * dim(c) for c in in1 ⊗ in2
@@ -284,15 +284,13 @@ ti = time()
         for c in in1 ⊗ in2
             R = Rsymbol(in1, in2, c)
             for μ in 1:Nsymbol(in1, in2, c)
-                μ′ = FusionStyle(I) isa GenericFusion ? μ : nothing
-                trees1 = TK.merge(f1, f2, c, μ′)
+                trees1 = TK.merge(f1, f2, c, μ)
 
                 # test merge and braid interplay
                 trees2 = Dict{keytype(trees1),complex(valtype(trees1))}()
                 trees3 = Dict{keytype(trees1),complex(valtype(trees1))}()
                 for ν in 1:Nsymbol(in2, in1, c)
-                    ν′ = FusionStyle(I) isa GenericFusion ? ν : nothing
-                    for (t, coeff) in TK.merge(f2, f1, c, ν′)
+                    for (t, coeff) in TK.merge(f2, f1, c, ν)
                         trees2[t] = get(trees2, t, zero(valtype(trees2))) + coeff * R[μ, ν]
                     end
                 end
