@@ -75,12 +75,9 @@ else
 end
 
 # TODO: define for CuMatrix if we support this
-function one!(A::DenseMatrix)
-    Threads.@threads for j in 1:size(A, 2)
-        @simd for i in 1:size(A, 1)
-            @inbounds A[i, j] = i == j
-        end
-    end
+function one!(A::StridedMatrix)
+    length(A) > 0 || return A
+    copyto!(A, LinearAlgebra.I)
     return A
 end
 
