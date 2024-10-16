@@ -113,9 +113,9 @@ using Base.Iterators: product, filter
 
 using LinearAlgebra: LinearAlgebra
 using LinearAlgebra: norm, dot, normalize, normalize!, tr,
-                     axpy!, axpby!, lmul!, rmul!, mul!,
+                     axpy!, axpby!, lmul!, rmul!, mul!, ldiv!, rdiv!,
                      adjoint, adjoint!, transpose, transpose!,
-                     pinv, sylvester,
+                     lu, pinv, sylvester,
                      eigen, eigen!, svd, svd!,
                      isposdef, isposdef!, ishermitian,
                      Diagonal, Hermitian
@@ -186,8 +186,8 @@ include("tensors/linalg.jl")
 include("tensors/vectorinterface.jl")
 include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
-# include("tensors/truncation.jl")
-# include("tensors/factorizations.jl")
+include("tensors/truncation.jl")
+include("tensors/factorizations.jl")
 # include("tensors/braidingtensor.jl")
 
 # # Planar macros and related functionality

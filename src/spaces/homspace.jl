@@ -148,10 +148,10 @@ end
 abstract type CacheStyle end
 struct NoCache <: CacheStyle end
 struct TaskLocalCache{D<:AbstractDict} <: CacheStyle end
-struct GlobalCache <: CacheStyle end
+struct GlobalLRUCache <: CacheStyle end
 
 function CacheStyle(I::Type{<:Sector})
-    return GlobalCache()
+    return GlobalLRUCache()
     # if FusionStyle(I) === UniqueFusion()
     #     return TaskLocalCache{SectorDict{I,Any}}()
     # else
@@ -243,7 +243,7 @@ end
 
 const GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE = LRU{Any,Any}(; maxsize=10^4)
 # 10^4 different tensor spaces should be enough for most purposes
-function fusionblockstructure(W::HomSpace, ::GlobalCache)
+function fusionblockstructure(W::HomSpace, ::GlobalLRUCache)
     cache = GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE
     N₁ = length(codomain(W))
     N₂ = length(domain(W))

@@ -308,212 +308,212 @@ for V in spacelist
                 @test HrA12array ≈ convert(Array, HrA12)
             end
         end
-        # @timedtestset "Multiplication and inverse: test compatibility" begin
-        #     W1 = V1 ⊗ V2 ⊗ V3
-        #     W2 = V4 ⊗ V5
-        #     for T in (Float64, ComplexF64)
-        #         t1 = rand(T, W1, W1)
-        #         t2 = rand(T, W2, W2)
-        #         t = rand(T, W1, W2)
-        #         @test t1 * (t1 \ t) ≈ t
-        #         @test (t / t2) * t2 ≈ t
-        #         @test t1 \ one(t1) ≈ inv(t1)
-        #         @test one(t1) / t1 ≈ pinv(t1)
-        #         @test_throws SpaceMismatch inv(t)
-        #         @test_throws SpaceMismatch t2 \ t
-        #         @test_throws SpaceMismatch t / t1
-        #         tp = pinv(t) * t
-        #         @test tp ≈ tp * tp
-        #     end
-        # end
-        # if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
-        #     @timedtestset "Multiplication and inverse: test via conversion" begin
-        #         W1 = V1 ⊗ V2 ⊗ V3
-        #         W2 = V4 ⊗ V5
-        #         for T in (Float32, Float64, ComplexF32, ComplexF64)
-        #             t1 = rand(T, W1, W1)
-        #             t2 = rand(T, W2, W2)
-        #             t = rand(T, W1, W2)
-        #             d1 = dim(W1)
-        #             d2 = dim(W2)
-        #             At1 = reshape(convert(Array, t1), d1, d1)
-        #             At2 = reshape(convert(Array, t2), d2, d2)
-        #             At = reshape(convert(Array, t), d1, d2)
-        #             @test reshape(convert(Array, t1 * t), d1, d2) ≈ At1 * At
-        #             @test reshape(convert(Array, t1' * t), d1, d2) ≈ At1' * At
-        #             @test reshape(convert(Array, t2 * t'), d2, d1) ≈ At2 * At'
-        #             @test reshape(convert(Array, t2' * t'), d2, d1) ≈ At2' * At'
+        @timedtestset "Multiplication and inverse: test compatibility" begin
+            W1 = V1 ⊗ V2 ⊗ V3
+            W2 = V4 ⊗ V5
+            for T in (Float64, ComplexF64)
+                t1 = rand(T, W1, W1)
+                t2 = rand(T, W2, W2)
+                t = rand(T, W1, W2)
+                @test t1 * (t1 \ t) ≈ t
+                @test (t / t2) * t2 ≈ t
+                @test t1 \ one(t1) ≈ inv(t1)
+                @test one(t1) / t1 ≈ pinv(t1)
+                @test_throws SpaceMismatch inv(t)
+                @test_throws SpaceMismatch t2 \ t
+                @test_throws SpaceMismatch t / t1
+                tp = pinv(t) * t
+                @test tp ≈ tp * tp
+            end
+        end
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
+            @timedtestset "Multiplication and inverse: test via conversion" begin
+                W1 = V1 ⊗ V2 ⊗ V3
+                W2 = V4 ⊗ V5
+                for T in (Float32, Float64, ComplexF32, ComplexF64)
+                    t1 = rand(T, W1, W1)
+                    t2 = rand(T, W2, W2)
+                    t = rand(T, W1, W2)
+                    d1 = dim(W1)
+                    d2 = dim(W2)
+                    At1 = reshape(convert(Array, t1), d1, d1)
+                    At2 = reshape(convert(Array, t2), d2, d2)
+                    At = reshape(convert(Array, t), d1, d2)
+                    @test reshape(convert(Array, t1 * t), d1, d2) ≈ At1 * At
+                    @test reshape(convert(Array, t1' * t), d1, d2) ≈ At1' * At
+                    @test reshape(convert(Array, t2 * t'), d2, d1) ≈ At2 * At'
+                    @test reshape(convert(Array, t2' * t'), d2, d1) ≈ At2' * At'
 
-        #             @test reshape(convert(Array, inv(t1)), d1, d1) ≈ inv(At1)
-        #             @test reshape(convert(Array, pinv(t)), d2, d1) ≈ pinv(At)
+                    @test reshape(convert(Array, inv(t1)), d1, d1) ≈ inv(At1)
+                    @test reshape(convert(Array, pinv(t)), d2, d1) ≈ pinv(At)
 
-        #             if T == Float32 || T == ComplexF32
-        #                 continue
-        #             end
+                    if T == Float32 || T == ComplexF32
+                        continue
+                    end
 
-        #             @test reshape(convert(Array, t1 \ t), d1, d2) ≈ At1 \ At
-        #             @test reshape(convert(Array, t1' \ t), d1, d2) ≈ At1' \ At
-        #             @test reshape(convert(Array, t2 \ t'), d2, d1) ≈ At2 \ At'
-        #             @test reshape(convert(Array, t2' \ t'), d2, d1) ≈ At2' \ At'
+                    @test reshape(convert(Array, t1 \ t), d1, d2) ≈ At1 \ At
+                    @test reshape(convert(Array, t1' \ t), d1, d2) ≈ At1' \ At
+                    @test reshape(convert(Array, t2 \ t'), d2, d1) ≈ At2 \ At'
+                    @test reshape(convert(Array, t2' \ t'), d2, d1) ≈ At2' \ At'
 
-        #             @test reshape(convert(Array, t2 / t), d2, d1) ≈ At2 / At
-        #             @test reshape(convert(Array, t2' / t), d2, d1) ≈ At2' / At
-        #             @test reshape(convert(Array, t1 / t'), d1, d2) ≈ At1 / At'
-        #             @test reshape(convert(Array, t1' / t'), d1, d2) ≈ At1' / At'
-        #         end
-        #     end
-        # end
-        # @timedtestset "diag/diagm" begin
-        #     W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
-        #     t = randn(ComplexF64, W)
-        #     d = LinearAlgebra.diag(t)
-        #     D = LinearAlgebra.diagm(codomain(t), domain(t), d)
-        #     @test LinearAlgebra.isdiag(D)
-        #     @test LinearAlgebra.diag(D) == d
-        # end
-        # @timedtestset "Factorization" begin
-        #     W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
-        #     for T in (Float32, ComplexF64)
-        #         # Test both a normal tensor and an adjoint one.
-        #         ts = (rand(T, W), rand(T, W)')
-        #         for t in ts
-        #             @testset "leftorth with $alg" for alg in
-        #                                               (TensorKit.QR(), TensorKit.QRpos(),
-        #                                                TensorKit.QL(), TensorKit.QLpos(),
-        #                                                TensorKit.Polar(), TensorKit.SVD(),
-        #                                                TensorKit.SDD())
-        #                 Q, R = @constinferred leftorth(t, ((3, 4, 2), (1, 5)); alg=alg)
-        #                 QdQ = Q' * Q
-        #                 @test QdQ ≈ one(QdQ)
-        #                 @test Q * R ≈ permute(t, ((3, 4, 2), (1, 5)))
-        #                 if alg isa Polar
-        #                     @test isposdef(R)
-        #                     @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'
-        #                 end
-        #             end
-        #             @testset "leftnull with $alg" for alg in
-        #                                               (TensorKit.QR(), TensorKit.SVD(),
-        #                                                TensorKit.SDD())
-        #                 N = @constinferred leftnull(t, ((3, 4, 2), (1, 5)); alg=alg)
-        #                 NdN = N' * N
-        #                 @test NdN ≈ one(NdN)
-        #                 @test norm(N' * permute(t, ((3, 4, 2), (1, 5)))) <
-        #                       100 * eps(norm(t))
-        #             end
-        #             @testset "rightorth with $alg" for alg in
-        #                                                (TensorKit.RQ(), TensorKit.RQpos(),
-        #                                                 TensorKit.LQ(), TensorKit.LQpos(),
-        #                                                 TensorKit.Polar(), TensorKit.SVD(),
-        #                                                 TensorKit.SDD())
-        #                 L, Q = @constinferred rightorth(t, ((3, 4), (2, 1, 5)); alg=alg)
-        #                 QQd = Q * Q'
-        #                 @test QQd ≈ one(QQd)
-        #                 @test L * Q ≈ permute(t, ((3, 4), (2, 1, 5)))
-        #                 if alg isa Polar
-        #                     @test isposdef(L)
-        #                     @test domain(L) == codomain(L) == space(t, 3) ⊗ space(t, 4)
-        #                 end
-        #             end
-        #             @testset "rightnull with $alg" for alg in
-        #                                                (TensorKit.LQ(), TensorKit.SVD(),
-        #                                                 TensorKit.SDD())
-        #                 M = @constinferred rightnull(t, ((3, 4), (2, 1, 5)); alg=alg)
-        #                 MMd = M * M'
-        #                 @test MMd ≈ one(MMd)
-        #                 @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') <
-        #                       100 * eps(norm(t))
-        #             end
-        #             @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-        #                 U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
-        #                 UdU = U' * U
-        #                 @test UdU ≈ one(UdU)
-        #                 VVd = V * V'
-        #                 @test VVd ≈ one(VVd)
-        #                 t2 = permute(t, ((3, 4, 2), (1, 5)))
-        #                 @test U * S * V ≈ t2
+                    @test reshape(convert(Array, t2 / t), d2, d1) ≈ At2 / At
+                    @test reshape(convert(Array, t2' / t), d2, d1) ≈ At2' / At
+                    @test reshape(convert(Array, t1 / t'), d1, d2) ≈ At1 / At'
+                    @test reshape(convert(Array, t1' / t'), d1, d2) ≈ At1' / At'
+                end
+            end
+        end
+        @timedtestset "diag/diagm" begin
+            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+            t = randn(ComplexF64, W)
+            d = LinearAlgebra.diag(t)
+            D = LinearAlgebra.diagm(codomain(t), domain(t), d)
+            @test LinearAlgebra.isdiag(D)
+            @test LinearAlgebra.diag(D) == d
+        end
+        @timedtestset "Factorization" begin
+            W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
+            for T in (Float32, ComplexF64)
+                # Test both a normal tensor and an adjoint one.
+                ts = (rand(T, W), rand(T, W)')
+                for t in ts
+                    @testset "leftorth with $alg" for alg in
+                                                      (TensorKit.QR(), TensorKit.QRpos(),
+                                                       TensorKit.QL(), TensorKit.QLpos(),
+                                                       TensorKit.Polar(), TensorKit.SVD(),
+                                                       TensorKit.SDD())
+                        Q, R = @constinferred leftorth(t, ((3, 4, 2), (1, 5)); alg=alg)
+                        QdQ = Q' * Q
+                        @test QdQ ≈ one(QdQ)
+                        @test Q * R ≈ permute(t, ((3, 4, 2), (1, 5)))
+                        if alg isa Polar
+                            @test isposdef(R)
+                            @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'
+                        end
+                    end
+                    @testset "leftnull with $alg" for alg in
+                                                      (TensorKit.QR(), TensorKit.SVD(),
+                                                       TensorKit.SDD())
+                        N = @constinferred leftnull(t, ((3, 4, 2), (1, 5)); alg=alg)
+                        NdN = N' * N
+                        @test NdN ≈ one(NdN)
+                        @test norm(N' * permute(t, ((3, 4, 2), (1, 5)))) <
+                              100 * eps(norm(t))
+                    end
+                    @testset "rightorth with $alg" for alg in
+                                                       (TensorKit.RQ(), TensorKit.RQpos(),
+                                                        TensorKit.LQ(), TensorKit.LQpos(),
+                                                        TensorKit.Polar(), TensorKit.SVD(),
+                                                        TensorKit.SDD())
+                        L, Q = @constinferred rightorth(t, ((3, 4), (2, 1, 5)); alg=alg)
+                        QQd = Q * Q'
+                        @test QQd ≈ one(QQd)
+                        @test L * Q ≈ permute(t, ((3, 4), (2, 1, 5)))
+                        if alg isa Polar
+                            @test isposdef(L)
+                            @test domain(L) == codomain(L) == space(t, 3) ⊗ space(t, 4)
+                        end
+                    end
+                    @testset "rightnull with $alg" for alg in
+                                                       (TensorKit.LQ(), TensorKit.SVD(),
+                                                        TensorKit.SDD())
+                        M = @constinferred rightnull(t, ((3, 4), (2, 1, 5)); alg=alg)
+                        MMd = M * M'
+                        @test MMd ≈ one(MMd)
+                        @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') <
+                              100 * eps(norm(t))
+                    end
+                    #             @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                    #                 U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
+                    #                 UdU = U' * U
+                    #                 @test UdU ≈ one(UdU)
+                    #                 VVd = V * V'
+                    #                 @test VVd ≈ one(VVd)
+                    #                 t2 = permute(t, ((3, 4, 2), (1, 5)))
+                    #                 @test U * S * V ≈ t2
 
-        #                 s = LinearAlgebra.svdvals(t2)
-        #                 s′ = LinearAlgebra.diag(S)
-        #                 for (c, b) in s
-        #                     @test b ≈ s′[c]
-        #                 end
-        #             end
-        #         end
-        #         @testset "empty tensor" begin
-        #             t = randn(T, V1 ⊗ V2, typeof(V1)())
-        #             @testset "leftorth with $alg" for alg in
-        #                                               (TensorKit.QR(), TensorKit.QRpos(),
-        #                                                TensorKit.QL(), TensorKit.QLpos(),
-        #                                                TensorKit.Polar(), TensorKit.SVD(),
-        #                                                TensorKit.SDD())
-        #                 Q, R = @constinferred leftorth(t; alg=alg)
-        #                 @test Q == t
-        #                 @test dim(Q) == dim(R) == 0
-        #             end
-        #             @testset "leftnull with $alg" for alg in
-        #                                               (TensorKit.QR(), TensorKit.SVD(),
-        #                                                TensorKit.SDD())
-        #                 N = @constinferred leftnull(t; alg=alg)
-        #                 @test N' * N ≈ id(domain(N))
-        #                 @test N * N' ≈ id(codomain(N))
-        #             end
-        #             @testset "rightorth with $alg" for alg in
-        #                                                (TensorKit.RQ(), TensorKit.RQpos(),
-        #                                                 TensorKit.LQ(), TensorKit.LQpos(),
-        #                                                 TensorKit.Polar(), TensorKit.SVD(),
-        #                                                 TensorKit.SDD())
-        #                 L, Q = @constinferred rightorth(copy(t'); alg=alg)
-        #                 @test Q == t'
-        #                 @test dim(Q) == dim(L) == 0
-        #             end
-        #             @testset "rightnull with $alg" for alg in
-        #                                                (TensorKit.LQ(), TensorKit.SVD(),
-        #                                                 TensorKit.SDD())
-        #                 M = @constinferred rightnull(copy(t'); alg=alg)
-        #                 @test M * M' ≈ id(codomain(M))
-        #                 @test M' * M ≈ id(domain(M))
-        #             end
-        #             @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-        #                 U, S, V = @constinferred tsvd(t; alg=alg)
-        #                 @test U == t
-        #                 @test dim(U) == dim(S) == dim(V)
-        #             end
-        #         end
+                    #                 s = LinearAlgebra.svdvals(t2)
+                    #                 s′ = LinearAlgebra.diag(S)
+                    #                 for (c, b) in s
+                    #                     @test b ≈ s′[c]
+                    #                 end
+                    #             end
+                end
+                @testset "empty tensor" begin
+                    t = randn(T, V1 ⊗ V2, typeof(V1)())
+                    @testset "leftorth with $alg" for alg in
+                                                      (TensorKit.QR(), TensorKit.QRpos(),
+                                                       TensorKit.QL(), TensorKit.QLpos(),
+                                                       TensorKit.Polar(), TensorKit.SVD(),
+                                                       TensorKit.SDD())
+                        Q, R = @constinferred leftorth(t; alg=alg)
+                        @test Q == t
+                        @test dim(Q) == dim(R) == 0
+                    end
+                    @testset "leftnull with $alg" for alg in
+                                                      (TensorKit.QR(), TensorKit.SVD(),
+                                                       TensorKit.SDD())
+                        N = @constinferred leftnull(t; alg=alg)
+                        @test N' * N ≈ id(domain(N))
+                        @test N * N' ≈ id(codomain(N))
+                    end
+                    @testset "rightorth with $alg" for alg in
+                                                       (TensorKit.RQ(), TensorKit.RQpos(),
+                                                        TensorKit.LQ(), TensorKit.LQpos(),
+                                                        TensorKit.Polar(), TensorKit.SVD(),
+                                                        TensorKit.SDD())
+                        L, Q = @constinferred rightorth(copy(t'); alg=alg)
+                        @test Q == t'
+                        @test dim(Q) == dim(L) == 0
+                    end
+                    @testset "rightnull with $alg" for alg in
+                                                       (TensorKit.LQ(), TensorKit.SVD(),
+                                                        TensorKit.SDD())
+                        M = @constinferred rightnull(copy(t'); alg=alg)
+                        @test M * M' ≈ id(codomain(M))
+                        @test M' * M ≈ id(domain(M))
+                    end
+                    # @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                    #     U, S, V = @constinferred tsvd(t; alg=alg)
+                    #     @test U == t
+                    #     @test dim(U) == dim(S) == dim(V)
+                    # end
+                end
 
-        #         t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
-        #         @testset "eig and isposdef" begin
-        #             D, V = eigen(t, ((1, 3), (2, 4)))
-        #             t2 = permute(t, ((1, 3), (2, 4)))
-        #             @test t2 * V ≈ V * D
+                #         t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
+                #         @testset "eig and isposdef" begin
+                #             D, V = eigen(t, ((1, 3), (2, 4)))
+                #             t2 = permute(t, ((1, 3), (2, 4)))
+                #             @test t2 * V ≈ V * D
 
-        #             d = LinearAlgebra.eigvals(t2; sortby=nothing)
-        #             d′ = LinearAlgebra.diag(D)
-        #             for (c, b) in d
-        #                 @test b ≈ d′[c]
-        #             end
+                #             d = LinearAlgebra.eigvals(t2; sortby=nothing)
+                #             d′ = LinearAlgebra.diag(D)
+                #             for (c, b) in d
+                #                 @test b ≈ d′[c]
+                #             end
 
-        #             # Somehow moving these test before the previous one gives rise to errors
-        #             # with T=Float32 on x86 platforms. Is this an OpenBLAS issue? 
-        #             VdV = V' * V
-        #             VdV = (VdV + VdV') / 2
-        #             @test isposdef(VdV)
+                #             # Somehow moving these test before the previous one gives rise to errors
+                #             # with T=Float32 on x86 platforms. Is this an OpenBLAS issue? 
+                #             VdV = V' * V
+                #             VdV = (VdV + VdV') / 2
+                #             @test isposdef(VdV)
 
-        #             @test !isposdef(t2) # unlikely for non-hermitian map
-        #             t2 = (t2 + t2')
-        #             D, V = eigen(t2)
-        #             VdV = V' * V
-        #             @test VdV ≈ one(VdV)
-        #             D̃, Ṽ = @constinferred eigh(t2)
-        #             @test D ≈ D̃
-        #             @test V ≈ Ṽ
-        #             λ = minimum(minimum(real(LinearAlgebra.diag(b)))
-        #                         for (c, b) in blocks(D))
-        #             @test isposdef(t2) == isposdef(λ)
-        #             @test isposdef(t2 - λ * one(t2) + 0.1 * one(t2))
-        #             @test !isposdef(t2 - λ * one(t2) - 0.1 * one(t2))
-        #         end
-        #     end
-        # end
+                #             @test !isposdef(t2) # unlikely for non-hermitian map
+                #             t2 = (t2 + t2')
+                #             D, V = eigen(t2)
+                #             VdV = V' * V
+                #             @test VdV ≈ one(VdV)
+                #             D̃, Ṽ = @constinferred eigh(t2)
+                #             @test D ≈ D̃
+                #             @test V ≈ Ṽ
+                #             λ = minimum(minimum(real(LinearAlgebra.diag(b)))
+                #                         for (c, b) in blocks(D))
+                #             @test isposdef(t2) == isposdef(λ)
+                #             @test isposdef(t2 - λ * one(t2) + 0.1 * one(t2))
+                #             @test !isposdef(t2 - λ * one(t2) - 0.1 * one(t2))
+                #         end
+            end
+        end
         # @timedtestset "Tensor truncation" begin
         #     for T in (Float32, ComplexF64)
         #         for p in (1, 2, 3, Inf)
@@ -545,68 +545,68 @@ for V in spacelist
         #         end
         #     end
         # end
-        # if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
-        #     @timedtestset "Tensor functions" begin
-        #         W = V1 ⊗ V2
-        #         for T in (Float64, ComplexF64)
-        #             t = randn(T, W, W)
-        #             s = dim(W)
-        #             expt = @constinferred exp(t)
-        #             @test reshape(convert(Array, expt), (s, s)) ≈
-        #                   exp(reshape(convert(Array, t), (s, s)))
+        if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
+            @timedtestset "Tensor functions" begin
+                W = V1 ⊗ V2
+                for T in (Float64, ComplexF64)
+                    t = randn(T, W, W)
+                    s = dim(W)
+                    expt = @constinferred exp(t)
+                    @test reshape(convert(Array, expt), (s, s)) ≈
+                          exp(reshape(convert(Array, t), (s, s)))
 
-        #             @test (@constinferred sqrt(t))^2 ≈ t
-        #             @test reshape(convert(Array, sqrt(t^2)), (s, s)) ≈
-        #                   sqrt(reshape(convert(Array, t^2), (s, s)))
+                    @test (@constinferred sqrt(t))^2 ≈ t
+                    @test reshape(convert(Array, sqrt(t^2)), (s, s)) ≈
+                          sqrt(reshape(convert(Array, t^2), (s, s)))
 
-        #             @test exp(@constinferred log(expt)) ≈ expt
-        #             @test reshape(convert(Array, log(expt)), (s, s)) ≈
-        #                   log(reshape(convert(Array, expt), (s, s)))
+                    @test exp(@constinferred log(expt)) ≈ expt
+                    @test reshape(convert(Array, log(expt)), (s, s)) ≈
+                          log(reshape(convert(Array, expt), (s, s)))
 
-        #             @test (@constinferred cos(t))^2 + (@constinferred sin(t))^2 ≈ id(W)
-        #             @test (@constinferred tan(t)) ≈ sin(t) / cos(t)
-        #             @test (@constinferred cot(t)) ≈ cos(t) / sin(t)
-        #             @test (@constinferred cosh(t))^2 - (@constinferred sinh(t))^2 ≈ id(W)
-        #             @test (@constinferred tanh(t)) ≈ sinh(t) / cosh(t)
-        #             @test (@constinferred coth(t)) ≈ cosh(t) / sinh(t)
+                    @test (@constinferred cos(t))^2 + (@constinferred sin(t))^2 ≈ id(W)
+                    @test (@constinferred tan(t)) ≈ sin(t) / cos(t)
+                    @test (@constinferred cot(t)) ≈ cos(t) / sin(t)
+                    @test (@constinferred cosh(t))^2 - (@constinferred sinh(t))^2 ≈ id(W)
+                    @test (@constinferred tanh(t)) ≈ sinh(t) / cosh(t)
+                    @test (@constinferred coth(t)) ≈ cosh(t) / sinh(t)
 
-        #             t1 = sin(t)
-        #             @test sin(@constinferred asin(t1)) ≈ t1
-        #             t2 = cos(t)
-        #             @test cos(@constinferred acos(t2)) ≈ t2
-        #             t3 = sinh(t)
-        #             @test sinh(@constinferred asinh(t3)) ≈ t3
-        #             t4 = cosh(t)
-        #             @test cosh(@constinferred acosh(t4)) ≈ t4
-        #             t5 = tan(t)
-        #             @test tan(@constinferred atan(t5)) ≈ t5
-        #             t6 = cot(t)
-        #             @test cot(@constinferred acot(t6)) ≈ t6
-        #             t7 = tanh(t)
-        #             @test tanh(@constinferred atanh(t7)) ≈ t7
-        #             t8 = coth(t)
-        #             @test coth(@constinferred acoth(t8)) ≈ t8
-        #         end
-        #     end
-        # end
-        # @timedtestset "Sylvester equation" begin
-        #     for T in (Float32, ComplexF64)
-        #         tA = rand(T, V1 ⊗ V3, V1 ⊗ V3)
-        #         tB = rand(T, V2 ⊗ V4, V2 ⊗ V4)
-        #         tA = 3 // 2 * leftorth(tA; alg=Polar())[1]
-        #         tB = 1 // 5 * leftorth(tB; alg=Polar())[1]
-        #         tC = rand(T, V1 ⊗ V3, V2 ⊗ V4)
-        #         t = @constinferred sylvester(tA, tB, tC)
-        #         @test codomain(t) == V1 ⊗ V3
-        #         @test domain(t) == V2 ⊗ V4
-        #         @test norm(tA * t + t * tB + tC) <
-        #               (norm(tA) + norm(tB) + norm(tC)) * eps(real(T))^(2 / 3)
-        #         if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
-        #             matrix(x) = reshape(convert(Array, x), dim(codomain(x)), dim(domain(x)))
-        #             @test matrix(t) ≈ sylvester(matrix(tA), matrix(tB), matrix(tC))
-        #         end
-        #     end
-        # end
+                    t1 = sin(t)
+                    @test sin(@constinferred asin(t1)) ≈ t1
+                    t2 = cos(t)
+                    @test cos(@constinferred acos(t2)) ≈ t2
+                    t3 = sinh(t)
+                    @test sinh(@constinferred asinh(t3)) ≈ t3
+                    t4 = cosh(t)
+                    @test cosh(@constinferred acosh(t4)) ≈ t4
+                    t5 = tan(t)
+                    @test tan(@constinferred atan(t5)) ≈ t5
+                    t6 = cot(t)
+                    @test cot(@constinferred acot(t6)) ≈ t6
+                    t7 = tanh(t)
+                    @test tanh(@constinferred atanh(t7)) ≈ t7
+                    t8 = coth(t)
+                    @test coth(@constinferred acoth(t8)) ≈ t8
+                end
+            end
+        end
+        @timedtestset "Sylvester equation" begin
+            for T in (Float32, ComplexF64)
+                tA = rand(T, V1 ⊗ V3, V1 ⊗ V3)
+                tB = rand(T, V2 ⊗ V4, V2 ⊗ V4)
+                tA = 3 // 2 * leftorth(tA; alg=Polar())[1]
+                tB = 1 // 5 * leftorth(tB; alg=Polar())[1]
+                tC = rand(T, V1 ⊗ V3, V2 ⊗ V4)
+                t = @constinferred sylvester(tA, tB, tC)
+                @test codomain(t) == V1 ⊗ V3
+                @test domain(t) == V2 ⊗ V4
+                @test norm(tA * t + t * tB + tC) <
+                      (norm(tA) + norm(tB) + norm(tC)) * eps(real(T))^(2 / 3)
+                if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
+                    matrix(x) = reshape(convert(Array, x), dim(codomain(x)), dim(domain(x)))
+                    @test matrix(t) ≈ sylvester(matrix(tA), matrix(tB), matrix(tC))
+                end
+            end
+        end
         @timedtestset "Tensor product: test via norm preservation" begin
             for T in (Float32, ComplexF64)
                 t1 = rand(T, V2 ⊗ V3 ⊗ V1, V1 ⊗ V2)

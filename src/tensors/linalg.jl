@@ -286,120 +286,104 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
 end
 # TODO: consider spawning threads for different blocks, support backends
 
-# # TensorMap inverse
-# function Base.inv(t::AbstractTensorMap)
-#     cod = codomain(t)
-#     dom = domain(t)
-#     cod ≅ dom ||
-#         throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
-#     tinv = similar(t, dom, cod)
-#     for (c, b) in blocks(t)
-#         binv = MatrixAlgebra.one!(block(tinv, c))
-#         ldiv!(lu(b), binv)
-#     end
-#     return tinv
-# end
-# function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
-#     if sectortype(t) === Trivial
-#         return TensorMap(pinv(block(t, Trivial()); kwargs...), domain(t) ← codomain(t))
-#     else
-#         tpinv = similar(t, domain(t) ← codomain(t))
-#         for (c, b) in blocks(t)
-#             copy!(block(tpinv, c), pinv(b; kwargs...))
-#         end
-#         return TensorMap(data, domain(t) ← codomain(t))
-#     end
-# end
-# function Base.:(\)(t1::AbstractTensorMap, t2::AbstractTensorMap)
-#     codomain(t1) == codomain(t2) ||
-#         throw(SpaceMismatch("non-matching codomains in t1 \\ t2"))
-#     if sectortype(t1) === Trivial
-#         data = block(t1, Trivial()) \ block(t2, Trivial())
-#         return TensorMap(data, domain(t1) ← domain(t2))
-#     else
-#         T = promote_type(scalartype(t1), scalartype(t2))
-#         t = similar(t1, domain(t1) ← domain(t2), T)
-#         for (c, b) in blocks(t)
-#             copy!(b, block(t1, c) \ block(t2, c))
-#         end
-#         return t
-#     end
-# end
-# function Base.:(/)(t1::AbstractTensorMap, t2::AbstractTensorMap)
-#     domain(t1) == domain(t2) ||
-#         throw(SpaceMismatch("non-matching domains in t1 / t2"))
-#     if sectortype(t1) === Trivial
-#         data = block(t1, Trivial()) / block(t2, Trivial())
-#         return TensorMap(data, codomain(t1) ← codomain(t2))
-#     else
-#         T = promote_type(scalartype(t1), scalartype(t2))
-#         t = similar(t1, codomain(t1) ← codomain(t2), T)
-#         for (c, b) in blocks(t)
-#             copy!(b, block(t1, c) / block(t2, c))
-#         end
-#         return t
-#     end
-# end
+# TensorMap inverse
+function Base.inv(t::AbstractTensorMap)
+    cod = codomain(t)
+    dom = domain(t)
+    cod ≅ dom ||
+        throw(SpaceMismatch("codomain $cod and domain $dom are not isomorphic: no inverse"))
+    T = float(scalartype(t))
+    tinv = similar(t, T, dom ← cod)
+    for (c, b) in blocks(t)
+        binv = MatrixAlgebra.one!(block(tinv, c))
+        ldiv!(lu(b), binv)
+    end
+    return tinv
+end
+function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
+    T = float(scalartype(t))
+    tpinv = similar(t, T, domain(t) ← codomain(t))
+    for (c, b) in blocks(t)
+        copy!(block(tpinv, c), pinv(b; kwargs...))
+    end
+    return tpinv
+end
+function Base.:(\)(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    codomain(t1) == codomain(t2) ||
+        throw(SpaceMismatch("non-matching codomains in t1 \\ t2"))
 
-# # TensorMap exponentation:
-# function exp!(t::TensorMap)
-#     domain(t) == codomain(t) ||
-#         error("Exponentional of a tensor only exist when domain == codomain.")
-#     for (c, b) in blocks(t)
-#         copy!(b, LinearAlgebra.exp!(b))
-#     end
-#     return t
-# end
+    T = float(promote_type(scalartype(t1), scalartype(t2)))
+    t = similar(t1, T, domain(t1) ← domain(t2))
+    for (c, b) in blocks(t)
+        copy!(b, block(t1, c) \ block(t2, c))
+    end
+    return t
+end
+function Base.:(/)(t1::AbstractTensorMap, t2::AbstractTensorMap)
+    domain(t1) == domain(t2) ||
+        throw(SpaceMismatch("non-matching domains in t1 / t2"))
+    T = promote_type(scalartype(t1), scalartype(t2))
+    t = similar(t1, T, codomain(t1) ← codomain(t2))
+    for (c, b) in blocks(t)
+        copy!(b, block(t1, c) / block(t2, c))
+    end
+    return t
+end
 
-# # Sylvester equation with TensorMap objects:
-# function LinearAlgebra.sylvester(A::AbstractTensorMap,
-#                                  B::AbstractTensorMap,
-#                                  C::AbstractTensorMap)
-#     (codomain(A) == domain(A) == codomain(C) && codomain(B) == domain(B) == domain(C)) ||
-#         throw(SpaceMismatch())
-#     cod = domain(A)
-#     dom = codomain(B)
-#     T = promote_type(scalartype(A), scalartype(B), scalartype(C))
-#     t = similar(C, cod ← dom, T)
-#     for (c, b) in blocks(t)
-#         copy!(b, sylvester(block(A, c), block(B, c), block(C, c)))
-#     end
-#     return t
-# end
+# TensorMap exponentation:
+function exp!(t::TensorMap)
+    domain(t) == codomain(t) ||
+        error("Exponentional of a tensor only exist when domain == codomain.")
+    for (c, b) in blocks(t)
+        copy!(b, LinearAlgebra.exp!(b))
+    end
+    return t
+end
 
-# # functions that map ℝ to (a subset of) ℝ
-# for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh)
-#     sf = string(f)
-#     @eval function Base.$f(t::AbstractTensorMap)
-#         domain(t) == codomain(t) ||
-#             error("$sf of a tensor only exist when domain == codomain.")
-#         if sectortype(t) === Trivial
-#             return TensorMap(MatrixAlgebra.$f(block(t, Trivial())), codomain(t), domain(t))
-#         else
-#             tf = similar(t)
-#             for (c, b) in blocks(t)
-#                 copy!(block(tf, c), MatrixAlgebra.$f(b))
-#             end
-#             return tf
-#         end
-#     end
-# end
-# # functions that don't map ℝ to (a subset of) ℝ
-# for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
-#     sf = string(f)
-#     @eval function Base.$f(t::AbstractTensorMap)
-#         domain(t) == codomain(t) ||
-#             error("$sf of a tensor only exist when domain == codomain.")
-#         T = similarstoragetype(t, complex(float(scalartype(t))))
-#         if sectortype(t) === Trivial
-#             data::T = $f(block(t, Trivial()))
-#             return TensorMap(data, codomain(t), domain(t))
-#         else
-#             datadict = SectorDict{I,T}(c => $f(b) for (c, b) in blocks(t))
-#             return TensorMap(datadict, codomain(t), domain(t))
-#         end
-#     end
-# end
+# Sylvester equation with TensorMap objects:
+function LinearAlgebra.sylvester(A::AbstractTensorMap,
+                                 B::AbstractTensorMap,
+                                 C::AbstractTensorMap)
+    (codomain(A) == domain(A) == codomain(C) && codomain(B) == domain(B) == domain(C)) ||
+        throw(SpaceMismatch())
+    cod = domain(A)
+    dom = codomain(B)
+    T = float(promote_type(scalartype(A), scalartype(B), scalartype(C)))
+    t = similar(C, T, cod ← dom)
+    for (c, b) in blocks(t)
+        copy!(b, sylvester(block(A, c), block(B, c), block(C, c)))
+    end
+    return t
+end
+
+# functions that map ℝ to (a subset of) ℝ
+for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh)
+    sf = string(f)
+    @eval function Base.$f(t::AbstractTensorMap)
+        domain(t) == codomain(t) ||
+            error("$sf of a tensor only exist when domain == codomain.")
+        T = float(scalartype(t))
+        tf = similar(t, T)
+        for (c, b) in blocks(t)
+            copy!(block(tf, c), MatrixAlgebra.$f(b))
+        end
+        return tf
+    end
+end
+# functions that don't map ℝ to (a subset of) ℝ
+for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
+    sf = string(f)
+    @eval function Base.$f(t::AbstractTensorMap)
+        domain(t) == codomain(t) ||
+            error("$sf of a tensor only exist when domain == codomain.")
+        T = complex(float(scalartype(t)))
+        tf = similar(t, T)
+        for (c, b) in blocks(t)
+            copy!(block(tf, c), $f(b))
+        end
+        return tf
+    end
+end
 
 # concatenate tensors
 function catdomain(t1::TT, t2::TT) where {S,N₁,TT<:AbstractTensorMap{<:Any,S,N₁,1}}
@@ -413,10 +397,10 @@ function catdomain(t1::TT, t2::TT) where {S,N₁,TT<:AbstractTensorMap{<:Any,S,N
 
     V = V1 ⊕ V2
     T = promote_type(scalartype(t1), scalartype(t2))
-    t = TensorMap{T}(undef, codomain(t1), V)
-    for c in sectors(V)
-        block(t, c)[:, 1:dim(V1, c)] .= block(t1, c)
-        block(t, c)[:, dim(V1, c) .+ (1:dim(V2, c))] .= block(t2, c)
+    t = similar(t1, T, codomain(t1) ← V)
+    for (c, b) in blocks(t)
+        b[:, 1:dim(V1, c)] .= block(t1, c)
+        b[:, dim(V1, c) .+ (1:dim(V2, c))] .= block(t2, c)
     end
     return t
 end
@@ -431,10 +415,10 @@ function catcodomain(t1::TT, t2::TT) where {S,N₂,TT<:AbstractTensorMap{<:Any,S
 
     V = V1 ⊕ V2
     T = promote_type(scalartype(t1), scalartype(t2))
-    t = TensorMap{T}(undef, V, domain(t1))
-    for c in sectors(V)
-        block(t, c)[1:dim(V1, c), :] .= block(t1, c)
-        block(t, c)[dim(V1, c) .+ (1:dim(V2, c)), :] .= block(t2, c)
+    t = similar(t1, T, V ← domain(t1))
+    for (c, b) in sectors(t)
+        b[1:dim(V1, c), :] .= block(t1, c)
+        b[dim(V1, c) .+ (1:dim(V2, c)), :] .= block(t2, c)
     end
     return t
 end
@@ -455,34 +439,24 @@ function ⊗(t1::AbstractTensorMap, t2::AbstractTensorMap)
     dom1, dom2 = domain(t1), domain(t2)
     cod = cod1 ⊗ cod2
     dom = dom1 ⊗ dom2
-    t = zeros(promote_type(scalartype(t1), scalartype(t2)), cod ← dom)
-    if sectortype(S) === Trivial
-        d1 = dim(cod1)
-        d2 = dim(cod2)
-        d3 = dim(dom1)
-        d4 = dim(dom2)
-        m1 = sreshape(t1[trivial_fusiontree(t1)...], (d1, 1, d3, 1))
-        m2 = sreshape(t2[trivial_fusiontree(t2)...], (1, d2, 1, d4))
-        m = sreshape(t[trivial_fusiontree(t)...], (d1, d2, d3, d4))
-        m .= m1 .* m2
-    else
-        for (f1l, f1r) in fusiontrees(t1)
-            for (f2l, f2r) in fusiontrees(t2)
-                c1 = f1l.coupled # = f1r.coupled
-                c2 = f2l.coupled # = f2r.coupled
-                for c in c1 ⊗ c2
-                    for μ in 1:Nsymbol(c1, c2, c)
-                        for (fl, coeff1) in merge(f1l, f2l, c, μ)
-                            for (fr, coeff2) in merge(f1r, f2r, c, μ)
-                                d1 = dim(cod1, f1l.uncoupled)
-                                d2 = dim(cod2, f2l.uncoupled)
-                                d3 = dim(dom1, f1r.uncoupled)
-                                d4 = dim(dom2, f2r.uncoupled)
-                                m1 = sreshape(t1[f1l, f1r], (d1, 1, d3, 1))
-                                m2 = sreshape(t2[f2l, f2r], (1, d2, 1, d4))
-                                m = sreshape(t[fl, fr], (d1, d2, d3, d4))
-                                m .+= coeff1 .* conj(coeff2) .* m1 .* m2
-                            end
+    T = promote_type(scalartype(t1), scalartype(t2))
+    t = zerovector!(similar(t1, T, cod ← dom))
+    for (f1l, f1r) in fusiontrees(t1)
+        for (f2l, f2r) in fusiontrees(t2)
+            c1 = f1l.coupled # = f1r.coupled
+            c2 = f2l.coupled # = f2r.coupled
+            for c in c1 ⊗ c2
+                for μ in 1:Nsymbol(c1, c2, c)
+                    for (fl, coeff1) in merge(f1l, f2l, c, μ)
+                        for (fr, coeff2) in merge(f1r, f2r, c, μ)
+                            d1 = dim(cod1, f1l.uncoupled)
+                            d2 = dim(cod2, f2l.uncoupled)
+                            d3 = dim(dom1, f1r.uncoupled)
+                            d4 = dim(dom2, f2r.uncoupled)
+                            m1 = sreshape(t1[f1l, f1r], (d1, 1, d3, 1))
+                            m2 = sreshape(t2[f2l, f2r], (1, d2, 1, d4))
+                            m = sreshape(t[fl, fr], (d1, d2, d3, d4))
+                            m .+= coeff1 .* conj(coeff2) .* m1 .* m2
                         end
                     end
                 end

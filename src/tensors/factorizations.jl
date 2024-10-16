@@ -277,18 +277,20 @@ function leftorth!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    Qdata = SectorDict{I,A}()
-    Rdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(domain(t))
-        isempty(block(t, c)) && continue
-        Q, R = MatrixAlgebra.leftorth!(block(t, c), alg, atol)
-        Qdata[c] = Q
-        Rdata[c] = R
-        dims[c] = size(Q, 2)
+
+    # compute QR factorization for each block
+    if !isempty(blocks(t))
+        generator = Base.Iterators.map(blocks(t)) do (c, b)
+            Qc, Rc = MatrixAlgebra.leftorth!(b, alg, atol)
+            dims[c] = size(Qc, 2)
+            return c => (Qc, Rc)
+        end
+        QRdata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     V = S(dims)
     if alg isa Polar
         @assert V ≅ domain(t)
@@ -300,7 +302,17 @@ function leftorth!(t::TensorMap;
     else
         W = ProductSpace(V)
     end
-    return TensorMap(Qdata, codomain(t) ← W), TensorMap(Rdata, W ← domain(t))
+
+    # construct output tensors
+    Q = similar(t, codomain(t) ← W)
+    R = similar(t, W ← domain(t))
+    if !isempty(blocksectors(domain(t)))
+        for (c, (Qc, Rc)) in QRdata
+            copy!(block(Q, c), Qc)
+            copy!(block(R, c), Rc)
+        end
+    end
+    return Q, R
 end
 
 function leftnull!(t::TensorMap;
@@ -313,18 +325,31 @@ function leftnull!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    V = codomain(t)
-    Ndata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(V)
-        N = MatrixAlgebra.leftnull!(block(t, c), alg, atol)
-        Ndata[c] = N
-        dims[c] = size(N, 2)
+
+    # compute QR factorization for each block
+    V = codomain(t)
+    if !isempty(blocksectors(V))
+        generator = Base.Iterators.map(blocksectors(V)) do c
+            Nc = MatrixAlgebra.leftnull!(block(t, c), alg, atol)
+            dims[c] = size(Nc, 2)
+            return c => Nc
+        end
+        Ndata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     W = S(dims)
-    return TensorMap(Ndata, V ← W)
+
+    # construct output tensor
+    N = similar(t, V ← W)
+    if !isempty(blocksectors(V))
+        for (c, Nc) in Ndata
+            copy!(block(N, c), Nc)
+        end
+    end
+    return N
 end
 
 function rightorth!(t::TensorMap;
@@ -337,18 +362,20 @@ function rightorth!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    Ldata = SectorDict{I,A}()
-    Qdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(codomain(t))
-        isempty(block(t, c)) && continue
-        L, Q = MatrixAlgebra.rightorth!(block(t, c), alg, atol)
-        Ldata[c] = L
-        Qdata[c] = Q
-        dims[c] = size(Q, 1)
+
+    # compute LQ factorization for each block
+    if !isempty(blocks(t))
+        generator = Base.Iterators.map(blocks(t)) do (c, b)
+            Lc, Qc = MatrixAlgebra.rightorth!(b, alg, atol)
+            dims[c] = size(Qc, 1)
+            return c => (Lc, Qc)
+        end
+        LQdata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     V = S(dims)
     if alg isa Polar
         @assert V ≅ codomain(t)
@@ -360,7 +387,17 @@ function rightorth!(t::TensorMap;
     else
         W = ProductSpace(V)
     end
-    return TensorMap(Ldata, codomain(t) ← W), TensorMap(Qdata, W ← domain(t))
+
+    # construct output tensors
+    L = similar(t, codomain(t) ← W)
+    Q = similar(t, W ← domain(t))
+    if !isempty(blocksectors(codomain(t)))
+        for (c, (Lc, Qc)) in LQdata
+            copy!(block(L, c), Lc)
+            copy!(block(Q, c), Qc)
+        end
+    end
+    return L, Q
 end
 
 function rightnull!(t::TensorMap;
@@ -373,18 +410,31 @@ function rightnull!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    V = domain(t)
-    Ndata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(V)
-        N = MatrixAlgebra.rightnull!(block(t, c), alg, atol)
-        Ndata[c] = N
-        dims[c] = size(N, 1)
+
+    # compute LQ factorization for each block
+    V = domain(t)
+    if !isempty(blocksectors(V))
+        generator = Base.Iterators.map(blocksectors(V)) do c
+            Nc = MatrixAlgebra.rightnull!(block(t, c), alg, atol)
+            dims[c] = size(Nc, 1)
+            return c => Nc
+        end
+        Ndata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     W = S(dims)
-    return TensorMap(Ndata, W ← V)
+
+    # construct output tensor
+    N = similar(t, W ← V)
+    if !isempty(blocksectors(V))
+        for (c, Nc) in Ndata
+            copy!(block(N, c), Nc)
+        end
+    end
+    return N
 end
 
 function leftorth!(t::AdjointTensorMap; alg::OFA=QRpos())
