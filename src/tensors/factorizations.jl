@@ -476,82 +476,56 @@ function _tsvd!(t, alg::Union{SVD,SDD}, trunc::TruncationScheme, p::Real=2)
         return _empty_svdtensors(t)..., truncerr
     end
 
+    # compute SVD factorization for each block
     S = spacetype(t)
-    Udata, Σdata, Vdata, dims = _compute_svddata!(t, alg)
-    if trunc isa NoTruncation
-        truncerr = abs(zero(scalartype(t)))
-    else
-        Σdata, truncerr = _truncate!(Σdata, trunc, p)
-        Udata, Σdata, Vdata, dims = _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
-    end
-    W = S(dims)
-    return _create_svdtensors(t, Udata, Σdata, Vdata, W)..., truncerr
+    SVDdata, dims = _compute_svddata!(t, alg)
+    Σdata = SectorDict(c => Σ for (c, (U, Σ, V)) in SVDdata)
+    truncdim = _compute_truncdim(Σdata, trunc, p)
+    truncerr = _compute_truncerr(Σdata, truncdim, p)
+
+    # construct output tensors
+    U, Σ, V⁺ = _create_svdtensors(t, SVDdata, truncdim)
+    return U, Σ, V⁺, truncerr
 end
 
 # helper functions
-
 function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD})
     InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
     I = sectortype(t)
-    A = storagetype(t)
-    Udata = SectorDict{I,A}()
-    Vdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    local Σdata
-    for (c, b) in blocks(t)
+    generator = Base.Iterators.map(blocks(t)) do (c, b)
         U, Σ, V = MatrixAlgebra.svd!(b, alg)
-        Udata[c] = U
-        Vdata[c] = V
-        if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
-            Σdata[c] = Σ
-        else
-            Σdata = SectorDict(c => Σ)
-        end
         dims[c] = length(Σ)
+        return c => (U, Σ, V)
     end
-    return Udata, Σdata, Vdata, dims
+    SVDdata = SectorDict(generator)
+    return SVDdata, dims
 end
 
-function _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
-    for c in blocksectors(t)
-        truncdim = length(Σdata[c])
-        if truncdim == 0
-            delete!(Udata, c)
-            delete!(Vdata, c)
-            delete!(Σdata, c)
-            delete!(dims, c)
-        elseif truncdim < dims[c]
-            dims[c] = truncdim
-            Udata[c] = Udata[c][:, 1:truncdim]
-            Vdata[c] = Vdata[c][1:truncdim, :]
-        end
+function _create_svdtensors(t, SVDdata, dims)
+    S = spacetype(t)
+    W = S(dims)
+    U = similar(t, codomain(t) ← W)
+    Σ = similar(t, real(scalartype(t)), W ← W)
+    V⁺ = similar(t, W ← domain(t))
+    for (c, (Uc, Σc, V⁺c)) in SVDdata
+        r = Base.OneTo(dims[c])
+        copy!(block(U, c), view(Uc, :, r))
+        copy!(block(Σ, c), Diagonal(view(Σc, r)))
+        copy!(block(V⁺, c), view(V⁺c, r, :))
     end
-    return Udata, Σdata, Vdata, dims
+    return U, Σ, V⁺
 end
 
 function _empty_svdtensors(t)
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    Ar = similarstoragetype(t, real(scalartype(t)))
-    Udata = SectorDict{I,A}()
-    Σmdata = SectorDict{I,Ar}()
-    Vdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
+    S = spacetype(t)
     W = S(dims)
-    return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
-           TensorMap(Vdata, W ← domain(t))
-end
-
-function _create_svdtensors(t, Udata, Σdata, Vdata, W)
-    I = sectortype(t)
-    Ar = similarstoragetype(t, real(scalartype(t)))
-    Σmdata = SectorDict{I,Ar}() # this will contain the singular values as matrix
-    for (c, Σ) in Σdata
-        Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
-    end
-    return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
-           TensorMap(Vdata, W ← domain(t))
+    U = similar(t, codomain(t) ← W)
+    Σ = similar(t, real(scalartype(t)), W ← W)
+    V⁺ = similar(t, W ← domain(t))
+    return U, Σ, V⁺
 end
 
 #--------------------------#

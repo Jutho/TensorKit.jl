@@ -364,8 +364,14 @@ for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asi
             error("$sf of a tensor only exist when domain == codomain.")
         T = float(scalartype(t))
         tf = similar(t, T)
-        for (c, b) in blocks(t)
-            copy!(block(tf, c), MatrixAlgebra.$f(b))
+        if T <: Real
+            for (c, b) in blocks(t)
+                copy!(block(tf, c), real(MatrixAlgebra.$f(b)))
+            end
+        else
+            for (c, b) in blocks(t)
+                copy!(block(tf, c), MatrixAlgebra.$f(b))
+            end
         end
         return tf
     end

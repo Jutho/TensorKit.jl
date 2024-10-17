@@ -423,21 +423,21 @@ for V in spacelist
                         @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') <
                               100 * eps(norm(t))
                     end
-                    #             @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                    #                 U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
-                    #                 UdU = U' * U
-                    #                 @test UdU ≈ one(UdU)
-                    #                 VVd = V * V'
-                    #                 @test VVd ≈ one(VVd)
-                    #                 t2 = permute(t, ((3, 4, 2), (1, 5)))
-                    #                 @test U * S * V ≈ t2
+                    @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                        U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
+                        UdU = U' * U
+                        @test UdU ≈ one(UdU)
+                        VVd = V * V'
+                        @test VVd ≈ one(VVd)
+                        t2 = permute(t, ((3, 4, 2), (1, 5)))
+                        @test U * S * V ≈ t2
 
-                    #                 s = LinearAlgebra.svdvals(t2)
-                    #                 s′ = LinearAlgebra.diag(S)
-                    #                 for (c, b) in s
-                    #                     @test b ≈ s′[c]
-                    #                 end
-                    #             end
+                        s = LinearAlgebra.svdvals(t2)
+                        s′ = LinearAlgebra.diag(S)
+                        for (c, b) in s
+                            @test b ≈ s′[c]
+                        end
+                    end
                 end
                 @testset "empty tensor" begin
                     t = randn(T, V1 ⊗ V2, typeof(V1)())
@@ -473,11 +473,11 @@ for V in spacelist
                         @test M * M' ≈ id(codomain(M))
                         @test M' * M ≈ id(domain(M))
                     end
-                    # @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                    #     U, S, V = @constinferred tsvd(t; alg=alg)
-                    #     @test U == t
-                    #     @test dim(U) == dim(S) == dim(V)
-                    # end
+                    @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                        U, S, V = @constinferred tsvd(t; alg=alg)
+                        @test U == t
+                        @test dim(U) == dim(S) == dim(V)
+                    end
                 end
 
                 #         t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
@@ -514,37 +514,37 @@ for V in spacelist
                 #         end
             end
         end
-        # @timedtestset "Tensor truncation" begin
-        #     for T in (Float32, ComplexF64)
-        #         for p in (1, 2, 3, Inf)
-        #             # Test both a normal tensor and an adjoint one.
-        #             ts = (randn(T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
-        #                   randn(T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
-        #             for t in ts
-        #                 U₀, S₀, V₀, = tsvd(t)
-        #                 t = rmul!(t, 1 / norm(S₀, p))
-        #                 U, S, V, ϵ = @constinferred tsvd(t; trunc=truncerr(5e-1), p=p)
-        #                 # @show p, ϵ
-        #                 # @show domain(S)
-        #                 # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-        #                 U′, S′, V′, ϵ′ = tsvd(t; trunc=truncerr(nextfloat(ϵ)), p=p)
-        #                 @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-        #                 U′, S′, V′, ϵ′ = tsvd(t; trunc=truncdim(ceil(Int, dim(domain(S)))),
-        #                                       p=p)
-        #                 @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-        #                 U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
-        #                 @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-        #                 # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
-        #                 U, S, V, ϵ = tsvd(t; trunc=truncbelow(1 / dim(domain(S₀))), p=p)
-        #                 # @show p, ϵ
-        #                 # @show domain(S)
-        #                 # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-        #                 U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
-        #                 @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-        #             end
-        #         end
-        #     end
-        # end
+        @timedtestset "Tensor truncation" begin
+            for T in (Float32, ComplexF64)
+                for p in (1, 2, 3, Inf)
+                    # Test both a normal tensor and an adjoint one.
+                    ts = (randn(T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
+                          randn(T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
+                    for t in ts
+                        U₀, S₀, V₀, = tsvd(t)
+                        t = rmul!(t, 1 / norm(S₀, p))
+                        U, S, V, ϵ = @constinferred tsvd(t; trunc=truncerr(5e-1), p=p)
+                        # @show p, ϵ
+                        # @show domain(S)
+                        # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncerr(nextfloat(ϵ)), p=p)
+                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncdim(ceil(Int, dim(domain(S)))),
+                                              p=p)
+                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
+                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                        # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
+                        U, S, V, ϵ = tsvd(t; trunc=truncbelow(1 / dim(domain(S₀))), p=p)
+                        # @show p, ϵ
+                        # @show domain(S)
+                        # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
+                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
+                        @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                    end
+                end
+            end
+        end
         if BraidingStyle(I) isa Bosonic && hasfusiontensor(I)
             @timedtestset "Tensor functions" begin
                 W = V1 ⊗ V2
