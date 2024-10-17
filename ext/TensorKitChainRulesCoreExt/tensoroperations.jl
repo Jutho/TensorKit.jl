@@ -143,3 +143,13 @@ function ChainRulesCore.rrule(::typeof(tensortrace!), C::AbstractTensorMap{S},
 
     return C′, pullback
 end
+
+function ChainRulesCore.rrule(::typeof(TensorKit.scalar), t::AbstractTensorMap)
+    val = scalar(t)
+    function scalar_pullback(Δval)
+        t2 = similar(t)
+        first(blocks(t2))[2][1] = unthunk(Δval)
+        return NoTangent(), t2
+    end
+    return val, scalar_pullback
+end
