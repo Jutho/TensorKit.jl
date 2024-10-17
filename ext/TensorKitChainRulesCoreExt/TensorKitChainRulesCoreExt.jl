@@ -11,12 +11,7 @@ import TensorOperations as TO
 using TensorOperations: promote_contract
 using VectorInterface: promote_scale, promote_add
 
-ext = @static if isdefined(Base, :get_extension)
-    Base.get_extension(TensorOperations, :TensorOperationsChainRulesCoreExt)
-else
-    TensorOperations.TensorOperationsChainRulesCoreExt
-end
-const trivtuple = ext.trivtuple
+trivtuple(N) = ntuple(identity, N)
 
 include("utility.jl")
 include("constructors.jl")
