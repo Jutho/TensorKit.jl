@@ -277,18 +277,20 @@ function leftorth!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    Qdata = SectorDict{I,A}()
-    Rdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(domain(t))
-        isempty(block(t, c)) && continue
-        Q, R = MatrixAlgebra.leftorth!(block(t, c), alg, atol)
-        Qdata[c] = Q
-        Rdata[c] = R
-        dims[c] = size(Q, 2)
+
+    # compute QR factorization for each block
+    if !isempty(blocks(t))
+        generator = Base.Iterators.map(blocks(t)) do (c, b)
+            Qc, Rc = MatrixAlgebra.leftorth!(b, alg, atol)
+            dims[c] = size(Qc, 2)
+            return c => (Qc, Rc)
+        end
+        QRdata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     V = S(dims)
     if alg isa Polar
         @assert V ≅ domain(t)
@@ -300,7 +302,17 @@ function leftorth!(t::TensorMap;
     else
         W = ProductSpace(V)
     end
-    return TensorMap(Qdata, codomain(t) ← W), TensorMap(Rdata, W ← domain(t))
+
+    # construct output tensors
+    Q = similar(t, codomain(t) ← W)
+    R = similar(t, W ← domain(t))
+    if !isempty(blocksectors(domain(t)))
+        for (c, (Qc, Rc)) in QRdata
+            copy!(block(Q, c), Qc)
+            copy!(block(R, c), Rc)
+        end
+    end
+    return Q, R
 end
 
 function leftnull!(t::TensorMap;
@@ -313,18 +325,31 @@ function leftnull!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    V = codomain(t)
-    Ndata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(V)
-        N = MatrixAlgebra.leftnull!(block(t, c), alg, atol)
-        Ndata[c] = N
-        dims[c] = size(N, 2)
+
+    # compute QR factorization for each block
+    V = codomain(t)
+    if !isempty(blocksectors(V))
+        generator = Base.Iterators.map(blocksectors(V)) do c
+            Nc = MatrixAlgebra.leftnull!(block(t, c), alg, atol)
+            dims[c] = size(Nc, 2)
+            return c => Nc
+        end
+        Ndata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     W = S(dims)
-    return TensorMap(Ndata, V ← W)
+
+    # construct output tensor
+    N = similar(t, V ← W)
+    if !isempty(blocksectors(V))
+        for (c, Nc) in Ndata
+            copy!(block(N, c), Nc)
+        end
+    end
+    return N
 end
 
 function rightorth!(t::TensorMap;
@@ -337,18 +362,20 @@ function rightorth!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    Ldata = SectorDict{I,A}()
-    Qdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(codomain(t))
-        isempty(block(t, c)) && continue
-        L, Q = MatrixAlgebra.rightorth!(block(t, c), alg, atol)
-        Ldata[c] = L
-        Qdata[c] = Q
-        dims[c] = size(Q, 1)
+
+    # compute LQ factorization for each block
+    if !isempty(blocks(t))
+        generator = Base.Iterators.map(blocks(t)) do (c, b)
+            Lc, Qc = MatrixAlgebra.rightorth!(b, alg, atol)
+            dims[c] = size(Qc, 1)
+            return c => (Lc, Qc)
+        end
+        LQdata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     V = S(dims)
     if alg isa Polar
         @assert V ≅ codomain(t)
@@ -360,7 +387,17 @@ function rightorth!(t::TensorMap;
     else
         W = ProductSpace(V)
     end
-    return TensorMap(Ldata, codomain(t) ← W), TensorMap(Qdata, W ← domain(t))
+
+    # construct output tensors
+    L = similar(t, codomain(t) ← W)
+    Q = similar(t, W ← domain(t))
+    if !isempty(blocksectors(codomain(t)))
+        for (c, (Lc, Qc)) in LQdata
+            copy!(block(L, c), Lc)
+            copy!(block(Q, c), Qc)
+        end
+    end
+    return L, Q
 end
 
 function rightnull!(t::TensorMap;
@@ -373,18 +410,31 @@ function rightnull!(t::TensorMap;
         atol = max(atol, rtol * norm(t))
     end
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    V = domain(t)
-    Ndata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    for c in blocksectors(V)
-        N = MatrixAlgebra.rightnull!(block(t, c), alg, atol)
-        Ndata[c] = N
-        dims[c] = size(N, 1)
+
+    # compute LQ factorization for each block
+    V = domain(t)
+    if !isempty(blocksectors(V))
+        generator = Base.Iterators.map(blocksectors(V)) do c
+            Nc = MatrixAlgebra.rightnull!(block(t, c), alg, atol)
+            dims[c] = size(Nc, 1)
+            return c => Nc
+        end
+        Ndata = SectorDict(generator)
     end
+
+    # construct new space
+    S = spacetype(t)
     W = S(dims)
-    return TensorMap(Ndata, W ← V)
+
+    # construct output tensor
+    N = similar(t, W ← V)
+    if !isempty(blocksectors(V))
+        for (c, Nc) in Ndata
+            copy!(block(N, c), Nc)
+        end
+    end
+    return N
 end
 
 function leftorth!(t::AdjointTensorMap; alg::OFA=QRpos())
@@ -426,82 +476,56 @@ function _tsvd!(t, alg::Union{SVD,SDD}, trunc::TruncationScheme, p::Real=2)
         return _empty_svdtensors(t)..., truncerr
     end
 
+    # compute SVD factorization for each block
     S = spacetype(t)
-    Udata, Σdata, Vdata, dims = _compute_svddata!(t, alg)
-    if trunc isa NoTruncation
-        truncerr = abs(zero(scalartype(t)))
-    else
-        Σdata, truncerr = _truncate!(Σdata, trunc, p)
-        Udata, Σdata, Vdata, dims = _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
-    end
-    W = S(dims)
-    return _create_svdtensors(t, Udata, Σdata, Vdata, W)..., truncerr
+    SVDdata, dims = _compute_svddata!(t, alg)
+    Σdata = SectorDict(c => Σ for (c, (U, Σ, V)) in SVDdata)
+    truncdim = _compute_truncdim(Σdata, trunc, p)
+    truncerr = _compute_truncerr(Σdata, truncdim, p)
+
+    # construct output tensors
+    U, Σ, V⁺ = _create_svdtensors(t, SVDdata, truncdim)
+    return U, Σ, V⁺, truncerr
 end
 
 # helper functions
-
 function _compute_svddata!(t::TensorMap, alg::Union{SVD,SDD})
     InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:tsvd!)
     I = sectortype(t)
-    A = storagetype(t)
-    Udata = SectorDict{I,A}()
-    Vdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
-    local Σdata
-    for (c, b) in blocks(t)
+    generator = Base.Iterators.map(blocks(t)) do (c, b)
         U, Σ, V = MatrixAlgebra.svd!(b, alg)
-        Udata[c] = U
-        Vdata[c] = V
-        if @isdefined Σdata # cannot easily infer the type of Σ, so use this construction
-            Σdata[c] = Σ
-        else
-            Σdata = SectorDict(c => Σ)
-        end
         dims[c] = length(Σ)
+        return c => (U, Σ, V)
     end
-    return Udata, Σdata, Vdata, dims
+    SVDdata = SectorDict(generator)
+    return SVDdata, dims
 end
 
-function _implement_svdtruncation!(t, Udata, Σdata, Vdata, dims)
-    for c in blocksectors(t)
-        truncdim = length(Σdata[c])
-        if truncdim == 0
-            delete!(Udata, c)
-            delete!(Vdata, c)
-            delete!(Σdata, c)
-            delete!(dims, c)
-        elseif truncdim < dims[c]
-            dims[c] = truncdim
-            Udata[c] = Udata[c][:, 1:truncdim]
-            Vdata[c] = Vdata[c][1:truncdim, :]
-        end
+function _create_svdtensors(t, SVDdata, dims)
+    S = spacetype(t)
+    W = S(dims)
+    U = similar(t, codomain(t) ← W)
+    Σ = similar(t, real(scalartype(t)), W ← W)
+    V⁺ = similar(t, W ← domain(t))
+    for (c, (Uc, Σc, V⁺c)) in SVDdata
+        r = Base.OneTo(dims[c])
+        copy!(block(U, c), view(Uc, :, r))
+        copy!(block(Σ, c), Diagonal(view(Σc, r)))
+        copy!(block(V⁺, c), view(V⁺c, r, :))
     end
-    return Udata, Σdata, Vdata, dims
+    return U, Σ, V⁺
 end
 
 function _empty_svdtensors(t)
     I = sectortype(t)
-    S = spacetype(t)
-    A = storagetype(t)
-    Ar = similarstoragetype(t, real(scalartype(t)))
-    Udata = SectorDict{I,A}()
-    Σmdata = SectorDict{I,Ar}()
-    Vdata = SectorDict{I,A}()
     dims = SectorDict{I,Int}()
+    S = spacetype(t)
     W = S(dims)
-    return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
-           TensorMap(Vdata, W ← domain(t))
-end
-
-function _create_svdtensors(t, Udata, Σdata, Vdata, W)
-    I = sectortype(t)
-    Ar = similarstoragetype(t, real(scalartype(t)))
-    Σmdata = SectorDict{I,Ar}() # this will contain the singular values as matrix
-    for (c, Σ) in Σdata
-        Σmdata[c] = copyto!(similar(Σ, length(Σ), length(Σ)), Diagonal(Σ))
-    end
-    return TensorMap(Udata, codomain(t) ← W), TensorMap(Σmdata, W ← W),
-           TensorMap(Vdata, W ← domain(t))
+    U = similar(t, codomain(t) ← W)
+    Σ = similar(t, real(scalartype(t)), W ← W)
+    V⁺ = similar(t, W ← domain(t))
+    return U, Σ, V⁺
 end
 
 #--------------------------#

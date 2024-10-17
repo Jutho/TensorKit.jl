@@ -90,7 +90,7 @@ function insertat(f₁::FusionTree{I}, i, f₂::FusionTree{I,2}) where {I}
         for e in a ⊗ b
             inner′ = TupleTools.insertafter(inner, i - 2, (e,))
             Fmat = Fsymbol(a, b, c, d, e, e′)
-            for μ in 1:size(Fmat, 1), ν in 1:size(Fmat, 2)
+            for μ in axes(Fmat, 1), ν in axes(Fmat, 2)
                 coeff = conj(Fmat[μ, ν, κ, λ])
                 iszero(coeff) && continue
                 vertices′ = TupleTools.setindex(f₁.vertices, ν, i - 1)
@@ -160,7 +160,7 @@ operation is the inverse of `insertat` in the sense that if
         (f, FusionTree{I}((f.coupled,), f.coupled, (false,), (), ()))
     elseif M === 1
         isdual1 = (f.isdual[1],)
-        isdual2 = Base.setindex(f.isdual, false, 1)
+        isdual2 = TupleTools.setindex(f.isdual, false, 1)
         f₁ = FusionTree{I}((f.uncoupled[1],), f.uncoupled[1], isdual1, (), ())
         f₂ = FusionTree{I}(f.uncoupled, f.coupled, isdual2, f.innerlines, f.vertices)
         return f₁, f₂
@@ -200,7 +200,7 @@ operation is the inverse of `insertat` in the sense that if
 end
 
 """
-    merge(f₁::FusionTree{I, N₁}, f₂::FusionTree{I, N₂}, c::I, μ = nothing)
+    merge(f₁::FusionTree{I, N₁}, f₂::FusionTree{I, N₂}, c::I, μ = 1)
     -> <:AbstractDict{<:FusionTree{I, N₁+N₂}, <:Number}
 
 Merge two fusion trees together to a linear combination of fusion trees whose uncoupled
@@ -210,19 +210,26 @@ sectors are those of `f₁` followed by those of `f₂`, and where the two coupl
 the coupled sectors of `f₁` and `f₂` to `c` needs to be specified.
 """
 function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
-               c::I, μ=nothing) where {I,N₁,N₂}
-    if FusionStyle(I) isa GenericFusion && μ === nothing
+               c::I) where {I,N₁,N₂}
+    if FusionStyle(I) isa GenericFusion
         throw(ArgumentError("vertex label for merging required"))
     end
+    return merge(f₁, f₂, c, 1)
+end
+function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
+               c::I, μ) where {I,N₁,N₂}
     if !(c in f₁.coupled ⊗ f₂.coupled)
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
     end
-    f₀ = FusionTree((f₁.coupled, f₂.coupled), c, (false, false), (), (μ,))
+    if μ > Nsymbol(f₁.coupled, f₂.coupled, c)
+        throw(ArgumentError("invalid fusion vertex label $μ"))
+    end
+    f₀ = FusionTree{I}((f₁.coupled, f₂.coupled), c, (false, false), (), (μ,))
     f, coeff = first(insertat(f₀, 1, f₁)) # takes fast path, single output
     @assert coeff == one(coeff)
     return insertat(f, N₁ + 1, f₂)
 end
-function merge(f₁::FusionTree{I,0}, f₂::FusionTree{I,0}, c::I, μ=nothing) where {I}
+function merge(f₁::FusionTree{I,0}, f₂::FusionTree{I,0}, c::I, μ) where {I}
     c == one(I) ||
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
     return fusiontreedict(I)(f₁ => Fsymbol(c, c, c, c, c, c)[1, 1, 1, 1])
@@ -243,10 +250,10 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     a = N₁ == 1 ? one(I) : (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
     b = f₁.uncoupled[N₁]
 
-    uncoupled1 = Base.front(f₁.uncoupled)
-    isdual1 = Base.front(f₁.isdual)
-    inner1 = N₁ > 2 ? Base.front(f₁.innerlines) : ()
-    vertices1 = N₁ > 1 ? Base.front(f₁.vertices) : ()
+    uncoupled1 = TupleTools.front(f₁.uncoupled)
+    isdual1 = TupleTools.front(f₁.isdual)
+    inner1 = N₁ > 2 ? TupleTools.front(f₁.innerlines) : ()
+    vertices1 = N₁ > 1 ? TupleTools.front(f₁.vertices) : ()
     f₁′ = FusionTree(uncoupled1, a, isdual1, inner1, vertices1)
 
     uncoupled2 = (f₂.uncoupled..., dual(b))
@@ -259,14 +266,14 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     end
     if FusionStyle(I) isa MultiplicityFreeFusion
         coeff = coeff₀ * Bsymbol(a, b, c)
-        vertices2 = N₂ > 0 ? (f₂.vertices..., nothing) : ()
+        vertices2 = N₂ > 0 ? (f₂.vertices..., 1) : ()
         f₂′ = FusionTree(uncoupled2, a, isdual2, inner2, vertices2)
         return SingletonDict((f₁′, f₂′) => coeff)
     else
         local newtrees
         Bmat = Bsymbol(a, b, c)
         μ = N₁ > 1 ? f₁.vertices[end] : 1
-        for ν in 1:size(Bmat, 2)
+        for ν in axes(Bmat, 2)
             coeff = coeff₀ * Bmat[μ, ν]
             iszero(coeff) && continue
             vertices2 = N₂ > 0 ? (f₂.vertices..., ν) : ()
@@ -319,7 +326,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
         end
         for c in c1 ⊗ c2
             c ∈ cset || continue
-            for μ in (hasmultiplicities ? (1:Nsymbol(c1, c2, c)) : (nothing,))
+            for μ in 1:Nsymbol(c1, c2, c)
                 fc = FusionTree((c1, c2), c, (!isduala, false), (), (μ,))
                 for (fl′, coeff1) in insertat(fc, 2, f₁)
                     N₁ > 1 && fl′.innerlines[1] != one(I) && continue
@@ -726,12 +733,12 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
             push!(newtrees, f′ => coeff)
             return newtrees
         end
-        uncoupled_ = Base.front(f.uncoupled)
-        inner_ = Base.front(f.innerlines)
+        uncoupled_ = TupleTools.front(f.uncoupled)
+        inner_ = TupleTools.front(f.innerlines)
         coupled_ = f.innerlines[end]
         @assert coupled_ == dual(b)
-        isdual_ = Base.front(f.isdual)
-        vertices_ = Base.front(f.vertices)
+        isdual_ = TupleTools.front(f.isdual)
+        vertices_ = TupleTools.front(f.vertices)
         f_ = FusionTree(uncoupled_, coupled_, isdual_, inner_, vertices_)
         fs = FusionTree((b,), b, (!f.isdual[1],), (), ())
         for (f_′, coeff) in merge(fs, f_, one(I), 1)
@@ -811,7 +818,7 @@ function artin_braid(f::FusionTree{I,N}, i; inv::Bool=false) where {I<:Sector,N}
             μ = vertices[1]
             Rmat = inv ? Rsymbol(b, a, c)' : Rsymbol(a, b, c)
             local newtrees
-            for ν in 1:size(Rmat, 2)
+            for ν in axes(Rmat, 2)
                 R = oftype(oneT, Rmat[μ, ν])
                 iszero(R) && continue
                 vertices′ = TupleTools.setindex(vertices, ν, 1)

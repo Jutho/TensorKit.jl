@@ -87,9 +87,9 @@ function blocksectors(W::HomSpace)
     if N₁ == 0 || N₂ == 0
         return (one(I),)
     elseif N₂ <= N₁
-        return filter!(c -> hasblock(codom, c), collect(blocksectors(dom)))
+        return sort!(filter!(c -> hasblock(codom, c), collect(blocksectors(dom))))
     else
-        return filter!(c -> hasblock(dom, c), collect(blocksectors(codom)))
+        return sort!(filter!(c -> hasblock(dom, c), collect(blocksectors(codom))))
     end
 end
 
@@ -133,4 +133,125 @@ to be possible, the domain of `W` must match the codomain of `V`.
 function compose(W::HomSpace{S}, V::HomSpace{S}) where {S}
     domain(W) == codomain(V) || throw(SpaceMismatch("$(domain(W)) ≠ $(codomain(V))"))
     return HomSpace(codomain(W), domain(V))
+end
+
+# Block and fusion tree ranges: structure information for building tensors
+#--------------------------------------------------------------------------
+struct FusionBlockStructure{I,F₁,F₂}
+    totaldim::Int
+    blockstructure::SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}
+    fusiontreelist::Vector{Tuple{F₁,F₂}}
+    fusiontreestructure::Vector{Tuple{Tuple{Int,Int},Tuple{Int,Int},Int}}
+    fusiontreeindices::FusionTreeDict{Tuple{F₁,F₂},Int}
+end
+
+abstract type CacheStyle end
+struct NoCache <: CacheStyle end
+struct TaskLocalCache{D<:AbstractDict} <: CacheStyle end
+struct GlobalLRUCache <: CacheStyle end
+
+function CacheStyle(I::Type{<:Sector})
+    return GlobalLRUCache()
+    # if FusionStyle(I) === UniqueFusion()
+    #     return TaskLocalCache{SectorDict{I,Any}}()
+    # else
+    #     return GlobalCache()
+    # end
+end
+
+fusionblockstructure(W::HomSpace) = fusionblockstructure(W, CacheStyle(sectortype(W)))
+
+function fusionblockstructure(W::HomSpace, ::NoCache)
+    codom = codomain(W)
+    dom = domain(W)
+    N₁ = length(codom)
+    N₂ = length(dom)
+    I = sectortype(W)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+
+    # output structure
+    blockstructure = SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}() # size, range
+    fusiontreelist = Vector{Tuple{F₁,F₂}}()
+    fusiontreestructure = Vector{Tuple{Tuple{Int,Int},Tuple{Int,Int},Int}}() # size, strides, offset
+
+    # temporary data structures
+    splittingtrees = Vector{F₁}()
+    splittingstructure = Vector{Tuple{Int,Int}}()
+
+    # main computational routine
+    blockoffset = 0
+    for c in blocksectors(W)
+        empty!(splittingtrees)
+        empty!(splittingstructure)
+
+        offset₁ = 0
+        for f₁ in fusiontrees(codom, c)
+            push!(splittingtrees, f₁)
+            d₁ = dim(codom, f₁.uncoupled)
+            push!(splittingstructure, (offset₁, d₁))
+            offset₁ += d₁
+        end
+        blockdim₁ = offset₁
+        strides = (1, blockdim₁)
+
+        offset₂ = 0
+        for f₂ in fusiontrees(dom, c)
+            s₂ = f₂.uncoupled
+            d₂ = dim(dom, s₂)
+            for (f₁, (offset₁, d₁)) in zip(splittingtrees, splittingstructure)
+                push!(fusiontreelist, (f₁, f₂))
+                totaloffset = blockoffset + offset₂ * blockdim₁ + offset₁
+                push!(fusiontreestructure, ((d₁, d₂), strides, totaloffset))
+            end
+            offset₂ += d₂
+        end
+        blockdim₂ = offset₂
+        blocksize = (blockdim₁, blockdim₂)
+        blocklength = blockdim₁ * blockdim₂
+        blockrange = (blockoffset + 1):(blockoffset + blocklength)
+        blockoffset = last(blockrange)
+        blockstructure[c] = (blocksize, blockrange)
+    end
+
+    fusiontreeindices = sizehint!(FusionTreeDict{Tuple{F₁,F₂},Int}(),
+                                  length(fusiontreelist))
+    for (i, f₁₂) in enumerate(fusiontreelist)
+        fusiontreeindices[f₁₂] = i
+    end
+    totaldim = blockoffset
+    structure = FusionBlockStructure{I,F₁,F₂}(totaldim, blockstructure,
+                                              fusiontreelist, fusiontreestructure,
+                                              fusiontreeindices)
+    return structure
+end
+
+function fusionblockstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
+    cache::D = get!(task_local_storage(), :_local_tensorstructure_cache) do
+        return D()
+    end
+    N₁ = length(codomain(W))
+    N₂ = length(domain(W))
+    I = sectortype(W)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+    structure::FusionBlockStructure{I,F₁,F₂} = get!(cache, W) do
+        return fusionblockstructure(W, NoCache())
+    end
+    return structure
+end
+
+const GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE = LRU{Any,Any}(; maxsize=10^4)
+# 10^4 different tensor spaces should be enough for most purposes
+function fusionblockstructure(W::HomSpace, ::GlobalLRUCache)
+    cache = GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE
+    N₁ = length(codomain(W))
+    N₂ = length(domain(W))
+    I = sectortype(W)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+    structure::FusionBlockStructure{I,F₁,F₂} = get!(cache, W) do
+        return fusionblockstructure(W, NoCache())
+    end
+    return structure
 end

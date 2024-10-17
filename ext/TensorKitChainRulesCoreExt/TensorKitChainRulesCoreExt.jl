@@ -16,12 +16,12 @@ ext = @static if isdefined(Base, :get_extension)
 else
     TensorOperations.TensorOperationsChainRulesCoreExt
 end
-const trivtuple = ext.trivtuple
+# const trivtuple = ext.trivtuple
 
-include("utility.jl")
-include("constructors.jl")
-include("linalg.jl")
-include("tensoroperations.jl")
-include("factorizations.jl")
+# include("utility.jl")
+# include("constructors.jl")
+# include("linalg.jl")
+# include("tensoroperations.jl")
+# include("factorizations.jl")
 
 end
