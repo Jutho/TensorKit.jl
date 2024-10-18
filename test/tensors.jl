@@ -479,39 +479,38 @@ for V in spacelist
                         @test dim(U) == dim(S) == dim(V)
                     end
                 end
+                t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
+                @testset "eig and isposdef" begin
+                    D, V = eigen(t, ((1, 3), (2, 4)))
+                    t2 = permute(t, ((1, 3), (2, 4)))
+                    @test t2 * V ≈ V * D
 
-                #         t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
-                #         @testset "eig and isposdef" begin
-                #             D, V = eigen(t, ((1, 3), (2, 4)))
-                #             t2 = permute(t, ((1, 3), (2, 4)))
-                #             @test t2 * V ≈ V * D
+                    d = LinearAlgebra.eigvals(t2; sortby=nothing)
+                    d′ = LinearAlgebra.diag(D)
+                    for (c, b) in d
+                        @test b ≈ d′[c]
+                    end
 
-                #             d = LinearAlgebra.eigvals(t2; sortby=nothing)
-                #             d′ = LinearAlgebra.diag(D)
-                #             for (c, b) in d
-                #                 @test b ≈ d′[c]
-                #             end
+                    # Somehow moving these test before the previous one gives rise to errors
+                    # with T=Float32 on x86 platforms. Is this an OpenBLAS issue? 
+                    VdV = V' * V
+                    VdV = (VdV + VdV') / 2
+                    @test isposdef(VdV)
 
-                #             # Somehow moving these test before the previous one gives rise to errors
-                #             # with T=Float32 on x86 platforms. Is this an OpenBLAS issue? 
-                #             VdV = V' * V
-                #             VdV = (VdV + VdV') / 2
-                #             @test isposdef(VdV)
-
-                #             @test !isposdef(t2) # unlikely for non-hermitian map
-                #             t2 = (t2 + t2')
-                #             D, V = eigen(t2)
-                #             VdV = V' * V
-                #             @test VdV ≈ one(VdV)
-                #             D̃, Ṽ = @constinferred eigh(t2)
-                #             @test D ≈ D̃
-                #             @test V ≈ Ṽ
-                #             λ = minimum(minimum(real(LinearAlgebra.diag(b)))
-                #                         for (c, b) in blocks(D))
-                #             @test isposdef(t2) == isposdef(λ)
-                #             @test isposdef(t2 - λ * one(t2) + 0.1 * one(t2))
-                #             @test !isposdef(t2 - λ * one(t2) - 0.1 * one(t2))
-                #         end
+                    @test !isposdef(t2) # unlikely for non-hermitian map
+                    t2 = (t2 + t2')
+                    D, V = eigen(t2)
+                    VdV = V' * V
+                    @test VdV ≈ one(VdV)
+                    D̃, Ṽ = @constinferred eigh(t2)
+                    @test D ≈ D̃
+                    @test V ≈ Ṽ
+                    λ = minimum(minimum(real(LinearAlgebra.diag(b)))
+                                for (c, b) in blocks(D))
+                    @test isposdef(t2) == isposdef(λ)
+                    @test isposdef(t2 - λ * one(t2) + 0.1 * one(t2))
+                    @test !isposdef(t2 - λ * one(t2) - 0.1 * one(t2))
+                end
             end
         end
         @timedtestset "Tensor truncation" begin
