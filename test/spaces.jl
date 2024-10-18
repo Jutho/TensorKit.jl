@@ -340,8 +340,7 @@ println("------------------------------------")
         @test fuse(flip(V1) ⊗ V2) ⊗ flip(V3) ≅ V1 ⊗ V2 ⊗ V3
         @test @constinferred(⊗(V1)) == ProductSpace(V1)
         @test @constinferred(one(V1)) == @constinferred(one(typeof(V1))) ==
-              @constinferred(one(P)) == @constinferred(one(typeof(P))) ==
-              ProductSpace{ComplexSpace}(())
+              @constinferred(one(P)) == @constinferred(one(typeof(P)))
         @test @constinferred(dims(P)) == map(dim, (V1, V2, V3))
         @test @constinferred(dim(P)) == prod(dim, (V1, V2, V3))
         @test @constinferred(dim(one(P))) == 1

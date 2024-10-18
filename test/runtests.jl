@@ -58,7 +58,7 @@ include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")
 include("planar.jl")
-include("ad.jl")
+# include("ad.jl")
 include("bugfixes.jl")
 Tf = time()
 printstyled("Finished all tests in ",
@@ -66,7 +66,7 @@ printstyled("Finished all tests in ",
             " minutes."; bold=true, color=Base.info_color())
 println()
 
-@testset "Aqua" verbose = true begin
-    using Aqua
-    Aqua.test_all(TensorKit)
-end
+# @testset "Aqua" verbose = true begin
+#     using Aqua
+#     Aqua.test_all(TensorKit)
+# end

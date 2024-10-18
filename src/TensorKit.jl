@@ -113,9 +113,9 @@ using Base.Iterators: product, filter
 
 using LinearAlgebra: LinearAlgebra
 using LinearAlgebra: norm, dot, normalize, normalize!, tr,
-                     axpy!, axpby!, lmul!, rmul!, mul!,
+                     axpy!, axpby!, lmul!, rmul!, mul!, ldiv!, rdiv!,
                      adjoint, adjoint!, transpose, transpose!,
-                     pinv, sylvester,
+                     lu, pinv, sylvester,
                      eigen, eigen!, svd, svd!,
                      isposdef, isposdef!, ishermitian,
                      Diagonal, Hermitian
@@ -175,11 +175,11 @@ include("fusiontrees/fusiontrees.jl")
 #-------------------------------------------
 include("spaces/vectorspaces.jl")
 
-# # Definitions and methods for tensors
-# #-------------------------------------
-# # general definitions
+# Definitions and methods for tensors
+#-------------------------------------
+# general definitions
 include("tensors/abstracttensor.jl")
-include("tensors/tensortreeiterator.jl")
+# include("tensors/tensortreeiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
 include("tensors/linalg.jl")
