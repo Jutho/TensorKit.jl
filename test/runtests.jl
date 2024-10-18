@@ -57,9 +57,9 @@ Ti = time()
 include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")
-# include("planar.jl")
+include("planar.jl")
 # include("ad.jl")
-# include("bugfixes.jl")
+include("bugfixes.jl")
 Tf = time()
 printstyled("Finished all tests in ",
             string(round((Tf - Ti) / 60; sigdigits=3)),

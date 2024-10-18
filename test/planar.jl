@@ -37,10 +37,10 @@ end
     @test codomain(t1) == codomain(V1)
     @test domain(t1) == domain(V1)
     @test scalartype(t1) == Float64
-    @test storagetype(t1) == Matrix{Float64}
+    @test storagetype(t1) == Vector{Float64}
     t2 = @constinferred BraidingTensor{ComplexF64}(V1)
     @test scalartype(t2) == ComplexF64
-    @test storagetype(t2) == Matrix{ComplexF64}
+    @test storagetype(t2) == Vector{ComplexF64}
 
     V2 = ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^3
     @test_throws SpaceMismatch BraidingTensor(V2)

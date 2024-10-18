@@ -5,11 +5,11 @@ function TO.tensorstructure(t::AbstractTensorMap, iA::Int, conjA::Bool)
     return !conjA ? space(t, iA) : conj(space(t, iA))
 end
 
-function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, istemp::Val,
-                        allocator=TO.DefaultAllocator()) where {T,S,N₁,N₂,
-                                                                TT<:AbstractTensorMap{T,S,
-                                                                                      N₁,
-                                                                                      N₂}}
+function TO.tensoralloc(::Type{TT},
+                        structure::TensorMapSpace{S,N₁,N₂},
+                        istemp::Val,
+                        allocator=TO.DefaultAllocator()) where
+         {T,S,N₁,N₂,TT<:AbstractTensorMap{T,S,N₁,N₂}}
     A = storagetype(TT)
     dim = fusionblockstructure(structure).totaldim
     data = TO.tensoralloc(A, dim, istemp, allocator)
@@ -37,7 +37,8 @@ end
 # tensoradd!
 function TO.tensoradd!(C::AbstractTensorMap,
                        A::AbstractTensorMap, pA::Index2Tuple, conjA::Bool,
-                       α::Number, β::Number, backend::AbstractBackend, allocator)
+                       α::Number, β::Number,
+                       backend, allocator)
     if conjA
         A′ = adjoint(A)
         pA′ = adjointtensorindices(A, _canonicalize(pA, C))
@@ -45,7 +46,6 @@ function TO.tensoradd!(C::AbstractTensorMap,
     else
         add_permute!(C, A, _canonicalize(pA, C), α, β, backend)
     end
-    add_permute!(C, A′, pA′, α, β, backend)
     return C
 end
 
@@ -68,7 +68,7 @@ end
 function TO.tensortrace!(C::AbstractTensorMap,
                          A::AbstractTensorMap, p::Index2Tuple, q::Index2Tuple,
                          conjA::Bool,
-                         α::Number, β::Number, backend::AbstractBackend, allocator)
+                         α::Number, β::Number, backend, allocator)
     if conjA
         A′ = adjoint(A)
         p′ = adjointtensorindices(A, _canonicalize(p, C))
@@ -85,7 +85,7 @@ function TO.tensorcontract!(C::AbstractTensorMap,
                             A::AbstractTensorMap, pA::Index2Tuple, conjA::Bool,
                             B::AbstractTensorMap, pB::Index2Tuple, conjB::Bool,
                             pAB::Index2Tuple, α::Number, β::Number,
-                            backend::AbstractBackend, allocator)
+                            backend, allocator)
     pAB′ = _canonicalize(pAB, C)
     if conjA && conjB
         A′ = A'
@@ -150,7 +150,7 @@ function trace_permute!(tdst::AbstractTensorMap,
                         (q₁, q₂)::Index2Tuple,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend=TO.DefaultBackend())
+                        backend=TO.DefaultBackend())
     # some input checks
     (S = spacetype(tdst)) == spacetype(tsrc) ||
         throw(SpaceMismatch("incompatible spacetypes"))
@@ -217,7 +217,7 @@ function contract!(C::AbstractTensorMap,
                    B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,
                    (p₁, p₂)::Index2Tuple,
                    α::Number, β::Number,
-                   backend::AbstractBackend, allocator)
+                   backend, allocator)
     length(cindA) == length(cindB) ||
         throw(IndexError("number of contracted indices does not match"))
     N₁, N₂ = length(oindA), length(oindB)

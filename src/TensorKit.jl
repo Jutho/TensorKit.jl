@@ -188,21 +188,21 @@ include("tensors/tensoroperations.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
-# include("tensors/braidingtensor.jl")
+include("tensors/braidingtensor.jl")
 
 # # Planar macros and related functionality
 # #-----------------------------------------
-# @nospecialize
-# using Base.Meta: isexpr
-# include("planar/analyzers.jl")
-# include("planar/preprocessors.jl")
-# include("planar/postprocessors.jl")
-# include("planar/macros.jl")
-# @specialize
-# include("planar/planaroperations.jl")
+@nospecialize
+using Base.Meta: isexpr
+include("planar/analyzers.jl")
+include("planar/preprocessors.jl")
+include("planar/postprocessors.jl")
+include("planar/macros.jl")
+@specialize
+include("planar/planaroperations.jl")
 
-# # deprecations: to be removed in version 1.0 or sooner
-# include("auxiliary/deprecate.jl")
+# deprecations: to be removed in version 1.0 or sooner
+include("auxiliary/deprecate.jl")
 
 # Extensions
 # ----------
