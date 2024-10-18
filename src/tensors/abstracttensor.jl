@@ -228,11 +228,39 @@ Verify whether a tensor has a block corresponding to a coupled sector `c`.
 """
 hasblock(t::AbstractTensorMap, c::Sector) = c ∈ blocksectors(t)
 
-# @doc """
-#     blockdim(t::AbstractTensorMap, c::Sector) -> Base.Dims
+# TODO: convenience methods, do we need them?
+# """
+#     blocksize(t::AbstractTensorMap, c::Sector) -> Tuple{Int,Int}
 
-# Return the dimensions of the block of a tensor corresponding to a coupled sector `c`.
-# """ blockdim(::AbstractTensorMap, ::Sector)
+# Return the size of the matrix block of a tensor corresponding to a coupled sector `c`.
+
+# See also [`blockdim`](@ref) and [`blockrange`](@ref).
+# """
+# function blocksize(t::AbstractTensorMap, c::Sector)
+#     return fusionblockstructure(t).blockstructure[c][1]
+# end
+
+# """
+#     blockdim(t::AbstractTensorMap, c::Sector) -> Int
+
+# Return the total dimension (length) of the matrix block of a tensor corresponding to
+# a coupled sector `c`.
+
+# See also [`blocksize`](@ref) and [`blockrange`](@ref).
+# """
+# function blockdim(t::AbstractTensorMap, c::Sector)
+#     return *(blocksize(t, c)...)
+# end
+
+"""
+    blockrange(t::AbstractTensorMap, c::Sector) -> UnitRange{Int}
+
+Return the range at which to find the matrix block of a tensor corresponding to a 
+coupled sector `c`, within the total data vector of length `dim(t)`.
+"""
+function blockrange(t::AbstractTensorMap, c::Sector)
+    return fusionblockstructure(t).blockstructure[c][2]
+end
 
 """
     fusiontrees(t::AbstractTensorMap)

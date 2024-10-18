@@ -304,8 +304,9 @@ function leftorth!(t::TensorMap;
     end
 
     # construct output tensors
-    Q = similar(t, codomain(t) ← W)
-    R = similar(t, W ← domain(t))
+    T = float(scalartype(t))
+    Q = similar(t, T, codomain(t) ← W)
+    R = similar(t, T, W ← domain(t))
     if !isempty(blocksectors(domain(t)))
         for (c, (Qc, Rc)) in QRdata
             copy!(block(Q, c), Qc)
@@ -343,7 +344,8 @@ function leftnull!(t::TensorMap;
     W = S(dims)
 
     # construct output tensor
-    N = similar(t, V ← W)
+    T = float(scalartype(t))
+    N = similar(t, T, V ← W)
     if !isempty(blocksectors(V))
         for (c, Nc) in Ndata
             copy!(block(N, c), Nc)
@@ -389,8 +391,9 @@ function rightorth!(t::TensorMap;
     end
 
     # construct output tensors
-    L = similar(t, codomain(t) ← W)
-    Q = similar(t, W ← domain(t))
+    T = float(scalartype(t))
+    L = similar(t, T, codomain(t) ← W)
+    Q = similar(t, T, W ← domain(t))
     if !isempty(blocksectors(codomain(t)))
         for (c, (Lc, Qc)) in LQdata
             copy!(block(L, c), Lc)
@@ -428,7 +431,8 @@ function rightnull!(t::TensorMap;
     W = S(dims)
 
     # construct output tensor
-    N = similar(t, W ← V)
+    T = float(scalartype(t))
+    N = similar(t, T, W ← V)
     if !isempty(blocksectors(V))
         for (c, Nc) in Ndata
             copy!(block(N, c), Nc)
@@ -505,9 +509,10 @@ end
 function _create_svdtensors(t, SVDdata, dims)
     S = spacetype(t)
     W = S(dims)
-    U = similar(t, codomain(t) ← W)
-    Σ = similar(t, real(scalartype(t)), W ← W)
-    V⁺ = similar(t, W ← domain(t))
+    T = float(scalartype(t))
+    U = similar(t, T, codomain(t) ← W)
+    Σ = similar(t, real(T), W ← W)
+    V⁺ = similar(t, T, W ← domain(t))
     for (c, (Uc, Σc, V⁺c)) in SVDdata
         r = Base.OneTo(dims[c])
         copy!(block(U, c), view(Uc, :, r))
@@ -537,51 +542,46 @@ function eigh!(t::TensorMap)
     InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:eigh!)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eigh!` requires domain and codomain to be the same"))
-    S = spacetype(t)
+
     I = sectortype(t)
-    A = storagetype(t)
-    Ar = similarstoragetype(t, real(scalartype(t)))
-    Ddata = SectorDict{I,Ar}()
-    Vdata = SectorDict{I,A}()
-    dims = SectorDict{I,Int}()
-    for (c, b) in blocks(t)
-        values, vectors = MatrixAlgebra.eigh!(b)
-        d = length(values)
-        Ddata[c] = copyto!(similar(values, (d, d)), Diagonal(values))
-        Vdata[c] = vectors
-        dims[c] = d
-    end
+    dims = SectorDict{I,Int}(c => size(b, 1) for (c, b) in blocks(t))
     if length(domain(t)) == 1
         W = domain(t)[1]
     else
+        S = spacetype(t)
         W = S(dims)
     end
-    return TensorMap(Ddata, W ← W), TensorMap(Vdata, domain(t) ← W)
+    T = float(scalartype(t))
+    V = similar(t, T, domain(t) ← W)
+    D = similar(t, real(T), W ← W)
+    for (c, b) in blocks(t)
+        values, vectors = MatrixAlgebra.eigh!(b)
+        copy!(block(D, c), Diagonal(values))
+        copy!(block(V, c), vectors)
+    end
+    return D, V
 end
 
 function eig!(t::TensorMap; kwargs...)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
-    S = spacetype(t)
     I = sectortype(t)
-    T = complex(scalartype(t))
-    Ac = similarstoragetype(t, T)
-    Ddata = SectorDict{I,Ac}()
-    Vdata = SectorDict{I,Ac}()
-    dims = SectorDict{I,Int}()
-    for (c, b) in blocks(t)
-        values, vectors = MatrixAlgebra.eig!(b; kwargs...)
-        d = length(values)
-        Ddata[c] = copy!(similar(values, T, (d, d)), Diagonal(values))
-        Vdata[c] = vectors
-        dims[c] = d
-    end
+    dims = SectorDict{I,Int}(c => size(b, 1) for (c, b) in blocks(t))
     if length(domain(t)) == 1
         W = domain(t)[1]
     else
+        S = spacetype(t)
         W = S(dims)
     end
-    return TensorMap(Ddata, W ← W), TensorMap(Vdata, domain(t) ← W)
+    T = complex(float(scalartype(t)))
+    V = similar(t, T, domain(t) ← W)
+    D = similar(t, T, W ← W)
+    for (c, b) in blocks(t)
+        values, vectors = MatrixAlgebra.eig!(b; kwargs...)
+        copy!(block(D, c), Diagonal(values))
+        copy!(block(V, c), vectors)
+    end
+    return D, V
 end
 
 #--------------------------------------------------#
