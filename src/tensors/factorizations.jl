@@ -464,12 +464,12 @@ end
 #------------------------------#
 # Singular value decomposition #
 #------------------------------#
+function tsvd!(t::TensorMap; trunc=NoTruncation(), p::Real=2, alg=SDD())
+    return _tsvd!(t, alg, trunc, p)
+end
 function tsvd!(t::AdjointTensorMap; trunc=NoTruncation(), p::Real=2, alg=SDD())
     u, s, vt, err = tsvd!(adjoint(t); trunc=trunc, p=p, alg=alg)
     return adjoint(vt), adjoint(s), adjoint(u), err
-end
-function tsvd!(t::TensorMap; trunc=NoTruncation(), p::Real=2, alg=SDD())
-    return _tsvd!(t, alg, trunc, p)
 end
 
 # implementation dispatches on algorithm

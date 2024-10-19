@@ -47,3 +47,7 @@ function ChainRulesCore.rrule(::typeof(Base.convert), ::Type{TensorMap},
                               t::Dict{Symbol,Any})
     return convert(TensorMap, t), v -> (NoTangent(), NoTangent(), convert(Dict, v))
 end
+
+function ChainRulesCore.rrule(T::Type{<:TensorKit.AdjointTensorMap}, t::AbstractTensorMap)
+    return T(t), Δt -> (NoTangent(), adjoint(unthunk(Δt)))
+end

@@ -1,30 +1,56 @@
 module TensorKitFiniteDifferencesExt
 
+using TensorKit
+using TensorKit: sqrtdim, invsqrtdim
+using VectorInterface: scale!
+using FiniteDifferences
+
+function FiniteDifferences.to_vec(t::AbstractTensorMap)
+    # convert to vector of vectors to make use of existing functionality
+    vec_of_vecs = [b * sqrtdim(c) for (c, b) in blocks(t)]
+    vec, back = FiniteDifferences.to_vec(vec_of_vecs)
+
+    function from_vec(x)
+        t′ = similar(t)
+        xvec_of_vecs = back(x)
+        for (i, (c, b)) in enumerate(blocks(t′))
+            scale!(b, xvec_of_vecs[i], invsqrtdim(c))
+        end
+        return t′
+    end
+
+    return vec, from_vec
+end
+FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
+
+end
+
+# TODO: Investigate why the approach below doesn't work
+# module TensorKitFiniteDifferencesExt
+
 # using TensorKit
 # using TensorKit: sqrtdim, invsqrtdim
 # using VectorInterface: scale!
 # using FiniteDifferences
 
-# function FiniteDifferences.to_vec(t::T) where {T<:TensorKit.TrivialTensorMap}
-#     vec, from_vec = to_vec(t.data)
-#     return vec, x -> T(from_vec(x), codomain(t), domain(t))
-# end
-# function FiniteDifferences.to_vec(t::AbstractTensorMap)
+# function FiniteDifferences.to_vec(t::AbstractTensorMap{T}) where {T}
 #     # convert to vector of vectors to make use of existing functionality
-#     vec_of_vecs = [b * sqrtdim(c) for (c, b) in blocks(t)]
-#     vec, back = FiniteDifferences.to_vec(vec_of_vecs)
+#     structure = TensorKit.fusionblockstructure(t)
+#     vec = storagetype(t)(undef, structure.totaldim)
+#     for (c, ((d₁, d₂), r)) in structure.blockstructure
+#         scale!(reshape(view(vec, r), (d₁, d₂)), block(t, c), sqrtdim(c))
+#     end
 
 #     function from_vec(x)
+#         y = T <: Complex ? reinterpret(T, x) : x
 #         t′ = similar(t)
-#         xvec_of_vecs = back(x)
-#         for (i, (c, b)) in enumerate(blocks(t′))
-#             scale!(b, xvec_of_vecs[i], invsqrtdim(c))
+#         for (c, ((d₁, d₂), r)) in structure.blockstructure
+#             scale!(block(t′, c), reshape(view(y, r), (d₁, d₂)), invsqrtdim(c))
 #         end
 #         return t′
 #     end
 
-#     return vec, from_vec
+#     return T <: Complex ? reinterpret(real(T), vec) : vec, from_vec
 # end
-# FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
 
-end
+# end

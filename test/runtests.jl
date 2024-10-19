@@ -58,7 +58,7 @@ include("fusiontrees.jl")
 include("spaces.jl")
 include("tensors.jl")
 include("planar.jl")
-# include("ad.jl")
+include("ad.jl")
 include("bugfixes.jl")
 Tf = time()
 printstyled("Finished all tests in ",
