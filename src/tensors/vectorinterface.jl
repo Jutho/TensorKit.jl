@@ -99,7 +99,7 @@ end
 #-------
 function VectorInterface.inner(tx::AbstractTensorMap, ty::AbstractTensorMap)
     space(tx) == space(ty) || throw(SpaceMismatch("$(space(tx)) ≠ $(space(ty))"))
-    InnerProductStyle(tx) === EuclideanProduct() || throw_invalid_innerproduct(:inner)
+    InnerProductStyle(tx) === EuclideanInnerProduct() || throw_invalid_innerproduct(:inner)
     T = VectorInterface.promote_inner(tx, ty)
     s = zero(T)
     for c in blocksectors(tx)

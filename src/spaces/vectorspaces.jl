@@ -144,7 +144,6 @@ to vector spaces has the same effect.
 The tensor product structure is preserved, see [`fuse`](@ref) for returning a single
 elementary space of type `S` that is isomorphic to this tensor product.
 """
-function ⊗ end
 ⊗(V₁::VectorSpace, V₂::VectorSpace) = ⊗(promote(V₁, V₂)...)
 ⊗(V::Vararg{VectorSpace}) = foldl(⊗, V)
 
@@ -192,7 +191,7 @@ abstract type InnerProductStyle end
 struct NoInnerProduct <: InnerProductStyle end # no inner product
 
 abstract type HasInnerProduct <: InnerProductStyle end # inner product defined
-struct EuclideanProduct <: HasInnerProduct end # euclidean inner product
+struct EuclideanInnerProduct <: HasInnerProduct end # euclidean inner product
 
 """
     InnerProductStyle(V::VectorSpace) -> ::InnerProductStyle
@@ -201,7 +200,7 @@ struct EuclideanProduct <: HasInnerProduct end # euclidean inner product
 Return the type of inner product for vector spaces, which can be either
 *   `NoInnerProduct()`: no mapping from `dual(V)` to `conj(V)`, i.e. no metric
 *   subtype of `HasInnerProduct`: a metric exists, but no further support is implemented.
-*   `EuclideanProduct()`: the metric is the identity, such that dual and conjugate spaces are isomorphic.
+*   `EuclideanInnerProduct()`: the metric is the identity, such that dual and conjugate spaces are isomorphic.
 """
 InnerProductStyle(V::VectorSpace) = InnerProductStyle(typeof(V))
 InnerProductStyle(::Type{<:VectorSpace}) = NoInnerProduct()
@@ -211,7 +210,7 @@ InnerProductStyle(::Type{<:VectorSpace}) = NoInnerProduct()
 end
 
 dual(V::VectorSpace) = dual(InnerProductStyle(V), V)
-dual(::EuclideanProduct, V::VectorSpace) = conj(V)
+dual(::EuclideanInnerProduct, V::VectorSpace) = conj(V)
 
 """
     sectortype(a) -> Type{<:Sector}

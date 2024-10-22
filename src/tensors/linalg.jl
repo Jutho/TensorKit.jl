@@ -80,7 +80,7 @@ error will be thrown.
     There is no canonical choice for a specific isomorphism, but the current choice is such
     that `isomorphism(cod, dom) == inv(isomorphism(dom, cod))`.
 
-See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanProduct()`.
+See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanInnerProduct()`.
 """
 function isomorphism(A::Type, V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
     codomain(V) ≅ domain(V) ||
@@ -109,7 +109,7 @@ the spacetype does not have a Euclidean inner product, an error will be thrown.
 See also [`isomorphism`](@ref) and [`isometry`](@ref).
 """
 function unitary(::Type{A}, V::TensorMapSpace{S,N₁,N₂}) where {A<:VecOrNumber,S,N₁,N₂}
-    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:unitary)
+    InnerProductStyle(S) === EuclideanInnerProduct() || throw_invalid_innerproduct(:unitary)
     return isomorphism(A, V)
 end
 
@@ -127,7 +127,8 @@ isometric inclusion, an error will be thrown.
 See also [`isomorphism`](@ref) and [`unitary`](@ref).
 """
 function isometry(A::Type, V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
-    InnerProductStyle(S) === EuclideanProduct() || throw_invalid_innerproduct(:isometry)
+    InnerProductStyle(S) === EuclideanInnerProduct() ||
+        throw_invalid_innerproduct(:isometry)
     domain(V) ≾ codomain(V) ||
         throw(SpaceMismatch("$V does not allow for an isometric inclusion"))
     t = tensormaptype(S, N₁, N₂, A)(undef, V)
@@ -193,7 +194,8 @@ function Base.fill!(t::TensorMap, value::Number)
 end
 function LinearAlgebra.adjoint!(tdst::AbstractTensorMap,
                                 tsrc::AbstractTensorMap)
-    InnerProductStyle(tdst) === EuclideanProduct() || throw_invalid_innerproduct(:adjoint!)
+    InnerProductStyle(tdst) === EuclideanInnerProduct() ||
+        throw_invalid_innerproduct(:adjoint!)
     space(tdst) == adjoint(space(tsrc)) ||
         throw(SpaceMismatch("$(space(tdst)) ≠ adjoint($(space(tsrc)))"))
     for c in blocksectors(tdst)
@@ -230,7 +232,7 @@ end
 LinearAlgebra.dot(t1::AbstractTensorMap, t2::AbstractTensorMap) = inner(t1, t2)
 
 function LinearAlgebra.norm(t::AbstractTensorMap, p::Real=2)
-    InnerProductStyle(t) === EuclideanProduct() || throw_invalid_innerproduct(:norm)
+    InnerProductStyle(t) === EuclideanInnerProduct() || throw_invalid_innerproduct(:norm)
     return _norm(blocks(t), p, float(zero(real(scalartype(t)))))
 end
 function _norm(blockiter, p::Real, init::Real)

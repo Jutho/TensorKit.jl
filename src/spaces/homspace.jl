@@ -17,7 +17,7 @@ domain(W::HomSpace) = W.domain
 
 dual(W::HomSpace) = HomSpace(dual(W.domain), dual(W.codomain))
 function Base.adjoint(W::HomSpace{S}) where {S}
-    InnerProductStyle(S) === EuclideanProduct() ||
+    InnerProductStyle(S) === EuclideanInnerProduct() ||
         throw(ArgumentError("adjoint requires Euclidean inner product"))
     return HomSpace(W.domain, W.codomain)
 end
@@ -118,6 +118,12 @@ end
 
 # Operations on HomSpaces
 # -----------------------
+"""
+    permute(W::HomSpace, (p₁, p₂)::Index2Tuple{N₁,N₂})
+
+Return the `HomSpace` obtained by permuting the indices of the domain and codomain of `W`
+according to the permutation `p₁` and `p₂` respectively.
+"""
 function permute(W::HomSpace{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
     cod = ProductSpace{S,N₁}(map(n -> W[n], p₁))
     dom = ProductSpace{S,N₂}(map(n -> dual(W[n]), p₂))

@@ -1,26 +1,26 @@
 """
-    struct GeneralSpace{𝕜} <: ElementarySpace
+    struct GeneralSpace{𝔽} <: ElementarySpace
 
-A finite-dimensional space over an arbitrary field `𝕜` without additional structure.
+A finite-dimensional space over an arbitrary field `𝔽` without additional structure.
 It is thus characterized by its dimension, and whether or not it is the dual and/or
-conjugate space. For a real field `𝕜`, the space and its conjugate are the same.
+conjugate space. For a real field `𝔽`, the space and its conjugate are the same.
 """
-struct GeneralSpace{𝕜} <: ElementarySpace
+struct GeneralSpace{𝔽} <: ElementarySpace
     d::Int
     dual::Bool
     conj::Bool
-    function GeneralSpace{𝕜}(d::Int, dual::Bool, conj::Bool) where {𝕜}
+    function GeneralSpace{𝔽}(d::Int, dual::Bool, conj::Bool) where {𝔽}
         d >= 0 ||
             throw(ArgumentError("Dimension of a vector space should be bigger than zero"))
-        if 𝕜 isa Field
-            new{𝕜}(Int(d), dual, (𝕜 ⊆ ℝ) ? false : conj)
+        if 𝔽 isa Field
+            new{𝔽}(Int(d), dual, (𝔽 ⊆ ℝ) ? false : conj)
         else
-            throw(ArgumentError("Unrecognised scalar field: $𝕜"))
+            throw(ArgumentError("Unrecognised scalar field: $𝔽"))
         end
     end
 end
-function GeneralSpace{𝕜}(d::Int=0; dual::Bool=false, conj::Bool=false) where {𝕜}
-    return GeneralSpace{𝕜}(d, dual, conj)
+function GeneralSpace{𝔽}(d::Int=0; dual::Bool=false, conj::Bool=false) where {𝔽}
+    return GeneralSpace{𝔽}(d, dual, conj)
 end
 
 dim(V::GeneralSpace, s::Trivial=Trivial()) = V.d
@@ -32,17 +32,17 @@ hassector(V::GeneralSpace, ::Trivial) = dim(V) != 0
 sectors(V::GeneralSpace) = OneOrNoneIterator(dim(V) != 0, Trivial())
 sectortype(::Type{<:GeneralSpace}) = Trivial
 
-field(::Type{GeneralSpace{𝕜}}) where {𝕜} = 𝕜
+field(::Type{GeneralSpace{𝔽}}) where {𝔽} = 𝔽
 InnerProductStyle(::Type{<:GeneralSpace}) = NoInnerProduct()
 
-dual(V::GeneralSpace{𝕜}) where {𝕜} = GeneralSpace{𝕜}(dim(V), !isdual(V), isconj(V))
-Base.conj(V::GeneralSpace{𝕜}) where {𝕜} = GeneralSpace{𝕜}(dim(V), isdual(V), !isconj(V))
+dual(V::GeneralSpace{𝔽}) where {𝔽} = GeneralSpace{𝔽}(dim(V), !isdual(V), isconj(V))
+Base.conj(V::GeneralSpace{𝔽}) where {𝔽} = GeneralSpace{𝔽}(dim(V), isdual(V), !isconj(V))
 
-function Base.show(io::IO, V::GeneralSpace{𝕜}) where {𝕜}
+function Base.show(io::IO, V::GeneralSpace{𝔽}) where {𝔽}
     if isconj(V)
         print(io, "conj(")
     end
-    print(io, "GeneralSpace{", 𝕜, "}(", dim(V), ")")
+    print(io, "GeneralSpace{", 𝔽, "}(", dim(V), ")")
     if isdual(V)
         print(io, "'")
     end

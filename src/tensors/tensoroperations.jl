@@ -144,6 +144,14 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 
 # Trace implementation
 #----------------------
+"""
+    trace_permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap,
+                   (p₁, p₂)::Index2Tuple, (q₁, q₂)::Index2Tuple,
+                   α::Number, β::Number, backend=TO.DefaultBackend())
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after permuting
+the indices of `tsrc` according to `(p₁, p₂)` and furthermore tracing the indices in `q₁` and `q₂`.
+"""
 function trace_permute!(tdst::AbstractTensorMap,
                         tsrc::AbstractTensorMap,
                         (p₁, p₂)::Index2Tuple,
@@ -212,6 +220,17 @@ end
 # TODO: contraction with either A or B a rank (1, 1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
+""" 
+    contract!(C::AbstractTensorMap,
+              A::AbstractTensorMap, (oindA, cindA)::Index2Tuple,
+              B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,
+              (p₁, p₂)::Index2Tuple,
+              α::Number, β::Number,
+              backend, allocator)
+
+Return the updated `C`, which is the result of adding `α * A * B` to `C` after permuting
+the indices of `A` and `B` according to `(oindA, cindA)` and `(cindB, oindB)` respectively.
+"""
 function contract!(C::AbstractTensorMap,
                    A::AbstractTensorMap, (oindA, cindA)::Index2Tuple,
                    B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,

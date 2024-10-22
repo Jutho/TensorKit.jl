@@ -30,7 +30,7 @@ end
 CartesianSpace(g::Base.Generator; kwargs...) = CartesianSpace(g...; kwargs...)
 
 field(::Type{CartesianSpace}) = ℝ
-InnerProductStyle(::Type{CartesianSpace}) = EuclideanProduct()
+InnerProductStyle(::Type{CartesianSpace}) = EuclideanInnerProduct()
 
 Base.conj(V::CartesianSpace) = V
 isdual(V::CartesianSpace) = false

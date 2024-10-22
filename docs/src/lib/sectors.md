@@ -22,7 +22,6 @@ FermionNumber
 FermionSpin
 FibonacciAnyon
 IsingAnyon
-FusionTree
 ```
 
 ## Useful constants
@@ -35,6 +34,7 @@ Irrep
 Base.one(::Sector)
 dual(::Sector)
 Nsymbol
+⊗
 Fsymbol
 Rsymbol
 Bsymbol
@@ -42,9 +42,42 @@ dim(::Sector)
 frobeniusschur
 twist(::Sector)
 Base.isreal(::Type{<:Sector})
-TensorKit.vertex_labeltype
-TensorKit.vertex_ind2label
-⊠(::Sector, ::Sector)
+TensorKitSectors.sectorscalartype
+deligneproduct(::Sector, ::Sector)
+```
+
+Compile all revelant methods for a sector:
+
+```@docs
+TensorKitSectors.precompile_sector
+```
+
+
+## Types and methods for groups
+
+Types and constants:
+
+```julia
+# TODO: add documentation for the following types
+Group
+TensorKitSectors.AbelianGroup
+U₁
+ℤ{N} where N
+SU{N} where N
+const SU₂ = SU{2}
+ProductGroup
+```
+
+Specific methods:
+
+```@docs
+×
+```
+
+
+## Methods for defining and generating fusion trees
+```@docs
+FusionTree
 fusiontrees(uncoupled::NTuple{N,I}, coupled::I,
                      isdual::NTuple{N,Bool}) where {N,I<:Sector}
 ```
@@ -63,16 +96,23 @@ braid(f::FusionTree{I,N}, levels::NTuple{N,Int}, p::NTuple{N,Int}) where {I<:Sec
 permute(f::FusionTree{I,N}, p::NTuple{N,Int}) where {I<:Sector,N}
 ```
 
-These can be composed to manipulate fusion-splitting tree pairs, for which the following
-methods are defined:
+These can be composed to implement elementary manipulations of fusion-splitting tree pairs,
+according to the following methods
 
+```julia
+# TODO: add documentation for the following methods
+TensorKit.bendright
+TensorKit.bendleft
+TensorKit.foldright
+TensorKit.foldleft
+TensorKit.cycleclockwise
+TensorKit.cycleanticlockwise
+```
+
+Finally, these are used to define large manipulations of fusion-splitting tree pairs, which
+are then used in the index manipulation of `AbstractTensorMap` objects. The following methods
+defined on fusion splitting tree pairs have an associated definition for tensors.
 ```@docs
-bendright
-bendleft
-foldright
-foldleft
-cycleclockwise
-cycleanticlockwise
 repartition
 transpose(f₁::FusionTree{I}, f₂::FusionTree{I},
                         p1::IndexTuple{N₁}, p2::IndexTuple{N₂}) where {I<:Sector,N₁,N₂}

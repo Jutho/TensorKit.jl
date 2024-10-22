@@ -31,7 +31,7 @@ end
 ComplexSpace(g::Base.Generator; kwargs...) = ComplexSpace(g...; kwargs...)
 
 field(::Type{ComplexSpace}) = ℂ
-InnerProductStyle(::Type{ComplexSpace}) = EuclideanProduct()
+InnerProductStyle(::Type{ComplexSpace}) = EuclideanInnerProduct()
 
 # convenience constructor
 Base.getindex(::ComplexNumbers) = ComplexSpace

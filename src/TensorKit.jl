@@ -24,7 +24,7 @@ export ZNSpace, Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
 export Vect, Rep # space constructors
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
-export IndexSpace, TensorSpace, TensorMapSpace
+export IndexSpace, HomSpace, TensorSpace, TensorMapSpace
 export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, TrivialTensorMap # tensors and tensor properties
 export BraidingTensor
 export TruncationScheme

@@ -86,7 +86,7 @@ Base.hash(V::GradedSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
 # Corresponding methods:
 # properties
 field(::Type{<:GradedSpace}) = ℂ
-InnerProductStyle(::Type{<:GradedSpace}) = EuclideanProduct()
+InnerProductStyle(::Type{<:GradedSpace}) = EuclideanInnerProduct()
 function dim(V::GradedSpace)
     return reduce(+, dim(V, c) * dim(c) for c in sectors(V);
                   init=zero(dim(one(sectortype(V)))))
@@ -262,7 +262,6 @@ ZNSpace(dims::Vararg{Int,N}; dual::Bool=false) where {N} = ZNSpace{N}(dims, dual
 
 # TODO: Do we still need all of those
 # ASCII type aliases
-const ZNSpace{N} = GradedSpace{ZNIrrep{N},NTuple{N,Int}}
 const Z2Space = ZNSpace{2}
 const Z3Space = ZNSpace{3}
 const Z4Space = ZNSpace{4}

@@ -1,5 +1,9 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+TensorKitSectors = "13a9c161-d5da-41f0-bcbd-e1a08ae0647f"
 
 [compat]
-Documenter = "0.25 - 0.30"
+Documenter = "1"
+Random = "1"
+TensorKitSectors = "0.1"

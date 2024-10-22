@@ -1,4 +1,4 @@
-# [Sectors, representation spaces and fusion trees](@id s_sectorsrepfusion)
+# [Sectors, graded spaces and fusion trees](@id s_sectorsrepfusion)
 
 ```@setup sectors
 using TensorKit
@@ -104,11 +104,14 @@ The dimensions of the spaces ``R_a`` on which representation ``a`` acts are deno
 ``d_a = | [F^{a \bar{a} a}_a]^u_u |^{-1}``. Note that there are no multiplicity labels
 in that particular F-symbol as ``N^{a\bar{a}}_u = 1``.
 
-There is a graphical representation associated with the fusion tensors and their manipulations, which we summarize here:
+There is a graphical representation associated with the fusion tensors and their 
+manipulations, which we summarize here:
 
 ![summary](img/tree-summary.svg)
 
-As always, we refer to the subsection on [topological data of a unitary fusion category](@ref ss_topologicalfusion) for further details.
+As always, we refer to the subsection on
+[topological data of a unitary fusion category](@ref ss_topologicalfusion) for further
+details.
 
 Finally, for the implementation, it will be useful to distinguish between an number of
 different possibilities regarding the fusion rules. If, for every ``a`` and ``b``, there is
@@ -157,7 +160,8 @@ For practical reasons, we also require some additional methods to be defined:
 *   `isreal(::Type{<:Sector})` returns whether the topological data of this type of sector
     is real-valued or not (in which case it is complex-valued). Note that this does not
     necessarily require that the representation itself, or the Clebsch-Gordan coefficients,
-    are real. There is a fallback implementation that checks whether the F-symbol and R-symbol evaluated with all sectors equal to the identity sector have real `eltype`.
+    are real. There is a fallback implementation that checks whether the F-symbol and
+    R-symbol evaluated with all sectors equal to the identity sector have real `eltype`.
 *   `hash(a, h)` creates a hash of sectors, because sectors and objects created from them
     are used as keys in lookup tables (i.e. dictionaries)
 *   `isless(a,b)` associates a canonical order to sectors (of the same type), in order to
@@ -299,7 +303,8 @@ For all group irreps, the braiding style is bosonic
 abstract type AbstractIrrep{G<:Group} <: Sector end # irreps have integer quantum dimensions
 BraidingStyle(::Type{<:AbstractIrrep}) = Bosonic()
 ```
-while we gather some more common functionality for irreps of abelian groups (which exhaust all possibilities of fusion categories with abelian fusion)
+while we gather some more common functionality for irreps of abelian groups (which exhaust
+all possibilities of fusion categories with abelian fusion)
 ```julia
 const AbelianIrrep{G} = AbstractIrrep{G} where {G<:AbelianGroup}
 FusionStyle(::Type{<:AbelianIrrep}) = UniqueFusion()
@@ -548,7 +553,8 @@ giving a number of arguments, where the first argument is used to construct the 
 sector, and so forth. Furthermore, for representations of groups, we also enabled the
 notation `Irrep[ℤ₃ × CU₁]`, with `×` obtained using `\times+TAB`. However, this is merely
 for convience; as `Irrep[ℤ₃] ⊠ Irrep[CU₁]` is not a subtype of the abstract type
-`AbstractIrrep{ℤ₃ × CU₁}`. That behavior cannot be obtained with the Julia's type system. Some more examples:
+`AbstractIrrep{ℤ₃ × CU₁}`. That behavior cannot be obtained with the Julia's type system.
+Some more examples:
 ```@repl sectors
 a = Z3Irrep(1) ⊠ Irrep[CU₁](1.5)
 a isa Irrep[ℤ₃] ⊠ CU1Irrep
@@ -693,17 +699,13 @@ these types can be created in a type stable manner.
 As mentioned, the convenience mehtod `Vect[I]` will return the concrete type
 `GradedSpace{I,D}` with the matching value of `D`, so that should never be a user's
 concern. In fact, for consistency, `Vect[Trivial]` will just return `ComplexSpace`,
-which is not even a specific type of `GradedSpace`. There is also the Unicode alias `ℂ[I]`,
-and for the specific case of group irreps as sectors, one can use `Rep[G]` with `G` the
-group, as inspired by the categorical name ``\mathbf{Rep}_{\mathsf{G}}``. Here, `Rep` is a
-`UnionAll` type that for `GradedSpace{I}` where `I` is either the `Irrep` of some group, or
-a `ProductSector` of `Irrep`s. Some illustrations:
+which is not even a specific type of `GradedSpace`. For the specific case of group irreps as
+sectors, one can use `Rep[G]` with `G` the group, as inspired by the categorical name
+``\mathbf{Rep}_{\mathsf{G}}``. Some illustrations:
 ```@repl sectors
-ℂ[]
-ℂ[Trivial]
 Vect[Trivial]
 Vect[U1Irrep]
-ℂ[Irrep[U₁]]
+Vect[Irrep[U₁]]
 Rep[U₁]
 Rep[ℤ₂ × SU₂]
 Vect[Irrep[ℤ₂ × SU₂]]
@@ -734,14 +736,18 @@ To create specific instances of those types, one can e.g. just use
 is any iterator (e.g. a dictionary or a generator) that yields `Pair{I,Int}` instances.
 With those constructions, `I` is inferred from the type of sectors. However, it is often
 more convenient to specify the sector type explicitly (using one of the many alias
-provided), since then the sectors are automatically converted to the correct type; compare
+provided), since then the sectors are automatically converted to the correct type. Thereto,
+one can use `Vect[I]`, or when `I` corresponds to the irreducible representations of a group,
+`Rep[G]`. Some examples:
 ```@repl sectors
 Vect[Irrep[U₁]](0=>3, 1=>2, -1=>1) ==
-    ℂ[U1Irrep(0)=>3, U1Irrep(1)=>2, U1Irrep(-1)=>1] == U1Space(0=>3, 1=>2, -1=>1)
+    GradedSpace(U1Irrep(0)=>3, U1Irrep(1)=>2, U1Irrep(-1)=>1) == 
+        U1Space(0=>3, 1=>2, -1=>1)
 ```
 The fact that `Rep[G]` also works with product groups makes it easy to specify e.g.
 ```@repl sectors
-Rep[ℤ₂ × SU₂]((0,0) => 3, (1,1/2) => 2, (0,1) => 1) == ℂ[(Z2Irrep(0) ⊠ SU2Irrep(0)) => 3, (Z2Irrep(1) ⊠ SU2Irrep(1/2)) => 2, (Z2Irrep(0) ⊠ SU2Irrep(1)) => 1]
+Rep[ℤ₂ × SU₂]((0,0) => 3, (1,1/2) => 2, (0,1) => 1) == 
+    GradedSpace((Z2Irrep(0) ⊠ SU2Irrep(0)) => 3, (Z2Irrep(1) ⊠ SU2Irrep(1/2)) => 2, (Z2Irrep(0) ⊠ SU2Irrep(1)) => 1)
 ```
 
 ### Methods
@@ -821,7 +827,7 @@ blockdim(W, Irrep[U₁](0))
 ```
 and then with ``\mathsf{SU}_2``:
 ```@repl sectors
-V1 = ℂ[Irrep[SU₂]](0=>3, 1//2=>2, 1=>1)
+V1 = Vect[Irrep[SU₂]](0=>3, 1//2=>2, 1=>1)
 V1 == SU2Space(0=>3, 1/2=>2, 1=>1) == SU₂Space(0=>3, 0.5=>2, 1=>1)
 (sectors(V1)...,)
 dim(V1, SU2Irrep(1))
@@ -1138,7 +1144,8 @@ trees have `N` outgoing sectors, corresponding to the first `N` sectors out of t
 corresponding to the dual of the last `N₁+N₂-N` sectors from the previous list, in reverse.
 This return values are correctly inferred if `N` is a compile time constant.
 
-Graphically, for `N₁ = 4`, `N₂ = 3`, `N = 2` and some particular choice of `isdual` in both the fusion and splitting tree:
+Graphically, for `N₁ = 4`, `N₂ = 3`, `N = 2` and some particular choice of `isdual` in both
+the fusion and splitting tree:
 
 ![repartition](img/tree-repartition.svg)
 
@@ -1192,9 +1199,10 @@ might change in the future. The use of this cache is however controlled by two c
 type `RefValue{Bool}`, namely `usebraidcache_abelian` and `usebraidcache_nonabelian`. The
 default values are given by `TensorKit.usebraidcache_abelian[] = false` and
 `TensorKit.usebraidcache_nonabelian[] = true`, and respectively reflect that the cache is
-likely not going to help (or even slow down) fusion trees with `FusionStyle(f) isa UniqueFusion`,
-but is probably useful for fusion trees with `FusionStyle(f) isa MultipleFusion`. One can change
-these values and test the effect on their application.
+likely not going to help (or even slow down) fusion trees with
+`FusionStyle(f) isa UniqueFusion`, but is probably useful for fusion trees with
+`FusionStyle(f) isa MultipleFusion`. One can change these values and test the effect on
+their application.
 
 The existence of `braidcache` also implies that potential inefficiencies in the fusion
 tree manipulations (which we nonetheless try to avoid) will not seriously affect

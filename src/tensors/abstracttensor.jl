@@ -22,19 +22,27 @@ i.e. a tensor map with only non-trivial output spaces.
 """
 const AbstractTensor{T,S,N} = AbstractTensorMap{T,S,N,0}
 
-# tensor characteristics
-#------------------------
+# tensor characteristics: type information
+#------------------------------------------
+"""
+    eltype(::AbstractTensorMap) -> Type{T}
+    eltype(::Type{<:AbstractTensorMap}) -> Type{T}
+
+Return the scalar or element type `T` of a tensor.
+"""
 Base.eltype(::Type{<:AbstractTensorMap{T}}) where {T} = T
 
 """
-    spacetype(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Type{S<:IndexSpace}
+    spacetype(::AbstractTensorMap) -> Type{S<:IndexSpace}
+    spacetype(::Type{<:AbstractTensorMap}) -> Type{S<:IndexSpace}
 
 Return the type of the elementary space `S` of a tensor.
 """
 spacetype(::Type{<:AbstractTensorMap{<:Any,S}}) where {S} = S
 
 """
-    sectortype(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Type{I<:Sector}
+    sectortype(::AbstractTensorMap) -> Type{I<:Sector}
+    sectortype(::Type{<:AbstractTensorMap}) -> Type{I<:Sector}
 
 Return the type of sector `I` of a tensor.
 """
@@ -45,56 +53,33 @@ function InnerProductStyle(::Type{TT}) where {TT<:AbstractTensorMap}
 end
 
 """
-    field(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Type{𝕂<:Field}
+    field(::AbstractTensorMap) -> Type{𝔽<:Field}
+    field(::Type{<:AbstractTensorMap}) -> Type{𝔽<:Field}
 
-Return the type of field `𝕂` of a tensor.
+Return the type of field `𝔽` of a tensor.
 """
 field(::Type{TT}) where {TT<:AbstractTensorMap} = field(spacetype(TT))
 
-"""
-    numout(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Int
+@doc """
+    storagetype(t::AbstractTensorMap) -> Type{A<:AbstractVector}
+    storagetype(T::Type{<:AbstractTensorMap}) -> Type{A<:AbstractVector}
 
-Return the number of output spaces of a tensor. This is equivalent to the number of spaces in the codomain of that tensor.
-
-See also [`numin`](@ref) and [`numind`](@ref).
-"""
-numout(::Type{<:AbstractTensorMap{T,S,N₁}}) where {T,S,N₁} = N₁
-
-"""
-    numin(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Int
-
-Return the number of input spaces of a tensor. This is equivalent to the number of spaces in the domain of that tensor.
-
-See also [`numout`](@ref) and [`numind`](@ref).
-"""
-numin(::Type{<:AbstractTensorMap{T,S,N₁,N₂}}) where {T,S,N₁,N₂} = N₂
-
-"""
-    numind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
-
-Return the total number of input and output spaces of a tensor. This is equivalent to the
-total number of spaces in the domain and codomain of that tensor.
-
-See also [`numout`](@ref) and [`numin`](@ref).
-"""
-numind(::Type{TT}) where {TT<:AbstractTensorMap} = numin(TT) + numout(TT)
+Return the type of vector that stores the data of a tensor.
+""" storagetype
 
 function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
     return Core.Compiler.return_type(similar, Tuple{storagetype(TT),Type{T}})
 end
 
-spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
-sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
-InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
-field(t::AbstractTensorMap) = field(typeof(t))
-numout(t::AbstractTensorMap) = numout(typeof(t))
-numin(t::AbstractTensorMap) = numin(typeof(t))
-numind(t::AbstractTensorMap) = numind(typeof(t))
+# tensor characteristics: space and index information
+#-----------------------------------------------------
+"""
+    space(t::AbstractTensorMap{T,S,N₁,N₂}) -> HomSpace{S,N₁,N₂}
+    space(t::AbstractTensorMap{T,S,N₁,N₂}, i::Int) -> S
 
-storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
-similarstoragetype(t::AbstractTensorMap, TT) = similarstoragetype(typeof(t), TT)
-
-const order = numind
+The index information of a tensor, i.e. the `HomSpace` of its domain and codomain. If `i` is specified, return the `i`-th index space.
+"""
+space(t::AbstractTensorMap, i::Int) = space(t)[i]
 
 @doc """
     codomain(t::AbstractTensorMap{T,S,N₁,N₂}) -> ProductSpace{S,N₁}
@@ -125,28 +110,33 @@ domain(t::AbstractTensorMap, i) = domain(t)[i]
 source(t::AbstractTensorMap) = domain(t) # categorical terminology
 
 """
-    space(t::AbstractTensorMap{T,S,N₁,N₂}) -> HomSpace{S,N₁,N₂}
-    space(t::AbstractTensorMap{T,S,N₁,N₂}, i::Int) -> S
+    numout(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Int
 
-The index information of a tensor, i.e. the `HomSpace` of its domain and codomain. If `i` is specified, return the `i`-th index space.
-"""
-space(t::AbstractTensorMap, i::Int) = space(t)[i]
+Return the number of output spaces of a tensor. This is equivalent to the number of spaces in the codomain of that tensor.
 
+See also [`numin`](@ref) and [`numind`](@ref).
 """
-    fusionblockstructure(t::AbstractTensorMap) -> TensorStructure
-
-Return the necessary structure information to decompose a tensor in blocks labeled by
-coupled sectors and in subblocks labeled by a splitting-fusion tree couple.
-"""
-fusionblockstructure(t::AbstractTensorMap) = fusionblockstructure(space(t))
+numout(::Type{<:AbstractTensorMap{T,S,N₁}}) where {T,S,N₁} = N₁
 
 """
-    dim(t::AbstractTensorMap) -> Int
+    numin(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Int
 
-The total number of free parameters of a tensor, discounting the entries that are fixed by
-symmetry. This is also the dimension of the `HomSpace` on which the `TensorMap` is defined.
+Return the number of input spaces of a tensor. This is equivalent to the number of spaces in the domain of that tensor.
+
+See also [`numout`](@ref) and [`numind`](@ref).
 """
-dim(t::AbstractTensorMap) = fusionblockstructure(t).totaldim
+numin(::Type{<:AbstractTensorMap{T,S,N₁,N₂}}) where {T,S,N₁,N₂} = N₂
+
+"""
+    numind(::Union{T,Type{T}}) where {T<:AbstractTensorMap} -> Int
+
+Return the total number of input and output spaces of a tensor. This is equivalent to the
+total number of spaces in the domain and codomain of that tensor.
+
+See also [`numout`](@ref) and [`numin`](@ref).
+"""
+numind(::Type{TT}) where {TT<:AbstractTensorMap} = numin(TT) + numout(TT)
+const order = numind
 
 """
     codomainind(::Union{TT,Type{TT}}) where {TT<:AbstractTensorMap} -> Tuple{Int}
@@ -196,23 +186,36 @@ function adjointtensorindices(t::AbstractTensorMap, p::Index2Tuple)
     return (adjointtensorindices(t, p[1]), adjointtensorindices(t, p[2]))
 end
 
-@doc """
-    blocks(t::AbstractTensorMap) -> SectorDict{<:Sector,<:DenseMatrix}
+# tensor characteristics: work on instances and pass to type
+#------------------------------------------------------------
+spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
+sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
+InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
+field(t::AbstractTensorMap) = field(typeof(t))
+storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
+similarstoragetype(t::AbstractTensorMap, TT) = similarstoragetype(typeof(t), TT)
 
-Return an iterator over all blocks of a tensor, i.e. all coupled sectors and their
-corresponding blocks.
+numout(t::AbstractTensorMap) = numout(typeof(t))
+numin(t::AbstractTensorMap) = numin(typeof(t))
+numind(t::AbstractTensorMap) = numind(typeof(t))
 
-See also [`block`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
+# tensor characteristics: data structure and properties
+#------------------------------------------------------
 """
-blocks(t::AbstractTensorMap) = SectorDict(c => block(t, c) for c in blocksectors(t)) # TODO: make iterator
+    fusionblockstructure(t::AbstractTensorMap) -> TensorStructure
 
-@doc """
-    block(t::AbstractTensorMap, c::Sector) -> DenseMatrix
+Return the necessary structure information to decompose a tensor in blocks labeled by
+coupled sectors and in subblocks labeled by a splitting-fusion tree couple.
+"""
+fusionblockstructure(t::AbstractTensorMap) = fusionblockstructure(space(t))
 
-Return the block of a tensor corresponding to a coupled sector `c`.
+"""
+    dim(t::AbstractTensorMap) -> Int
 
-See also [`blocks`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
-""" block
+The total number of free parameters of a tensor, discounting the entries that are fixed by
+symmetry. This is also the dimension of the `HomSpace` on which the `TensorMap` is defined.
+"""
+dim(t::AbstractTensorMap) = fusionblockstructure(t).totaldim
 
 """
     blocksectors(t::AbstractTensorMap)
@@ -252,15 +255,15 @@ hasblock(t::AbstractTensorMap, c::Sector) = c ∈ blocksectors(t)
 #     return *(blocksize(t, c)...)
 # end
 
-"""
-    blockrange(t::AbstractTensorMap, c::Sector) -> UnitRange{Int}
+# """
+#     blockrange(t::AbstractTensorMap, c::Sector) -> UnitRange{Int}
 
-Return the range at which to find the matrix block of a tensor corresponding to a 
-coupled sector `c`, within the total data vector of length `dim(t)`.
-"""
-function blockrange(t::AbstractTensorMap, c::Sector)
-    return fusionblockstructure(t).blockstructure[c][2]
-end
+# Return the range at which to find the matrix block of a tensor corresponding to a 
+# coupled sector `c`, within the total data vector of length `dim(t)`.
+# """
+# function blockrange(t::AbstractTensorMap, c::Sector)
+#     return fusionblockstructure(t).blockstructure[c][2]
+# end
 
 """
     fusiontrees(t::AbstractTensorMap)
@@ -279,6 +282,26 @@ fusiontrees(t::AbstractTensorMap) = fusionblockstructure(t).fusiontreelist
     f₂ = FusionTree{Trivial}(map(x -> Trivial(), spaces2), Trivial(), map(isdual, spaces2))
     return (f₁, f₂)
 end
+
+# tensor data: block access
+#---------------------------
+@doc """
+    blocks(t::AbstractTensorMap) -> SectorDict{<:Sector,<:DenseMatrix}
+
+Return an iterator over all blocks of a tensor, i.e. all coupled sectors and their
+corresponding blocks.
+
+See also [`block`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
+"""
+blocks(t::AbstractTensorMap) = SectorDict(c => block(t, c) for c in blocksectors(t)) # TODO: make iterator
+
+@doc """
+    block(t::AbstractTensorMap, c::Sector) -> DenseMatrix
+
+Return the block of a tensor corresponding to a coupled sector `c`.
+
+See also [`blocks`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
+""" block
 
 # Derived indexing behavior for tensors with trivial symmetry
 #-------------------------------------------------------------

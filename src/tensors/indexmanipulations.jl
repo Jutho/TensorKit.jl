@@ -264,6 +264,15 @@ twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
 #-------------------------------------
 # Full implementations based on `add`
 #-------------------------------------
+"""
+    add_permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
+                 α::Number, β::Number, backend::AbstractBackend...)
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after permuting 
+the indices of `tsrc` according to `(p₁, p₂)`.
+
+See also [`permute`](@ref), [`permute!`](@ref), [`add_braid!`](@ref), [`add_transpose!`](@ref).
+"""
 @propagate_inbounds function add_permute!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                                           tsrc::AbstractTensorMap,
                                           p::Index2Tuple{N₁,N₂},
@@ -274,6 +283,15 @@ twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
     return add_transform!(tdst, tsrc, p, treepermuter, α, β, backend...)
 end
 
+"""
+    add_braid!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
+               levels::IndexTuple, α::Number, β::Number, backend::AbstractBackend...)
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after braiding
+the indices of `tsrc` according to `(p₁, p₂)` and `levels`.
+
+See also [`braid`](@ref), [`braid!`](@ref), [`add_permute!`](@ref), [`add_transpose!`](@ref).
+"""
 @propagate_inbounds function add_braid!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                                         tsrc::AbstractTensorMap,
                                         p::Index2Tuple{N₁,N₂},
@@ -291,6 +309,15 @@ end
     return add_transform!(tdst, tsrc, p, treebraider, α, β, backend...)
 end
 
+"""
+    add_transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
+                   α::Number, β::Number, backend::AbstractBackend...)
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after transposing
+the indices of `tsrc` according to `(p₁, p₂)`.
+
+See also [`transpose`](@ref), [`transpose!`](@ref), [`add_permute!`](@ref), [`add_braid!`](@ref).
+"""
 @propagate_inbounds function add_transpose!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                                             tsrc::AbstractTensorMap,
                                             p::Index2Tuple{N₁,N₂},
