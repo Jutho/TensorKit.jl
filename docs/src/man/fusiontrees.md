@@ -46,7 +46,7 @@ which goes from one coupled sectors ``c`` to ``N`` uncoupled sectors ``a_1``, ``
 …, ``μ_{N-1}``. We henceforth refer to them as vertex labels, as they are associated with
 the vertices of the splitting tree. In the case of `FusionStyle(I) isa UniqueFusion`, the
 internal sectors ``e_1``, …, ``e_{N-2}`` are completely fixed, for
-`FusionStyle(I) isa MultipleFusion` they can also take different values. In our abstract
+the generic case they can also take different values. In our abstract
 notation of the splitting basis ``X^{a_1a_2…a_N}_{c,α}`` used above, ``α`` can be consided
 a collective label, i.e. ``α = (e_1, …, e_{N-2}; μ₁, … ,μ_{N-1})``. Indeed, we can check
 the orthogonality condition
