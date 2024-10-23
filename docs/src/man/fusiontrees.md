@@ -65,7 +65,7 @@ the section on [topological data of a fusion category](@ref ss_topologicalfusion
 fusion and splitting trees that take the distinction between irreps and their conjugates
 into account. Hence, in the previous example, if e.g. the first and third space in the
 codomain and the second space in the domain of the tensor were dual spaces, the actual pair
-of splitting and fusion tree would look as
+of splitting and fusion tree would look like
 
 ![extended double fusion tree](img/tree-extended.svg)
 
@@ -80,12 +80,12 @@ We represent splitting trees and their adjoints using a specific immutable type 
 `FusionTree` (which actually represents a splitting tree, but fusion tree is a more common
 term), defined as
 ```julia
-struct FusionTree{I<:Sector,N,M,L,T}
+struct FusionTree{I<:Sector,N,M,L}
     uncoupled::NTuple{N,I}
     coupled::I
     isdual::NTuple{N,Bool}
     innerlines::NTuple{M,I} # fixed to M = N-2
-    vertices::NTuple{L,T} # fixed to L = N-1
+    vertices::NTuple{L,Int} # fixed to L = N-1
 end
 ```
 Here, the fields are probably self-explanotary. The `isdual` field indicates whether an
@@ -96,8 +96,7 @@ isomorphism is present (if the corresponding value is `true`) or not. Note that 
 capabilities, such as checking for equality with `==` and support for
 `hash(f::FusionTree, h::UInt)`, as splitting and fusion trees are used as keys in look-up
 tables (i.e. `AbstractDictionary` instances) to look up certain parts of the data of a
-tensor. The type of `L` of the vertex labels can be `Nothing` when they are not needed
-(i.e. if `FusionStyle(I) isa MultiplicityFreeFusion`).
+tensor.
 
 `FusionTree` instances are not checked for consistency (i.e. valid fusion rules etc) upon
 creation, hence, they are assumed to be created correctly. The most natural way to create
@@ -146,7 +145,7 @@ TensorKit.jl, nor do they overload similarly named methods from Julia Base (see 
 
 The first operation we discuss is an elementary braid of two neighbouring sectors
 (indices), i.e. a so-called Artin braid or Artin generator of the braid group. Because
-these two sectors do not appear on the same fusion vertex, some recoupling is necessary.
+these two sectors do not necessarily appear on the same fusion vertex, some recoupling is necessary.
 The following represents two different ways to compute the result of such a braid as a
 linear combination of new fusion trees in canonical order:
 
@@ -263,13 +262,13 @@ that we need is summarized in
 We will only need the B-symbol and not the A-symbol. Applying the left evaluation on the
 second sector of a splitting tensor thus yields a linear combination of fusion tensors
 (when `FusionStyle(I) == GenericFusion()`, or just a scalar times the corresponding
-fusion tensor otherwise), with corresponding ``Z`` ismorphism. Taking the adjoint of this
+fusion tensor otherwise), with corresponding ``Z`` isomorphism. Taking the adjoint of this
 relation yields the required relation to transform a fusion tensor into a splitting tensor
 with an added ``Z^†`` isomorphism.
 
 However, we have to be careful if we bend a line on which a ``Z`` isomorphism (or its
 adjoint) is already present. Indeed, it is exactly for this operation that we explicitly
-need to take the presence of these isomorphisms into account. Indeed, we obtain the relation
+need to take the presence of these isomorphisms into account, obtaining the relation
 
 ![dual line bending](img/tree-linebending2.svg)
 
@@ -334,7 +333,7 @@ given by
 
 The `braid` and `permute` routines for double fusion trees will be the main access point for
 corresponding manipulations on tensors. As a consequence, results from this routine are
-memoized, i.e. they are stored in some package wide 'least-recently used' cache (from
+memoized, i.e. they are stored in some package-wide 'least-recently used' cache (from
 [LRUCache.jl](https://github.com/JuliaCollections/LRUCache.jl)) that can be accessed as
 `TensorKit.braidcache`. By default, this cache stores up to `10^5` different `braid` or
 `permute` resuls, where one result corresponds to one particular combination of `(f1, f2,
@@ -360,7 +359,7 @@ a tensor, i.e. a morphism in the category `Vect` (this essentially coincides wit
 of group representations), this explicit representation can be created, which can be useful
 for checking purposes. Hereto, it is necessary that the *splitting tensor*
 ``X^{ab}_{c,μ}``, i.e. the Clebsch-Gordan coefficients of the group, are encoded via the
-routine `fusiontensor(a,b,c [,μ = nothing])`, where the last argument is only necessary in
+routine `fusiontensor(a,b,c [,μ = 1])`, where the last argument is only necessary in
 the case of `FusionStyle(I) == GenericFusion()`. We can then convert a
 `FusionTree{I,N}` into an `Array`, which will yield a rank `N+1` array where the first `N`
 dimensions correspond to the uncoupled sectors, and the last dimension to the coupled

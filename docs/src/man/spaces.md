@@ -170,7 +170,7 @@ InnerProductStyle(ℂ^5)
     to work nonetheless.
 
 One more important instance of `ElementarySpace` is the `GradedSpace`, which is used to
-represent a graded complex vector space with Euclidean product, where the grading is
+represent a graded complex vector space with Euclidean inner product, where the grading is
 provided by the irreducible representations of a group, or more generally, the simple
 objects of a fusion category. We refer to the subsection on [graded spaces](@ref s_rep) on
 the [next page](@ref s_sectorsrepfusion) for further information about `GradedSpace`.

@@ -113,7 +113,7 @@ As always, we refer to the subsection on
 [topological data of a unitary fusion category](@ref ss_topologicalfusion) for further
 details.
 
-Finally, for the implementation, it will be useful to distinguish between an number of
+Finally, for the implementation, it will be useful to distinguish between a number of
 different possibilities regarding the fusion rules. If, for every ``a`` and ``b``, there is
 a unique ``c`` such that ``a ⊗ b = c`` (i.e. ``N^{ab}_{c} = 1`` and ``N^{ab}_{c′} = 0`` for
 all other ``c′``), the category is abelian. Indeed, the representations of a group have this
@@ -696,7 +696,7 @@ specifically a `NTuple{N, Int}` with `N = length(values(I))`. The methods
 these types can be created in a type stable manner.
 
 ### Constructing instances
-As mentioned, the convenience mehtod `Vect[I]` will return the concrete type
+As mentioned, the convenience method `Vect[I]` will return the concrete type
 `GradedSpace{I,D}` with the matching value of `D`, so that should never be a user's
 concern. In fact, for consistency, `Vect[Trivial]` will just return `ComplexSpace`,
 which is not even a specific type of `GradedSpace`. For the specific case of group irreps as
