@@ -4,36 +4,30 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap;
                               trunc::TensorKit.TruncationScheme=TensorKit.NoTruncation(),
                               p::Real=2,
                               alg::Union{TensorKit.SVD,TensorKit.SDD}=TensorKit.SDD())
-    U, Σ, V, ϵ = tsvd(t; trunc=TensorKit.NoTruncation(), p=p, alg=alg)
+    U, Σ, V⁺, truncerr = tsvd(t; trunc=TensorKit.NoTruncation(), p=p, alg=alg)
 
     if !(trunc isa TensorKit.NoTruncation) && !isempty(blocksectors(t))
-        Σddata = TensorKit.SectorDict(c => diag(b) for (c, b) in blocks(Σ))
-        dims = TensorKit.SectorDict(c => length(b) for (c, b) in Σddata)
-        Σddata, ϵ = TensorKit._truncate!(Σddata, trunc, p)
-        Udata = TensorKit.SectorDict(c => b for (c, b) in blocks(U))
-        Vdata = TensorKit.SectorDict(c => b for (c, b) in blocks(V))
-        Udata′, Σddata′, Vdata′, dims′ = TensorKit._implement_svdtruncation!(t,
-                                                                             Udata,
-                                                                             Σddata,
-                                                                             Vdata,
-                                                                             dims)
-        W = spacetype(t)(dims′)
-        if W ≅ domain(Σ)
-            W = domain(Σ)
-        end
-        U′, Σ′, V′ = TensorKit._create_svdtensors(t, Udata′, Σddata′, Vdata′, W)
+        Σdata = TensorKit.SectorDict(c => diag(b) for (c, b) in blocks(Σ))
+
+        truncdim = TensorKit._compute_truncdim(Σdata, trunc, p)
+        truncerr = TensorKit._compute_truncerr(Σdata, truncdim, p)
+
+        SVDdata = TensorKit.SectorDict(c => (block(U, c), Σc, block(V⁺, c))
+                                       for (c, Σc) in Σdata)
+
+        Ũ, Σ̃, Ṽ⁺ = TensorKit._create_svdtensors(t, SVDdata, truncdim)
     else
-        U′, Σ′, V′ = U, Σ, V
+        Ũ, Σ̃, Ṽ⁺ = U, Σ, V⁺
     end
 
-    function tsvd!_pullback((ΔU, ΔΣ, ΔV, Δϵ))
+    function tsvd!_pullback((ΔU, ΔΣ, ΔV⁺, Δϵ))
         Δt = similar(t)
         for (c, b) in blocks(Δt)
-            Uc, Σc, Vc = block(U, c), block(Σ, c), block(V, c)
-            ΔUc, ΔΣc, ΔVc = block(ΔU, c), block(ΔΣ, c), block(ΔV, c)
+            Uc, Σc, V⁺c = block(U, c), block(Σ, c), block(V⁺, c)
+            ΔUc, ΔΣc, ΔV⁺c = block(ΔU, c), block(ΔΣ, c), block(ΔV⁺, c)
             Σdc = view(Σc, diagind(Σc))
             ΔΣdc = (ΔΣc isa AbstractZero) ? ΔΣc : view(ΔΣc, diagind(ΔΣc))
-            svd_pullback!(b, Uc, Σdc, Vc, ΔUc, ΔΣdc, ΔVc)
+            svd_pullback!(b, Uc, Σdc, V⁺c, ΔUc, ΔΣdc, ΔV⁺c)
         end
         return NoTangent(), Δt
     end
@@ -41,18 +35,18 @@ function ChainRulesCore.rrule(::typeof(TensorKit.tsvd!), t::AbstractTensorMap;
         return NoTangent(), ZeroTangent()
     end
 
-    return (U′, Σ′, V′, ϵ), tsvd!_pullback
+    return (Ũ, Σ̃, Ṽ⁺, truncerr), tsvd!_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(LinearAlgebra.svdvals!), t::AbstractTensorMap)
-    U, S, V = tsvd(t)
+    U, S, V⁺ = tsvd(t)
     s = diag(S)
     project_t = ProjectTo(t)
 
     function svdvals_pullback(Δs′)
         Δs = unthunk(Δs′)
         ΔS = diagm(codomain(S), domain(S), Δs)
-        return NoTangent(), project_t(U * ΔS * V)
+        return NoTangent(), project_t(U * ΔS * V⁺)
     end
 
     return s, svdvals_pullback

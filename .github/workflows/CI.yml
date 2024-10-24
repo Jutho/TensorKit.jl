@@ -21,8 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10' # LTS version
-          # - '1' # TODO: add back when 1.10 is LTS
+          - '1'
+          - 'lts'
         os:
           - ubuntu-latest
           - macOS-latest

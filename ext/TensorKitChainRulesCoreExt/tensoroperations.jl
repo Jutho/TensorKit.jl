@@ -1,5 +1,7 @@
-function ext._rrule_tensoradd!(C::AbstractTensorMap, A::AbstractTensorMap, pA::Index2Tuple,
-                               conjA::Bool, α::Number, β::Number, ba)
+function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
+                              C::AbstractTensorMap,
+                              A::AbstractTensorMap, pA::Index2Tuple, conjA::Bool,
+                              α::Number, β::Number, ba...)
     C′ = tensoradd!(copy(C), A, pA, conjA, α, β, ba...)
 
     projectA = ProjectTo(A)
@@ -29,16 +31,19 @@ function ext._rrule_tensoradd!(C::AbstractTensorMap, A::AbstractTensorMap, pA::I
             return projectα(_dα)
         end
         dβ = @thunk projectβ(inner(C, ΔC))
-        return NoTangent(), dC, dA, NoTangent(), NoTangent(), dα, dβ
+        dba = map(_ -> NoTangent(), ba)
+        return NoTangent(), dC, dA, NoTangent(), NoTangent(), dα, dβ, dba...
     end
 
     return C′, pullback
 end
 
-function ext._rrule_tensorcontract!(C::AbstractTensorMap, A::AbstractTensorMap,
-                                    pA::Index2Tuple,
-                                    conjA::Bool, B::AbstractTensorMap, pB::Index2Tuple,
-                                    conjB::Bool, pAB::Index2Tuple, α::Number, β::Number, ba)
+function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
+                              C::AbstractTensorMap,
+                              A::AbstractTensorMap, pA::Index2Tuple, conjA::Bool,
+                              B::AbstractTensorMap, pB::Index2Tuple, conjB::Bool,
+                              pAB::Index2Tuple,
+                              α::Number, β::Number, ba...)
     C′ = tensorcontract!(copy(C), A, pA, conjA, B, pB, conjB, pAB, α, β, ba...)
 
     projectA = ProjectTo(A)
@@ -90,16 +95,20 @@ function ext._rrule_tensorcontract!(C::AbstractTensorMap, A::AbstractTensorMap,
             return projectα(inner(AB, ΔC))
         end
         dβ = @thunk projectβ(inner(C, ΔC))
+        dba = map(_ -> NoTangent(), ba)
         return NoTangent(), dC,
                dA, NoTangent(), NoTangent(),
                dB, NoTangent(), NoTangent(),
-               NoTangent(), dα, dβ
+               NoTangent(),
+               dα, dβ, dba...
     end
     return C′, pullback
 end
 
-function ext._rrule_tensortrace!(C::AbstractTensorMap, A::AbstractTensorMap, p::Index2Tuple,
-                                 q::Index2Tuple, conjA::Bool, α::Number, β::Number, ba)
+function ChainRulesCore.rrule(::typeof(TensorOperations.tensortrace!),
+                              C::AbstractTensorMap, A::AbstractTensorMap,
+                              p::Index2Tuple, q::Index2Tuple, conjA::Bool,
+                              α::Number, β::Number, ba...)
     C′ = tensortrace!(copy(C), A, p, q, conjA, α, β, ba...)
 
     projectA = ProjectTo(A)
@@ -128,8 +137,19 @@ function ext._rrule_tensortrace!(C::AbstractTensorMap, A::AbstractTensorMap, p::
             return projectα(inner(At, ΔC))
         end
         dβ = @thunk projectβ(inner(C, ΔC))
-        return NoTangent(), dC, dA, NoTangent(), NoTangent(), NoTangent(), dα, dβ
+        dba = map(_ -> NoTangent(), ba)
+        return NoTangent(), dC, dA, NoTangent(), NoTangent(), NoTangent(), dα, dβ, dba...
     end
 
     return C′, pullback
+end
+
+function ChainRulesCore.rrule(::typeof(TensorKit.scalar), t::AbstractTensorMap)
+    val = scalar(t)
+    function scalar_pullback(Δval)
+        dt = similar(t)
+        first(blocks(dt))[2][1] = unthunk(Δval)
+        return NoTangent(), dt
+    end
+    return val, scalar_pullback
 end

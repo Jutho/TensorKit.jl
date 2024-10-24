@@ -18,13 +18,13 @@ export FermionParity, FermionNumber, FermionSpin
 export FibonacciAnyon, IsingAnyon
 
 export VectorSpace, Field, ElementarySpace # abstract vector spaces
-export InnerProductStyle, NoInnerProduct, HasInnerProduct, EuclideanProduct
+export InnerProductStyle, NoInnerProduct, HasInnerProduct, EuclideanInnerProduct
 export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace # concrete spaces
 export ZNSpace, Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
 export Vect, Rep # space constructors
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
-export IndexSpace, TensorSpace, TensorMapSpace
+export IndexSpace, HomSpace, TensorSpace, TensorMapSpace
 export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, TrivialTensorMap # tensors and tensor properties
 export BraidingTensor
 export TruncationScheme
@@ -113,9 +113,9 @@ using Base.Iterators: product, filter
 
 using LinearAlgebra: LinearAlgebra
 using LinearAlgebra: norm, dot, normalize, normalize!, tr,
-                     axpy!, axpby!, lmul!, rmul!, mul!,
+                     axpy!, axpby!, lmul!, rmul!, mul!, ldiv!, rdiv!,
                      adjoint, adjoint!, transpose, transpose!,
-                     pinv, sylvester,
+                     lu, pinv, sylvester,
                      eigen, eigen!, svd, svd!,
                      isposdef, isposdef!, ishermitian,
                      Diagonal, Hermitian
@@ -175,11 +175,11 @@ include("fusiontrees/fusiontrees.jl")
 #-------------------------------------------
 include("spaces/vectorspaces.jl")
 
-# # Definitions and methods for tensors
-# #-------------------------------------
-# # general definitions
+# Definitions and methods for tensors
+#-------------------------------------
+# general definitions
 include("tensors/abstracttensor.jl")
-include("tensors/tensortreeiterator.jl")
+# include("tensors/tensortreeiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
 include("tensors/linalg.jl")

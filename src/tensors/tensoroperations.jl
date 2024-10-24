@@ -5,34 +5,19 @@ function TO.tensorstructure(t::AbstractTensorMap, iA::Int, conjA::Bool)
     return !conjA ? space(t, iA) : conj(space(t, iA))
 end
 
-function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, istemp::Val,
-                        allocator=TO.DefaultAllocator()) where {T,S,N₁,N₂,A,
-                                                                TT<:TrivialTensorMap{T,S,N₁,
-                                                                                     N₂,
-                                                                                     A}}
-    data = TO.tensoralloc(A, (dim(codomain(structure)), dim(domain(structure))), istemp,
-                          allocator)
-    return TT(data, codomain(structure), domain(structure))
-end
-
-function TO.tensoralloc(::Type{TT}, structure::TensorMapSpace{S,N₁,N₂}, istemp::Val,
-                        allocator=TO.DefaultAllocator()) where {T,S,N₁,N₂,
-                                                                TT<:AbstractTensorMap{T,S,
-                                                                                      N₁,
-                                                                                      N₂}}
-    blocksectoriterator = blocksectors(structure)
-    rowr, rowdims = _buildblockstructure(codomain(structure), blocksectoriterator)
-    colr, coldims = _buildblockstructure(domain(structure), blocksectoriterator)
+function TO.tensoralloc(::Type{TT},
+                        structure::TensorMapSpace{S,N₁,N₂},
+                        istemp::Val,
+                        allocator=TO.DefaultAllocator()) where
+         {T,S,N₁,N₂,TT<:AbstractTensorMap{T,S,N₁,N₂}}
     A = storagetype(TT)
-    blockallocator(c) = TO.tensoralloc(A, (rowdims[c], coldims[c]), istemp, allocator)
-    data = SectorDict{sectortype(TT),A}(c => blockallocator(c) for c in blocksectoriterator)
-    return TT(data, codomain(structure), domain(structure), rowr, colr)
+    dim = fusionblockstructure(structure).totaldim
+    data = TO.tensoralloc(A, dim, istemp, allocator)
+    return TT(data, structure)
 end
 
-function TO.tensorfree!(t::AbstractTensorMap, allocator=TO.DefaultAllocator())
-    for (c, b) in blocks(t)
-        TO.tensorfree!(b, allocator)
-    end
+function TO.tensorfree!(t::TensorMap, allocator=TO.DefaultAllocator())
+    TO.tensorfree!(t.data, allocator)
     return nothing
 end
 
@@ -52,15 +37,15 @@ end
 # tensoradd!
 function TO.tensoradd!(C::AbstractTensorMap,
                        A::AbstractTensorMap, pA::Index2Tuple, conjA::Bool,
-                       α::Number, β::Number, backend::AbstractBackend, allocator)
-    if !conjA
-        A′ = A
-        pA′ = _canonicalize(pA, C)
-    else
+                       α::Number, β::Number,
+                       backend, allocator)
+    if conjA
         A′ = adjoint(A)
         pA′ = adjointtensorindices(A, _canonicalize(pA, C))
+        add_permute!(C, A′, pA′, α, β, backend)
+    else
+        add_permute!(C, A, _canonicalize(pA, C), α, β, backend)
     end
-    add_permute!(C, A′, pA′, α, β, backend)
     return C
 end
 
@@ -83,17 +68,15 @@ end
 function TO.tensortrace!(C::AbstractTensorMap,
                          A::AbstractTensorMap, p::Index2Tuple, q::Index2Tuple,
                          conjA::Bool,
-                         α::Number, β::Number, backend::AbstractBackend, allocator)
-    if !conjA
-        A′ = A
-        p′ = _canonicalize(p, C)
-        q′ = q
-    else
+                         α::Number, β::Number, backend, allocator)
+    if conjA
         A′ = adjoint(A)
         p′ = adjointtensorindices(A, _canonicalize(p, C))
         q′ = adjointtensorindices(A, q)
+        trace_permute!(C, A′, p′, q′, α, β, backend)
+    else
+        trace_permute!(C, A, _canonicalize(p, C), q, α, β, backend)
     end
-    trace_permute!(C, A′, p′, q′, α, β, backend)
     return C
 end
 
@@ -102,23 +85,25 @@ function TO.tensorcontract!(C::AbstractTensorMap,
                             A::AbstractTensorMap, pA::Index2Tuple, conjA::Bool,
                             B::AbstractTensorMap, pB::Index2Tuple, conjB::Bool,
                             pAB::Index2Tuple, α::Number, β::Number,
-                            backend::AbstractBackend, allocator)
+                            backend, allocator)
     pAB′ = _canonicalize(pAB, C)
-    if !conjA
-        A′ = A
-        pA′ = pA
-    else
+    if conjA && conjB
         A′ = A'
         pA′ = adjointtensorindices(A, pA)
-    end
-    if !conjB
-        B′ = B
-        pB′ = pB
-    else
         B′ = B'
         pB′ = adjointtensorindices(B, pB)
+        contract!(C, A′, pA′, B′, pB′, pAB′, α, β, backend, allocator)
+    elseif conjA
+        A′ = A'
+        pA′ = adjointtensorindices(A, pA)
+        contract!(C, A′, pA′, B, pB, pAB′, α, β, backend, allocator)
+    elseif conjB
+        B′ = B'
+        pB′ = adjointtensorindices(B, pB)
+        contract!(C, A, pA, B′, pB′, pAB′, α, β, backend, allocator)
+    else
+        contract!(C, A, pA, B, pB, pAB′, α, β, backend, allocator)
     end
-    contract!(C, A′, pA′, B′, pB′, pAB′, α, β, backend, allocator)
     return C
 end
 
@@ -159,13 +144,21 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 
 # Trace implementation
 #----------------------
+"""
+    trace_permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap,
+                   (p₁, p₂)::Index2Tuple, (q₁, q₂)::Index2Tuple,
+                   α::Number, β::Number, backend=TO.DefaultBackend())
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after permuting
+the indices of `tsrc` according to `(p₁, p₂)` and furthermore tracing the indices in `q₁` and `q₂`.
+"""
 function trace_permute!(tdst::AbstractTensorMap,
                         tsrc::AbstractTensorMap,
                         (p₁, p₂)::Index2Tuple,
                         (q₁, q₂)::Index2Tuple,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend=TO.DefaultBackend())
+                        backend=TO.DefaultBackend())
     # some input checks
     (S = spacetype(tdst)) == spacetype(tsrc) ||
         throw(SpaceMismatch("incompatible spacetypes"))
@@ -227,12 +220,23 @@ end
 # TODO: contraction with either A or B a rank (1, 1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
+""" 
+    contract!(C::AbstractTensorMap,
+              A::AbstractTensorMap, (oindA, cindA)::Index2Tuple,
+              B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,
+              (p₁, p₂)::Index2Tuple,
+              α::Number, β::Number,
+              backend, allocator)
+
+Return the updated `C`, which is the result of adding `α * A * B` to `C` after permuting
+the indices of `A` and `B` according to `(oindA, cindA)` and `(cindB, oindB)` respectively.
+"""
 function contract!(C::AbstractTensorMap,
                    A::AbstractTensorMap, (oindA, cindA)::Index2Tuple,
                    B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,
                    (p₁, p₂)::Index2Tuple,
                    α::Number, β::Number,
-                   backend::AbstractBackend, allocator)
+                   backend, allocator)
     length(cindA) == length(cindB) ||
         throw(IndexError("number of contracted indices does not match"))
     N₁, N₂ = length(oindA), length(oindB)
@@ -304,7 +308,15 @@ function _contract!(α, A::AbstractTensorMap, B::AbstractTensorMap,
     end
     A′ = permute(A, (oindA, cindA); copy=copyA)
     B′ = permute(B, (cindB, oindB))
-    A′ = twist!(A′, filter(i -> !isdual(space(A′, i)), domainind(A′)))
+    if BraidingStyle(sectortype(A)) isa Fermionic
+        for i in domainind(A′)
+            if !isdual(space(A′, i))
+                A′ = twist!(A′, i)
+            end
+        end
+        # A′ = twist!(A′, filter(i -> !isdual(space(A′, i)), domainind(A′)))
+        # commented version leads to boxing of `A′` and type instabilities in the result
+    end
     ipAB = TupleTools.invperm((p₁..., p₂...))
     oindAinC = TupleTools.getindices(ipAB, ntuple(n -> n, N₁))
     oindBinC = TupleTools.getindices(ipAB, ntuple(n -> n + N₁, N₂))
@@ -321,6 +333,7 @@ end
 # Scalar implementation
 #-----------------------
 function scalar(t::AbstractTensorMap)
+    # TODO: should scalar only work if N₁ == N₂ == 0?
     return dim(codomain(t)) == dim(domain(t)) == 1 ?
            first(blocks(t))[2][1, 1] : throw(DimensionMismatch())
 end

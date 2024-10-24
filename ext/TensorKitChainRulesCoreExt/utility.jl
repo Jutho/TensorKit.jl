@@ -1,5 +1,7 @@
 # Utility
 # -------
+trivtuple(N) = ntuple(identity, N)
+
 function _repartition(p::IndexTuple, N₁::Int)
     length(p) >= N₁ ||
         throw(ArgumentError("cannot repartition $(typeof(p)) to $N₁, $(length(p) - N₁)"))
