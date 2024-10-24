@@ -158,11 +158,6 @@ struct GlobalLRUCache <: CacheStyle end
 
 function CacheStyle(I::Type{<:Sector})
     return GlobalLRUCache()
-    # if FusionStyle(I) === UniqueFusion()
-    #     return TaskLocalCache{SectorDict{I,Any}}()
-    # else
-    #     return GlobalCache()
-    # end
 end
 
 fusionblockstructure(W::HomSpace) = fusionblockstructure(W, CacheStyle(sectortype(W)))

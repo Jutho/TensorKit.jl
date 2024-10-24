@@ -979,7 +979,7 @@ collect(fusiontrees((s2,s2,s2,s2)))
 Note that `FusionTree` instances are shown (printed) in a way that is valid code to
 reproduce them, a property which also holds for both instances of `Sector` and instances of
 `VectorSpace`. All of those should be displayed in a way that can be copy pasted as valid
-code. Furthermore, we use contact to determine how to print e.g. a sector. In isolation,
+code. Furthermore, we use context to determine how to print e.g. a sector. In isolation,
 `s2` is printed as `(Irrep[SU₂](1/2) ⊠ Irrep[SU₂](1/2))`, however, within the fusion tree,
 it is simply printed as `(1/2, 1/2)`, because it will be converted back into a
 `ProductSector`, namely `Irrep[SU₂] ⊠ Irrep[SU₂]` by the constructor of
