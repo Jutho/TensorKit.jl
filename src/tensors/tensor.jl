@@ -42,9 +42,6 @@ i.e. a tensor map with only a non-trivial output space.
 """
 const Tensor{T,S,N,A} = TensorMap{T,S,N,0,A}
 
-# TODO: should we deprecate this?
-# It seems quite heavily used in MPSKit.jl, although they are all of the form
-# `tensormaptype(S, N₁, N₂, A)` and so could thus be replaced with `TensorMap{S, N₁, N₂, A}`
 function tensormaptype(S::Type{<:IndexSpace}, N₁, N₂, TorA::Type)
     if TorA <: Number
         return TensorMap{TorA,S,N₁,N₂,Vector{TorA}}
