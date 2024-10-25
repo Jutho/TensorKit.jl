@@ -1,31 +1,35 @@
 # TensorMap & Tensor:
 # general tensor implementation with arbitrary symmetries
 #==========================================================#
-#! format: off
 """
     struct TensorMap{T, S<:IndexSpace, N₁, N₂, A<:DenseVector{T}} <: AbstractTensorMap{T, S, N₁, N₂}
 
 Specific subtype of [`AbstractTensorMap`](@ref) for representing tensor maps (morphisms in
 a tensor category), where the data is stored in a dense vector.
 """
-struct TensorMap{T, S<:IndexSpace, N₁, N₂, A<:DenseVector{T}} <: AbstractTensorMap{T, S, N₁, N₂}
+struct TensorMap{T,S<:IndexSpace,N₁,N₂,A<:DenseVector{T}} <: AbstractTensorMap{T,S,N₁,N₂}
     data::A
     space::TensorMapSpace{S,N₁,N₂}
-    
+
     # uninitialized constructors
-    function TensorMap{T,S,N₁,N₂,A}(::UndefInitializer, space::TensorMapSpace{S,N₁,N₂}) where {T,S<:IndexSpace,N₁,N₂,A<:DenseVector{T}}
+    function TensorMap{T,S,N₁,N₂,A}(::UndefInitializer,
+                                    space::TensorMapSpace{S,N₁,N₂}) where {T,S<:IndexSpace,
+                                                                           N₁,N₂,
+                                                                           A<:DenseVector{T}}
         d = fusionblockstructure(space).totaldim
         data = A(undef, d)
         return TensorMap{T,S,N₁,N₂,A}(data, space)
     end
-    
+
     # constructors from data
-    function TensorMap{T,S,N₁,N₂,A}(data::A, space::TensorMapSpace{S,N₁,N₂}) where {T,S<:IndexSpace,N₁,N₂,A<:DenseVector{T}}
+    function TensorMap{T,S,N₁,N₂,A}(data::A,
+                                    space::TensorMapSpace{S,N₁,N₂}) where {T,S<:IndexSpace,
+                                                                           N₁,N₂,
+                                                                           A<:DenseVector{T}}
         T ⊆ field(S) || @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog = 1)
         return new{T,S,N₁,N₂,A}(data, space)
     end
 end
-#! format: on
 
 """
     Tensor{T, S, N, A<:DenseVector{T}} = TensorMap{T, S, N, 0, A}
