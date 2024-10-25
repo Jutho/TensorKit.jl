@@ -74,7 +74,8 @@ dim(t::TensorMap) = length(t.data)
     TensorMap{T}(undef, codomain ← domain)
     TensorMap{T}(undef, domain → codomain)
     # expert mode: select storage type `A`
-    TensorMap{T,S,N₁,N₂,A}(undef, codomain::ProductSpace{S,N₁}, domain::ProductSpace{S,N₂})
+    TensorMap{T,S,N₁,N₂,A}(undef, codomain ← domain)
+    TensorMap{T,S,N₁,N₂,A}(undef, domain → domain)
 
 Construct a `TensorMap` with uninitialized data.
 """
