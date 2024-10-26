@@ -3,9 +3,9 @@
 Features that are planned to be implemented before the release of v1.0.0, in no particular order.
 
 - [x] Separate `Sectors` module
-- [ ] Make `TrivialTensorMap` and `TensorMap` be the same
-- [ ] Simplify `TensorMap` type to hide `rowr` and `colr`
-- [ ] Change block order in `rowr` / `colr` to speed up particular contractions
+- [x] Make `TrivialTensorMap` and `TensorMap` be the same
+- [x] Simplify `TensorMap` type to hide `rowr` and `colr`
+- [x] Change block order in `rowr` / `colr` to speed up particular contractions
 - [x] Make `AdjointTensorMap` generic
 - [ ] Rewrite planar operations in order to be AD-compatible
 - [x] Fix rrules for fermionic tensors
@@ -47,3 +47,17 @@ as there are some changes in the API.
 
 This promotes TensorKitSectors to its own package, in order to make the dependencies
 lighter and to separate the concerns of the two packages.
+
+### FusionTree vertices
+
+In order to simplify the `FusionTree` struct, we removed the usage of anything other than
+`Int` as a vertex-label when working with `GenericFusion` sectors.
+
+### TensorStructure
+
+This PR changed the data structure of `TensorMap` to consist of a single vector of data,
+where all blocks and subblocks are various views into this object. This entails major
+simplifications for the outwards-facing interface, as now the `TensorMap` type requires less
+parameters, and the fusion-tree structure is more clearly considered as an implementation
+detail that can be left hidden to the user. Various other improvements and documentation
+work was also carried out.
