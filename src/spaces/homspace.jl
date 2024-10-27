@@ -35,6 +35,10 @@ spacetype(::Type{<:HomSpace{S}}) where {S} = S
 field(L::Type{<:HomSpace}) = field(spacetype(L))
 sectortype(L::Type{<:HomSpace}) = sectortype(spacetype(L))
 
+numout(W::HomSpace) = length(codomain(W))
+numin(W::HomSpace) = length(domain(W))
+numind(W::HomSpace) = numin(W) + numout(W)
+
 const TensorSpace{S<:ElementarySpace} = Union{S,ProductSpace{S}}
 const TensorMapSpace{S<:ElementarySpace,N₁,N₂} = HomSpace{S,ProductSpace{S,N₁},
                                                           ProductSpace{S,N₂}}
