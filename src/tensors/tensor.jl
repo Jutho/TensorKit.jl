@@ -453,9 +453,7 @@ column indices correspond to `f₂.uncoupled`.
     @inbounds begin
         i = structure.fusiontreeindices[(f₁, f₂)]
         sz, str, offset = structure.fusiontreestructure[i]
-        subblock = StridedView(t.data, sz, str, offset)
-        d = (dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...)
-        return sreshape(subblock, d)
+        return StridedView(t.data, sz, str, offset)
     end
 end
 # The following is probably worth special casing for trivial tensors
