@@ -279,8 +279,8 @@ See also [`permute`](@ref), [`permute!`](@ref), [`add_braid!`](@ref), [`add_tran
                                           α::Number,
                                           β::Number,
                                           backend::AbstractBackend...) where {T,S,N₁,N₂}
-    treepermuter(f₁, f₂) = permute(f₁, f₂, p[1], p[2])
-    return add_transform!(tdst, tsrc, p, treepermuter, α, β, backend...)
+    transformer = treepermuter(tdst, tsrc, p)
+    return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
 """
@@ -305,8 +305,8 @@ See also [`braid`](@ref), [`braid!`](@ref), [`add_permute!`](@ref), [`add_transp
     levels1 = TupleTools.getindices(levels, codomainind(tsrc))
     levels2 = TupleTools.getindices(levels, domainind(tsrc))
     # TODO: arg order for tensormaps is different than for fusiontrees
-    treebraider(f₁, f₂) = braid(f₁, f₂, levels1, levels2, p...)
-    return add_transform!(tdst, tsrc, p, treebraider, α, β, backend...)
+    transformer = treebraider(tdst, tsrc, p, (levels1, levels2))
+    return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
 """
@@ -324,14 +324,14 @@ See also [`transpose`](@ref), [`transpose!`](@ref), [`add_permute!`](@ref), [`ad
                                             α::Number,
                                             β::Number,
                                             backend::AbstractBackend...) where {T,S,N₁,N₂}
-    treetransposer(f₁, f₂) = transpose(f₁, f₂, p[1], p[2])
-    return add_transform!(tdst, tsrc, p, treetransposer, α, β, backend...)
+    transformer = treetransposer(tdst, tsrc, p)
+    return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
 function add_transform!(tdst::AbstractTensorMap{T,S,N₁,N₂},
                         tsrc::AbstractTensorMap,
                         (p₁, p₂)::Index2Tuple{N₁,N₂},
-                        fusiontreetransform,
+                        transformer::GenericTreeTransformer,
                         α::Number,
                         β::Number,
                         backend::AbstractBackend...) where {T,S,N₁,N₂}
@@ -341,16 +341,34 @@ function add_transform!(tdst::AbstractTensorMap{T,S,N₁,N₂},
             dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
     end
 
-    I = sectortype(S)
-    if p₁ == codomainind(tsrc) && p₂ == domainind(tsrc)
-        add!(tdst, tsrc, α, β)
-    elseif I === Trivial
-        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
-    elseif FusionStyle(I) isa UniqueFusion
-        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
-    else
-        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+    structure_dst = transformer.structure_dst.fusiontreestructure
+    structure_src = transformer.structure_src.fusiontreestructure
+
+    rows = rowvals(transformer.matrix)
+    vals = nonzeros(transformer.matrix)
+
+    # TODO: this could be multithreaded
+    for j in axes(transformer.matrix, 2)
+        sz_dst, str_dst, offset_dst = structure_dst[j]
+        subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
+        nzrows = nzrange(transformer.matrix, j)
+
+        # treat first entry
+        sz_src, str_src, offset_src = structure_src[rows[first(nzrows)]]
+        subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
+        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[first(nzrows)],
+                      β,
+                      backend...)
+
+        # treat remaining entries
+        for i in @view(nzrows[2:end])
+            sz_src, str_src, offset_src = structure_src[rows[i]]
+            subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
+            TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[i], One(),
+                          backend...)
+        end
     end
+
     return tdst
 end
 
@@ -389,7 +407,7 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
         tdst = scale!(tdst, β)
     end
     β′ = One()
-    if Threads.nthreads() > 1
+    if false # Threads.nthreads() > 1
         Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
             Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁,
                                                    s₂, α, β′, backend...)
