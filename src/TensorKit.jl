@@ -119,6 +119,9 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      eigen, eigen!, svd, svd!,
                      isposdef, isposdef!, ishermitian,
                      Diagonal, Hermitian
+
+using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
+
 import Base.Meta
 
 using Random: Random
@@ -185,6 +188,7 @@ include("tensors/adjoint.jl")
 include("tensors/linalg.jl")
 include("tensors/vectorinterface.jl")
 include("tensors/tensoroperations.jl")
+include("tensors/treetransformers.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
