@@ -5,14 +5,14 @@ Supertype for structures containing the data for a tree transformation.
 """
 abstract type TreeTransformer end
 
-function treetransformertype(Vdst, Vsrc)
-    I = sectortype(Vdst)
-    N = numind(Vdst)
-    F1 = fusiontreetype(I, numout(Vdst))
-    F2 = fusiontreetype(I, numin(Vdst))
-    F3 = fusiontreetype(I, numout(Vsrc))
-    F4 = fusiontreetype(I, numin(Vsrc))
-    return GenericTreeTransformer{sectorscalartype(I),I,N,F1,F2,F3,F4}
+struct TrivialTreeTransformer <: TreeTransformer end
+
+struct AbelianTreeTransformer{T,I,N,F1,F2,F3,F4} <: TreeTransformer
+    rows::Vector{Int}
+    cols::Vector{Int}
+    vals::Vector{T}
+    structure_dst::FusionBlockStructure{I,N,F1,F2}
+    structure_src::FusionBlockStructure{I,N,F3,F4}
 end
 
 struct GenericTreeTransformer{T,I,N,F1,F2,F3,F4} <: TreeTransformer
@@ -21,12 +21,30 @@ struct GenericTreeTransformer{T,I,N,F1,F2,F3,F4} <: TreeTransformer
     structure_src::FusionBlockStructure{I,N,F3,F4}
 end
 
-function GenericTreeTransformer(transform::Function, Vsrc::HomSpace, Vdst::HomSpace)
+function treetransformertype(Vdst, Vsrc)
+    I = sectortype(Vdst)
+    I === Trivial && return TrivialTreeTransformer
+
+    N = numind(Vdst)
+    F1 = fusiontreetype(I, numout(Vdst))
+    F2 = fusiontreetype(I, numin(Vdst))
+    F3 = fusiontreetype(I, numout(Vsrc))
+    F4 = fusiontreetype(I, numin(Vsrc))
+
+    if FusionStyle(I) isa UniqueFusion
+        return AbelianTreeTransformer{sectorscalartype(I),I,N,F1,F2,F3,F4}
+    else
+        return GenericTreeTransformer{sectorscalartype(I),I,N,F1,F2,F3,F4}
+    end
+end
+
+function TreeTransformer(transform::Function, Vsrc::HomSpace{S},
+                         Vdst::HomSpace{S}) where {S}
+    I = sectortype(Vdst)
+    I === Trivial && return TrivialTreeTransformer()
+
     structure_dst = fusionblockstructure(Vdst)
     structure_src = fusionblockstructure(Vsrc)
-
-    ldst = length(structure_dst.fusiontreelist)
-    lsrc = length(structure_src.fusiontreelist)
 
     rows = Int[]
     cols = Int[]
@@ -41,9 +59,15 @@ function GenericTreeTransformer(transform::Function, Vsrc::HomSpace, Vdst::HomSp
             push!(vals, coeff)
         end
     end
-    matrix = sparse(rows, cols, vals, ldst, lsrc)
 
-    return GenericTreeTransformer(matrix, structure_dst, structure_src)
+    if FusionStyle(I) isa UniqueFusion
+        return AbelianTreeTransformer(rows, cols, vals, structure_dst, structure_src)
+    else
+        ldst = length(structure_dst.fusiontreelist)
+        lsrc = length(structure_src.fusiontreelist)
+        matrix = sparse(rows, cols, vals, ldst, lsrc)
+        return GenericTreeTransformer(matrix, structure_dst, structure_src)
+    end
 end
 
 # Transpose
@@ -68,7 +92,7 @@ end
 end
 function _treetransposer((Vdst, Vsrc, p))
     fusiontreetransform(f1, f2) = transpose(f1, f2, p...)
-    return GenericTreeTransformer(fusiontreetransform, Vsrc, Vdst)
+    return TreeTransformer(fusiontreetransform, Vsrc, Vdst)
 end
 
 # Braid
@@ -94,7 +118,7 @@ end
 end
 function _treebraider((Vdst, Vsrc, p, l))
     fusiontreetransform(f1, f2) = braid(f1, f2, p..., l...)
-    return GenericTreeTransformer(fusiontreetransform, Vsrc, Vdst)
+    return TreeTransformer(fusiontreetransform, Vsrc, Vdst)
 end
 
 # Permute
@@ -119,5 +143,5 @@ end
 end
 function _treepermuter((Vdst, Vsrc, p))
     fusiontreetransform(f1, f2) = permute(f1, f2, p...)
-    return GenericTreeTransformer(fusiontreetransform, Vsrc, Vdst)
+    return TreeTransformer(fusiontreetransform, Vsrc, Vdst)
 end
