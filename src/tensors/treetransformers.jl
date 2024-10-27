@@ -75,7 +75,10 @@ end
 const treetransposercache = LRU{Any,Any}(; maxsize=10^5)
 const usetreetransposercache = Ref{Bool}(true)
 
-function treetransposer(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, p::Index2Tuple)
+function treetransposer(::AbstractTensorMap, ::AbstractTensorMap, p::Index2Tuple)
+    return fusiontreetransform(f1, f2) = transpose(f1, f2, p...)
+end
+function treetransposer(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple)
     if usetreetransposercache[]
         key = (space(tdst), space(tsrc), p)
         A = treetransformertype(space(tdst), space(tsrc))
@@ -100,7 +103,11 @@ end
 const treebraidercache = LRU{Any,Any}(; maxsize=10^5)
 const usetreebraidercache = Ref{Bool}(true)
 
-function treebraider(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, p::Index2Tuple,
+function treebraider(::AbstractTensorMap, ::AbstractTensorMap, p::Index2Tuple,
+                     l::Index2Tuple)
+    return fusiontreetransform(f1, f2) = braid(f1, f2, p..., l...)
+end
+function treebraider(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple,
                      l::Index2Tuple)
     if usetreebraidercache[]
         key = (space(tdst), space(tsrc), p, l)
@@ -126,7 +133,10 @@ end
 const treepermutercache = LRU{Any,Any}(; maxsize=10^5)
 const usetreepermutercache = Ref{Bool}(true)
 
-function treepermuter(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, p::Index2Tuple)
+function treepermuter(::AbstractTensorMap, ::AbstractTensorMap, p::Index2Tuple)
+    return fusiontreetransform(f1, f2) = permute(f1, f2, p...)
+end
+function treepermuter(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple)
     if usetreepermutercache[]
         key = (space(tdst), space(tsrc), p)
         A = treetransformertype(space(tdst), space(tsrc))

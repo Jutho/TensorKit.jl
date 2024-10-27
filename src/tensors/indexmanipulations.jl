@@ -328,20 +328,24 @@ See also [`transpose`](@ref), [`transpose!`](@ref), [`add_permute!`](@ref), [`ad
     return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
-function add_transform!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+function add_transform!(tdst::AbstractTensorMap,
                         tsrc::AbstractTensorMap,
-                        (p₁, p₂)::Index2Tuple{N₁,N₂},
+                        (p₁, p₂)::Index2Tuple,
                         transformer,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend...) where {T,S,N₁,N₂}
+                        backend::AbstractBackend...)
     @boundscheck begin
         permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
             dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
     end
 
-    add_transform_kernel!(tdst, tsrc, (p₁, p₂), transformer, α, β, backend...)
+    if p₁ === codomainind(tsrc) && p₂ === domainind(tsrc)
+        add!(tdst, tsrc, α, β)
+    else
+        add_transform_kernel!(tdst, tsrc, (p₁, p₂), transformer, α, β, backend...)
+    end
 
     return tdst
 end
@@ -416,4 +420,88 @@ function add_transform_kernel!(tdst::TensorMap,
     end
 
     return tdst
+end
+
+function add_transform_kernel!(tdst::AbstractTensorMap,
+                               tsrc::AbstractTensorMap,
+                               (p₁, p₂)::Index2Tuple,
+                               fusiontreetransform::Function,
+                               α::Number,
+                               β::Number,
+                               backend::AbstractBackend...)
+    I = sectortype(spacetype(tdst))
+
+    if I === Trivial
+        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+    elseif FusionStyle(I) isa UniqueFusion
+        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+    else
+        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+    end
+
+    return nothing
+end
+
+# internal methods: no argument types
+function _add_trivial_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
+    TO.tensoradd!(tdst[], tsrc[], p, false, α, β, backend...)
+    return nothing
+end
+
+function _add_abelian_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
+    if Threads.nthreads() > 1
+        Threads.@sync for (f₁, f₂) in fusiontrees(tsrc)
+            Threads.@spawn _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
+                                               f₁, f₂, α, β, backend...)
+        end
+    else
+        for (f₁, f₂) in fusiontrees(tsrc)
+            _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
+                                f₁, f₂, α, β, backend...)
+        end
+    end
+    return nothing
+end
+
+function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)
+    (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
+    @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
+                            backend...)
+    return nothing
+end
+
+function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
+    if iszero(β)
+        tdst = zerovector!(tdst)
+    elseif β != 1
+        tdst = scale!(tdst, β)
+    end
+    β′ = One()
+    if Threads.nthreads() > 1
+        Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
+            Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁,
+                                                   s₂, α, β′, backend...)
+        end
+    else
+        for (f₁, f₂) in fusiontrees(tsrc)
+            for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
+                @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff,
+                                        β′, backend...)
+            end
+        end
+    end
+    return nothing
+end
+
+# TODO: β argument is weird here because it has to be 1
+function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, β,
+                                 backend...)
+    for (f₁, f₂) in fusiontrees(tsrc)
+        (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
+        for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
+            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
+                                    backend...)
+        end
+    end
+    return nothing
 end
