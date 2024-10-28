@@ -436,7 +436,7 @@ function catcodomain(t1::TT, t2::TT) where {S,N₂,TT<:AbstractTensorMap{<:Any,S
     V = V1 ⊕ V2
     T = promote_type(scalartype(t1), scalartype(t2))
     t = similar(t1, T, V ← domain(t1))
-    for (c, b) in sectors(t)
+    for (c, b) in blocks(t)
         b[1:dim(V1, c), :] .= block(t1, c)
         b[dim(V1, c) .+ (1:dim(V2, c)), :] .= block(t2, c)
     end
