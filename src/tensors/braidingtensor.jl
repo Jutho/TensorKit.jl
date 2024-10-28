@@ -81,7 +81,8 @@ end
         d = (dims(V2 ⊗ V1, f₁.uncoupled)..., dims(V1 ⊗ V2, f₂.uncoupled)...)
         n1 = d[1] * d[2]
         n2 = d[3] * d[4]
-        data = fill!(storagetype(b)(undef, (n1, n2)), zero(scalartype(b)))
+        data = storagetype(b)(undef, (n1, n2))
+        fill!(data, zero(eltype(b)))
         a1, a2 = f₂.uncoupled
         if f₁.uncoupled == (a2, a1)
             braiddict = artin_braid(f₂, 1; inv=b.adjoint)
@@ -138,20 +139,22 @@ function block(b::BraidingTensor, s::Sector)
 
     length(data) == 0 && return data # s ∉ blocksectors(b)
 
-    data = fill!(data, zero(scalartype(b)))
+    data = fill!(data, zero(eltype(b)))
 
     V1, V2 = domain(b)
     if sectortype(b) === Trivial
         d1, d2 = dim(V1), dim(V2)
         subblock = sreshape(StridedView(data), (d1, d2, d2, d1))
         @inbounds for i in axes(subblock, 1), j in axes(subblock, 2)
-            subblock[i, j, j, i] = one(scalartype(b))
+            subblock[i, j, j, i] = one(eltype(b))
         end
         return data
     end
 
     structure = fusionblockstructure(b)
-    for ((f1, f2), (sz, str, _)) in
+    base_offset = first(structure.blockstructure[s][2]) - 1
+
+    for ((f1, f2), (sz, str, off)) in
         zip(structure.fusiontreelist, structure.fusiontreestructure)
         if (f1.uncoupled != reverse(f2.uncoupled)) || !(f1.coupled == f2.coupled == s)
             continue
@@ -161,8 +164,8 @@ function block(b::BraidingTensor, s::Sector)
         haskey(braiddict, f1) || continue
         r = braiddict[f1]
 
-        # discard offset because single block
-        subblock = StridedView(data, sz, str)
+        # change offset to account for single block
+        subblock = StridedView(data, sz, str, off - base_offset)
         @inbounds for i in axes(subblock, 1), j in axes(subblock, 2)
             subblock[i, j, j, i] = r
         end
