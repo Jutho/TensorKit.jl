@@ -414,15 +414,16 @@ end
 function block(t::TensorMap, s::Sector)
     sectortype(t) == typeof(s) || throw(SectorMismatch())
     structure = fusionblockstructure(t).blockstructure
-    if haskey(structure, s)
-        (d₁, d₂), r = structure[s]
-        return reshape(view(t.data, r), (d₁, d₂))
-    else # at least one of the two dimensions will be zero
-        d₁ = blockdim(codomain(t), s)
-        d₂ = blockdim(domain(t), s)
-        l = d₁ * d₂
-        return reshape(view(storagetype(t)(undef, l), 1:l), (d₁, d₂))
+    (d₁, d₂), r = get(structure, s) do
+        # is s is not a key, at least one of the two dimensions will be zero:
+        # it then does not matter where exactly we construct a view in `t.data`,
+        # as it will have length zero anyway
+        d₁′ = blockdim(codomain(t), s)
+        d₂′ = blockdim(domain(t), s)
+        l = d₁′ * d₂′
+        return (d₁′, d₂′), 1:l
     end
+    return reshape(view(t.data, r), (d₁, d₂))
 end
 
 blocks(t::TensorMap) = SectorDict(c => block(t, c) for c in blocksectors(t)) # TODO: make iterator
