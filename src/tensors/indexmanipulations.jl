@@ -273,12 +273,12 @@ the indices of `tsrc` according to `(p₁, p₂)`.
 
 See also [`permute`](@ref), [`permute!`](@ref), [`add_braid!`](@ref), [`add_transpose!`](@ref).
 """
-@propagate_inbounds function add_permute!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+@propagate_inbounds function add_permute!(tdst::AbstractTensorMap,
                                           tsrc::AbstractTensorMap,
-                                          p::Index2Tuple{N₁,N₂},
+                                          p::Index2Tuple,
                                           α::Number,
                                           β::Number,
-                                          backend::AbstractBackend...) where {T,S,N₁,N₂}
+                                          backend::AbstractBackend...)
     transformer = treepermuter(tdst, tsrc, p)
     return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
@@ -292,13 +292,13 @@ the indices of `tsrc` according to `(p₁, p₂)` and `levels`.
 
 See also [`braid`](@ref), [`braid!`](@ref), [`add_permute!`](@ref), [`add_transpose!`](@ref).
 """
-@propagate_inbounds function add_braid!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+@propagate_inbounds function add_braid!(tdst::AbstractTensorMap,
                                         tsrc::AbstractTensorMap,
-                                        p::Index2Tuple{N₁,N₂},
+                                        p::Index2Tuple,
                                         levels::IndexTuple,
                                         α::Number,
                                         β::Number,
-                                        backend::AbstractBackend...) where {T,S,N₁,N₂}
+                                        backend::AbstractBackend...)
     length(levels) == numind(tsrc) ||
         throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(tsrc)) ← $(domain(tsrc))"))
 
@@ -318,12 +318,12 @@ the indices of `tsrc` according to `(p₁, p₂)`.
 
 See also [`transpose`](@ref), [`transpose!`](@ref), [`add_permute!`](@ref), [`add_braid!`](@ref).
 """
-@propagate_inbounds function add_transpose!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+@propagate_inbounds function add_transpose!(tdst::AbstractTensorMap,
                                             tsrc::AbstractTensorMap,
-                                            p::Index2Tuple{N₁,N₂},
+                                            p::Index2Tuple,
                                             α::Number,
                                             β::Number,
-                                            backend::AbstractBackend...) where {T,S,N₁,N₂}
+                                            backend::AbstractBackend...)
     transformer = treetransposer(tdst, tsrc, p)
     return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
