@@ -66,7 +66,7 @@ printstyled("Finished all tests in ",
             " minutes."; bold=true, color=Base.info_color())
 println()
 
-# @testset "Aqua" verbose = true begin
-#     using Aqua
-#     Aqua.test_all(TensorKit)
-# end
+@testset "Aqua" verbose = true begin
+    using Aqua
+    Aqua.test_all(TensorKit)
+end

@@ -200,7 +200,7 @@ end
 
 function TO.tensoradd!(C::AbstractTensorMap,
                        A::BraidingTensor, pA::Index2Tuple, conjA::Symbol,
-                       α::Number, β::Number, backend::AbstractBackend=TO.DefaultBackend(),
+                       α::Number, β::Number, backend=TO.DefaultBackend(),
                        allocator=TO.DefaultAllocator())
     return TO.tensoradd!(C, TensorMap(A), pA, conjA, α, β, backend, allocator)
 end
@@ -322,7 +322,7 @@ end
 # ambiguity fix:
 function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
                          B::BraidingTensor, pB::Index2Tuple, pAB::Index2Tuple,
-                         α::Number, β::Number, backend::AbstractBackend,
+                         α::Number, β::Number, backend,
                          allocator)
     return planarcontract!(C, TensorMap(A), pA, TensorMap(B), pB, pAB, α, β, backend,
                            allocator)
@@ -332,7 +332,7 @@ function planartrace!(C::AbstractTensorMap,
                       A::BraidingTensor,
                       p::Index2Tuple, q::Index2Tuple,
                       α::Number, β::Number,
-                      backend::AbstractBackend,
+                      backend,
                       allocator)
     return planartrace!(C, TensorMap(A), p, q, α, β, backend, allocator)
 end

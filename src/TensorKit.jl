@@ -25,8 +25,7 @@ export Vect, Rep # space constructors
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
 export IndexSpace, HomSpace, TensorSpace, TensorMapSpace
-export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, TrivialTensorMap # tensors and tensor properties
-export BraidingTensor
+export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, BraidingTensor # tensors and tensor properties
 export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
