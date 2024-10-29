@@ -286,19 +286,24 @@ end
 # tensor data: block access
 #---------------------------
 @doc """
-    blocks(t::AbstractTensorMap) -> SectorDict{<:Sector,<:DenseMatrix}
+    blocks(t::AbstractTensorMap)
 
 Return an iterator over all blocks of a tensor, i.e. all coupled sectors and their
-corresponding blocks.
+corresponding matrix blocks.
 
 See also [`block`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
 """
-blocks(t::AbstractTensorMap) = SectorDict(c => block(t, c) for c in blocksectors(t)) # TODO: make iterator
+function blocks(t::AbstractTensorMap)
+    iter = Base.Iterators.map(blocksectors(t)) do c
+        return c => block(t, c)
+    end
+    return iter
+end
 
 @doc """
-    block(t::AbstractTensorMap, c::Sector) -> DenseMatrix
+    block(t::AbstractTensorMap, c::Sector)
 
-Return the block of a tensor corresponding to a coupled sector `c`.
+Return the matrix block of a tensor corresponding to a coupled sector `c`.
 
 See also [`blocks`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
 """ block

@@ -17,7 +17,7 @@ function force_planar(tsrc::TensorMap{<:Any,ComplexSpace})
     tdst = TensorMap{scalartype(tsrc)}(undef,
                                        force_planar(codomain(tsrc)) ←
                                        force_planar(domain(tsrc)))
-    copyto!(blocks(tdst)[PlanarTrivial()], blocks(tsrc)[Trivial()])
+    copyto!(block(tdst, PlanarTrivial()), block(tsrc, Trivial()))
     return tdst
 end
 function force_planar(tsrc::TensorMap{<:Any,<:GradedSpace})
@@ -25,7 +25,7 @@ function force_planar(tsrc::TensorMap{<:Any,<:GradedSpace})
                                        force_planar(codomain(tsrc)) ←
                                        force_planar(domain(tsrc)))
     for (c, b) in blocks(tsrc)
-        copyto!(blocks(tdst)[c ⊠ PlanarTrivial()], b)
+        copyto!(block(tdst, c ⊠ PlanarTrivial()), b)
     end
     return tdst
 end

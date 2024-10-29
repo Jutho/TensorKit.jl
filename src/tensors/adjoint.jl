@@ -23,8 +23,14 @@ storagetype(::Type{AdjointTensorMap{T,S,N₁,N₂,TT}}) where {T,S,N₁,N₂,TT}
 
 # Blocks and subblocks
 #----------------------
-blocksectors(t::AdjointTensorMap) = blocksectors(parent(t))
 block(t::AdjointTensorMap, s::Sector) = block(parent(t), s)'
+
+function blocks(t::AdjointTensorMap)
+    iter = Base.Iterators.map(blocks(parent(t))) do (c, b)
+        return c => b'
+    end
+    return iter
+end
 
 function Base.getindex(t::AdjointTensorMap{T,S,N₁,N₂},
                        f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}

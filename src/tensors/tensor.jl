@@ -426,7 +426,14 @@ function block(t::TensorMap, s::Sector)
     return reshape(view(t.data, r), (d₁, d₂))
 end
 
-blocks(t::TensorMap) = SectorDict(c => block(t, c) for c in blocksectors(t)) # TODO: make iterator
+function blocks(t::TensorMap)
+    structure = fusionblockstructure(t).blockstructure
+    iter = Base.Iterators.map(structure) do (c, ((d₁, d₂), r))
+        b = reshape(view(t.data, r), (d₁, d₂))
+        return c => b
+    end
+    return iter
+end
 
 # Indexing and getting and setting the data at the subblock level
 #-----------------------------------------------------------------

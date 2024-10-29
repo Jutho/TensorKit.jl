@@ -174,7 +174,7 @@ function LinearAlgebra.diagm(codom::VectorSpace, dom::VectorSpace, v::SectorDict
                                                          blockdim(dom, c), b)
                                 for (c, b) in v), codom ← dom)
 end
-LinearAlgebra.isdiag(t::AbstractTensorMap) = all(LinearAlgebra.isdiag, values(blocks(t)))
+LinearAlgebra.isdiag(t::AbstractTensorMap) = all(LinearAlgebra.isdiag ∘ last, blocks(t))
 
 # In-place methods
 #------------------
@@ -184,8 +184,8 @@ LinearAlgebra.isdiag(t::AbstractTensorMap) = all(LinearAlgebra.isdiag, values(bl
 # Copy, adjoint and fill:
 function Base.copy!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap)
     space(tdst) == space(tsrc) || throw(SpaceMismatch("$(space(tdst)) ≠ $(space(tsrc))"))
-    for c in blocksectors(tdst)
-        copy!(StridedView(block(tdst, c)), StridedView(block(tsrc, c)))
+    for ((c, bdst), (_, bsrc)) in zip(blocks(tdst), blocks(tsrc))
+        copy!(StridedView(bdst), StridedView(bsrc))
     end
     return tdst
 end
@@ -284,20 +284,44 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
                             tA::AbstractTensorMap,
                             tB::AbstractTensorMap, α=true, β=false)
     compose(space(tA), space(tB)) == space(tC) ||
-        throw(SpaceMismatch("$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
+        throw(SpaceMismatch(lazy"$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
 
-    for c in blocksectors(tC)
-        if hasblock(tA, c) # then also tB should have such a block
-            A = block(tA, c)
-            B = block(tB, c)
-            C = block(tC, c)
-            mul!(C, A, B, α, β)
-        elseif β != one(β)
-            rmul!(block(tC, c), β)
+    iterC = blocks(tC)
+    iterA = blocks(tA)
+    iterB = blocks(tB)
+    nextA = iterate(iterA)
+    nextB = iterate(iterB)
+    nextC = iterate(iterC)
+    while !isnothing(nextC)
+        (cC, C), stateC = nextC
+        if !isnothing(nextA) && !isnothing(nextB)
+            (cA, A), stateA = nextA
+            (cB, B), stateB = nextB
+            if cA == cC && cB == cC
+                mul!(C, A, B, α, β)
+                nextA = iterate(iterA, stateA)
+                nextB = iterate(iterB, stateB)
+                nextC = iterate(iterC, stateC)
+            elseif cA < cC
+                nextA = iterate(iterA, stateA)
+            elseif cB < cC
+                nextB = iterate(iterB, stateB)
+            else
+                if β != one(β)
+                    rmul!(C, β)
+                end
+                nextC = iterate(iterC, stateC)
+            end
+        else
+            if β != one(β)
+                rmul!(C, β)
+            end
+            nextC = iterate(iterC, stateC)
         end
     end
     return tC
 end
+
 # TODO: consider spawning threads for different blocks, support backends
 
 # TensorMap inverse
