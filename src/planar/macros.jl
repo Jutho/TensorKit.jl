@@ -24,6 +24,27 @@ function planarparser(planarexpr, kwargs...)
     # braiding tensors need to be instantiated before kwargs are processed
     push!(parser.preprocessors, _construct_braidingtensors)
 
+    # the order of backend and allocator postprocessors are important so let's find them first
+    hasbackend = false
+    for (name, val) in kwargs
+        if name == :backend
+            hasbackend = true
+            backend = val
+            push!(parser.postprocessors, ex -> TO.insertbackend(ex, backend))
+            break
+        end
+    end
+    for (name, val) in kwargs
+        if name == :allocator
+            allocator = val
+            if !hasbackend
+                backend = Expr(:call, GlobalRef(TensorOperations, :DefaultBackend))
+                push!(parser.postprocessors, ex -> TO.insertbackend(ex, backend))
+            end
+            push!(parser.postprocessors, ex -> TO.insertallocator(ex, allocator))
+            break
+        end
+    end
     for (name, val) in kwargs
         if name == :order
             isexpr(val, :tuple) ||
@@ -50,16 +71,8 @@ function planarparser(planarexpr, kwargs...)
                 throw(ArgumentError("Invalid use of `opt`, should be `opt=true` or `opt=OptExpr`"))
             end
             parser.contractiontreebuilder = network -> TO.optimaltree(network, optdict)[1]
-        elseif name == :backend
-            val isa Symbol ||
-                throw(ArgumentError("Backend should be a symbol."))
-            push!(parser.postprocessors, ex -> insert_operationbackend(ex, val))
-        elseif name == :allocator
-            val isa Symbol ||
-                throw(ArgumentError("Allocator should be a symbol."))
-            push!(parser.postprocessors, ex -> TO.insert_allocatorbackend(ex, val))
-        else
-            throw(ArgumentError("Unknown keyword argument `name`."))
+        elseif !(name == :allocator || name == :backend) # already processed
+            throw(ArgumentError("Unknown keyword argument `$name`."))
         end
     end
 
