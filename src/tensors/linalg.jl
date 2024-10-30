@@ -276,7 +276,11 @@ end
 function LinearAlgebra.tr(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("Trace of a tensor only exist when domain == codomain"))
-    return sum(dim(c) * tr(b) for (c, b) in blocks(t))
+    s = zero(scalartype(t))
+    for (c, b) in blocks(t)
+        s += dim(c) * tr(b)
+    end
+    return s
 end
 
 # TensorMap multiplication
