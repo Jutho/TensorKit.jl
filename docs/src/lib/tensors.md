@@ -6,49 +6,64 @@ CurrentModule = TensorKit
 
 ## Type hierarchy
 
-The type hierarchy of tensors is as follows:
-
+The abstract supertype of all tensors in TensorKit is given by `AbstractTensorMap`:
 ```@docs
 AbstractTensorMap
+```
+
+The following concrete subtypes are provided within the TensorKit library:
+```@docs
 TensorMap
 AdjointTensorMap
 BraidingTensor
 ```
 
-Some aliases are provided for convenience:
+Of those, `TensorMap` provides the generic instantiation of our tensor concept. It supports
+various constructors, which are discussed in the next subsection.
 
+Furthermore, some aliases are provided for convenience:
 ```@docs
 AbstractTensor
 Tensor
-TrivialTensorMap
-TrivialTensor
 ```
 
 ## `TensorMap` constructors
 
 ### General constructors
 
-A general `TensorMap` can be constructed by specifying its data, codmain and domain in one
-of the following ways:
+A `TensorMap` with undefined data can be constructed by specifying its domain and codomain:
 ```@docs
-TensorMap(::AbstractDict{<:Sector,<:DenseMatrix}, ::ProductSpace{S,N₁},
-                   ::ProductSpace{S,N₂}) where {S<:IndexSpace,N₁,N₂}
-TensorMap(::Any, ::Type{T}, codom::ProductSpace{S},
-                   dom::ProductSpace{S}) where {S<:IndexSpace,T<:Number}
-TensorMap(::DenseArray, ::ProductSpace{S,N₁}, ::ProductSpace{S,N₂};
-                   tol) where {S<:IndexSpace,N₁,N₂}
+TensorMap{T}(::UndefInitializer, V::TensorMapSpace{S,N₁,N₂}) where {T,S,N₁,N₂}
 ```
 
-Several special-purpose methods exist to generate data according to specific distributions:
+The resulting object can then be filled with data using the `setindex!` method as discussed
+below, using functions such as `VectorInterface.zerovector!`, `rand!` or `fill!`, or it can 
+be used as an output argument in one of the many methods that accept output arguments, or
+in an `@tensor output[...] = ...` expression.
+
+Alternatively, a `TensorMap` can be constructed by specifying its data, codmain and domain
+in one of the following ways:
 ```@docs
-randuniform
-randnormal
-randisometry
+TensorMap(data::AbstractDict{<:Sector,<:AbstractMatrix}, V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
+TensorMap(data::AbstractArray, V::TensorMapSpace{S,N₁,N₂}; tol) where {S<:IndexSpace,N₁,N₂}
+```
+
+Finally, we also support the following `Array`-like constructors
+```@docs
+zeros(::Type, V::TensorMapSpace)
+ones(::Type, V::TensorMapSpace)
+rand(::Type, V::TensorMapSpace)
+randn(::Type, V::TensorMapSpace)
+Random.randexp(::Type, V::TensorMapSpace)
+```
+as well as a `similar` constructor
+```@docs
+Base.similar(::AbstractTensorMap, args...)
 ```
 
 ### Specific constructors
 
-Additionally, several special-purpose constructors exist to generate data according to specific distributions:
+Additionally, the following methods can be used to construct specific `TensorMap` instances.
 ```@docs
 id
 isomorphism
@@ -56,22 +71,23 @@ unitary
 isometry
 ```
 
-## Accessing properties and data
+## `AbstractTensorMap` properties and data access
 
 The following methods exist to obtain type information:
 
 ```@docs
-spacetype
-sectortype(::Type{<:AbstractTensorMap{S}}) where {S<:IndexSpace}
+Base.eltype(::Type{<:AbstractTensorMap{T}}) where {T}
+spacetype(::Type{<:AbstractTensorMap{<:Any,S}}) where {S}
+sectortype(::Type{TT}) where {TT<:AbstractTensorMap}
+field(::Type{TT}) where {TT<:AbstractTensorMap}
 storagetype
-tensormaptype
 ```
 
 To obtain information about the indices, you can use:
 ```@docs
+space(::AbstractTensorMap, ::Int)
 domain
 codomain
-space(::AbstractTensorMap)
 numin
 numout
 numind
@@ -80,38 +96,69 @@ domainind
 allind
 ```
 
-To obtain information about the data, the following methods exist:
+In `TensorMap` instances, all data is gathered in a single `AbstractVector`, which has an internal structure into blocks associated to total coupled charge, within which live subblocks
+associated with the different possible fusion-splitting tree pairs.
+
+To obtain information about the structure of the data, you can use:
 ```@docs
+fusionblockstructure(::AbstractTensorMap)
+dim(::AbstractTensorMap)
 blocksectors(::AbstractTensorMap)
-blockdim(::AbstractTensorMap, ::Sector)
+hasblock(::AbstractTensorMap, ::Sector)
+fusiontrees(t::AbstractTensorMap)
+```
+
+Data can be accessed (and modified) in a number of ways. To access the full matrix block associated with the coupled charges, you can use:
+```@docs
 block
 blocks
-fusiontrees(::AbstractTensorMap)
-hasblock
 ```
 
-For `TensorMap`s with `Trivial` `sectortype`, the data can be directly accessed and
-manipulated in a straightforward way:
+To access the data associated with a specific fusion tree pair, you can use:
 ```@docs
-Base.getindex(t::TrivialTensorMap)
-Base.getindex(t::TrivialTensorMap, indices::Vararg{Int})
-Base.setindex!(t::TrivialTensorMap, ::Any, indices::Vararg{Int})
+Base.getindex(::TensorMap{T,S,N₁,N₂}, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
+Base.setindex!(::TensorMap{T,S,N₁,N₂,I}, ::Any, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
 ```
 
-For general `TensorMap`s, this can be done using custom `getindex` and `setindex!` methods:
+For a tensor `t` with `FusionType(sectortype(t)) isa UniqeFuison`, fusion trees are 
+completely determined by the outcoming sectors, and the data can be accessed in a more
+straightforward way:
 ```@docs
-Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
-              sectors::Tuple{Vararg{I}}) where {N₁,N₂,I<:Sector}
-Base.getindex(t::TensorMap{<:IndexSpace,N₁,N₂,I},
-              f₁::FusionTree{I,N₁},
-              f₂::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
-Base.setindex!(::TensorMap{<:IndexSpace,N₁,N₂,I}, ::Any, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {N₁,N₂,I<:Sector}
+Base.getindex(::TensorMap, ::Tuple{I,Vararg{I}}) where {I<:Sector}
 ```
 
-## `TensorMap` operations
+For tensor `t` with `sectortype(t) == Trivial`, the data can be accessed and manipulated
+directly as multidimensional arrays:
+```@docs
+Base.getindex(::AbstractTensorMap)
+Base.getindex(::AbstractTensorMap, ::Vararg{SliceIndex})
+Base.setindex!(::AbstractTensorMap, ::Any, ::Vararg{SliceIndex})
+```
 
-The operations that can be performed on a `TensorMap` can be organized into *index
-manipulations*, *(planar) traces* and *(planar) contractions*.
+## `AbstractTensorMap` operations
+
+The operations that can be performed on an `AbstractTensorMap` can be organized into the
+following categories:
+
+* *vector operations*: these do not change the `space` or index strucure of a tensor and
+  can be straightforwardly implemented on on the full data. All the methods described in
+  [VectorInterface.jl](https://github.com/Jutho/VectorInterface.jl) are supported. For
+  compatibility reasons, we also provide implementations for equivalent methods from
+  LinearAlgebra.jl, such as `axpy!`, `axpby!`.
+
+* *index manipulations*: these change (permute) the index structure of a tensor, which
+  affects the data in a way that is fully determined by the categorical data of the
+  `sectortype` of the tensor.
+  
+* *(planar) contractions* and *(planar) traces* (i.e., contractions with identity tensors).
+  Tensor contractions correspond to a combination of some index manipulations followed by
+  a composition or multiplication of the tensors in their role as linear maps.
+  Tensor contractions are however of such important and frequency that they require a
+  dedicated implementation.
+
+* *tensor factorisations*, which relies on their identification of tensors with linear maps
+  between tensor spaces. The factorisations are applied as ordinary matrix factorisations
+  to the matrix blocks associated with the coupled charges.
 
 ### Index manipulations
 
@@ -122,31 +169,34 @@ type `add_transform!`, for additional expert-mode options that allows for additi
 scaling, as well as the selection of a custom backend.
 
 ```@docs
-permute(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}; copy::Bool=false) where {S,N₁,N₂}
-braid(t::AbstractTensorMap{S}, (p₁, p₂)::Index2Tuple, levels::IndexTuple; copy::Bool=false) where {S}
-transpose(::AbstractTensorMap, ::Index2Tuple)
-repartition(::AbstractTensorMap, ::Int, ::Int)
-twist(::AbstractTensorMap, ::Int)
+permute(::AbstractTensorMap, ::Index2Tuple{N₁,N₂}; ::Bool) where {N₁,N₂}
+braid(::AbstractTensorMap, ::Index2Tuple, ::IndexTuple; ::Bool)
+transpose(::AbstractTensorMap, ::Index2Tuple; ::Bool)
+repartition(::AbstractTensorMap, ::Int, ::Int; ::Bool)
+twist(::AbstractTensorMap, ::Int; ::Bool)
 ```
+
 ```@docs
-permute!(tdst::AbstractTensorMap{S,N₁,N₂}, tsrc::AbstractTensorMap{S}, p::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
+permute!(::AbstractTensorMap, ::AbstractTensorMap, ::Index2Tuple)
 braid!
 transpose!
-repartition!(::AbstractTensorMap{S}, ::AbstractTensorMap{S}) where {S}
+repartition!
 twist!
 ```
+
 ```@docs
-add_permute!
-add_braid!
-add_transpose!
-add_transform!
+TensorKit.add_permute!
+TensorKit.add_braid!
+TensorKit.add_transpose!
 ```
 
-### Traces and contractions
+### Tensor map composition, traces, contractions and tensor products
 
 ```@docs
+compose(::AbstractTensorMap, ::AbstractTensorMap)
 trace_permute!
 contract!
+⊗(::AbstractTensorMap, ::AbstractTensorMap)
 ```
 
 ## `TensorMap` factorizations
@@ -159,5 +209,7 @@ rightnull
 tsvd
 eigh
 eig
-TensorKit.eigen
+isposdef
 ```
+
+TODO: document svd truncation types

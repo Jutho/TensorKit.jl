@@ -18,15 +18,14 @@ export FermionParity, FermionNumber, FermionSpin
 export FibonacciAnyon, IsingAnyon
 
 export VectorSpace, Field, ElementarySpace # abstract vector spaces
-export InnerProductStyle, NoInnerProduct, HasInnerProduct, EuclideanProduct
+export InnerProductStyle, NoInnerProduct, HasInnerProduct, EuclideanInnerProduct
 export ComplexSpace, CartesianSpace, GeneralSpace, GradedSpace # concrete spaces
 export ZNSpace, Z2Space, Z3Space, Z4Space, U1Space, CU1Space, SU2Space
 export Vect, Rep # space constructors
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
-export IndexSpace, TensorSpace, TensorMapSpace
-export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, TrivialTensorMap # tensors and tensor properties
-export BraidingTensor
+export IndexSpace, HomSpace, TensorSpace, TensorMapSpace
+export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, BraidingTensor # tensors and tensor properties
 export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
@@ -113,12 +112,15 @@ using Base.Iterators: product, filter
 
 using LinearAlgebra: LinearAlgebra
 using LinearAlgebra: norm, dot, normalize, normalize!, tr,
-                     axpy!, axpby!, lmul!, rmul!, mul!,
+                     axpy!, axpby!, lmul!, rmul!, mul!, ldiv!, rdiv!,
                      adjoint, adjoint!, transpose, transpose!,
-                     pinv, sylvester,
+                     lu, pinv, sylvester,
                      eigen, eigen!, svd, svd!,
                      isposdef, isposdef!, ishermitian,
                      Diagonal, Hermitian
+
+using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
+
 import Base.Meta
 
 using Random: Random
@@ -144,7 +146,7 @@ const FusionTreeDict{K,V} = Dict{K,V}
 abstract type TensorException <: Exception end
 
 # Exception type for all errors related to sector mismatch
-struct SectorMismatch{S<:Union{Nothing,String}} <: TensorException
+struct SectorMismatch{S<:Union{Nothing,AbstractString}} <: TensorException
     message::S
 end
 SectorMismatch() = SectorMismatch{Nothing}(nothing)
@@ -152,7 +154,7 @@ Base.show(io::IO, ::SectorMismatch{Nothing}) = print(io, "SectorMismatch()")
 Base.show(io::IO, e::SectorMismatch) = print(io, "SectorMismatch(\"", e.message, "\")")
 
 # Exception type for all errors related to vector space mismatch
-struct SpaceMismatch{S<:Union{Nothing,String}} <: TensorException
+struct SpaceMismatch{S<:Union{Nothing,AbstractString}} <: TensorException
     message::S
 end
 SpaceMismatch() = SpaceMismatch{Nothing}(nothing)
@@ -160,7 +162,7 @@ Base.show(io::IO, ::SpaceMismatch{Nothing}) = print(io, "SpaceMismatch()")
 Base.show(io::IO, e::SpaceMismatch) = print(io, "SpaceMismatch(\"", e.message, "\")")
 
 # Exception type for all errors related to invalid tensor index specification.
-struct IndexError{S<:Union{Nothing,String}} <: TensorException
+struct IndexError{S<:Union{Nothing,AbstractString}} <: TensorException
     message::S
 end
 IndexError() = IndexError{Nothing}(nothing)
@@ -175,16 +177,17 @@ include("fusiontrees/fusiontrees.jl")
 #-------------------------------------------
 include("spaces/vectorspaces.jl")
 
-# # Definitions and methods for tensors
-# #-------------------------------------
-# # general definitions
+# Definitions and methods for tensors
+#-------------------------------------
+# general definitions
 include("tensors/abstracttensor.jl")
-include("tensors/tensortreeiterator.jl")
+# include("tensors/tensortreeiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
 include("tensors/linalg.jl")
 include("tensors/vectorinterface.jl")
 include("tensors/tensoroperations.jl")
+include("tensors/treetransformers.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")

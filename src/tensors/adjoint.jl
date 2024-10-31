@@ -10,94 +10,38 @@ struct AdjointTensorMap{T,S,N₁,N₂,TT<:AbstractTensorMap{T,S,N₂,N₁}} <:
        AbstractTensorMap{T,S,N₁,N₂}
     parent::TT
 end
-
-#! format: off
-const AdjointTrivialTensorMap{T,S,N₁,N₂,TT<:TrivialTensorMap{T,S,N₂,N₁}} =
-    AdjointTensorMap{T,S,N₁,N₂,TT}
-#! format: on
+Base.parent(t::AdjointTensorMap) = t.parent
 
 # Constructor: construct from taking adjoint of a tensor
-Base.adjoint(t::AbstractTensorMap) = AdjointTensorMap(t)
 Base.adjoint(t::AdjointTensorMap) = parent(t)
-
-Base.parent(t::AdjointTensorMap) = t.parent
-parenttype(::Type{<:AdjointTensorMap{T,S,N₁,N₂,TT}}) where {T,S,N₁,N₂,TT} = TT
-
-function Base.similar(t::AdjointTensorMap, ::Type{TorA},
-                      P::TensorMapSpace) where {TorA<:MatOrNumber}
-    return similar(t', TorA, P)
-end
+Base.adjoint(t::AbstractTensorMap) = AdjointTensorMap(t)
 
 # Properties
-codomain(t::AdjointTensorMap) = domain(parent(t))
-domain(t::AdjointTensorMap) = codomain(parent(t))
-
-blocksectors(t::AdjointTensorMap) = blocksectors(parent(t))
-
-storagetype(::Type{TT}) where {TT<:AdjointTensorMap} = storagetype(parenttype(TT))
-
+space(t::AdjointTensorMap) = adjoint(space(parent(t)))
 dim(t::AdjointTensorMap) = dim(parent(t))
+storagetype(::Type{AdjointTensorMap{T,S,N₁,N₂,TT}}) where {T,S,N₁,N₂,TT} = storagetype(TT)
 
-# Indexing
-#----------
-hasblock(t::AdjointTensorMap, s::Sector) = hasblock(parent(t), s)
+# Blocks and subblocks
+#----------------------
 block(t::AdjointTensorMap, s::Sector) = block(parent(t), s)'
-blocks(t::AdjointTensorMap) = (c => b' for (c, b) in blocks(parent(t)))
 
-fusiontrees(::AdjointTrivialTensorMap) = ((nothing, nothing),)
-function fusiontrees(t::AdjointTensorMap{T,S,N₁,N₂,TT}) where {T,S,N₁,N₂,TT<:TensorMap}
-    return TensorKeyIterator(parent(t).colr, parent(t).rowr)
-end
-
-function Base.getindex(t::AdjointTensorMap{T,S,N₁,N₂,<:TensorMap{T,S,N₁,N₂,I}},
-                       f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
-    c = f₁.coupled
-    @boundscheck begin
-        c == f₂.coupled || throw(SectorMismatch())
-        hassector(codomain(t), f₁.uncoupled) && hassector(domain(t), f₂.uncoupled)
+function blocks(t::AdjointTensorMap)
+    iter = Base.Iterators.map(blocks(parent(t))) do (c, b)
+        return c => b'
     end
-    return sreshape((StridedView(parent(t).data[c])[parent(t).rowr[c][f₂],
-                                                    parent(t).colr[c][f₁]])',
-                    (dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled)...))
-end
-@propagate_inbounds function Base.getindex(t::AdjointTensorMap{T,S,N₁,N₂},
-                                           f₁::FusionTree{I,N₁},
-                                           f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
-    d_cod = dims(codomain(t), f₁.uncoupled)
-    d_dom = dims(domain(t), f₂.uncoupled)
-    return sreshape(sreshape(StridedView(parent(t)[f₂, f₁]), (prod(d_dom), prod(d_cod)))',
-                    (d_cod..., d_dom...))
+    return iter
 end
 
-@propagate_inbounds function Base.setindex!(t::AdjointTensorMap{T,S,N₁,N₂,I}, v,
-                                            f₁::FusionTree{I,N₁},
-                                            f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
+function Base.getindex(t::AdjointTensorMap{T,S,N₁,N₂},
+                       f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
+    tp = parent(t)
+    subblock = getindex(tp, f₂, f₁)
+    return permutedims(conj(subblock), (domainind(tp)..., codomainind(tp)...))
+end
+function Base.setindex!(t::AdjointTensorMap{T,S,N₁,N₂}, v,
+                        f₁::FusionTree{I,N₁},
+                        f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,I}
     return copy!(getindex(t, f₁, f₂), v)
-end
-
-@inline function Base.getindex(t::AdjointTrivialTensorMap)
-    return sreshape(StridedView(parent(t).data)',
-                    (dims(codomain(t))..., dims(domain(t))...))
-end
-@inline Base.setindex!(t::AdjointTrivialTensorMap, v) = copy!(getindex(t), v)
-
-@inline Base.getindex(t::AdjointTrivialTensorMap, ::Tuple{Nothing,Nothing}) = getindex(t)
-@inline function Base.setindex!(t::AdjointTrivialTensorMap, v, ::Tuple{Nothing,Nothing})
-    return setindex!(t, v)
-end
-
-# For a tensor with trivial symmetry, allow direct indexing
-@inline function Base.getindex(t::AdjointTrivialTensorMap, indices::Vararg{Int})
-    data = t[]
-    @boundscheck checkbounds(data, indices)
-    @inbounds v = data[indices...]
-    return v
-end
-@inline function Base.setindex!(t::AdjointTrivialTensorMap, v, indices::Vararg{Int})
-    data = t[]
-    @boundscheck checkbounds(data, indices)
-    @inbounds data[indices...] = v
-    return v
 end
 
 # Show

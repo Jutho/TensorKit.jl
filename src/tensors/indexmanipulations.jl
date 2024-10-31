@@ -264,67 +264,182 @@ twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
 #-------------------------------------
 # Full implementations based on `add`
 #-------------------------------------
-@propagate_inbounds function add_permute!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+"""
+    add_permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
+                 α::Number, β::Number, backend::AbstractBackend...)
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after permuting 
+the indices of `tsrc` according to `(p₁, p₂)`.
+
+See also [`permute`](@ref), [`permute!`](@ref), [`add_braid!`](@ref), [`add_transpose!`](@ref).
+"""
+@propagate_inbounds function add_permute!(tdst::AbstractTensorMap,
                                           tsrc::AbstractTensorMap,
-                                          p::Index2Tuple{N₁,N₂},
+                                          p::Index2Tuple,
                                           α::Number,
                                           β::Number,
-                                          backend::AbstractBackend...) where {T,S,N₁,N₂}
-    treepermuter(f₁, f₂) = permute(f₁, f₂, p[1], p[2])
-    return add_transform!(tdst, tsrc, p, treepermuter, α, β, backend...)
+                                          backend::AbstractBackend...)
+    transformer = treepermuter(tdst, tsrc, p)
+    return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
-@propagate_inbounds function add_braid!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+"""
+    add_braid!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
+               levels::IndexTuple, α::Number, β::Number, backend::AbstractBackend...)
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after braiding
+the indices of `tsrc` according to `(p₁, p₂)` and `levels`.
+
+See also [`braid`](@ref), [`braid!`](@ref), [`add_permute!`](@ref), [`add_transpose!`](@ref).
+"""
+@propagate_inbounds function add_braid!(tdst::AbstractTensorMap,
                                         tsrc::AbstractTensorMap,
-                                        p::Index2Tuple{N₁,N₂},
+                                        p::Index2Tuple,
                                         levels::IndexTuple,
                                         α::Number,
                                         β::Number,
-                                        backend::AbstractBackend...) where {T,S,N₁,N₂}
+                                        backend::AbstractBackend...)
     length(levels) == numind(tsrc) ||
         throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(tsrc)) ← $(domain(tsrc))"))
 
     levels1 = TupleTools.getindices(levels, codomainind(tsrc))
     levels2 = TupleTools.getindices(levels, domainind(tsrc))
     # TODO: arg order for tensormaps is different than for fusiontrees
-    treebraider(f₁, f₂) = braid(f₁, f₂, levels1, levels2, p...)
-    return add_transform!(tdst, tsrc, p, treebraider, α, β, backend...)
+    transformer = treebraider(tdst, tsrc, p, (levels1, levels2))
+    return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
-@propagate_inbounds function add_transpose!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+"""
+    add_transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
+                   α::Number, β::Number, backend::AbstractBackend...)
+
+Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after transposing
+the indices of `tsrc` according to `(p₁, p₂)`.
+
+See also [`transpose`](@ref), [`transpose!`](@ref), [`add_permute!`](@ref), [`add_braid!`](@ref).
+"""
+@propagate_inbounds function add_transpose!(tdst::AbstractTensorMap,
                                             tsrc::AbstractTensorMap,
-                                            p::Index2Tuple{N₁,N₂},
+                                            p::Index2Tuple,
                                             α::Number,
                                             β::Number,
-                                            backend::AbstractBackend...) where {T,S,N₁,N₂}
-    treetransposer(f₁, f₂) = transpose(f₁, f₂, p[1], p[2])
-    return add_transform!(tdst, tsrc, p, treetransposer, α, β, backend...)
+                                            backend::AbstractBackend...)
+    transformer = treetransposer(tdst, tsrc, p)
+    return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
-function add_transform!(tdst::AbstractTensorMap{T,S,N₁,N₂},
+function add_transform!(tdst::AbstractTensorMap,
                         tsrc::AbstractTensorMap,
-                        (p₁, p₂)::Index2Tuple{N₁,N₂},
-                        fusiontreetransform,
+                        (p₁, p₂)::Index2Tuple,
+                        transformer,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend...) where {T,S,N₁,N₂}
+                        backend::AbstractBackend...)
     @boundscheck begin
         permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
             dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
     end
 
-    I = sectortype(S)
-    if p₁ == codomainind(tsrc) && p₂ == domainind(tsrc)
+    if p₁ === codomainind(tsrc) && p₂ === domainind(tsrc)
         add!(tdst, tsrc, α, β)
-    elseif I === Trivial
+    else
+        add_transform_kernel!(tdst, tsrc, (p₁, p₂), transformer, α, β, backend...)
+    end
+
+    return tdst
+end
+
+function add_transform_kernel!(tdst::TensorMap,
+                               tsrc::TensorMap,
+                               (p₁, p₂)::Index2Tuple,
+                               ::TrivialTreeTransformer,
+                               α::Number,
+                               β::Number,
+                               backend::AbstractBackend...)
+    return TO.tensoradd!(tdst[], tsrc[], (p₁, p₂), false, α, β, backend...)
+end
+
+function add_transform_kernel!(tdst::TensorMap,
+                               tsrc::TensorMap,
+                               (p₁, p₂)::Index2Tuple,
+                               transformer::AbelianTreeTransformer,
+                               α::Number,
+                               β::Number,
+                               backend::AbstractBackend...)
+    structure_dst = transformer.structure_dst.fusiontreestructure
+    structure_src = transformer.structure_src.fusiontreestructure
+
+    # TODO: this could be multithreaded
+    for (row, col, val) in zip(transformer.rows, transformer.cols, transformer.vals)
+        sz_dst, str_dst, offset_dst = structure_dst[col]
+        subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
+
+        sz_src, str_src, offset_src = structure_src[row]
+        subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
+
+        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * val, β, backend...)
+    end
+
+    return nothing
+end
+
+function add_transform_kernel!(tdst::TensorMap,
+                               tsrc::TensorMap,
+                               (p₁, p₂)::Index2Tuple,
+                               transformer::GenericTreeTransformer,
+                               α::Number,
+                               β::Number,
+                               backend::AbstractBackend...)
+    structure_dst = transformer.structure_dst.fusiontreestructure
+    structure_src = transformer.structure_src.fusiontreestructure
+
+    rows = rowvals(transformer.matrix)
+    vals = nonzeros(transformer.matrix)
+
+    # TODO: this could be multithreaded
+    for j in axes(transformer.matrix, 2)
+        sz_dst, str_dst, offset_dst = structure_dst[j]
+        subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
+        nzrows = nzrange(transformer.matrix, j)
+
+        # treat first entry
+        sz_src, str_src, offset_src = structure_src[rows[first(nzrows)]]
+        subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
+        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[first(nzrows)],
+                      β,
+                      backend...)
+
+        # treat remaining entries
+        for i in @view(nzrows[2:end])
+            sz_src, str_src, offset_src = structure_src[rows[i]]
+            subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
+            TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[i], One(),
+                          backend...)
+        end
+    end
+
+    return tdst
+end
+
+function add_transform_kernel!(tdst::AbstractTensorMap,
+                               tsrc::AbstractTensorMap,
+                               (p₁, p₂)::Index2Tuple,
+                               fusiontreetransform::Function,
+                               α::Number,
+                               β::Number,
+                               backend::AbstractBackend...)
+    I = sectortype(spacetype(tdst))
+
+    if I === Trivial
         _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
     elseif FusionStyle(I) isa UniqueFusion
         _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
     else
         _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
     end
-    return tdst
+
+    return nothing
 end
 
 # internal methods: no argument types
@@ -345,7 +460,7 @@ function _add_abelian_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
                                 f₁, f₂, α, β, backend...)
         end
     end
-    return tdst
+    return nothing
 end
 
 function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)

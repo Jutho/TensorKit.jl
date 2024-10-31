@@ -52,50 +52,11 @@ function Base.adjoint(b::BraidingTensor{T,S}) where {T,S}
     return BraidingTensor{T,S}(b.V1, b.V2, !b.adjoint)
 end
 
-domain(b::BraidingTensor) = b.adjoint ? b.V2 ⊗ b.V1 : b.V1 ⊗ b.V2
-codomain(b::BraidingTensor) = b.adjoint ? b.V1 ⊗ b.V2 : b.V2 ⊗ b.V1
+space(b::BraidingTensor) = b.adjoint ? b.V1 ⊗ b.V2 ← b.V2 ⊗ b.V1 : b.V2 ⊗ b.V1 ← b.V1 ⊗ b.V2
 
-# TODO: check if this can be removed/is correct
-storagetype(::Type{BraidingTensor{T,S}}) where {T,S} = Matrix{T}
-
-blocksectors(b::BraidingTensor) = blocksectors(b.V1 ⊗ b.V2)
-hasblock(b::BraidingTensor, s::Sector) = s ∈ blocksectors(b)
-
-function fusiontrees(b::BraidingTensor)
-    if sectortype(b) === Trivial
-        return ((nothing, nothing),)
-    end
-
-    codom = codomain(b)
-    dom = domain(b)
-    I = sectortype(b)
-    F = fusiontreetype(I, 2)
-    rowr = SectorDict{I,FusionTreeDict{F,UnitRange{Int}}}()
-    colr = SectorDict{I,FusionTreeDict{F,UnitRange{Int}}}()
-    for c in blocksectors(codom)
-        rowrc = FusionTreeDict{F,UnitRange{Int}}()
-        colrc = FusionTreeDict{F,UnitRange{Int}}()
-        offset1 = 0
-        for s1 in sectors(codom)
-            for f₁ in fusiontrees(s1, c, map(isdual, codom.spaces))
-                r = (offset1 + 1):(offset1 + dim(codom, s1))
-                push!(rowrc, f₁ => r)
-                offset1 = last(r)
-            end
-        end
-        offset2 = 0
-        for s2 in sectors(dom)
-            for f₂ in fusiontrees(s2, c, map(isdual, dom.spaces))
-                r = (offset2 + 1):(offset2 + dim(dom, s2))
-                push!(colrc, f₂ => r)
-                offset2 = last(r)
-            end
-        end
-        push!(rowr, c => rowrc)
-        push!(colr, c => colrc)
-    end
-    return TensorKeyIterator(rowr, colr)
-end
+# TODO: this will probably give issues with GPUs, so we should try to avoid
+# calling this method alltogether
+storagetype(::Type{BraidingTensor{T,S}}) where {T,S} = Vector{T}
 
 function Base.getindex(b::BraidingTensor)
     sectortype(b) === Trivial || throw(SectorMismatch())
@@ -120,7 +81,8 @@ end
         d = (dims(V2 ⊗ V1, f₁.uncoupled)..., dims(V1 ⊗ V2, f₂.uncoupled)...)
         n1 = d[1] * d[2]
         n2 = d[3] * d[4]
-        data = fill!(storagetype(b)(undef, (n1, n2)), zero(scalartype(b)))
+        data = storagetype(b)(undef, (n1, n2))
+        fill!(data, zero(eltype(b)))
         a1, a2 = f₂.uncoupled
         if f₁.uncoupled == (a2, a1)
             braiddict = artin_braid(f₂, 1; inv=b.adjoint)
@@ -156,7 +118,7 @@ function Base.copy!(t::TensorMap, b::BraidingTensor)
             braiddict = artin_braid(f₂, 1; inv=b.adjoint)
             r = convert(scalartype(t), get(braiddict, f₁, zero(valtype(braiddict))))
         end
-        for i in 1:size(data, 1), j in 1:size(data, 2)
+        @inbounds for i in axes(data, 1), j in axes(data, 2)
             data[i, j, j, i] = r
         end
     end
@@ -165,39 +127,50 @@ end
 TensorMap(b::BraidingTensor) = copy!(similar(b), b)
 Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
+# TODO: fix this!
+# block(b::BraidingTensor, s::Sector) = block(TensorMap(b), s)
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
-    (V1, V2) = domain(b)
-    if sectortype(b) == Trivial
+
+    # TODO: probably always square?
+    m = blockdim(codomain(b), s)
+    n = blockdim(domain(b), s)
+    data = Matrix{eltype(b)}(undef, (m, n))
+
+    length(data) == 0 && return data # s ∉ blocksectors(b)
+
+    data = fill!(data, zero(eltype(b)))
+
+    V1, V2 = domain(b)
+    if sectortype(b) === Trivial
         d1, d2 = dim(V1), dim(V2)
-        n = d1 * d2
-        data = fill!(storagetype(b)(undef, (n, n)), zero(scalartype(b)))
-        si = 1 + d2 * d1 * d1
-        sj = d2 + d2 * d1
-        @inbounds for i in 1:d2, j in 1:d1
-            data[(i - 1) * si + (j - 1) * sj + 1] = one(scalartype(b))
+        subblock = sreshape(StridedView(data), (d1, d2, d2, d1))
+        @inbounds for i in axes(subblock, 1), j in axes(subblock, 2)
+            subblock[i, j, j, i] = one(eltype(b))
         end
         return data
     end
-    n = blockdim(domain(b), s)
-    data = fill!(storagetype(b)(undef, (n, n)), zero(scalartype(b)))
-    iter = fusiontrees(b) # actually contains information about ranges as well
-    for (f₂, r2) in iter.colr[s]
-        for (f₁, r1) in iter.rowr[s]
-            a1, a2 = f₂.uncoupled
-            d1 = dim(V1, a1)
-            d2 = dim(V2, a2)
-            f₁.uncoupled == (a2, a1) || continue
-            braiddict = artin_braid(f₂, 1; inv=b.adjoint)
-            r = convert(scalartype(b), get(braiddict, f₁, zero(valtype(braiddict))))
-            si = 1 + n * d1
-            sj = d2 + n
-            start = first(r1) + (first(r2) - 1) * n
-            @inbounds for i in 1:d2, j in 1:d1
-                data[(i - 1) * si + (j - 1) * sj + start] = r
-            end
+
+    structure = fusionblockstructure(b)
+    base_offset = first(structure.blockstructure[s][2]) - 1
+
+    for ((f1, f2), (sz, str, off)) in
+        zip(structure.fusiontreelist, structure.fusiontreestructure)
+        if (f1.uncoupled != reverse(f2.uncoupled)) || !(f1.coupled == f2.coupled == s)
+            continue
+        end
+
+        braiddict = artin_braid(f2, 1; inv=b.adjoint)
+        haskey(braiddict, f1) || continue
+        r = braiddict[f1]
+
+        # change offset to account for single block
+        subblock = StridedView(data, sz, str, off - base_offset)
+        @inbounds for i in axes(subblock, 1), j in axes(subblock, 2)
+            subblock[i, j, j, i] = r
         end
     end
+
     return data
 end
 
@@ -227,7 +200,7 @@ end
 
 function TO.tensoradd!(C::AbstractTensorMap,
                        A::BraidingTensor, pA::Index2Tuple, conjA::Symbol,
-                       α::Number, β::Number, backend::AbstractBackend=TO.DefaultBackend(),
+                       α::Number, β::Number, backend=TO.DefaultBackend(),
                        allocator=TO.DefaultAllocator())
     return TO.tensoradd!(C, TensorMap(A), pA, conjA, α, β, backend, allocator)
 end
@@ -239,8 +212,7 @@ end
 function planaradd!(C::AbstractTensorMap,
                     A::BraidingTensor, p::Index2Tuple,
                     α::Number, β::Number,
-                    backend::AbstractBackend,
-                    allocator)
+                    backend, allocator)
     return planaradd!(C, TensorMap(A), p, α, β, backend, allocator)
 end
 
@@ -251,8 +223,7 @@ function planarcontract!(C::AbstractTensorMap,
                          (cindB, oindB)::Index2Tuple,
                          (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::AbstractBackend,
-                         allocator)
+                         backend, allocator)
     # special case only defined for contracting 2 indices
     length(oindA) == length(cindA) == 2 ||
         return planarcontract!(C, TensorMap(A), (oindA, cindA), B, (cindB, oindB), (p1, p2),
@@ -303,8 +274,7 @@ function planarcontract!(C::AbstractTensorMap,
                          (cindB, oindB)::Index2Tuple,
                          (p1, p2)::Index2Tuple,
                          α::Number, β::Number,
-                         backend::AbstractBackend,
-                         allocator)
+                         backend, allocator)
     # special case only defined for contracting 2 indices
     length(oindB) == length(cindB) == 2 ||
         return planarcontract!(C, A, (oindA, cindA), TensorMap(B), (cindB, oindB), (p1, p2),
@@ -352,7 +322,7 @@ end
 # ambiguity fix:
 function planarcontract!(C::AbstractTensorMap, A::BraidingTensor, pA::Index2Tuple,
                          B::BraidingTensor, pB::Index2Tuple, pAB::Index2Tuple,
-                         α::Number, β::Number, backend::AbstractBackend,
+                         α::Number, β::Number, backend,
                          allocator)
     return planarcontract!(C, TensorMap(A), pA, TensorMap(B), pB, pAB, α, β, backend,
                            allocator)
@@ -362,7 +332,7 @@ function planartrace!(C::AbstractTensorMap,
                       A::BraidingTensor,
                       p::Index2Tuple, q::Index2Tuple,
                       α::Number, β::Number,
-                      backend::AbstractBackend,
+                      backend,
                       allocator)
     return planartrace!(C, TensorMap(A), p, q, α, β, backend, allocator)
 end

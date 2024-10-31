@@ -17,7 +17,7 @@ function force_planar(tsrc::TensorMap{<:Any,ComplexSpace})
     tdst = TensorMap{scalartype(tsrc)}(undef,
                                        force_planar(codomain(tsrc)) ←
                                        force_planar(domain(tsrc)))
-    copyto!(blocks(tdst)[PlanarTrivial()], blocks(tsrc)[Trivial()])
+    copyto!(block(tdst, PlanarTrivial()), block(tsrc, Trivial()))
     return tdst
 end
 function force_planar(tsrc::TensorMap{<:Any,<:GradedSpace})
@@ -25,7 +25,7 @@ function force_planar(tsrc::TensorMap{<:Any,<:GradedSpace})
                                        force_planar(codomain(tsrc)) ←
                                        force_planar(domain(tsrc)))
     for (c, b) in blocks(tsrc)
-        copyto!(blocks(tdst)[c ⊠ PlanarTrivial()], b)
+        copyto!(block(tdst, c ⊠ PlanarTrivial()), b)
     end
     return tdst
 end
@@ -37,10 +37,10 @@ end
     @test codomain(t1) == codomain(V1)
     @test domain(t1) == domain(V1)
     @test scalartype(t1) == Float64
-    @test storagetype(t1) == Matrix{Float64}
+    @test storagetype(t1) == Vector{Float64}
     t2 = @constinferred BraidingTensor{ComplexF64}(V1)
     @test scalartype(t2) == ComplexF64
-    @test storagetype(t2) == Matrix{ComplexF64}
+    @test storagetype(t2) == Vector{ComplexF64}
 
     V2 = ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^3
     @test_throws SpaceMismatch BraidingTensor(V2)

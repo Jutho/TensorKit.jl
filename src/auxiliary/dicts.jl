@@ -253,3 +253,13 @@ function Base.iterate(d::SortedVectorDict, i=1)
         return (d.keys[i] => d.values[i]), i + 1
     end
 end
+
+function Base.:(==)(d1::SortedVectorDict, d2::SortedVectorDict)
+    length(d1) == length(d2) || return false
+    for (k1, v1, k2, v2) in zip(d1.keys, d1.values, d2.keys, d2.values)
+        if !(isequal(k1, k2) && isequal(v1, v2))
+            return false
+        end
+    end
+    return true
+end

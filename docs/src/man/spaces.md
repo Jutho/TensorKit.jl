@@ -5,7 +5,8 @@ using TensorKit
 ```
 
 From the [Introduction](@ref s_intro), it should be clear that an important aspect in the
-definition of a tensor (map) is specifying the vector spaces and their structure in the domain and codomain of the map. The starting point is an abstract type `VectorSpace`
+definition of a tensor (map) is specifying the vector spaces and their structure in the
+domain and codomain of the map. The starting point is an abstract type `VectorSpace`
 ```julia
 abstract type VectorSpace end
 ```
@@ -17,19 +18,17 @@ or complicated, we will simply refer to subtypes of `VectorSpace` instead of spe
 categories, and to spaces (i.e. `VectorSpace` instances) instead of objects from these
 categories. In particular, we define two abstract subtypes
 ```julia
-abstract type ElementarySpace{𝕜} <: VectorSpace end
+abstract type ElementarySpace <: VectorSpace end
 const IndexSpace = ElementarySpace
 
 abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 ```
 Here, `ElementarySpace` is a super type for all vector spaces (objects) that can be
 associated with the individual indices of a tensor, as hinted to by its alias `IndexSpace`.
-It is parametrically dependent on `𝕜`, the field of scalars (see the next section on
-[Fields](@ref ss_fields)).
 
 On the other hand, subtypes of `CompositeSpace{S}` where `S<:ElementarySpace` are composed
 of a number of elementary spaces of type `S`. So far, there is a single concrete type
-`ProductSpace{S,N}` that represents the homogeneous tensor product of `N` vector spaces of
+`ProductSpace{S,N}` that represents the tensor product of `N` vector spaces of a homogeneous
 type `S`. Its properties are discussed in the section on
 [Composite spaces](@ref ss_compositespaces), together with possible extensions for the
 future.
@@ -40,7 +39,7 @@ type domain. Its use will be illustrated below.
 
 ## [Fields](@id ss_fields)
 
-Vector spaces (linear categories) are defined over a field of scalars ``𝕜``. We define a
+Vector spaces (linear categories) are defined over a field of scalars ``𝔽``. We define a
 type hierarchy to specify the scalar field, but so far only support real and complex
 numbers, via
 ```julia
@@ -66,7 +65,11 @@ ComplexF64 ⊆ ℂ
 ```
 and furthermore —probably more usefully— `ℝ^n` and `ℂ^n` create specific elementary vector
 spaces as described in the next section. The underlying field of a vector space or tensor
-`a` can be obtained with `field(a)`.
+`a` can be obtained with `field(a)`:
+
+```@docs; canonical=false
+field
+```
 
 ## [Elementary spaces](@id ss_elementaryspaces)
 
@@ -93,10 +96,10 @@ methods
 
 For convenience, the dual of a space `V` can also be obtained as `V'`.
 
-There is concrete type `GeneralSpace` which is completely characterized by its field `𝕜`,
-its dimension and whether its the dual and/or complex conjugate of $𝕜^d$.
+There is concrete type `GeneralSpace` which is completely characterized by its field `𝔽`,
+its dimension and whether its the dual and/or complex conjugate of $𝔽^d$.
 ```julia
-struct GeneralSpace{𝕜} <: ElementarySpace{𝕜}
+struct GeneralSpace{𝔽} <: ElementarySpace
     d::Int
     dual::Bool
     conj::Bool
@@ -108,53 +111,50 @@ We furthermore define the trait types
 abstract type InnerProductStyle end
 struct NoInnerProduct <: InnerProductStyle end
 abstract type HasInnerProduct <: InnerProductStyle end
-struct EuclideanProduct <: HasInnerProduct end
+struct EuclideanInnerProduct <: HasInnerProduct end
 ```
 to denote for a vector space `V` whether it has an inner product and thus a canonical
-mapping from `dual(V)` to `V` (for `𝕜 ⊆ ℝ`) or from `dual(V)` to `conj(V)` (otherwise).
-This mapping is provided by the metric, but no further support for working with metrics is
-currently implemented.
+mapping from `dual(V)` to `V` (for real fields `𝔽 ⊆ ℝ`) or from `dual(V)` to `conj(V)`
+(for complex fields). This mapping is provided by the metric, but no further support for
+working with metrics is currently implemented.
 
-The `EuclideanProduct` has the natural isomorphisms `dual(V) == V` (for `𝕜 == ℝ`)
-or `dual(V) == conj(V)` (for ` 𝕜 == ℂ`).
-In the language of the previous section on [categories](@ref s_categories), this trait represents [dagger or unitary categories](@ref ss_adjoints), and these vector spaces support an `adjoint` operation.
+Spaces with the `EuclideanInnerProduct` style have the natural isomorphisms `dual(V) == V`
+(for `𝔽 == ℝ`) or `dual(V) == conj(V)` (for ` 𝔽 == ℂ`). In the language of the previous
+section on [categories](@ref s_categories), this trait represents
+[dagger or unitary categories](@ref ss_adjoints), and these vector spaces support an
+`adjoint` operation.
 
 In particular, the two concrete types
 ```julia
-struct CartesianSpace <: ElementarySpace{ℝ}
+struct CartesianSpace <: ElementarySpace
     d::Int
 end
-struct ComplexSpace <: ElementarySpace{ℂ}
+struct ComplexSpace <: ElementarySpace
   d::Int
   dual::Bool
 end
 ```
-represent the Euclidean spaces $ℝ^d$ or $ℂ^d$ without further inner structure.
-They can be created using the syntax `CartesianSpace(d) == ℝ^d == ℝ[d]` and `ComplexSpace(d) == ℂ^d == ℂ[d]`, or `ComplexSpace(d, true) == ComplexSpace(d; dual = true) == (ℂ^d)' == ℂ[d]'` for the dual space of the latter.
-Note that the brackets are required because of the precedence rules, since `d' == d` for `d::Integer`.
+represent the Euclidean spaces $ℝ^d$ or $ℂ^d$ without further inner structure. They can be
+created using the syntax `CartesianSpace(d) == ℝ^d` and `ComplexSpace(d) == ℂ^d`, or
+`ComplexSpace(d, true) == ComplexSpace(d; dual = true) == (ℂ^d)'` for the dual
+space of the latter. Note that the brackets are required because of the precedence rules,
+since `d' == d` for `d::Integer`.
 
 Some examples:
 ```@repl tensorkit
 dim(ℝ^10)
-(ℝ^10)' == ℝ^10 == ℝ[10] == ℝ[](10)
+(ℝ^10)' == ℝ^10
 isdual((ℂ^5))
 isdual((ℂ^5)')
 isdual((ℝ^5)')
 dual(ℂ^5) == (ℂ^5)' == conj(ℂ^5) == ComplexSpace(5; dual = true)
+field(ℂ^5)
+field(ℝ^3)
 typeof(ℝ^3)
 spacetype(ℝ^3)
-spacetype(ℝ[])
 InnerProductStyle(ℝ^3)
 InnerProductStyle(ℂ^5)
 ```
-
-Note that `ℝ[]` and `ℂ[]` are synonyms for `CartesianSpace` and `ComplexSpace` respectively,
-such that yet another syntax is e.g. `ℂ[](d)`. This is not very useful in itself, and is
-motivated by its generalization to `GradedSpace`. We refer to the subsection on
-[graded spaces](@ref s_rep) on the [next page](@ref s_sectorsrepfusion) for further
-information about `GradedSpace`, which is another subtype of `ElementarySpace{ℂ}`
-with an inner structure corresponding to the irreducible representations of a group, or more
-generally, the simple objects of a fusion category.
 
 !!! note
     For `ℂ^n` the dual space is equal (or naturally isomorphic) to the conjugate space, but
@@ -168,6 +168,12 @@ generally, the simple objects of a fusion category.
     between a space and its dual. When creating tensors with indices in `ℝ^n` that have
     complex data, a one-time warning will be printed, but most operations should continue
     to work nonetheless.
+
+One more important instance of `ElementarySpace` is the `GradedSpace`, which is used to
+represent a graded complex vector space with Euclidean inner product, where the grading is
+provided by the irreducible representations of a group, or more generally, the simple
+objects of a fusion category. We refer to the subsection on [graded spaces](@ref s_rep) on
+the [next page](@ref s_sectorsrepfusion) for further information about `GradedSpace`.
 
 ## [Composite spaces](@id ss_compositespaces)
 
@@ -270,17 +276,18 @@ epimorphisms in `V1→V2`. Finally, we define `isisomorphic(V1, V2)`, with Unico
 alternative `V1 ≅ V2` (obtained as `\cong+TAB`), to express whether there exist
 isomorphism in `V1→V2`. In particular `V1 ≅ V2` if and only if `V1 ≾ V2 && V1 ≿ V2`.
 
-For completeness, we also export the strict comparison operators `≺` and `≻` (`\prec+TAB` and `\succ+TAB`), with definitions
+For completeness, we also export the strict comparison operators `≺` and `≻` 
+(`\prec+TAB` and `\succ+TAB`), with definitions
 ```julia
 ≺(V1::VectorSpace, V2::VectorSpace) = V1 ≾ V2 && !(V1 ≿ V2)
 ≻(V1::VectorSpace, V2::VectorSpace) = V1 ≿ V2 && !(V1 ≾ V2)
 ```
 However, as we expect these to be less commonly used, no ASCII alternative is provided.
 
-In the context of `InnerProductStyle(V) <: EuclideanProduct`, `V1 ≾ V2` implies that there exists
-isometries ``W:V1 → V2`` such that ``W^† ∘ W = \mathrm{id}_{V1}``, while `V1 ≅ V2` implies
-that there exist unitaries ``U:V1→V2`` such that ``U^† ∘ U = \mathrm{id}_{V1}`` and
-``U ∘ U^† = \mathrm{id}_{V2}``.
+In the context of `InnerProductStyle(V) <: EuclideanInnerProduct`, `V1 ≾ V2` implies that
+there exists isometries ``W:V1 → V2`` such that ``W^† ∘ W = \mathrm{id}_{V1}``, while
+`V1 ≅ V2` implies that there exist unitaries ``U:V1→V2`` such that
+``U^† ∘ U = \mathrm{id}_{V1}`` and ``U ∘ U^† = \mathrm{id}_{V2}``.
 
 Note that spaces that are isomorphic are not necessarily equal. One can be a dual space,
 and the other a normal space, or one can be an instance of `ProductSpace`, while the other

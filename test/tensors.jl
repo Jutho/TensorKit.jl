@@ -90,7 +90,7 @@ for V in spacelist
                 @test codomain(t) == W
                 @test space(t) == (W ← one(W))
                 @test domain(t) == one(W)
-                @test typeof(t) == @constinferred tensormaptype(spacetype(t), 5, 0, T)
+                @test typeof(t) == TensorMap{T,spacetype(t),5,0,Vector{T}}
             end
         end
         @timedtestset "Tensor Dict conversion" begin
@@ -101,23 +101,30 @@ for V in spacelist
                 @test t == convert(TensorMap, d)
             end
         end
-        if hasfusiontensor(I)
+        if hasfusiontensor(I) || I == Trivial
             @timedtestset "Tensor Array conversion" begin
-                W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
-                for T in (Int, Float32, ComplexF64)
-                    if T == Int
-                        t = TensorMap{T}(undef, W)
-                        for (_, b) in blocks(t)
-                            rand!(b, -20:20)
+                W1 = V1 ← one(V1)
+                W2 = one(V2) ← V2
+                W3 = V1 ⊗ V2 ← one(V1)
+                W4 = V1 ← V2
+                W5 = one(V1) ← V1 ⊗ V2
+                W6 = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+                for W in (W1, W2, W3, W4, W5, W6)
+                    for T in (Int, Float32, ComplexF64)
+                        if T == Int
+                            t = TensorMap{T}(undef, W)
+                            for (_, b) in blocks(t)
+                                rand!(b, -20:20)
+                            end
+                        else
+                            t = @constinferred randn(T, W)
                         end
-                    else
-                        t = @constinferred randn(T, W)
+                        a = @constinferred convert(Array, t)
+                        b = reshape(a, dim(codomain(W)), dim(domain(W)))
+                        @test t ≈ @constinferred TensorMap(a, W)
+                        @test t ≈ @constinferred TensorMap(b, W)
+                        @test t === @constinferred TensorMap(t.data, W)
                     end
-                    a = @constinferred convert(Array, t)
-                    @test t ≈ @constinferred TensorMap(a, W)
-                    # also test if input is matrix
-                    a2 = reshape(a, prod(dim, codomain(t)), prod(dim, domain(t)))
-                    @test t ≈ @constinferred TensorMap(a2, codomain(t), domain(t))
                 end
             end
         end
@@ -149,15 +156,15 @@ for V in spacelist
                 @test dot(t2, t) ≈ conj(dot(t2', t'))
                 @test dot(t2, t) ≈ dot(t', t2')
 
-                i1 = @constinferred(isomorphism(Matrix{T}, V1 ⊗ V2, V2 ⊗ V1))
-                i2 = @constinferred(isomorphism(Matrix{T}, V2 ⊗ V1, V1 ⊗ V2))
-                @test i1 * i2 == @constinferred(id(Matrix{T}, V1 ⊗ V2))
-                @test i2 * i1 == @constinferred(id(Matrix{T}, V2 ⊗ V1))
+                i1 = @constinferred(isomorphism(T, V1 ⊗ V2, V2 ⊗ V1))
+                i2 = @constinferred(isomorphism(Vector{T}, V2 ⊗ V1, V1 ⊗ V2))
+                @test i1 * i2 == @constinferred(id(T, V1 ⊗ V2))
+                @test i2 * i1 == @constinferred(id(Vector{T}, V2 ⊗ V1))
 
-                w = @constinferred(isometry(Matrix{T}, V1 ⊗ (oneunit(V1) ⊕ oneunit(V1)),
+                w = @constinferred(isometry(T, V1 ⊗ (oneunit(V1) ⊕ oneunit(V1)),
                                             V1))
                 @test dim(w) == 2 * dim(V1 ← V1)
-                @test w' * w == id(Matrix{T}, V1)
+                @test w' * w == id(Vector{T}, V1)
                 @test w * w' == (w * w')^2
             end
         end
@@ -193,14 +200,6 @@ for V in spacelist
             @test typeof(convert(typeof(tc), t')) == typeof(tc)
             @test Base.promote_typeof(t, tc) == typeof(tc)
             @test Base.promote_typeof(tc, t) == typeof(tc + t)
-        end
-        @timedtestset "diag/diagm" begin
-            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
-            t = randn(ComplexF64, W)
-            d = LinearAlgebra.diag(t)
-            D = LinearAlgebra.diagm(codomain(t), domain(t), d)
-            @test LinearAlgebra.isdiag(D)
-            @test LinearAlgebra.diag(D) == d
         end
         @timedtestset "Permutations: test via inner product invariance" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
@@ -364,6 +363,14 @@ for V in spacelist
                 end
             end
         end
+        @timedtestset "diag/diagm" begin
+            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+            t = randn(ComplexF64, W)
+            d = LinearAlgebra.diag(t)
+            D = LinearAlgebra.diagm(codomain(t), domain(t), d)
+            @test LinearAlgebra.isdiag(D)
+            @test LinearAlgebra.diag(D) == d
+        end
         @timedtestset "Factorization" begin
             W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
             for T in (Float32, ComplexF64)
@@ -472,7 +479,6 @@ for V in spacelist
                         @test dim(U) == dim(S) == dim(V)
                     end
                 end
-
                 t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
                 @testset "eig and isposdef" begin
                     D, V = eigen(t, ((1, 3), (2, 4)))

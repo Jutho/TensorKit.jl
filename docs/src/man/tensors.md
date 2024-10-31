@@ -240,22 +240,18 @@ The most convenient set of constructors are those that construct  tensors or ten
 with random or uninitialized data. They take the form
 
 ```julia
-TensorMap(f, codomain, domain)
-TensorMap(f, eltype::Type{<:Number}, codomain, domain)
-TensorMap(undef, codomain, domain)
-TensorMap(undef, eltype::Type{<:Number}, codomain, domain)
+f(codomain, domain = one(codomain))
+f(eltype::Type{<:Number}, codomain, domain = one(codomain))
+TensorMap(undef, codomain, domain = one(codomain))
+TensorMap(undef, eltype::Type{<:Number}, codomain, domain = one(codomain))
+Tensor(undef, codomain)
+Tensor(undef, eltype::Type{<:Number}, codomain)
 ```
-
-Here, in the first form, `f` can be any function or object that is called with an argument
-of type `Dims{2} = Tuple{Int,Int}` and is such that `f((m,n))` creates a `DenseMatrix`
-instance with `size(f(m,n)) == (m,n)`. In the second form, `f` is called as
-`f(eltype,(m,n))`. Possibilities for `f` are `randn` and `rand` from Julia Base.
-TensorKit.jl provides `randnormal` and `randuniform` as an synonym for `randn` and `rand`,
-as well as the new function  `randisometry`, alternatively called `randhaar`, that creates
-a random isometric `m × n` matrix `w` satisfying `w'*w ≈ I` distributed according to the
-Haar measure (this requires `m>= n`). The third and fourth calling syntax use the
-`UndefInitializer` from Julia Base and generates a `TensorMap` with unitialized data, which
-could thus contain `NaN`s.
+Here, `f` is any of the typical functions from Base that normally create arrays, namely
+`zeros`, `ones`, `rand`, `randn` and `Random.randexp`. Remember that `one(codomain)` is the
+empty `ProductSpace{S,0}()`. The third and fourth calling syntax use the `UndefInitializer`
+from Julia Base and generates a `TensorMap` with unitialized data, which can thus contain
+`NaN`s.
 
 In all of these constructors, the last two arguments can be replaced by `domain→codomain`
 or `codomain←domain`, where the arrows are obtained as `\rightarrow+TAB` and
@@ -263,8 +259,8 @@ or `codomain←domain`, where the arrows are obtained as `\rightarrow+TAB` and
 [Spaces of morphisms](@ref ss_homspaces). Some examples are perhaps in order
 
 ```@repl tensors
-t1 = TensorMap(randnormal, ℂ^2 ⊗ ℂ^3, ℂ^2)
-t2 = TensorMap(randisometry, Float32, ℂ^2 ⊗ ℂ^3 ← ℂ^2)
+t1 = randn(ℂ^2 ⊗ ℂ^3, ℂ^2)
+t2 = zeros(Float32, ℂ^2 ⊗ ℂ^3 ← ℂ^2)
 t3 = TensorMap(undef, ℂ^2 → ℂ^2 ⊗ ℂ^3)
 domain(t1) == domain(t2) == domain(t3)
 codomain(t1) == codomain(t2) == codomain(t3)
@@ -384,7 +380,7 @@ sectors, this is often a far more natural procedure in practice.
 A first option is to directly set the full matrix block for each coupled sector in the
 `TensorMap`. For the example with U₁ symmetry, this can be done as
 ```@repl tensors
-t4 = TensorMap(zeros, V3 ⊗ V3, V3 ⊗ V3);
+t4 = zeros(V3 ⊗ V3, V3 ⊗ V3);
 block(t4, U1Irrep(0)) .= [1 0; 0 1];
 block(t4, U1Irrep(1)) .= [1;;];
 block(t4, U1Irrep(-1)) .= [1;;];
@@ -423,7 +419,7 @@ This gives us exactly the prescription we need to assign the data slice correspo
 each splitting - fusion tree pair:
 ```@repl tensors
 C(s::SU2Irrep) = s.j * (s.j + 1)
-t5 = TensorMap(zeros, V2 ⊗ V2, V2 ⊗ V2);
+t5 = zeros(V2 ⊗ V2, V2 ⊗ V2);
 for (f₁, f₂) in fusiontrees(t5)
     t5[f₁, f₂] .= C(f₂.coupled) - C(f₂.uncoupled[1]) - C(f₂.uncoupled[2]) + 1/2
 end
@@ -486,13 +482,13 @@ Let's conclude this section with some examples with `GradedSpace`.
 V1 = ℤ₂Space(0=>3,1=>2)
 V2 = ℤ₂Space(0=>2,1=>1)
 # First a `TensorMap{ℤ₂Space, 1, 1}`
-m = TensorMap(randn, V1, V2)
+m = randn(V1, V2)
 convert(Array, m) |> disp
 # compare with:
 block(m, Irrep[ℤ₂](0)) |> disp
 block(m, Irrep[ℤ₂](1)) |> disp
 # Now a `TensorMap{ℤ₂Space, 2, 2}`
-t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
+t = randn(V1 ⊗ V1, V2 ⊗ V2')
 (array = convert(Array, t)) |> disp
 d1 = dim(codomain(t))
 d2 = dim(domain(t))
@@ -527,13 +523,13 @@ Let's repeat the same exercise for `I = Irrep[SU₂]`, which has `FusionStyle(I)
 V1 = SU₂Space(0=>2,1=>1)
 V2 = SU₂Space(0=>1,1=>1)
 # First a `TensorMap{SU₂Space, 1, 1}`
-m = TensorMap(randn, V1, V2)
+m = randn(V1, V2)
 convert(Array, m) |> disp
 # compare with:
 block(m, Irrep[SU₂](0)) |> disp
 block(m, Irrep[SU₂](1)) |> disp
 # Now a `TensorMap{SU₂Space, 2, 2}`
-t = TensorMap(randn, V1 ⊗ V1, V2 ⊗ V2')
+t = randn(V1 ⊗ V1, V2 ⊗ V2')
 (array = convert(Array, t)) |> disp
 d1 = dim(codomain(t))
 d2 = dim(domain(t))
@@ -659,7 +655,7 @@ least squares problem if `InnerProductStyle(t) <: EuclideanProduct`.
 so they can be multiplied by scalars and, if they live in the same space, i.e. have the same
 domain and codomain, they can be added to each other. There is also a `zero(t)`, the
 additive identity, which produces a zero tensor with the same domain and codomain as `t`. In
-addition, `TensorMap` supports basic Julia methods such as `fill!` and `copyto!`, as well
+addition, `TensorMap` supports basic Julia methods such as `fill!` and `copy!`, as well
 as `copy(t)` to create a copy with independent data. Aside from basic `+` and `*`
 operations, TensorKit.jl reexports a number of efficient in-place methods from
 `LinearAlgebra`, such as `axpy!` (for `y ← α * x + y`), `axpby!` (for `y ← α * x + β * y`),
@@ -717,25 +713,25 @@ product meaning to a direct sum of tensor product spaces.
 Time for some more examples:
 ```@repl tensors
 t == t + zero(t) == t*id(domain(t)) == id(codomain(t))*t
-t2 = TensorMap(randn, ComplexF64, codomain(t), domain(t));
+t2 = randn(ComplexF64, codomain(t), domain(t));
 dot(t2, t)
 tr(t2'*t)
 dot(t2, t) ≈ dot(t', t2')
 dot(t2, t2)
 norm(t2)^2
-t3 = copyto!(similar(t, ComplexF64), t);
+t3 = copy!(similar(t, ComplexF64), t);
 t3 == t
 rmul!(t3, 0.8);
 t3 ≈ 0.8*t
 axpby!(0.5, t2, 1.3im, t3);
 t3 ≈ 0.5 * t2  +  0.8 * 1.3im * t
-t4 = TensorMap(randn, fuse(codomain(t)), codomain(t));
+t4 = randn(fuse(codomain(t)), codomain(t));
 t5 = TensorMap(undef, fuse(codomain(t)), domain(t));
 mul!(t5, t4, t) == t4*t
 inv(t4) * t4 ≈ id(codomain(t))
 t4 * inv(t4) ≈ id(fuse(codomain(t)))
 t4 \ (t4 * t) ≈ t
-t6 = TensorMap(randn, ComplexF64, V1, codomain(t));
+t6 = randn(ComplexF64, V1, codomain(t));
 numout(t4) == numout(t6) == 1
 t7 = catcodomain(t4, t6);
 foreach(println, (codomain(t4), codomain(t6), codomain(t7)))
@@ -863,8 +859,8 @@ V2 = GradedSpace{FibonacciAnyon}(:I=>2,:τ=>1)
 m = TensorMap(randn, Float32, V1, V2)
 transpose(m)
 twist(braid(m, (1,2), (2,), (1,)), 1)
-t1 = TensorMap(randn, V1*V2', V2*V1);
-t2 = TensorMap(randn, ComplexF64, V1*V2', V2*V1);
+t1 = randn(V1*V2', V2*V1);
+t2 = randn(ComplexF64, V1*V2', V2*V1);
 dot(t1, t2) ≈ dot(transpose(t1), transpose(t2))
 transpose(transpose(t1)) ≈ t1
 ```
@@ -1091,7 +1087,7 @@ Some examples to conclude this section
 V1 = SU₂Space(0=>2,1/2=>1)
 V2 = SU₂Space(0=>1,1/2=>1,1=>1)
 
-t = TensorMap(randn, V1 ⊗ V1, V2);
+t = randn(V1 ⊗ V1, V2);
 U, S, W = tsvd(t);
 t ≈ U * S * W
 D, V = eigh(t'*t);

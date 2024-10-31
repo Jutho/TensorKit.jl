@@ -5,12 +5,11 @@ function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number)
     return planaradd!(C, A, p, α, β, TO.DefaultBackend())
 end
 # insert default allocator
-function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number, backend::AbstractBackend)
+function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number, backend)
     return planaradd!(C, A, p, α, β, backend, TO.DefaultAllocator())
 end
 # replace default backend with select_backend mechanism
-function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number, backend::AbstractBackend,
-                    allocator)
+function planaradd!(C, A, p::Index2Tuple, α::Number, β::Number, backend, allocator)
     if backend isa TO.DefaultBackend
         backend = TO.select_backend(planaradd!, C, A)
         return planaradd!(C, A, p, α, β, backend, allocator)
@@ -31,7 +30,7 @@ function planaradd!(C::AbstractTensorMap,
                     A::AbstractTensorMap,
                     p::Index2Tuple,
                     α::Number, β::Number,
-                    backend::AbstractBackend, allocator)
+                    backend, allocator)
     return add_transpose!(C, A, p, α, β, backend)
 end
 
@@ -40,13 +39,12 @@ function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Numb
     return planartrace!(C, A, p, q, α, β, TO.DefaultBackend())
 end
 # insert default allocator
-function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Number,
-                      backend::AbstractBackend)
+function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Number, backend)
     return planartrace!(C, A, p, q, α, β, backend, TO.DefaultAllocator())
 end
 # replace default backend with select_backend mechanism
 function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Number,
-                      backend::AbstractBackend, allocator)
+                      backend, allocator)
     if backend isa TO.DefaultBackend
         backend = TO.select_backend(planartrace!, C, A)
         return planartrace!(C, A, p, q, α, β, backend, allocator)
@@ -64,12 +62,9 @@ function planartrace!(C, A, p::Index2Tuple, q::Index2Tuple, α::Number, β::Numb
 end
 # implementation
 function planartrace!(C::AbstractTensorMap,
-                      A::AbstractTensorMap,
-                      (p₁, p₂)::Index2Tuple,
-                      (q₁, q₂)::Index2Tuple,
-                      α::Number,
-                      β::Number,
-                      backend::AbstractBackend, allocator)
+                      A::AbstractTensorMap, (p₁, p₂)::Index2Tuple, (q₁, q₂)::Index2Tuple,
+                      α::Number, β::Number,
+                      backend, allocator)
     (S = spacetype(C)) == spacetype(A) ||
         throw(SpaceMismatch("incompatible spacetypes"))
     if BraidingStyle(sectortype(S)) == Bosonic()
@@ -116,12 +111,12 @@ function planarcontract!(C, A, pA::Index2Tuple, B, pB::Index2Tuple, pAB::Index2T
 end
 # insert default allocator
 function planarcontract!(C, A, pA::Index2Tuple, B, pB::Index2Tuple, pAB::Index2Tuple,
-                         α::Number, β::Number, backend::AbstractBackend)
+                         α::Number, β::Number, backend)
     return planarcontract!(C, A, pA, B, pB, pAB, α, β, backend, TO.DefaultAllocator())
 end
 # replace default backend with select_backend mechanism
 function planarcontract!(C, A, pA::Index2Tuple, B, pB::Index2Tuple, pAB::Index2Tuple,
-                         α::Number, β::Number, backend::AbstractBackend, allocator)
+                         α::Number, β::Number, backend, allocator)
     if backend isa TO.DefaultBackend
         backend = TO.select_backend(planarcontract!, C, A, B)
         return planarcontract!(C, A, pA, B, pB, pAB, α, β, backend, allocator)
@@ -141,15 +136,11 @@ function planarcontract!(C, A, pA::Index2Tuple, B, pB::Index2Tuple, pAB::Index2T
 end
 # implementation
 function planarcontract!(C::AbstractTensorMap,
-                         A::AbstractTensorMap,
-                         pA::Index2Tuple,
-                         B::AbstractTensorMap,
-                         pB::Index2Tuple,
+                         A::AbstractTensorMap, pA::Index2Tuple,
+                         B::AbstractTensorMap, pB::Index2Tuple,
                          pAB::Index2Tuple,
-                         α::Number,
-                         β::Number,
-                         backend::AbstractBackend,
-                         allocator)
+                         α::Number, β::Number,
+                         backend, allocator)
     if BraidingStyle(sectortype(C)) == Bosonic()
         return contract!(C, A, pA, B, pB, pAB, α, β, backend, allocator)
     end

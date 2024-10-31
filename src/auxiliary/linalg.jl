@@ -271,8 +271,10 @@ function rightnull!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD}, atol::Re
     return V[indstart:end, :]
 end
 
-function svd!(A::StridedMatrix{<:BlasFloat}, alg::Union{SVD,SDD})
-    U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A) : LAPACK.gesdd!('S', A)
+function svd!(A::StridedMatrix{T}, alg::Union{SVD,SDD}) where {T<:BlasFloat}
+    # fix another type instability in LAPACK wrappers
+    TT = Tuple{Matrix{T},Vector{real(T)},Matrix{T}}
+    U, S, V = alg isa SVD ? LAPACK.gesvd!('S', 'S', A)::TT : LAPACK.gesdd!('S', A)::TT
     return U, S, V
 end
 
