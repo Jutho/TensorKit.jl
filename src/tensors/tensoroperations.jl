@@ -13,7 +13,8 @@ function TO.tensoralloc(::Type{TT},
     A = storagetype(TT)
     dim = fusionblockstructure(structure).totaldim
     data = TO.tensoralloc(A, dim, istemp, allocator)
-    return TT(data, structure)
+    # return TT(data, structure)
+    return TensorMap{T}(data, structure)
 end
 
 function TO.tensorfree!(t::TensorMap, allocator=TO.DefaultAllocator())
