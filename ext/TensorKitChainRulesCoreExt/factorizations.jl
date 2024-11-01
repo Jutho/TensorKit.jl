@@ -184,8 +184,7 @@ end
 #
 function svd_pullback!(ΔA::AbstractMatrix, U::AbstractMatrix, S::AbstractVector,
                        Vd::AbstractMatrix, ΔU, ΔS, ΔVd;
-                       atol::Real=0,
-                       rtol::Real=atol > 0 ? 0 : eps(eltype(S))^(3 / 4))
+                       tol::Real=default_pullback_gaugetol(S))
 
     # Basic size checks and determination
     m, n = size(U, 1), size(Vd, 2)
@@ -214,8 +213,7 @@ function svd_pullback!(ΔA::AbstractMatrix, U::AbstractMatrix, S::AbstractVector
     Vp = view(Vd, 1:p, :)'
     Sp = view(S, 1:p)
 
-    # tolerance and rank
-    tol = atol > 0 ? atol : rtol * S[1, 1]
+    # rank
     r = findlast(>=(tol), S)
 
     # compute antihermitian part of projection of ΔU and ΔV onto U and V
@@ -302,15 +300,11 @@ function svd_pullback!(ΔA::AbstractMatrix, U::AbstractMatrix, S::AbstractVector
 end
 
 function eig_pullback!(ΔA::AbstractMatrix, D::AbstractVector, V::AbstractMatrix, ΔD, ΔV;
-                       atol::Real=0,
-                       rtol::Real=atol > 0 ? 0 : eps(real(eltype(D)))^(3 / 4))
+                       tol::Real=default_pullback_gaugetol(D))
 
     # Basic size checks and determination
     n = LinearAlgebra.checksquare(V)
     n == length(D) || throw(DimensionMismatch())
-
-    # tolerance and rank
-    tol = atol > 0 ? atol : rtol * maximum(abs, D)
 
     if !(ΔV isa AbstractZero)
         VdΔV = V' * ΔV
@@ -345,15 +339,11 @@ function eig_pullback!(ΔA::AbstractMatrix, D::AbstractVector, V::AbstractMatrix
 end
 
 function eigh_pullback!(ΔA::AbstractMatrix, D::AbstractVector, V::AbstractMatrix, ΔD, ΔV;
-                        atol::Real=0,
-                        rtol::Real=atol > 0 ? 0 : eps(real(eltype(D)))^(3 / 4))
+                        tol::Real=default_pullback_gaugetol(D))
 
     # Basic size checks and determination
     n = LinearAlgebra.checksquare(V)
     n == length(D) || throw(DimensionMismatch())
-
-    # tolerance and rank
-    tol = atol > 0 ? atol : rtol * maximum(abs, D)
 
     if !(ΔV isa AbstractZero)
         VdΔV = V' * ΔV
@@ -379,10 +369,8 @@ function eigh_pullback!(ΔA::AbstractMatrix, D::AbstractVector, V::AbstractMatri
 end
 
 function qr_pullback!(ΔA::AbstractMatrix, Q::AbstractMatrix, R::AbstractMatrix, ΔQ, ΔR;
-                      atol::Real=0,
-                      rtol::Real=atol > 0 ? 0 : eps(real(eltype(R)))^(3 / 4))
+                      tol::Real=default_pullback_gaugetol(R))
     Rd = view(R, diagind(R))
-    tol = atol > 0 ? atol : rtol * maximum(abs, Rd)
     p = findlast(>=(tol) ∘ abs, Rd)
     m, n = size(R)
 
@@ -432,10 +420,8 @@ function qr_pullback!(ΔA::AbstractMatrix, Q::AbstractMatrix, R::AbstractMatrix,
 end
 
 function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix, ΔL, ΔQ;
-                      atol::Real=0,
-                      rtol::Real=atol > 0 ? 0 : eps(real(eltype(L)))^(3 / 4))
+                      tol::Real=default_pullback_gaugetol(L))
     Ld = view(L, diagind(L))
-    tol = atol > 0 ? atol : rtol * maximum(abs, Ld)
     p = findlast(>=(tol) ∘ abs, Ld)
     m, n = size(L)
 
@@ -482,4 +468,9 @@ function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix,
     end
     ldiv!(LowerTriangular(L11)', ΔA1)
     return ΔA
+end
+
+function default_pullback_gaugetol(a)
+    n = norm(a, Inf)
+    return eps(eltype(n))^(3 / 4) * max(n, one(n))
 end

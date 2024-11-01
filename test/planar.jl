@@ -132,9 +132,14 @@ end
         GL′ = force_planar(GL)
         GR′ = force_planar(GR)
 
-        @tensor y[-1 -2; -3] := GL[-1 2; 1] * x[1 3; 4] * O[2 -2; 3 5] * GR[4 5; -3]
-        @planar y′[-1 -2; -3] := GL′[-1 2; 1] * x′[1 3; 4] * O′[2 -2; 3 5] * GR′[4 5; -3]
-        @test force_planar(y) ≈ y′
+        for alloc in
+            (TensorOperations.DefaultAllocator(), TensorOperations.ManualAllocator())
+            @tensor allocator = alloc y[-1 -2; -3] := GL[-1 2; 1] * x[1 3; 4] *
+                                                      O[2 -2; 3 5] * GR[4 5; -3]
+            @planar allocator = alloc y′[-1 -2; -3] := GL′[-1 2; 1] * x′[1 3; 4] *
+                                                       O′[2 -2; 3 5] * GR′[4 5; -3]
+            @test force_planar(y) ≈ y′
+        end
 
         # ∂AC2
         # -------
@@ -193,21 +198,24 @@ end
         ρ′ = force_planar(ρ)
         h′ = force_planar(h)
 
-        @tensor begin
-            C = (((((((h[9 3 4; 5 1 2] * u[1 2; 7 12]) * conj(u[3 4; 11 13])) *
-                     (u[8 5; 15 6] * w[6 7; 19])) *
-                    (conj(u[8 9; 17 10]) * conj(w[10 11; 22]))) *
-                   ((w[12 14; 20] * conj(w[13 14; 23])) * ρ[18 19 20; 21 22 23])) *
-                  w[16 15; 18]) * conj(w[16 17; 21]))
+        for alloc in
+            (TensorOperations.DefaultAllocator(), TensorOperations.ManualAllocator())
+            @tensor allocator = alloc begin
+                C = (((((((h[9 3 4; 5 1 2] * u[1 2; 7 12]) * conj(u[3 4; 11 13])) *
+                         (u[8 5; 15 6] * w[6 7; 19])) *
+                        (conj(u[8 9; 17 10]) * conj(w[10 11; 22]))) *
+                       ((w[12 14; 20] * conj(w[13 14; 23])) * ρ[18 19 20; 21 22 23])) *
+                      w[16 15; 18]) * conj(w[16 17; 21]))
+            end
+            @planar allocator = alloc begin
+                C′ = (((((((h′[9 3 4; 5 1 2] * u′[1 2; 7 12]) * conj(u′[3 4; 11 13])) *
+                          (u′[8 5; 15 6] * w′[6 7; 19])) *
+                         (conj(u′[8 9; 17 10]) * conj(w′[10 11; 22]))) *
+                        ((w′[12 14; 20] * conj(w′[13 14; 23])) * ρ′[18 19 20; 21 22 23])) *
+                       w′[16 15; 18]) * conj(w′[16 17; 21]))
+            end
+            @test C ≈ C′
         end
-        @planar begin
-            C′ = (((((((h′[9 3 4; 5 1 2] * u′[1 2; 7 12]) * conj(u′[3 4; 11 13])) *
-                      (u′[8 5; 15 6] * w′[6 7; 19])) *
-                     (conj(u′[8 9; 17 10]) * conj(w′[10 11; 22]))) *
-                    ((w′[12 14; 20] * conj(w′[13 14; 23])) * ρ′[18 19 20; 21 22 23])) *
-                   w′[16 15; 18]) * conj(w′[16 17; 21]))
-        end
-        @test C ≈ C′
     end
 
     @testset "Issue 93" begin
