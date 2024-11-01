@@ -1,25 +1,4 @@
 """
-    randuniform([::Type{T}=Float64], dims::Dims{N}) -> Array{T,N}
-
-Create an array of size `dims` with random entries uniformly distributed in the allowed
-values of `T`.
-
-See also [`randnormal`](@ref), [`randisometry`](@ref) and[`randhaar`](@ref).
-"""
-randuniform(dims::Base.Dims) = randuniform(Float64, dims)
-randuniform(::Type{T}, dims::Base.Dims) where {T<:Number} = rand(T, dims)
-
-"""
-    randnormal([::Type{T}=Float64], dims::Dims{N}) -> Array{T,N}
-
-Create an array of size `dims` with random entries distributed according to the standard normal distribution.
-
-See also [`randuniform`](@ref), [`randisometry`](@ref) and[`randhaar`](@ref).
-"""
-randnormal(dims::Base.Dims) = randnormal(Float64, dims)
-randnormal(::Type{T}, dims::Base.Dims) where {T<:Number} = randn(T, dims)
-
-"""
     randisometry([::Type{T}=Float64], dims::Dims{2}) -> Array{T,2}
     randhaar([::Type{T}=Float64], dims::Dims{2}) -> Array{T,2}
 
@@ -29,9 +8,18 @@ See also [`randuniform`](@ref) and [`randnormal`](@ref).
 """
 randisometry(dims::Base.Dims{2}) = randisometry(Float64, dims)
 function randisometry(::Type{T}, dims::Base.Dims{2}) where {T<:Number}
-    return dims[1] >= dims[2] ?
-           MatrixAlgebra.leftorth!(randnormal(T, dims), QRpos(), 0)[1] :
-           throw(DimensionMismatch("cannot create isometric matrix with dimensions $dims; isometry needs to be tall or square"))
+    return randisometry(Random.default_rng(), T, dims)
+end
+function randisometry(rng::Random.AbstractRNG, ::Type{T},
+                      dims::Base.Dims{2}) where {T<:Number}
+    return randisometry!(rng, Matrix{T}(undef, dims))
 end
 
-const randhaar = randisometry
+randisometry!(A::AbstractMatrix) = randisometry!(Random.default_rng(), A)
+function randisometry!(rng::Random.AbstractRNG, A::AbstractMatrix)
+    dims = size(A)
+    dims[1] >= dims[2] ||
+        throw(DimensionMismatch("cannot create isometric matrix with dimensions $dims; isometry needs to be tall or square"))
+    Q, = MatrixAlgebra.leftorth!(Random.randn!(rng, A), QRpos(), 0)
+    return copy!(A, Q)
+end
