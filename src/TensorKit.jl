@@ -56,7 +56,7 @@ export spacetype, sectortype, storagetype, scalartype, tensormaptype
 export blocksectors, blockdim, block, blocks
 
 # random methods for constructor
-export randisometry, randisometry!, rand, rand!, randn, randn!
+export randuniform, randnormal, randisometry, randhaar
 
 # special purpose constructors
 export zero, one, one!, id, isomorphism, unitary, isometry
@@ -123,7 +123,7 @@ using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
 
 import Base.Meta
 
-using Random: Random, rand!, randn!
+using Random: Random
 
 using PackageExtensionCompat
 

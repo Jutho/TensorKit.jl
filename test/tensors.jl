@@ -308,25 +308,12 @@ for V in spacelist
                 @test HrA12array ≈ convert(Array, HrA12)
             end
         end
-        @timedtestset "Multiplication of isometries: test properties" begin
-            W2 = V4 ⊗ V5
-            W1 = W2 ⊗ (oneunit(V1) ⊕ oneunit(V1))
-            for T in (Float64, ComplexF64)
-                t1 = randisometry(T, W1, W2)
-                t2 = randisometry(T, W2 ← W2)
-                @test t1' * t1 ≈ one(t2)
-                @test t2' * t2 ≈ one(t2)
-                @test t2 * t2' ≈ one(t2)
-                P = t1 * t1'
-                @test P * P ≈ P
-            end
-        end
         @timedtestset "Multiplication and inverse: test compatibility" begin
             W1 = V1 ⊗ V2 ⊗ V3
             W2 = V4 ⊗ V5
             for T in (Float64, ComplexF64)
                 t1 = rand(T, W1, W1)
-                t2 = rand(T, W2 ← W2)
+                t2 = rand(T, W2, W2)
                 t = rand(T, W1, W2)
                 @test t1 * (t1 \ t) ≈ t
                 @test (t / t2) * t2 ≈ t
@@ -344,9 +331,9 @@ for V in spacelist
                 W1 = V1 ⊗ V2 ⊗ V3
                 W2 = V4 ⊗ V5
                 for T in (Float32, Float64, ComplexF32, ComplexF64)
-                    t1 = rand(T, W1 ← W1)
+                    t1 = rand(T, W1, W1)
                     t2 = rand(T, W2, W2)
-                    t = rand(T, W1 ← W2)
+                    t = rand(T, W1, W2)
                     d1 = dim(W1)
                     d2 = dim(W2)
                     At1 = reshape(convert(Array, t1), d1, d1)
