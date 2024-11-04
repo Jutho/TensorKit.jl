@@ -5,11 +5,22 @@ using TensorKit, KrylovKit
 using TensorKit: SectorDict,
                 _empty_svdtensors, _create_svdtensors,
                  TruncationScheme, NoTruncation, TruncationSpace
+using KrylovKit: Selector
 
 # AbstractTensorMap as KrylovKit operator
 KrylovKit.apply(A::AbstractTensorMap, x::AbstractTensorMap) = A * x
 KrylovKit.apply_normal(A::AbstractTensorMap, x::AbstractTensorMap) = A * x
 KrylovKit.apply_adjoint(A::AbstractTensorMap, x::AbstractTensorMap) = A' * x
+
+# svdsolve!
+# ---------
+function KrylovKit.svdsolve(t::AbstractTensorMap, howmany::Int=1, which::Selector=:LR, T::Type=eltype(t); kwargs...)
+    v₀ = rand!(similar(T, codomain(t)))
+    return svdsolve(t, v₀, howmany, which; kwargs...)
+end
+function KrylovKit.svdsolve(t, V::VectorSpace, howmany::Int=1, which::Selector=:LR, T::Type=Float64; kwargs...)
+    return svdsolve(t, rand(T, V), howmany, which; kwargs...)
+end
 
 # tsvd!
 # -----
