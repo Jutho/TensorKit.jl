@@ -50,14 +50,17 @@ end
 
 function block_tsvd!(t, c, alg, trunc)
     which, howmany = _find_svd_blocksize(t, c, trunc)
+    
     v₀ = rand!(similar(t, codomain(t) ← Vect[sectortype(t)](c => 1)))
     svals, Uvecs, Vvecs, info = svdsolve(t, v₀, howmany, which, alg)
     info.converged >= howmany ||
         @warn "SVD for block $c did not converge" info
     resize!.((svals, Uvecs, Vvecs), howmany)
 
-    U = stack(block_c, Uvecs; dims=2)
-    Vt = stack(block_c, Vvecs; dims=2)'
+    block_c = Base.Fix2(block, c)
+    # TODO: figure out why this is type-unstable
+    U::Matrix{eltype(t)} = mapreduce(block_c, hcat, Uvecs)
+    Vt::Matrix{eltype(t)} = copy(mapreduce(block_c, hcat, Vvecs)')
     
     return c => (U, svals, Vt)
 end
