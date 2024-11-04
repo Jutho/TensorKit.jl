@@ -5,6 +5,7 @@ using TensorKit
 using Combinatorics
 using TensorKit: ProductSector, fusiontensor, pentagon_equation, hexagon_equation
 using TensorOperations
+using KrylovKit
 using Base.Iterators: take, product
 # using SUNRepresentations: SUNIrrep
 # const SU3Irrep = SUNIrrep{3}

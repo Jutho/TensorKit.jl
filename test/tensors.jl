@@ -449,7 +449,7 @@ for V in spacelist
                         @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') <
                               100 * eps(norm(t))
                     end
-                    @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                    @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD(), KrylovKit.GKL())
                         U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
                         UdU = U' * U
                         @test UdU ≈ one(UdU)
@@ -559,6 +559,10 @@ for V in spacelist
                         @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                         U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
                         @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
+                        # results with GKL cannot be compared because of gauge choice
+                        U′, S′, V′, = tsvd(t; alg=GKL(), trunc=truncspace(space(S, 1)), p=p)
+                        @test S ≈ S′
+                        @test U * S * V ≈ U′ * S′ * V′
                         # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
                         U, S, V, ϵ = tsvd(t; trunc=truncbelow(1 / dim(domain(S₀))), p=p)
                         # @show p, ϵ
