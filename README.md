@@ -12,9 +12,9 @@ A Julia package for large-scale tensor computations, with a hint of category the
 | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![DOI][doi-img]][doi-url] | [![TensorOperations Downloads][downloads-img]][downloads-url] |
 <!-- | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![DOI][doi-img]][doi-url] | [![TensorOperations Downloads][downloads-img]][downloads-url] | -->
 
-| **Build Status** | **PkgEval** | **Coverage** | **Quality assurance** |
-|:----------------:|:------------:|:------------:|:---------------------:|
-| [![CI][ci-img]][ci-url] | [![PkgEval][pkgeval-img]][pkgeval-url] | [![Codecov][codecov-img]][codecov-url] | [![Aqua QA][aqua-img]][aqua-url] |
+| **Build Status** | **Coverage** | **Quality assurance** |
+|:----------------:|:------------:|:---------------------:|
+| [![CI][ci-img]][ci-url] | [![Codecov][codecov-img]][codecov-url] | [![Aqua QA][aqua-img]][aqua-url] |
 
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
@@ -31,9 +31,6 @@ A Julia package for large-scale tensor computations, with a hint of category the
 
 [ci-img]: https://github.com/Jutho/TensorKit.jl/actions/workflows/CI.yml/badge.svg
 [ci-url]: https://github.com/Jutho/TensorKit.jl/actions/workflows/CI.yml
-
-[pkgeval-img]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.svg
-[pkgeval-url]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.html
 
 [codecov-img]: https://codecov.io/gh/Jutho/TensorKit.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/Jutho/TensorKit.jl
@@ -66,7 +63,7 @@ breaking changes:
    resides in a single array of type `<:DenseVector`. While this does not lead to breaking
    changes in the interface, it does mean that `TensorMap` objects from TensorKit.jl
    v0.12.7 or earlier that were saved to disk using e.g. JLD2.jl, cannot simply be read back
-   in using the new version of TensorKit.jl. We provide a script [below](https://github.com/Jutho/TensorKit.jl/edit/master/README.md#transferring-tensormap-data-from-older-versions-to-v013)
+   in using the new version of TensorKit.jl. We provide a script [below](https://github.com/Jutho/TensorKit.jl?tab=readme-ov-file#transferring-tensormap-data-from-older-versions-to-v013)
    to export data in a format that can be read back in by TensorKit.jl v0.13.
 
 Major non-breaking changes include:
