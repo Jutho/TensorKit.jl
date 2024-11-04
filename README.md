@@ -35,8 +35,7 @@ A Julia package for large-scale tensor computations, with a hint of category the
 [pkgeval-img]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.svg
 [pkgeval-url]: https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/T/TensorKit.html
 
-[codecov-img]:
-  https://codecov.io/gh/Jutho/TensorKit.jl/branch/master/graph/badge.svg
+[codecov-img]: https://codecov.io/gh/Jutho/TensorKit.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/Jutho/TensorKit.jl
 
 [aqua-img]: https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg
@@ -48,9 +47,11 @@ TensorKit v0.13 brings a number of performance improvements, but also comes with
 breaking changes:
 
 1. The scalar type (the `eltype` of the tensor data) is now an explicit parameter of the
-   the `TensorMap` type, and appears in the first position. As a consequence, `TensorMap{T}(undef, codomain ← domain)` can and should now be used to create a `TensorMap` with uninitialised data with scalar type `T`.
+   the `TensorMap` type, and appears in the first position. As a consequence,
+   `TensorMap{T}(undef, codomain ← domain)` can and should now be used to create a
+   `TensorMap` with uninitialised data with scalar type `T`.
 
-2. The constructors for creating tensors with randomly initialised data, of the form
+3. The constructors for creating tensors with randomly initialised data, of the form
    `TensorMap(randn, T, codomain ← domain)`, are being replaced with
    `randn(T, codomain ← domain)`. Hence, we overload the methods `rand` and `randn` from
    Base (actually, Random, and also `Random.randexp`) and mimick the `Array` constructors,
@@ -62,21 +63,21 @@ breaking changes:
    removed in the 1.0 release.
 
 3. The `TensorMap` data structure has been changed (simplified), so that all tensor data now
-   resides in a single array of type `<:DenseVector`. While this should not does not lead to
-   breaking changes in the interface, it does mean that `TensorMap` objects from
-   TensorKit.jl v0.12.7 or earlier that were saved to disk using e.g. JLD2.jl, cannot simply
-   be read back in using the new version of TensorKit.jl. We provide a script below export
-   data in a format that can be read back in by TensorKit.jl v0.13.
+   resides in a single array of type `<:DenseVector`. While this does not lead to breaking
+   changes in the interface, it does mean that `TensorMap` objects from TensorKit.jl
+   v0.12.7 or earlier that were saved to disk using e.g. JLD2.jl, cannot simply be read back
+   in using the new version of TensorKit.jl. We provide a script [below](https://github.com/Jutho/TensorKit.jl/edit/master/README.md#transferring-tensormap-data-from-older-versions-to-v013)
+   to export data in a format that can be read back in by TensorKit.jl v0.13.
 
 Major non-breaking changes include:
 
 * Support for [TensorOperations.jl v5](https://github.com/Jutho/TensorOperations.jl), and
   with this the new backend and allocator support within the `@tensor` macro.
-* The part of TensorKit.jl that defines `Sector` type hierarchy and its corresponding
+* The part of TensorKit.jl that defines the `Sector` type hierarchy and its corresponding
   interface, as well as the implementation of all of the standard symmetries, has been
   moved to a separate package called [TensorKitSectors.jl](https://github.com/QuantumKitHub/TensorKitSectors.jl),
   so that it can also be used by other packages and is a more lightweight dependency.
-  TensorKitSectors.jl a direct dependency and is automatically installed when installing
+  TensorKitSectors.jl is a direct dependency and is automatically installed when installing
   TensorKit.jl. Furthermore, its public interface is re-exported by TensorKit.jl, so that
   this should not have any observable consequences.
 * The `fusiontrees` iterator now iterates over `FusionTree` objects in a different order,
@@ -94,7 +95,7 @@ Major non-breaking changes include:
 To export `TensorMap` data from TensorKit.jl v0.12.7 or earlier, you should first export the
 data there in a format that is explicit about how tensor data is associated with the
 structural part of the tensor, i.e. the splitting and fusion tree pairs. Therefore, on the 
-older version of TensorKit.jl, use the following code to save teh data
+older version of TensorKit.jl, use the following code to save the data
 
 ```julia
 using JLD2
@@ -135,7 +136,7 @@ end
 
 ## Overview
 
-TensorKit.jl is a package that provides a types and methods to represent and manipulate
+TensorKit.jl is a package that provides types and methods to represent and manipulate
 tensors with symmetries. The emphasis is on the structure and functionality needed to build
 tensor network algorithms for the simulation of quantum many-body systems. Such tensors are
 typically invariant under a symmetry group which acts via specific representions on each of
@@ -143,10 +144,16 @@ the indices of the tensor. TensorKit.jl provides the functionality for construct
 tensors and performing typical operations such as tensor contractions and decompositions,
 thereby preserving the symmetries and exploiting them for optimal performance.
 
-While most common symmetries are already shipped with TensorKit.jl, there exist several extensions: [SUNRepresentations.jl](https://github.com/maartenvd/SUNRepresentations.jl) provides support for SU(N), while [CategoryData.jl](https://github.com/lkdvos/CategoryData.jl) incorporates a large collection of *small* fusion categories.
-Additionally, for libraries that implement tensor network algorithms on top of TensorKit.jl, check out [MPSKit.jl](https://github.com/maartenvd/MPSKit.jl), [MERAKit.jl](https://github.com/mhauru/MERAKit.jl) and [PEPSKit.jl](https://github.com/quantumghent/PEPSKit.jl).
+While most common symmetries are already shipped with TensorKit.jl, there exist several
+extensions: [SUNRepresentations.jl](https://github.com/QuantumKitHub/SUNRepresentations.jl)
+provides support for SU(N), while [CategoryData.jl](https://github.com/lkdvos/CategoryData.jl)
+incorporates a large collection of *small* fusion categories.
+Additionally, for libraries that implement tensor network algorithms on top of
+TensorKit.jl, check out [MPSKit.jl](https://github.com/QuantumKitHub/MPSKit.jl),
+[MERAKit.jl](https://github.com/mhauru/MERAKit.jl) and [PEPSKit.jl](https://github.com/QuantumKitHub/PEPSKit.jl).
 
-Check out the [tutorial](https://jutho.github.io/TensorKit.jl/stable/man/tutorial/) and the full [documentation](https://jutho.github.io/TensorKit.jl/stable).
+Check out the [tutorial](https://jutho.github.io/TensorKit.jl/stable/man/tutorial/) and the
+full [documentation](https://jutho.github.io/TensorKit.jl/stable).
 
 ## Installation
 `TensorKit.jl` can be installed with the Julia package manager.
@@ -163,12 +170,12 @@ julia> import Pkg; Pkg.add("TensorKit.jl")
 ## Documentation
 
 -   [**STABLE**][docs-stable-url] - **documentation of the most recently tagged version.**
--   [**DEVEL**][docs-dev-url] - *documentation of the in-development version.*
+-   [**DEV**][docs-dev-url] - *documentation of the in-development version.*
 
 ## Project Status
 
-The package is tested against Julia versions `1.8`, `1.10` and the latest `1.x` release, as
-well as against teh nightly builds of the Julia `master` branch on Linux, macOS, and Windows
+The package is tested against Julia versions `1.10` and the latest `1.x` release, as
+well as against the nightly builds of the Julia `master` branch on Linux, macOS, and Windows
 platforms with a 64-bit architecture.
 
 ## Questions and Contributions
