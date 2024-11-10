@@ -185,8 +185,21 @@ for V in spacelist
                 W = V1 ⊗ V2
                 for T in (Float64, ComplexF64, ComplexF32)
                     t = @constinferred randn(T, W, W)
-                    @test real(convert(Array, t)) == convert(Array, @constinferred real(t))
-                    @test imag(convert(Array, t)) == convert(Array, @constinferred imag(t))
+
+                    tr = @constinferred real(t)
+                    @test scalartype(tr) <: Real
+                    @test real(convert(Array, t)) == convert(Array, tr)
+
+                    ti = @constinferred imag(t)
+                    @test scalartype(ti) <: Real
+                    @test imag(convert(Array, t)) == convert(Array, ti)
+
+                    tc = @inferred complex(t)
+                    @test scalartype(tc) <: Complex
+                    @test complex(convert(Array, t)) == convert(Array, tc)
+
+                    tc2 = @inferred complex(tr, ti)
+                    @test tc2 ≈ tc
                 end
             end
         end
