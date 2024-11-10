@@ -499,7 +499,7 @@ of size `(dims(codomain(t), f₁.uncoupled)..., dims(domain(t), f₂.uncoupled))
 
 See also [`Base.getindex(::TensorMap{T,S,N₁,N₂,I<:Sector}, ::FusionTree{I<:Sector,N₁}, ::FusionTree{I<:Sector,N₂})`](@ref)
 """
-@propagate_inbounds function Base.setindex!(t::TensorMap{T,S,N₁,N₂,I},
+@propagate_inbounds function Base.setindex!(t::TensorMap{T,S,N₁,N₂},
                                             v,
                                             f₁::FusionTree{I,N₁},
                                             f₂::FusionTree{I,N₂}) where {T,S,N₁,N₂,
