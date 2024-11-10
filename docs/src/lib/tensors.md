@@ -117,7 +117,7 @@ blocks
 To access the data associated with a specific fusion tree pair, you can use:
 ```@docs
 Base.getindex(::TensorMap{T,S,N₁,N₂}, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
-Base.setindex!(::TensorMap{T,S,N₁,N₂,I}, ::Any, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
+Base.setindex!(::TensorMap{T,S,N₁,N₂}, ::Any, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
 ```
 
 For a tensor `t` with `FusionType(sectortype(t)) isa UniqeFuison`, fusion trees are 
