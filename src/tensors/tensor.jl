@@ -392,6 +392,9 @@ function Base.complex(t::AbstractTensorMap)
         return copy!(similar(t, complex(scalartype(t))), t)
     end
 end
+function Base.complex(r::AbstractTensorMap{<:Real}, i::AbstractTensorMap{<:Real})
+    return add(r, i, im * one(scalartype(i)))
+end
 
 # Conversion between TensorMap and Dict, for read and write purpose
 #------------------------------------------------------------------
