@@ -29,7 +29,7 @@ for f in (:rand, :randn, :zeros, :ones)
     @eval begin
         Base.@deprecate TensorMap(::typeof($f), T::Type, P::HomSpace) $f(T, P)
         Base.@deprecate TensorMap(::typeof($f), P::HomSpace) $f(P)
-        Base.@deprecate TensorMap(::typeof($f), T::Type, cod::TensorSpace, dom::TensorSpace) $f(T, P, cod, dom)
+        Base.@deprecate TensorMap(::typeof($f), T::Type, cod::TensorSpace, dom::TensorSpace) $f(T, cod, dom)
         Base.@deprecate TensorMap(::typeof($f), cod::TensorSpace, dom::TensorSpace) $f(cod, dom)
         Base.@deprecate Tensor(::typeof($f), T::Type, space::TensorSpace) $f(T, space)
         Base.@deprecate Tensor(::typeof($f), space::TensorSpace) $f(space)
