@@ -256,7 +256,7 @@ field(P::Type{<:CompositeSpace}) = field(spacetype(P))
 sectortype(P::Type{<:CompositeSpace}) = sectortype(spacetype(P))
 
 # make ElementarySpace instances behave similar to ProductSpace instances
-blocksectors(V::ElementarySpace) = sectors(V)
+blocksectors(V::ElementarySpace) = collect(sectors(V))
 blockdim(V::ElementarySpace, c::Sector) = dim(V, c)
 
 # Specific realizations of ElementarySpace types
