@@ -389,7 +389,7 @@ function Base.complex(t::AbstractTensorMap)
     if scalartype(t) <: Complex
         return t
     else
-        return copy!(similar(t, complex(scalartype(t))), t)
+        return TensorMap(complex(t.data), space(t))
     end
 end
 function Base.complex(r::AbstractTensorMap{<:Real}, i::AbstractTensorMap{<:Real})
@@ -581,27 +581,19 @@ end
 # Real and imaginary parts
 #---------------------------
 function Base.real(t::AbstractTensorMap)
-    # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
-    # that the real/imaginary part of a tensor `t` can be obtained by just taking
-    # real/imaginary part of the degeneracy data.
-    if isreal(sectortype(t))
-        return TensorMap(real(t.data), codomain(t), domain(t))
-    else
-        msg = "`real` has not been implemented for `$(typeof(t))`."
-        throw(ArgumentError(msg))
-    end
+    # TODO: should we reformulate the old checks in terms of `sectorscalartype`
+    # For anyonic categories, complex numbers typically come into play only in the
+    # braiding and not in the fusion. Hence, it can make sense to work with real
+    # tensors if no braiding is required.
+    return TensorMap(real(t.data), codomain(t), domain(t))
 end
 
 function Base.imag(t::AbstractTensorMap)
-    # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
-    # that the real/imaginary part of a tensor `t` can be obtained by just taking
-    # real/imaginary part of the degeneracy data.
-    if isreal(sectortype(t))
-        return TensorMap(imag(t.data), codomain(t), domain(t))
-    else
-        msg = "`imag` has not been implemented for `$(typeof(t))`."
-        throw(ArgumentError(msg))
-    end
+    # TODO: should we reformulate the old checks in terms of `sectorscalartype`?
+    # For anyonic categories, complex numbers typically come into play only in the
+    # braiding and not in the fusion. Hence, it can make sense to work with real
+    # tensors if no braiding is required.
+    return TensorMap(imag(t.data), codomain(t), domain(t))
 end
 
 # Conversion and promotion:
