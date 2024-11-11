@@ -27,6 +27,10 @@ struct TensorMap{T,S<:IndexSpace,N₁,N₂,A<:DenseVector{T}} <: AbstractTensorM
                                                                            N₁,N₂,
                                                                            A<:DenseVector{T}}
         T ⊆ field(S) || @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog = 1)
+        I = sectortype(S)
+        T <: Real && !(sectorscalartype(I) <: Real) &&
+            @warn("Tensors with real data might be incompatible with sector type $I",
+                  maxlog = 1)
         return new{T,S,N₁,N₂,A}(data, space)
     end
 end
@@ -385,17 +389,6 @@ end
 #-----------------------------
 Base.copy(t::TensorMap) = typeof(t)(copy(t.data), t.space)
 
-function Base.complex(t::AbstractTensorMap)
-    if scalartype(t) <: Complex
-        return t
-    else
-        return copy!(similar(t, complex(scalartype(t))), t)
-    end
-end
-function Base.complex(r::AbstractTensorMap{<:Real}, i::AbstractTensorMap{<:Real})
-    return add(r, i, im * one(scalartype(i)))
-end
-
 # Conversion between TensorMap and Dict, for read and write purpose
 #------------------------------------------------------------------
 function Base.convert(::Type{Dict}, t::AbstractTensorMap)
@@ -578,29 +571,13 @@ function Base.show(io::IO, t::TensorMap)
     end
 end
 
-# Real and imaginary parts
-#---------------------------
-function Base.real(t::AbstractTensorMap)
-    # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
-    # that the real/imaginary part of a tensor `t` can be obtained by just taking
-    # real/imaginary part of the degeneracy data.
-    if isreal(sectortype(t))
-        return TensorMap(real(t.data), codomain(t), domain(t))
-    else
-        msg = "`real` has not been implemented for `$(typeof(t))`."
-        throw(ArgumentError(msg))
-    end
-end
-
-function Base.imag(t::AbstractTensorMap)
-    # `isreal` for a `Sector` returns true iff the F and R symbols are real. This guarantees
-    # that the real/imaginary part of a tensor `t` can be obtained by just taking
-    # real/imaginary part of the degeneracy data.
-    if isreal(sectortype(t))
-        return TensorMap(imag(t.data), codomain(t), domain(t))
-    else
-        msg = "`imag` has not been implemented for `$(typeof(t))`."
-        throw(ArgumentError(msg))
+# Complex, real and imaginary parts
+#-----------------------------------
+for f in (:real, :imag, :complex)
+    @eval begin
+        function Base.$f(t::TensorMap)
+            return TensorMap($f(t.data), space(t))
+        end
     end
 end
 
