@@ -27,6 +27,10 @@ struct TensorMap{T,S<:IndexSpace,N₁,N₂,A<:DenseVector{T}} <: AbstractTensorM
                                                                            N₁,N₂,
                                                                            A<:DenseVector{T}}
         T ⊆ field(S) || @warn("scalartype(data) = $T ⊈ $(field(S)))", maxlog = 1)
+        I = sectortype(S)
+        T <: Real && !(sectorscalartype(I) <: Real) &&
+            @warn("Tensors with real data might be incompatible with sector type $I",
+                  maxlog = 1)
         return new{T,S,N₁,N₂,A}(data, space)
     end
 end
@@ -385,17 +389,6 @@ end
 #-----------------------------
 Base.copy(t::TensorMap) = typeof(t)(copy(t.data), t.space)
 
-function Base.complex(t::AbstractTensorMap)
-    if scalartype(t) <: Complex
-        return t
-    else
-        return TensorMap(complex(t.data), space(t))
-    end
-end
-function Base.complex(r::AbstractTensorMap{<:Real}, i::AbstractTensorMap{<:Real})
-    return add(r, i, im * one(scalartype(i)))
-end
-
 # Conversion between TensorMap and Dict, for read and write purpose
 #------------------------------------------------------------------
 function Base.convert(::Type{Dict}, t::AbstractTensorMap)
@@ -578,22 +571,14 @@ function Base.show(io::IO, t::TensorMap)
     end
 end
 
-# Real and imaginary parts
-#---------------------------
-function Base.real(t::AbstractTensorMap)
-    # TODO: should we reformulate the old checks in terms of `sectorscalartype`
-    # For anyonic categories, complex numbers typically come into play only in the
-    # braiding and not in the fusion. Hence, it can make sense to work with real
-    # tensors if no braiding is required.
-    return TensorMap(real(t.data), codomain(t), domain(t))
-end
-
-function Base.imag(t::AbstractTensorMap)
-    # TODO: should we reformulate the old checks in terms of `sectorscalartype`?
-    # For anyonic categories, complex numbers typically come into play only in the
-    # braiding and not in the fusion. Hence, it can make sense to work with real
-    # tensors if no braiding is required.
-    return TensorMap(imag(t.data), codomain(t), domain(t))
+# Complex, real and imaginary parts
+#-----------------------------------
+for f in (:real, :imag, :complex)
+    @eval begin
+        function Base.$f(t::TensorMap)
+            return TensorMap($f(t.data), space(t))
+        end
+    end
 end
 
 # Conversion and promotion:

@@ -451,6 +451,42 @@ function Base.isapprox(t1::AbstractTensorMap, t2::AbstractTensorMap;
     end
 end
 
+# Complex, real and imaginary
+#----------------------------
+function Base.complex(t::AbstractTensorMap)
+    if scalartype(t) <: Complex
+        return t
+    else
+        return copy!(similar(t, complex(scalartype(t))), t)
+    end
+end
+function Base.complex(r::AbstractTensorMap{<:Real}, i::AbstractTensorMap{<:Real})
+    return add(r, i, im * one(scalartype(i)))
+end
+
+function Base.real(t::AbstractTensorMap)
+    if scalartype(t) <: Real
+        return t
+    else
+        tr = similar(t, real(scalartype(t)))
+        for (c, b) in blocks(t)
+            block(tr, c) .= real(b)
+        end
+        return tr
+    end
+end
+function Base.imag(t::AbstractTensorMap)
+    if scalartype(t) <: Real
+        return zerovector(t)
+    else
+        ti = similar(t, real(scalartype(t)))
+        for (c, b) in blocks(t)
+            block(ti, c) .= imag(b)
+        end
+        return ti
+    end
+end
+
 # Conversion to Array:
 #----------------------
 # probably not optimized for speed, only for checking purposes
