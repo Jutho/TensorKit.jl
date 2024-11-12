@@ -23,7 +23,7 @@ VectorInterface.zerovector!!(t::AbstractTensorMap) = zerovector!(t)
 #-------------------------
 function VectorInterface.scale(t::AbstractTensorMap, α::Number)
     T = VectorInterface.promote_scale(t, α)
-    return scale!(similar(t, T), t, α)
+    return scale!(zerovector(t, T), t, α)
 end
 function VectorInterface.scale!(t::AbstractTensorMap, α::Number)
     for (c, b) in blocks(t)
@@ -74,7 +74,7 @@ function VectorInterface.add!(ty::AbstractTensorMap, tx::AbstractTensorMap,
                               α::Number, β::Number)
     space(ty) == space(tx) || throw(SpaceMismatch("$(space(ty)) ≠ $(space(tx))"))
     for ((cy, by), (cx, bx)) in zip(blocks(ty), blocks(tx))
-        add!(StridedView(by), StridedView(bx), α, β)
+        add!(by, bx, α, β)
     end
     return ty
 end

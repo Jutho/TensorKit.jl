@@ -129,6 +129,9 @@ Return the `HomSpace` obtained by permuting the indices of the domain and codoma
 according to the permutation `p₁` and `p₂` respectively.
 """
 function permute(W::HomSpace{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
+    p = (p₁..., p₂...)
+    TupleTools.isperm(p) && length(p) == numind(W) ||
+        throw(ArgumentError("$((p₁, p₂)) is not a valid permutation for $(W)"))
     cod = ProductSpace{S,N₁}(map(n -> W[n], p₁))
     dom = ProductSpace{S,N₂}(map(n -> dual(W[n]), p₂))
     return cod ← dom
