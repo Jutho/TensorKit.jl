@@ -18,6 +18,9 @@ struct TensorMap{T,S<:IndexSpace,N₁,N₂,A<:DenseVector{T}} <: AbstractTensorM
                                                                            A<:DenseVector{T}}
         d = fusionblockstructure(space).totaldim
         data = A(undef, d)
+        if !isbitstype(T)
+            zerovector!(data)
+        end
         return TensorMap{T,S,N₁,N₂,A}(data, space)
     end
 

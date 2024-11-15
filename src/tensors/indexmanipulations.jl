@@ -40,7 +40,6 @@ function permute(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple{N₁,N₂};
     end
 end
 function permute(t::TensorMap, (p₁, p₂)::Index2Tuple{N₁,N₂}; copy::Bool=false) where {N₁,N₂}
-    @show (p₁, p₂)
     space′ = permute(space(t), (p₁, p₂))
     # share data if possible
     if !copy

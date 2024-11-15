@@ -8,6 +8,9 @@ struct DiagonalTensorMap{T,S<:IndexSpace,A<:DenseVector{T}} <: AbstractTensorMap
     function DiagonalTensorMap{T,S,A}(::UndefInitializer,
                                       dom::S) where {T,S<:IndexSpace,A<:DenseVector{T}}
         data = A(undef, reduceddim(dom))
+        if !isbitstype(T)
+            zerovector!(data)
+        end
         return DiagonalTensorMap{T,S,A}(data, dom)
     end
     # constructors from data
@@ -17,7 +20,6 @@ struct DiagonalTensorMap{T,S<:IndexSpace,A<:DenseVector{T}} <: AbstractTensorMap
         return new{T,S,A}(data, dom)
     end
 end
-reduceddim(V::IndexSpace) = sum(c -> dim(V, c), sectors(V); init=0)
 
 # Basic methods for characterising a tensor:
 #--------------------------------------------
@@ -43,6 +45,7 @@ Construct a `DiagonalTensorMap` with uninitialized data.
 function DiagonalTensorMap{T}(::UndefInitializer, V::S) where {T,S<:IndexSpace}
     return DiagonalTensorMap{T,S,Vector{T}}(undef, V)
 end
+DiagonalTensorMap(::UndefInitializer, V::IndexSpace) = DiagonalTensorMap{Float64}(undef, V)
 
 function DiagonalTensorMap{T}(data::A, V::S) where {T,S<:IndexSpace,A<:DenseVector{T}}
     length(data) == reduceddim(V) ||
@@ -75,6 +78,14 @@ end
 TensorMap(d::DiagonalTensorMap) = copy!(similar(d), d)
 Base.convert(::Type{TensorMap}, d::DiagonalTensorMap) = TensorMap(d)
 
+function Base.convert(::Type{DiagonalTensorMap{T,S,A}},
+                      d::DiagonalTensorMap{T,S,A}) where {T,S,A}
+    return d
+end
+function Base.convert(D::Type{<:DiagonalTensorMap}, d::DiagonalTensorMap)
+    return DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
+end
+
 # Complex, real and imaginary parts
 #-----------------------------------
 for f in (:real, :imag, :complex)
@@ -87,22 +98,21 @@ end
 
 # Getting and setting the data at the block level
 #-------------------------------------------------
-blocksectors(d::DiagonalTensorMap) = blocksectors(d.domain)
-
 function block(d::DiagonalTensorMap, s::Sector)
     sectortype(d) == typeof(s) || throw(SectorMismatch())
     offset = 0
     dom = domain(d)[1]
-    for c in sectors(dom)
+    for c in blocksectors(d)
         if c < s
             offset += dim(dom, c)
         elseif c == s
             r = offset .+ (1:dim(dom, c))
             return Diagonal(view(d.data, r))
         else # s not in sectors(t)
-            return Diagonal(view(d.data, 1:0))
+            break
         end
     end
+    return Diagonal(view(d.data, 1:0))
 end
 
 # TODO: is relying on generic AbstractTensorMap blocks sufficient?
@@ -133,29 +143,33 @@ end
 # Index manipulations
 # -------------------
 function has_shared_permute(d::DiagonalTensorMap, (p₁, p₂)::Index2Tuple)
-    if p₁ === codomainind(d) && p₂ === domainind(d)
+    if p₁ === (1,) && p₂ === (2,)
         return true
-    elseif BraidingStyle(sectortype(d)) isa Bosonic
-        # TODO: is this always correct? transpose has no effect for bosonic sectors?
-        return p₁ === domainind(d) && p₂ === codomainind(d)
+    elseif p₁ === (2,) && p₂ === (1,) # transpose
+        return sectortype(d) === Trivial
     else
         return false
     end
 end
 
-function permute(d::DiagonalTensorMap, (p₁, p₂)::Index2Tuple{N₁,N₂};
-                 copy::Bool=false) where {N₁,N₂}
-    if !copy
-        if p₁ === codomainind(d) && p₂ === domainind(d)
-            return d
-        elseif has_shared_permute(d, (p₁, p₂)) # tranpose for bosonic sectors
-            return DiagonalTensorMap(d.data, dual(d.domain))
+function permute(d::DiagonalTensorMap, (p₁, p₂)::Index2Tuple{1,1};
+                 copy::Bool=false)
+    if p₁ === (1,) && p₂ === (2,)
+        return copy ? Base.copy(d) : d
+    elseif p₁ === (2,) && p₂ === (1,) # transpose
+        if has_shared_permute(d, (p₁, p₂)) # tranpose for bosonic sectors
+            return DiagonalTensorMap(copy ? Base.copy(d.data) : d.data, dual(d.domain))
         end
-    end
-    # general case
-    space′ = permute(space(d), (p₁, p₂))
-    @inbounds begin
-        return permute!(similar(d, space′), d, (p₁, p₂))
+        d′ = typeof(d)(undef, dual(d.domain))
+        for (c, b) in blocks(d)
+            f = only(fusiontrees(codomain(d), c))
+            ((f′, _), coeff) = only(permute(f, f, p₁, p₂))
+            c′ = f′.coupled
+            scale!(block(d′, c′), b, coeff)
+        end
+        return d′
+    else
+        throw(ArgumentError("invalid permutation $((p₁, p₂)) for tensor in space $(space(d))"))
     end
 end
 
