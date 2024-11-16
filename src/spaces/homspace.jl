@@ -132,6 +132,16 @@ function permute(W::HomSpace{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}) where {S,
     p = (p₁..., p₂...)
     TupleTools.isperm(p) && length(p) == numind(W) ||
         throw(ArgumentError("$((p₁, p₂)) is not a valid permutation for $(W)"))
+    return select(W, (p₁, p₂))
+end
+
+"""
+    select(W::HomSpace, (p₁, p₂)::Index2Tuple{N₁,N₂})
+
+Return the `HomSpace` obtained by a selection from the domain and codomain of `W` according
+to the indices in `p₁` and `p₂` respectively.
+"""
+function select(W::HomSpace{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
     cod = ProductSpace{S,N₁}(map(n -> W[n], p₁))
     dom = ProductSpace{S,N₂}(map(n -> dual(W[n]), p₂))
     return cod ← dom
