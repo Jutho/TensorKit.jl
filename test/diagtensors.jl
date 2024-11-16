@@ -103,4 +103,23 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
             @test convert(TensorMap, t5) == permute(convert(TensorMap, t), (((), (2, 1))))
         end
     end
+    @timedtestset "Trace, Multiplication and inverse" begin
+        t1 = DiagonalTensorMap(rand(Float64, reduceddim(V)), V)
+        t2 = DiagonalTensorMap(rand(ComplexF64, reduceddim(V)), V)
+        @test tr(TensorMap(t1)) == @constinferred tr(t1)
+        @test tr(TensorMap(t2)) == @constinferred tr(t2)
+        @test TensorMap(@constinferred t1 * t2) ≈ TensorMap(t1) * TensorMap(t2)
+        @test TensorMap(@constinferred t1 \ t2) ≈ TensorMap(t1) \ TensorMap(t2)
+        @test TensorMap(@constinferred t1 / t2) ≈ TensorMap(t1) / TensorMap(t2)
+        @test TensorMap(@constinferred inv(t1)) ≈ inv(TensorMap(t1))
+        @test TensorMap(@constinferred pinv(t1)) ≈ pinv(TensorMap(t1))
+        @test all(Base.Fix2(isa, DiagonalTensorMap),
+                  (t1 * t2, t1 \ t2, t1 / t2, inv(t1), pinv(t1)))
+
+        u = randn(Float64, V * V' * V, V)
+        @test u * t1 ≈ u * TensorMap(t1)
+        @test u / t1 ≈ u / TensorMap(t1)
+        @test t1 * u' ≈ TensorMap(t1) * u'
+        @test t1 \ u' ≈ TensorMap(t1) \ u'
+    end
 end

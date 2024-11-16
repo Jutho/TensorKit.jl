@@ -198,6 +198,33 @@ function Base.zero(d::DiagonalTensorMap)
     return DiagonalTensorMap(zero.(d.data), d.domain)
 end
 
+function compose(d1::DiagonalTensorMap, d2::DiagonalTensorMap)
+    d1.domain == d2.domain || throw(SpaceMismatch())
+    return DiagonalTensorMap(d1.data .* d2.data, d1.domain)
+end
+Base.inv(d::DiagonalTensorMap) = DiagonalTensorMap(inv.(d.data), d.domain)
+function Base.:\(d1::DiagonalTensorMap, d2::DiagonalTensorMap)
+    d1.domain == d2.domain || throw(SpaceMismatch())
+    return DiagonalTensorMap(d1.data .\ d2.data, d1.domain)
+end
+function Base.:/(d1::DiagonalTensorMap, d2::DiagonalTensorMap)
+    d1.domain == d2.domain || throw(SpaceMismatch())
+    return DiagonalTensorMap(d1.data ./ d2.data, d1.domain)
+end
+function LinearAlgebra.pinv(d::DiagonalTensorMap; kwargs...)
+    T = eltype(d.data)
+    atol = get(kwargs, :atol, zero(real(T)))
+    if iszero(atol)
+        rtol = get(kwargs, :rtol, zero(real(T)))
+    else
+        rtol = sqrt(eps(real(float(oneunit(T))))) * length(d.data)
+    end
+    pdata = let tol = max(atol, rtol * maximum(abs, d.data))
+        map(x -> abs(x) < tol ? zero(x) : pinv(x), d.data)
+    end
+    return DiagonalTensorMap(pdata, d.domain)
+end
+
 function eig!(d::DiagonalTensorMap)
     return d, one(d)
 end

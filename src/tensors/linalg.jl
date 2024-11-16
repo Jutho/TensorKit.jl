@@ -345,6 +345,7 @@ end
 function LinearAlgebra.pinv(t::AbstractTensorMap; kwargs...)
     T = float(scalartype(t))
     tpinv = similar(t, T, domain(t) ← codomain(t))
+    # TODO: fix so that `rtol` used total tensor norm instead of per block
     for (c, b) in blocks(t)
         copy!(block(tpinv, c), pinv(b; kwargs...))
     end
