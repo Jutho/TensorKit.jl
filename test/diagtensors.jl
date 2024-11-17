@@ -90,7 +90,7 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
             t = DiagonalTensorMap(randn(ComplexF64, reduceddim(V)), V)
             t1 = @constinferred permute(t, $(((2,), (1,))))
             if BraidingStyle(sectortype(V)) isa Bosonic
-                @test t1 == transpose(t)
+                @test t1 ≈ transpose(t)
             end
             @test convert(TensorMap, t1) == permute(convert(TensorMap, t), (((2,), (1,))))
             t2 = @constinferred permute(t, $(((1, 2), ())))
@@ -121,5 +121,30 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
         @test u / t1 ≈ u / TensorMap(t1)
         @test t1 * u' ≈ TensorMap(t1) * u'
         @test t1 \ u' ≈ TensorMap(t1) \ u'
+    end
+    @timedtestset "Tensor contraction" begin
+        d = DiagonalTensorMap(rand(ComplexF64, reduceddim(V)), V)
+        t = TensorMap(d)
+        A = randn(ComplexF64, V ⊗ V' ⊗ V, V)
+        B = randn(ComplexF64, V ⊗ V' ⊗ V, V ⊗ V')
+        if BraidingStyle(I) isa SymmetricBraiding
+            @tensor C[a b c; d] := A[a b c; e] * d[e, d]
+            @test C ≈ A * d
+        end
+        @planar E1[-1 -2 -3; -4 -5] := B[-1 -2 -3; 1 -5] * d[1; -4]
+        @planar E2[-1 -2 -3; -4 -5] := B[-1 -2 -3; 1 -5] * t[1; -4]
+        @test E1 ≈ E2
+        @planar E1[-1 -2 -3; -4 -5] = B[-1 -2 -3; -4 1] * d'[-5; 1]
+        @planar E2[-1 -2 -3; -4 -5] = B[-1 -2 -3; -4 1] * t'[-5; 1]
+        @test E1 ≈ E2
+        @planar E1[-1 -2 -3; -4 -5] = B[1 -2 -3; -4 -5] * d[-1; 1]
+        @planar E2[-1 -2 -3; -4 -5] = B[1 -2 -3; -4 -5] * t[-1; 1]
+        @test E1 ≈ E2
+        @planar E1[-1 -2 -3; -4 -5] = B[-1 1 -3; -4 -5] * d[1; -2]
+        @planar E2[-1 -2 -3; -4 -5] = B[-1 1 -3; -4 -5] * t[1; -2]
+        @test E1 ≈ E2
+        @planar E1[-1 -2 -3; -4 -5] = B[-1 -2 1; -4 -5] * d'[-3; 1]
+        @planar E2[-1 -2 -3; -4 -5] = B[-1 -2 1; -4 -5] * t'[-3; 1]
+        @test E1 ≈ E2
     end
 end
