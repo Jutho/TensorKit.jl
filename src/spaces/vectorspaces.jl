@@ -116,7 +116,7 @@ Return the degeneracy dimension corresponding to the sector `s` of the vector sp
 
 Return the sum of all degeneracy dimensions of the vector space `V`.
 """
-reduceddim(V::ElementarySpace) = sum(c -> dim(V, c), sectors(V); init=0)
+reduceddim(V::ElementarySpace) = sum(Base.Fix1(dim, V), sectors(V); init=0)
 
 """
     oneunit(V::S) where {S<:ElementarySpace} -> S

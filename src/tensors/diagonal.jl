@@ -224,6 +224,9 @@ function LinearAlgebra.pinv(d::DiagonalTensorMap; kwargs...)
     end
     return DiagonalTensorMap(pdata, d.domain)
 end
+function LinearAlgebra.isposdef(d::DiagonalTensorMap)
+    return all(isposdef, d.data)
+end
 
 function eig!(d::DiagonalTensorMap)
     return d, one(d)
@@ -236,10 +239,12 @@ function eigh!(d::DiagonalTensorMap{<:Complex})
     return DiagonalTensorMap(real(d.data), d.domain), one(d)
 end
 
-function leftorth!(d::DiagonalTensorMap; kwargs...)
+function leftorth!(d::DiagonalTensorMap; alg=QR(), kwargs...)
+    @assert alg isa Union{QR,QL}
     return one(d), d # TODO: this is only correct for `alg = QR()` or `alg = QL()`
 end
-function rightorth!(d::DiagonalTensorMap; kwargs...)
+function rightorth!(d::DiagonalTensorMap; alg=LQ(), kwargs...)
+    @assert alg isa Union{LQ,RQ}
     return d, one(d) # TODO: this is only correct for `alg = LQ()` or `alg = RQ()`
 end
 # not much to do here:

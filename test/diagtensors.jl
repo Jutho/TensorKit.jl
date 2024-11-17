@@ -1,6 +1,6 @@
 diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
-                 ℂ[FermionNumber](0 => 2, 1 => 2, -1 => 1)',
-                 ℂ[SU2Irrep](0 => 2, 1 => 1), ℂ[FibonacciAnyon](:I => 2, :τ => 2))
+                 ℂ[FermionNumber](0 => 2, 1 => 2, -1 => 1),
+                 ℂ[SU2Irrep](0 => 2, 1 => 1)', ℂ[FibonacciAnyon](:I => 2, :τ => 2))
 
 @testset "DiagonalTensor with domain $V" for V in diagspacelist
     @timedtestset "Basic properties and algebra" begin
@@ -146,5 +146,71 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
         @planar E1[-1 -2 -3; -4 -5] = B[-1 -2 1; -4 -5] * d'[-3; 1]
         @planar E2[-1 -2 -3; -4 -5] = B[-1 -2 1; -4 -5] * t'[-3; 1]
         @test E1 ≈ E2
+    end
+    @timedtestset "Factorization" begin
+        for T in (Float32, ComplexF64)
+            t = DiagonalTensorMap(rand(T, reduceddim(V)), V)
+            @testset "eig" begin
+                D, W = @constinferred eig(t)
+                @test t * W ≈ W * D
+                t2 = t + t'
+                D2, V2 = @constinferred eigh(t2)
+                VdV2 = V2' * V2
+                @test VdV2 ≈ one(VdV2)
+                @test t2 * V2 ≈ V2 * D2
+            end
+            @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QL())
+                Q, R = @constinferred leftorth(t; alg=alg)
+                QdQ = Q' * Q
+                @test QdQ ≈ one(QdQ)
+                @test Q * R ≈ t
+                if alg isa Polar
+                    @test isposdef(R)
+                end
+            end
+            @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.LQ())
+                L, Q = @constinferred rightorth(t; alg=alg)
+                QQd = Q * Q'
+                @test QQd ≈ one(QQd)
+                @test L * Q ≈ t
+                if alg isa Polar
+                    @test isposdef(L)
+                end
+            end
+            @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                U, S, Vᴴ = @constinferred tsvd(t; alg=alg)
+                UdU = U' * U
+                @test UdU ≈ one(UdU)
+                VdV = Vᴴ * Vᴴ'
+                @test VdV ≈ one(VdV)
+                @test U * S * Vᴴ ≈ t
+            end
+        end
+    end
+    @timedtestset "Tensor functions" begin
+        for T in (Float64, ComplexF64)
+            d = DiagonalTensorMap(rand(T, reduceddim(V)), V)
+            # rand is important for positive numbers in the real case, for log and sqrt
+            t = TensorMap(d)
+            @test @constinferred exp(d) ≈ exp(t)
+            @test @constinferred log(d) ≈ log(t)
+            @test @constinferred sqrt(d) ≈ sqrt(t)
+            @test @constinferred sin(d) ≈ sin(t)
+            @test @constinferred cos(d) ≈ cos(t)
+            @test @constinferred tan(d) ≈ tan(t)
+            @test @constinferred cot(d) ≈ cot(t)
+            @test @constinferred sinh(d) ≈ sinh(t)
+            @test @constinferred cosh(d) ≈ cosh(t)
+            @test @constinferred tanh(d) ≈ tanh(t)
+            @test @constinferred coth(d) ≈ coth(t)
+            @test @constinferred asin(d) ≈ asin(t)
+            @test @constinferred acos(d) ≈ acos(t)
+            @test @constinferred atan(d) ≈ atan(t)
+            @test @constinferred acot(d) ≈ acot(t)
+            @test @constinferred asinh(d) ≈ asinh(t)
+            @test @constinferred acosh(one(d) + d) ≈ acosh(one(t) + t)
+            @test @constinferred atanh(d) ≈ atanh(t)
+            @test @constinferred acoth(one(t) + d) ≈ acoth(one(d) + t)
+        end
     end
 end
