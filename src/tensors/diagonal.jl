@@ -25,11 +25,6 @@ end
 #--------------------------------------------
 space(d::DiagonalTensorMap) = d.domain ← d.domain
 
-"""
-    storagetype(::Union{T,Type{T}}) where {T<:TensorMap} -> Type{A<:DenseVector}
-
-Return the type of the storage `A` of the tensor map.
-"""
 storagetype(::Type{<:DiagonalTensorMap{T,S,A}}) where {T,S,A<:DenseVector{T}} = A
 
 # DiagonalTensorMap constructors

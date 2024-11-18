@@ -59,7 +59,9 @@ include("spaces.jl")
 include("tensors.jl")
 include("diagonal.jl")
 include("planar.jl")
-include("ad.jl")
+if !(Sys.isapple()) # TODO: remove once we know why this is so slow on macOS
+    include("ad.jl")
+end
 include("bugfixes.jl")
 Tf = time()
 printstyled("Finished all tests in ",

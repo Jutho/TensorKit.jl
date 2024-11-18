@@ -14,6 +14,7 @@ AbstractTensorMap
 The following concrete subtypes are provided within the TensorKit library:
 ```@docs
 TensorMap
+DiagonalTensorMap
 AdjointTensorMap
 BraidingTensor
 ```
@@ -201,6 +202,11 @@ contract!
 
 ## `TensorMap` factorizations
 
+The factorisation methods come in two flavors, namely a non-destructive version where you
+can specify an additional permutation of the domain and codomain indices before the
+factorisation is performed (provided that `sectorstyle(t)` has a symmetric braiding) as
+well as a destructive version The non-destructive methods are given first:
+
 ```@docs
 leftorth
 rightorth
@@ -209,7 +215,13 @@ rightnull
 tsvd
 eigh
 eig
+eigen
 isposdef
 ```
+
+The corresponding destructive methods have an exclamation mark at the end of their name,
+and only accept the `TensorMap` object as well as the method-specific algorithm and keyword
+arguments.
+
 
 TODO: document svd truncation types

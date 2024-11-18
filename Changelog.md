@@ -15,6 +15,24 @@ Features that are planned to be implemented before the release of v1.0.0, in no 
 
 # Changelog
 
+## v0.14
+
+### `DiagonalTensorMap` and `reduceddim`
+
+This adds a `DiagonalTensorMap` type for representing tensor maps in which all of the
+blocks are diagonal. This only makes sense for maps between a single index in the domain and
+the codomain (which are furthermore required to be the same), as otherwise the fusion and
+splitting trees from the domain and codomain to the blocked sectors would itself be
+nondiagonal. This new type will be used to capture the singular values and eigenvalues as
+tensor maps in the corresponding decompositions. The number of free parameters in a
+`DiagonalTensorMap` instance on vector space `V` is equal to `reduceddim(V)`, a new function
+that sums up the degeneracy dimension `dim(V, c)` for each of the sectors `c` in `V`. This
+function can be useful by itself and is also exported from the `TensorKit` module. An
+instance of `DiagonalTensorMap` can then be created as `DiagonalTensorMap(data, V)` where
+`data` is a vector of length `reduceddim(V)`.
+
+## v0.13
+
 ### `AbstractTensorMap{E,S,N₁,N₂}`
 
 This adds the scalar type as a parameter to the `AbstractTensorMap` type. This is useful in
