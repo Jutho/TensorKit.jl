@@ -315,3 +315,26 @@ for f in
      :log, :asin, :acos, :acosh, :atanh, :acoth)
     @eval Base.$f(d::DiagonalTensorMap) = DiagonalTensorMap($f.(d.data), d.domain)
 end
+
+# Show
+#------
+function Base.summary(io::IO, t::DiagonalTensorMap)
+    return print(io, "DiagonalTensorMap(", space(t), ")")
+end
+function Base.show(io::IO, t::DiagonalTensorMap)
+    summary(io, t)
+    get(io, :compact, false) && return nothing
+    println(io, ":")
+
+    if sectortype(t) == Trivial
+        Base.print_array(io, Diagonal(t.data))
+        println(io)
+    else
+        for (c, b) in blocks(t)
+            println(io, "* Data for sector ", c, ":")
+            Base.print_array(io, b)
+            println(io)
+        end
+    end
+    return nothing
+end
