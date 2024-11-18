@@ -130,6 +130,9 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
         if BraidingStyle(I) isa SymmetricBraiding
             @tensor C[a b c; d] := A[a b c; e] * d[e, d]
             @test C ≈ A * d
+            @tensor D[a; b] := d[a, c] * d[c, b]
+            @test D ≈ d * d
+            @test D isa DiagonalTensorMap
         end
         @planar E1[-1 -2 -3; -4 -5] := B[-1 -2 -3; 1 -5] * d[1; -4]
         @planar E2[-1 -2 -3; -4 -5] := B[-1 -2 -3; 1 -5] * t[1; -4]

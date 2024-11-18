@@ -185,6 +185,34 @@ function VectorInterface.add(ty::DiagonalTensorMap, tx::DiagonalTensorMap,
     return add!(scale!(zerovector(ty, T), ty, β), tx, α) # zerovector instead of similar preserves diagonal structure
 end
 
+# TensorOperations
+# ----------------
+function TO.tensoradd_type(TC, A::DiagonalTensorMap, ::Index2Tuple{1,1}, ::Bool)
+    M = similarstoragetype(A, TC)
+    return DiagonalTensorMap{TC,spacetype(A),M}
+end
+
+function TO.tensorcontract_type(TC, A::DiagonalTensorMap, ::Index2Tuple{1,1}, ::Bool,
+                                B::DiagonalTensorMap, ::Index2Tuple{1,1}, ::Bool,
+                                ::Index2Tuple{1,1})
+    M = similarstoragetype(A, TC)
+    M == similarstoragetype(B, TC) ||
+        throw(ArgumentError("incompatible storage types:\n$(M) ≠ $(similarstoragetype(B, TC))"))
+    spacetype(A) == spacetype(B) || throw(SpaceMismatch("incompatible space types"))
+    return DiagonalTensorMap{TC,spacetype(A),M}
+end
+
+function TO.tensoralloc(::Type{DiagonalTensorMap{T,S,M}},
+                        structure::TensorMapSpace{S,1,1},
+                        istemp::Val,
+                        allocator=TO.DefaultAllocator()) where {T,S,M}
+    domain(structure) == codomain(structure) || throw(ArgumentError("domain ≠ codomain"))
+    V = only(domain(structure))
+    dim = reduceddim(V)
+    data = TO.tensoralloc(M, dim, istemp, allocator)
+    return DiagonalTensorMap{T,S,M}(data, V)
+end
+
 # Linear Algebra and factorizations
 # ---------------------------------
 function one!(d::DiagonalTensorMap)
@@ -196,13 +224,6 @@ function Base.one(d::DiagonalTensorMap)
 end
 function Base.zero(d::DiagonalTensorMap)
     return DiagonalTensorMap(zero.(d.data), d.domain)
-end
-
-function compose_dest(d1::DiagonalTensorMap, d2::DiagonalTensorMap)
-    A = promote_type(storagetype(d1), storagetype(d2))
-    S = spacetype(d1)
-    T = scalartype(A)
-    return DiagonalTensorMap{T,S,A}(undef, d1.domain)
 end
 
 function LinearAlgebra.mul!(dC::DiagonalTensorMap,
