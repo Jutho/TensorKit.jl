@@ -31,12 +31,22 @@ function permute(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple{N₁,N₂};
                  copy::Bool=false) where {N₁,N₂}
     space′ = permute(space(t), (p₁, p₂))
     # share data if possible
+    if !copy && p₁ === codomainind(t) && p₂ === domainind(t)
+        return t
+    end
+    # general case
+    @inbounds begin
+        return permute!(similar(t, space′), t, (p₁, p₂))
+    end
+end
+function permute(t::TensorMap, (p₁, p₂)::Index2Tuple{N₁,N₂}; copy::Bool=false) where {N₁,N₂}
+    space′ = permute(space(t), (p₁, p₂))
+    # share data if possible
     if !copy
         if p₁ === codomainind(t) && p₂ === domainind(t)
             return t
         elseif has_shared_permute(t, (p₁, p₂))
-            return TensorMap(reshape(t.data, dim(codomain(space′)), dim(domain(space′))),
-                             codomain(space′), domain(space′))
+            return TensorMap(t.data, space′)
         end
     end
     # general case
@@ -53,6 +63,9 @@ function permute(t::AbstractTensorMap, p::IndexTuple; copy::Bool=false)
     return permute(t, (p, ()); copy)
 end
 
+function has_shared_permute(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
+    return (p₁ === codomainind(t) && p₂ === domainind(t))
+end
 function has_shared_permute(t::TensorMap, (p₁, p₂)::Index2Tuple)
     if p₁ === codomainind(t) && p₂ === domainind(t)
         return true

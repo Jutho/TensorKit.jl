@@ -59,7 +59,8 @@ end
 function TO.tensoradd_structure(A::AbstractTensorMap, pA::Index2Tuple{N₁,N₂},
                                 conjA::Bool) where {N₁,N₂}
     if !conjA
-        return permute(space(A), pA)
+        # don't use `permute` as this is also used when indices are traced
+        return select(space(A), pA)
     else
         return TO.tensoradd_structure(adjoint(A), adjointtensorindices(A, pA), false)
     end
@@ -172,7 +173,7 @@ function trace_permute!(tdst::AbstractTensorMap,
     N₁, N₂ = length(p₁), length(p₂)
 
     @boundscheck begin
-        space(tdst) == permute(space(tsrc), (p₁, p₂)) ||
+        space(tdst) == select(space(tsrc), (p₁, p₂)) ||
             throw(SpaceMismatch("trace: tsrc = $(codomain(tsrc))←$(domain(tsrc)),
                     tdst = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
         all(i -> space(tsrc, q₁[i]) == dual(space(tsrc, q₂[i])), 1:N₃) ||

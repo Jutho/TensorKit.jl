@@ -59,7 +59,7 @@ const CU₁Space = CU1Space
 const SU₂Space = SU2Space
 ```
 
-## Methods
+## [Methods](@id s_spacemethods)
 
 Methods often apply similar to e.g. spaces and corresponding tensors or tensor maps, e.g.:
 
@@ -70,14 +70,15 @@ sectors
 hassector
 dim(::VectorSpace)
 dim(::ElementarySpace, ::Sector)
+reduceddim
 dim(P::ProductSpace{<:ElementarySpace,N}, sector::NTuple{N,<:Sector}) where {N}
 dim(::HomSpace)
 dims
-blocksectors(::ProductSpace)
+blocksectors(P::ProductSpace{S,N}) where {S,N}
 blocksectors(::HomSpace)
 hasblock
 blockdim
-fusiontrees(::ProductSpace, ::Sector)
+fusiontrees(P::ProductSpace{S,N}, blocksector::I) where {S,N,I}
 space
 ```
 
@@ -107,10 +108,11 @@ isisomorphic
 insertunit
 ```
 
-There are also specific methods for `HomSpace` instances, that mimic the effect of that
-operation on the corresponding tensor maps:
+There are also specific methods for `HomSpace` instances, that are used in determining
+the resuling `HomSpace` after applying certain tensor operations.
 
 ```@docs
-permute(::HomSpace, ::Index2Tuple)
-compose(::HomSpace{S}, ::HomSpace{S}) where {S}
+TensorKit.permute(::HomSpace{S}, ::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
+TensorKit.select(::HomSpace{S}, ::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
+TensorKit.compose(::HomSpace{S}, ::HomSpace{S}) where {S}
 ```

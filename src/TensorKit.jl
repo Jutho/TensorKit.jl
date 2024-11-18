@@ -25,12 +25,13 @@ export Vect, Rep # space constructors
 export CompositeSpace, ProductSpace # composite spaces
 export FusionTree
 export IndexSpace, HomSpace, TensorSpace, TensorMapSpace
-export AbstractTensorMap, AbstractTensor, TensorMap, Tensor, BraidingTensor # tensors and tensor properties
+export AbstractTensorMap, AbstractTensor, TensorMap, Tensor # tensors and tensor properties
+export DiagonalTensorMap, BraidingTensor
 export TruncationScheme
 export SpaceMismatch, SectorMismatch, IndexError # error types
 
 # general vector space methods
-export space, field, dual, dim, dims, fuse, flip, isdual, insertunit, oplus
+export space, field, dual, dim, reduceddim, dims, fuse, flip, isdual, insertunit, oplus
 
 # partial order for vector spaces
 export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
@@ -189,6 +190,7 @@ include("tensors/vectorinterface.jl")
 include("tensors/tensoroperations.jl")
 include("tensors/treetransformers.jl")
 include("tensors/indexmanipulations.jl")
+include("tensors/diagonal.jl")
 include("tensors/truncation.jl")
 include("tensors/factorizations.jl")
 include("tensors/braidingtensor.jl")

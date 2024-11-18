@@ -915,8 +915,8 @@ to either `eig` or `eigh`.
 Other factorizations that are provided by TensorKit.jl are orthogonal or unitary in nature,
 and thus always require a `AbstractEuclideanTensorMap`. However, they don't require equal
 domain and codomain. Let us first discuss the *singular value decomposition*, for which we
-define and export the methods [`tsvd`](@ref) and [`tsvd!`](@ref) (where as always, the
-latter destroys the input).
+define and export the methods [`tsvd`](@ref) and `tsvd!` (where as always, the latter
+destroys the input).
 
 ```julia
 U, Σ, Vʰ, ϵ = tsvd(t; trunc = notrunc(), p::Real = 2,
@@ -934,7 +934,8 @@ given by `min(fuse(codomain(t)), fuse(domain(t)))`. The singular values are cont
 and are stored on the diagonal of a (collection of) `DenseMatrix` instance(s), similar to
 the eigenvalues before.
 
-The keyword argument `trunc` provides a way to control the truncation, and is connected to the keyword argument `p`. The default value `notrunc()` implies no truncation, and thus
+The keyword argument `trunc` provides a way to control the truncation, and is connected to 
+the keyword argument `p`. The default value `notrunc()` implies no truncation, and thus
 `ϵ = 0`. Other valid options are
 
 *   `truncerr(η::Real)`: truncates such that the `p`-norm of the truncated singular values

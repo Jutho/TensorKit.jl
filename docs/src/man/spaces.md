@@ -172,7 +172,7 @@ InnerProductStyle(ℂ^5)
 One more important instance of `ElementarySpace` is the `GradedSpace`, which is used to
 represent a graded complex vector space with Euclidean inner product, where the grading is
 provided by the irreducible representations of a group, or more generally, the simple
-objects of a fusion category. We refer to the subsection on [graded spaces](@ref s_rep) on
+objects of a fusion category. We refer to the subsection on [graded spaces](@ref ss_rep) on
 the [next page](@ref s_sectorsrepfusion) for further information about `GradedSpace`.
 
 ## [Composite spaces](@id ss_compositespaces)
@@ -301,7 +301,8 @@ isomorphic to `V` but has `isdual(flip(V)) == isdual(V')`, i.e. if `V` is a norm
 than `flip(V)` is a dual space. `flip(V)` is different from `dual(V)` in the case of
 [`GradedSpace`](@ref). It is useful to flip a tensor index from a ket to a bra (or
 vice versa), by contracting that index with a unitary map from `V1` to `flip(V1)`. We refer
-to [Index operations](@ref) for further information. Some examples:
+to the reference on [vector space methods](@ref s_spacemethods) for further information.
+Some examples:
 ```@repl tensorkit
 ℝ^3 ≾ ℝ^5
 ℂ^3 ≾ (ℂ^5)'
