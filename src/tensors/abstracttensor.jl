@@ -497,7 +497,7 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap)
     else
         cod = codomain(t)
         dom = domain(t)
-        T = isreal(sectorscalartype(I)) ? scalartype(t) : complex(scalartype(t))
+        T = sectorscalartype(I) <: Complex ? complex(scalartype(t)) : scalartype(t)
         A = zeros(T, dims(cod)..., dims(dom)...)
         for (f₁, f₂) in fusiontrees(t)
             F = convert(Array, (f₁, f₂))
