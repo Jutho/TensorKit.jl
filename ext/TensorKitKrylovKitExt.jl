@@ -30,12 +30,13 @@ end
 # ---------
 function KrylovKit.svdsolve(t::AbstractTensorMap, howmany::Int=1, which::Selector=:LR,
                             T::Type=eltype(t); kwargs...)
-    v₀ = rand!(similar(T, codomain(t)))
+    v₀ = rand!(similar(t, T, codomain(t)))
     return svdsolve(t, v₀, howmany, which; kwargs...)
 end
 function KrylovKit.svdsolve(t, V::VectorSpace, howmany::Int=1, which::Selector=:LR,
                             T::Type=Float64; kwargs...)
-    return svdsolve(t, rand(T, V), howmany, which; kwargs...)
+    v₀ = rand!(similar(t, T, V))
+    return svdsolve(t, v₀, howmany, which; kwargs...)
 end
 
 # tsvd!
@@ -56,7 +57,7 @@ function TensorKit._tsvd!(t::TensorMap, alg::GKL, trunc::TruncationScheme, p::Re
         if trunc isa TruncationSpace
             howmany = min(howmany, blockdim(trunc.space, c))
         end
-        return MatrixAlgebra.svd!(b, alg; howmany=_find_svd_blocksize(t, c, trunc)...)
+        return c => MatrixAlgebra.svd!(b, alg; howmany)
     end
     SVDdata = SectorDict(generator)
     dims = SectorDict(c => length(Σ) for (c, (_, Σ, _)) in SVDdata)
