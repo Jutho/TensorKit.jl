@@ -129,6 +129,14 @@ that this is different from `one(V::S)`, which returns the empty product space
 Base.oneunit(V::ElementarySpace) = oneunit(typeof(V))
 
 """
+    zero(V::S) where {S<:ElementarySpace} -> S
+
+Return the corresponding vector space of type `S` that represents the zero-dimensional or empty space.
+This is, with a slight abuse of notation, the zero element of the direct sum of vector spaces. 
+"""
+Base.zero(V::ElementarySpace) = zero(typeof(V))
+
+"""
     ⊕(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
     oplus(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
 

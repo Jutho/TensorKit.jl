@@ -132,6 +132,7 @@ function Base.axes(V::GradedSpace{I}, c::I) where {I<:Sector}
 end
 
 Base.oneunit(S::Type{<:GradedSpace{I}}) where {I<:Sector} = S(one(I) => 1)
+Base.zero(S::Type{<:GradedSpace{I}}) where {I<:Sector} = S(one(I) => 0)
 
 # TODO: the following methods can probably be implemented more efficiently for
 # `FiniteGradedSpace`, but we don't expect them to be used often in hot loops, so

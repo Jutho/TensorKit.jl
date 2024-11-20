@@ -66,12 +66,14 @@ println("------------------------------------")
         @test length(sectors(V)) == 1
         @test @constinferred(TensorKit.hassector(V, Trivial()))
         @test @constinferred(dim(V)) == d == @constinferred(dim(V, Trivial()))
-        @test dim(@constinferred(typeof(V)())) == 0
-        @test (sectors(typeof(V)())...,) == ()
+        @test dim(@constinferred(zero(V))) == 0
+        @test (sectors(zero(V))...,) == ()
         @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
         @test ℝ^d == ℝ[](d) == CartesianSpace(d) == typeof(V)(d)
         W = @constinferred ℝ^1
         @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
+        @test @constinferred(zero(V)) == ℝ^0 == zero(typeof(V))
+        @test @constinferred(⊕(V, zero(V))) == V
         @test @constinferred(⊕(V, V)) == ℝ^(2d)
         @test @constinferred(⊕(V, oneunit(V))) == ℝ^(d + 1)
         @test @constinferred(⊕(V, V, V, V)) == ℝ^(4d)
@@ -111,12 +113,14 @@ println("------------------------------------")
         @test length(sectors(V)) == 1
         @test @constinferred(TensorKit.hassector(V, Trivial()))
         @test @constinferred(dim(V)) == d == @constinferred(dim(V, Trivial()))
-        @test dim(@constinferred(typeof(V)())) == 0
-        @test (sectors(typeof(V)())...,) == ()
+        @test dim(@constinferred(zero(V))) == 0
+        @test (sectors(zero(V))...,) == ()
         @test @constinferred(TensorKit.axes(V)) == Base.OneTo(d)
         @test ℂ^d == Vect[Trivial](d) == Vect[](Trivial() => d) == ℂ[](d) == typeof(V)(d)
         W = @constinferred ℂ^1
         @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
+        @test @constinferred(zero(V)) == ℂ^0 == zero(typeof(V))
+        @test @constinferred(⊕(V, zero(V))) == V
         @test @constinferred(⊕(V, V)) == ℂ^(2d)
         @test_throws SpaceMismatch (⊕(V, V'))
         # promote_except = ErrorException("promotion of types $(typeof(ℝ^d)) and " *
@@ -200,11 +204,12 @@ println("------------------------------------")
         @test eval(Meta.parse(sprint(show, V))) == V
         @test eval(Meta.parse(sprint(show, typeof(V)))) == typeof(V)
         # space with no sectors
-        @test dim(@constinferred(typeof(V)())) == 0
+        @test dim(@constinferred(zero(V))) == 0
         # space with a single sector
         W = @constinferred GradedSpace(one(I) => 1)
         @test W == GradedSpace(one(I) => 1, randsector(I) => 0)
         @test @constinferred(oneunit(V)) == W == oneunit(typeof(V))
+        @test @constinferred(zero(V)) == GradedSpace(one(I) => 0)
         # randsector never returns trivial sector, so this cannot error
         @test_throws ArgumentError GradedSpace(one(I) => 1, randsector(I) => 0, one(I) => 3)
         @test eval(Meta.parse(sprint(show, W))) == W
@@ -226,6 +231,7 @@ println("------------------------------------")
         if hasfusiontensor(I)
             @test @constinferred(TensorKit.axes(V)) == Base.OneTo(dim(V))
         end
+        @test @constinferred(⊕(V, zero(V))) == V
         @test @constinferred(⊕(V, V)) == Vect[I](c => 2dim(V, c) for c in sectors(V))
         @test @constinferred(⊕(V, V, V, V)) == Vect[I](c => 4dim(V, c) for c in sectors(V))
         @test @constinferred(⊕(V, oneunit(V))) ==
