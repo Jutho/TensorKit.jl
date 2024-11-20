@@ -127,7 +127,7 @@ for V in spacelist
                     end
                 end
                 for T in (Int, Float32, ComplexF64)
-                    t = randn(T, W1 ⊗ W2, typeof(W1)())
+                    t = randn(T, V1 ⊗ V2 ← zero(V1))
                     a = convert(Array, t)
                     @test norm(a) == 0
                 end
@@ -471,7 +471,7 @@ for V in spacelist
                     end
                 end
                 @testset "empty tensor" begin
-                    t = randn(T, V1 ⊗ V2, typeof(V1)())
+                    t = randn(T, V1 ⊗ V2, zero(V1))
                     @testset "leftorth with $alg" for alg in
                                                       (TensorKit.QR(), TensorKit.QRpos(),
                                                        TensorKit.QL(), TensorKit.QLpos(),
