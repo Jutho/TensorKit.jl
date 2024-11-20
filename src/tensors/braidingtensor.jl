@@ -78,22 +78,19 @@ end
             throw(SectorMismatch())
     end
     @inbounds begin
-        d = (dims(V2 ⊗ V1, f₁.uncoupled)..., dims(V1 ⊗ V2, f₂.uncoupled)...)
+        d = (dims(codomain(b), f₁.uncoupled)..., dims(domain(b), f₂.uncoupled)...)
         n1 = d[1] * d[2]
         n2 = d[3] * d[4]
-        data = storagetype(b)(undef, (n1, n2))
+        data = sreshape(StridedView(Matrix{eltype(b)}(undef, n1, n2)), d)
         fill!(data, zero(eltype(b)))
-        a1, a2 = f₂.uncoupled
-        if f₁.uncoupled == (a2, a1)
+        if f₁.uncoupled == reverse(f₂.uncoupled)
             braiddict = artin_braid(f₂, 1; inv=b.adjoint)
             r = get(braiddict, f₁, zero(valtype(braiddict)))
-            si = 1 + d[1] * d[2] * d[3]
-            sj = d[1] + d[1] * d[2]
-            @inbounds for i in 1:d[1], j in 1:d[2]
-                data[(i - 1) * si + (j - 1) * sj + 1] = r
+            @inbounds for i in axes(data, 1), j in axes(data, 2)
+                data[i, j, j, i] = r
             end
         end
-        return sreshape(StridedView(data), d)
+        return data
     end
 end
 @inline function Base.getindex(b::BraidingTensor, ::Nothing, ::Nothing)
@@ -104,25 +101,12 @@ end
 # efficient copy constructor
 Base.copy(b::BraidingTensor) = b
 
-function Base.copy!(t::TensorMap, b::BraidingTensor)
-    space(t) == space(b) || throw(SectorMismatch())
-    fill!(t, zero(scalartype(t)))
-    for (f₁, f₂) in fusiontrees(t)
-        data = t[f₁, f₂]
-        if sectortype(t) == Trivial
-            r = one(scalartype(t))
-        else
-            a1, a2 = f₂.uncoupled
-            c = f₂.coupled
-            f₁.uncoupled == (a2, a1) || continue
-            braiddict = artin_braid(f₂, 1; inv=b.adjoint)
-            r = convert(scalartype(t), get(braiddict, f₁, zero(valtype(braiddict))))
-        end
-        @inbounds for i in axes(data, 1), j in axes(data, 2)
-            data[i, j, j, i] = r
-        end
+function Base.copy!(tdst::TensorMap, tsrc::BraidingTensor)
+    space(tdst) == space(tsrc) || throw(SectorMismatch())
+    for (c, b) in blocks(tdst)
+        copy!(b, block(tsrc, c))
     end
-    return t
+    return tdst
 end
 TensorMap(b::BraidingTensor) = copy!(similar(b), b)
 Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
@@ -141,7 +125,7 @@ function block(b::BraidingTensor, s::Sector)
 
     data = fill!(data, zero(eltype(b)))
 
-    V1, V2 = domain(b)
+    V1, V2 = codomain(b)
     if sectortype(b) === Trivial
         d1, d2 = dim(V1), dim(V2)
         subblock = sreshape(StridedView(data), (d1, d2, d2, d1))
