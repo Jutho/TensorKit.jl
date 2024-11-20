@@ -69,8 +69,34 @@ function TreeTransformer(transform::Function, Vsrc::HomSpace{S},
     end
 end
 
+# braid is special because it has levels
+const treebraidercache = LRU{Any,Any}(; maxsize=10^5)
+const usetreebraidercache = Ref{Bool}(true)
+@noinline function _get_treebraider(A, key)
+    d::A = get!(treebraidercache, key) do
+        return _treebraider(key)
+    end
+    return d
+end
+function _treebraider((Vdst, Vsrc, p, levels))
+    fusiontreebraider(f1, f2) = braid(f1, f2, levels..., p...)
+    return TreeTransformer(fusiontreebraider, Vsrc, Vdst)
+end
+function treebraider(::AbstractTensorMap, ::AbstractTensorMap, p, levels)
+    return fusiontreetransform(f1, f2) = braid(f1, f2, levels..., p...)
+end
+function treebraider(tdst::TensorMap, tsrc::TensorMap, p, levels)
+    if usetreebraidercache[]
+        key = (space(tdst), space(tsrc), p, levels)
+        A = treetransformertype(space(tdst), space(tsrc))
+        return _get_treebraider(A, key)
+    else
+        return _treebraider((space(tdst), space(tsrc), p, levels))
+    end
+end
+
 for (transform, transformer) in
-    ((:permute, :permuter), (:braid, :braider), (:transpose, :transposer))
+    ((:permute, :permuter), (:transpose, :transposer))
     treetransformcache = Symbol("tree", transformer, "cache")
     usetreetransformcache = Symbol("usetree", transformer, "cache")
     treetransformer = Symbol("tree", transformer)
