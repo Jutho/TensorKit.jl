@@ -126,6 +126,11 @@ for V in spacelist
                         @test t === @constinferred TensorMap(t.data, W)
                     end
                 end
+                for T in (Int, Float32, ComplexF64)
+                    t = randn(T, W1 ⊗ W2, typeof(W1)())
+                    a = convert(Array, t)
+                    @test norm(a) == 0
+                end
             end
         end
         @timedtestset "Basic linear algebra" begin
