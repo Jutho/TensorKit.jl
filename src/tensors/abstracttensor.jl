@@ -497,21 +497,12 @@ function Base.convert(::Type{Array}, t::AbstractTensorMap)
     else
         cod = codomain(t)
         dom = domain(t)
-        local A
+        T = promote_type(scalartype(t), sectortype(t))
+        A = zeros(T, dims(cod)..., dims(dom)...)
         for (f₁, f₂) in fusiontrees(t)
             F = convert(Array, (f₁, f₂))
-            if !(@isdefined A)
-                if eltype(F) <: Complex
-                    T = complex(float(scalartype(t)))
-                elseif eltype(F) <: Integer
-                    T = scalartype(t)
-                else
-                    T = float(scalartype(t))
-                end
-                A = fill(zero(T), (dims(cod)..., dims(dom)...))
-            end
             Aslice = StridedView(A)[axes(cod, f₁.uncoupled)..., axes(dom, f₂.uncoupled)...]
-            axpy!(1, StridedView(_kron(convert(Array, t[f₁, f₂]), F)), Aslice)
+            add!(Aslice, StridedView(_kron(convert(Array, t[f₁, f₂]), F)))
         end
         return A
     end
