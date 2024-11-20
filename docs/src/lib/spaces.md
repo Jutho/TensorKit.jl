@@ -90,6 +90,7 @@ dual
 conj
 flip
 ⊕
+zero(::ElementarySpace)
 oneunit
 supremum
 infimum
