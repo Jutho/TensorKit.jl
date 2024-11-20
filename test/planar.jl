@@ -57,23 +57,23 @@ Vfib = (Vect[FibonacciAnyon](:I => 1, :τ => 2),
         Vect[FibonacciAnyon](:I => 1, :τ => 1))
 @testset "Braiding tensor" begin
     for V in (Vtr, VU₁, VfU₁, VfSU₂, Vfib)
-        V1 = V[1] ⊗ V[2] ← V[2] ⊗ V[1]
-        t1 = @constinferred BraidingTensor(V1)
-        @test space(t1) == V1
-        @test codomain(t1) == codomain(V1)
-        @test domain(t1) == domain(V1)
-        @test scalartype(t1) == (isreal(sectortype(V1)) ? Float64 : ComplexF64)
+        W = V[1] ⊗ V[2] ← V[2] ⊗ V[1]
+        t1 = @constinferred BraidingTensor(W)
+        @test space(t1) == W
+        @test codomain(t1) == codomain(W)
+        @test domain(t1) == domain(W)
+        @test scalartype(t1) == (isreal(sectortype(W)) ? Float64 : ComplexF64)
         @test storagetype(t1) == Vector{scalartype(t1)}
-        t2 = @constinferred BraidingTensor{ComplexF64}(V1)
+        t2 = @constinferred BraidingTensor{ComplexF64}(W)
         @test scalartype(t2) == ComplexF64
         @test storagetype(t2) == Vector{ComplexF64}
 
-        V2 = reverse(codomain(V1)) ← domain(V1)
+        V2 = reverse(codomain(W)) ← domain(V1)
         @test_throws SpaceMismatch BraidingTensor(V2)
 
         @test adjoint(t1) isa BraidingTensor
 
-        t3 = TensorMap(t2)
+        t3 = @inferred TensorMap(t2)
         t4 = braid(id(storagetype(t2), domain(t2)), ((2, 1), (3, 4)), (1, 2, 3, 4))
         @test t1 ≈ t4
         for (c, b) in blocks(t1)
