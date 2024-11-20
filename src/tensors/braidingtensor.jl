@@ -101,18 +101,9 @@ end
 # efficient copy constructor
 Base.copy(b::BraidingTensor) = b
 
-function Base.copy!(tdst::TensorMap, tsrc::BraidingTensor)
-    space(tdst) == space(tsrc) || throw(SectorMismatch())
-    for (c, b) in blocks(tdst)
-        copy!(b, block(tsrc, c))
-    end
-    return tdst
-end
 TensorMap(b::BraidingTensor) = copy!(similar(b), b)
 Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
-# TODO: fix this!
-# block(b::BraidingTensor, s::Sector) = block(TensorMap(b), s)
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
 
