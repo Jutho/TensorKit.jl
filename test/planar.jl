@@ -68,8 +68,8 @@ Vfib = (Vect[FibonacciAnyon](:I => 1, :τ => 2),
         @test scalartype(t2) == ComplexF64
         @test storagetype(t2) == Vector{ComplexF64}
 
-        V2 = reverse(codomain(W)) ← domain(V1)
-        @test_throws SpaceMismatch BraidingTensor(V2)
+        W2 = reverse(codomain(W)) ← domain(W)
+        @test_throws SpaceMismatch BraidingTensor(W2)
 
         @test adjoint(t1) isa BraidingTensor
 
