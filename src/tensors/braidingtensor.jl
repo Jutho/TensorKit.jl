@@ -149,8 +149,6 @@ function block(b::BraidingTensor, s::Sector)
     return data
 end
 
-blocks(b::BraidingTensor) = blocks(TensorMap(b))
-
 # Index manipulations
 # -------------------
 has_shared_permute(t::BraidingTensor, ::Index2Tuple) = false
