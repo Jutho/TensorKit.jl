@@ -30,22 +30,59 @@ function force_planar(tsrc::TensorMap{<:Any,<:GradedSpace})
     return tdst
 end
 
+Vtr = (ℂ^3,
+       (ℂ^2)',
+       ℂ^5,
+       ℂ^6,
+       (ℂ^7)')
+VU₁ = (ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
+       ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
+       ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
+       ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 3),
+       ℂ[U1Irrep](0 => 1, 1 => 3, -1 => 3)')
+VfU₁ = (ℂ[FermionNumber](0 => 1, 1 => 2, -1 => 2),
+        ℂ[FermionNumber](0 => 3, 1 => 1, -1 => 1),
+        ℂ[FermionNumber](0 => 2, 1 => 2, -1 => 1)',
+        ℂ[FermionNumber](0 => 1, 1 => 2, -1 => 3),
+        ℂ[FermionNumber](0 => 1, 1 => 3, -1 => 3)')
+VfSU₂ = (ℂ[FermionSpin](0 => 3, 1 // 2 => 1),
+         ℂ[FermionSpin](0 => 2, 1 => 1),
+         ℂ[FermionSpin](1 // 2 => 1, 1 => 1)',
+         ℂ[FermionSpin](0 => 2, 1 // 2 => 2),
+         ℂ[FermionSpin](0 => 1, 1 // 2 => 1, 3 // 2 => 1)')
+Vfib = (Vect[FibonacciAnyon](:I => 1, :τ => 2),
+        Vect[FibonacciAnyon](:I => 2, :τ => 1),
+        Vect[FibonacciAnyon](:I => 1, :τ => 1),
+        Vect[FibonacciAnyon](:I => 1, :τ => 1),
+        Vect[FibonacciAnyon](:I => 1, :τ => 1))
 @testset "Braiding tensor" begin
-    V1 = ℂ^2 ⊗ ℂ^3 ← ℂ^3 ⊗ ℂ^2
-    t1 = @constinferred BraidingTensor(V1)
-    @test space(t1) == V1
-    @test codomain(t1) == codomain(V1)
-    @test domain(t1) == domain(V1)
-    @test scalartype(t1) == Float64
-    @test storagetype(t1) == Vector{Float64}
-    t2 = @constinferred BraidingTensor{ComplexF64}(V1)
-    @test scalartype(t2) == ComplexF64
-    @test storagetype(t2) == Vector{ComplexF64}
+    for V in (Vtr, VU₁, VfU₁, VfSU₂, Vfib)
+        V1 = V[1] ⊗ V[2] ← V[2] ⊗ V[1]
+        t1 = @constinferred BraidingTensor(V1)
+        @test space(t1) == V1
+        @test codomain(t1) == codomain(V1)
+        @test domain(t1) == domain(V1)
+        @test scalartype(t1) == (isreal(sectortype(V1)) ? Float64 : ComplexF64)
+        @test storagetype(t1) == Vector{scalartype(t1)}
+        t2 = @constinferred BraidingTensor{ComplexF64}(V1)
+        @test scalartype(t2) == ComplexF64
+        @test storagetype(t2) == Vector{ComplexF64}
 
-    V2 = ℂ^2 ⊗ ℂ^3 ← ℂ^2 ⊗ ℂ^3
-    @test_throws SpaceMismatch BraidingTensor(V2)
+        V2 = reverse(codomain(V1)) ← domain(V1)
+        @test_throws SpaceMismatch BraidingTensor(V2)
 
-    @test adjoint(t1) isa BraidingTensor
+        @test adjoint(t1) isa BraidingTensor
+
+        t3 = TensorMap(t2)
+        t4 = braid(id(storagetype(t2), domain(t2)), ((2, 1), (3, 4)), (1, 2, 3, 4))
+        @test t1 ≈ t4
+        for (c, b) in blocks(t1)
+            @test block(t1, c) ≈ b ≈ block(t3, c)
+        end
+        for (f1, f2) in fusiontrees(t1)
+            @test t1[f1, f2] ≈ t3[f1, f2]
+        end
+    end
 end
 
 @testset "planar methods" verbose = true begin
