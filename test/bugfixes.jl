@@ -22,4 +22,11 @@
         @test w == v
         @test scalartype(w) == Float64
     end
+
+    # https://github.com/Jutho/TensorKit.jl/issues/178
+    @testset "Issue #178" begin
+        t = rand(U1Space(1 => 1) ← U1Space(1 => 1)')
+        a = convert(Array, t)
+        @test a == zeros(size(a))
+    end
 end
