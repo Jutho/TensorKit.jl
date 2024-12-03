@@ -90,3 +90,19 @@ function ChainRulesCore.rrule(::typeof(norm), a::AbstractTensorMap, p::Real=2)
     end
     return n, norm_pullback
 end
+
+function ChainRulesCore.rrule(::typeof(real), a::AbstractTensorMap)
+    a_real = real(a)
+    real_pullback(Δa) = NoTangent(), eltype(a) <: Real ? Δa : complex(unthunk(Δa))
+    return a_real, real_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(imag), a::AbstractTensorMap)
+    a_imag = imag(a)
+    function imag_pullback(Δa)
+        Δa′ = unthunk(Δa)
+        return NoTangent(),
+               eltype(a) <: Real ? ZeroTangent() : complex(zerovector(Δa′), Δa′)
+    end
+    return a_imag, imag_pullback
+end
