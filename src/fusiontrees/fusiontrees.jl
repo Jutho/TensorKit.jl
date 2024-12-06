@@ -87,7 +87,7 @@ function FusionTree{I}(uncoupled::NTuple{N}, coupled=one(I),
                                            (uncoupled..., dual(coupled)))))
 end
 function FusionTree(uncoupled::NTuple{N,I}, coupled::I,
-                    isdual=ntuple(n -> false, length(uncoupled))) where {I<:Sector}
+                    isdual=ntuple(n -> false, length(uncoupled))) where {N,I<:Sector}
     return FusionTree{I}(uncoupled, coupled, isdual)
 end
 FusionTree(uncoupled::Tuple{I,Vararg{I}}) where {I<:Sector} = FusionTree(uncoupled, one(I))
