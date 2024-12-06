@@ -146,6 +146,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         A = randn(T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
         B = randn(T, space(A))
 
+        test_rrule(real, A)
+        test_rrule(imag, A)
+
         test_rrule(+, A, B)
         test_rrule(-, A)
         test_rrule(-, A, B)
