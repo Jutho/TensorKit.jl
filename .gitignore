@@ -7,3 +7,8 @@ __pycache__
 .ipynb*
 Manifest.toml
 .vscode
+benchmark
+experimental
+refs
+*.mathcha
+

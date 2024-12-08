@@ -25,6 +25,43 @@ ti = time()
     @testset "Fusion tree $Istr: printing" begin
         @test eval(Meta.parse(sprint(show, f))) == f
     end
+    @testset "Fusion tree $Istr: constructor properties" begin
+        u = one(I)
+        @constinferred FusionTree((), u, (), (), ())
+        @constinferred FusionTree((u,), u, (false,), (), ())
+        @constinferred FusionTree((u, u), u, (false, false), (), (1,))
+        @constinferred FusionTree((u, u, u), u, (false, false, false), (u,), (1, 1))
+        @constinferred FusionTree((u, u, u, u), u, (false, false, false, false), (u, u),
+                                  (1, 1, 1))
+        @test_throws MethodError FusionTree((u, u, u), u, (false, false), (u,), (1, 1))
+        @test_throws MethodError FusionTree((u, u, u), u, (false, false, false), (u, u),
+                                            (1, 1))
+        @test_throws MethodError FusionTree((u, u, u), u, (false, false, false), (u,),
+                                            (1, 1, 1))
+        @test_throws MethodError FusionTree((u, u, u), u, (false, false, false), (), (1,))
+
+        f = FusionTree((u, u, u), u, (false, false, false), (u,), (1, 1))
+        @test sectortype(f) == I
+        @test length(f) == 3
+        @test FusionStyle(f) == FusionStyle(I)
+        @test BraidingStyle(f) == BraidingStyle(I)
+
+        if FusionStyle(I) isa UniqueFusion
+            @constinferred FusionTree((), u, ())
+            @constinferred FusionTree((u,), u, (false,))
+            @constinferred FusionTree((u, u), u, (false, false))
+            @constinferred FusionTree((u, u, u), u)
+            @constinferred FusionTree((u, u, u, u))
+            @test_throws MethodError FusionTree((u, u), u, (false, false, false))
+        else
+            errstr = "fusion tree requires inner lines if `FusionStyle(I) <: MultipleFusion`"
+            @test_throws errstr FusionTree((), u, ())
+            @test_throws errstr FusionTree((u,), u, (false,))
+            @test_throws errstr FusionTree((u, u), u, (false, false))
+            @test_throws errstr FusionTree((u, u, u), u)
+            @test_throws errstr FusionTree((u, u, u, u))
+        end
+    end
     @testset "Fusion tree $Istr: insertat" begin
         N = 4
         out2 = ntuple(n -> randsector(I), N)
