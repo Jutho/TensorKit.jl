@@ -120,7 +120,7 @@ the spacetype does not have a Euclidean inner product, an error will be thrown.
 
 See also [`isomorphism`](@ref) and [`isometry`](@ref).
 """
-function unitary(::Type, V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
+function unitary(A::Type, V::TensorMapSpace{S,N₁,N₂}) where {S,N₁,N₂}
     InnerProductStyle(S) === EuclideanInnerProduct() || throw_invalid_innerproduct(:unitary)
     return isomorphism(A, V)
 end
@@ -155,8 +155,8 @@ for morphism in (:isomorphism, :unitary, :isometry)
     @eval begin
         $morphism(V::TensorMapSpace) = $morphism(Float64, V)
         $morphism(codomain::TensorSpace, domain::TensorSpace) = $morphism(codomain ← domain)
-        function $morphism(::Type, codomain::TensorSpace, domain::TensorSpace)
-            return $morphism(T, codomain ← domain)
+        function $morphism(A::Type, codomain::TensorSpace, domain::TensorSpace)
+            return $morphism(A, codomain ← domain)
         end
         $morphism(t::AbstractTensorMap) = $morphism(storagetype(t), space(t))
     end
