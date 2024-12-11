@@ -292,6 +292,33 @@ See [`twist!`](@ref) for storing the result in place.
 """
 twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
 
+"""
+    insertunit(tsrc::AbstractTensorMap, i::Int=numind(t) + 1;
+               conj=false, dual=false, preferdomain=false, copy=false) -> tdst
+
+Insert a trivial vector space, isomorphic to the underlying field, at position `i`.
+Whenever `i == numout(W)`, the ambiguity to determine whether this space is added in the domain or
+codomain is controlled by `preferdomain`.
+
+If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
+"""
+function insertunit(t::TensorMap, i::Int=numind(t) + 1;
+                    conj::Bool=false, dual::Bool=false, preferdomain::Bool=false,
+                    copy::Bool=false)
+    W = insertunit(space(t), i; conj, dual, preferdomain)
+    return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
+end
+function insertunit(t::AbstractTensorMap, i::Int=numind(t) + 1;
+                    conj::Bool=false, dual::Bool=false, preferdomain::Bool=false,
+                    copy::Bool=true)
+    W = insertunit(space(t), i; conj, dual, preferdomain)
+    tdst = similar(t, W)
+    for (c, b) in blocks(t)
+        copy!(block(tdst, c), b)
+    end
+    return tdst
+end
+
 # Fusing and splitting
 # TODO: add functionality for easy fusing and splitting of tensor indices
 
