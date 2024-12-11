@@ -174,6 +174,29 @@ function compose(W::HomSpace{S}, V::HomSpace{S}) where {S}
     return HomSpace(codomain(W), domain(V))
 end
 
+"""
+    insertunit(W::HomSpace, i::Int=ndims(W) + 1; conj=false, dual=false, preferdomain=false)
+
+Insert a trivial vector space, isomorphic to the underlying field, at position `i`.
+Whenever `i == numout(W)`, the ambiguity to determine whether this space is added in the domain or
+codomain is controlled by `preferdomain`.
+"""
+Base.@constprop :aggressive function insertunit(W::HomSpace, i::Int=numind(W) + 1;
+                                                conj::Bool=false, dual::Bool=false,
+                                                preferdomain::Bool=false)
+    if i ≤ numout(W)
+        return insertunit(codomain(W), i; conj, dual) ← domain(W)
+    elseif i == numout(W) + 1
+        if preferdomain
+            return codomain(W) ← insertunit(domain(W), 1; conj, dual)
+        else
+            return insertunit(codomain(W); conj, dual) ← domain(W)
+        end
+    else
+        return codomain(W) ← insertunit(domain(W), i - numout(W); conj, dual)
+    end
+end
+
 # Block and fusion tree ranges: structure information for building tensors
 #--------------------------------------------------------------------------
 struct FusionBlockStructure{I,N,F₁,F₂}
