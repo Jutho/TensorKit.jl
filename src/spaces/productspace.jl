@@ -253,6 +253,8 @@ For `P::ProductSpace{S,N}`, this adds an extra tensor product factor at position
 underlying field of scalars, i.e. `oneunit(S)`. With the keyword arguments, one can choose
 to insert the conjugated or dual space instead, which are all isomorphic to the field of
 scalars.
+
+This operation can be undone by [`removeunit`](@ref).
 """
 function insertunit(P::ProductSpace, i::Int=length(P) + 1; dual=false, conj=false)
     u = oneunit(spacetype(P))
@@ -263,6 +265,21 @@ function insertunit(P::ProductSpace, i::Int=length(P) + 1; dual=false, conj=fals
         u = TensorKit.conj(u)
     end
     return ProductSpace(TupleTools.insertafter(P.spaces, i - 1, (u,)))
+end
+
+"""
+    removeunit(P::ProductSpace, i::Int)
+
+This removes a trivial tensor product factor at position `1 ≤ i ≤ N`.
+For this to work, that factor has to be isomorphic to the field of scalars.
+
+This operation undoes the work of [`insertunit`](@ref).
+"""
+function removeunit(P::ProductSpace, i::Int)
+    1 ≤ i ≤ length(P) || throw(BoundsError(P, i))
+    isisomorphic(P[i], oneunit(P[i])) ||
+        throw(ArgumentError("Attempting to remove a non-trivial space $(P[i])"))
+    return ProductSpace{spacetype(P)}(TupleTools.deleteat(P.spaces, i))
 end
 
 # Functionality for extracting and iterating over spaces

@@ -319,6 +319,29 @@ function insertunit(t::AbstractTensorMap, i::Int=numind(t) + 1;
     return tdst
 end
 
+"""
+    removeunit(tsrc::AbstractTensorMap, i::Int; copy=false) -> tdst
+
+This removes a trivial tensor product factor at position `1 ≤ i ≤ N`.
+For this to work, that factor has to be isomorphic to the field of scalars.
+
+If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
+
+This operation undoes the work of [`insertunit`](@ref).
+"""
+function removeunit(t::TensorMap, i::Int; copy::Bool=false)
+    W = removeunit(space(t), i)
+    return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
+end
+function removeunit(t::AbstractTensorMap, i::Int=numind(t) + 1; copy::Bool=true)
+    W = removeunit(space(t), i)
+    tdst = similar(t, W)
+    for (c, b) in blocks(t)
+        copy!(block(tdst, c), b)
+    end
+    return tdst
+end
+
 # Fusing and splitting
 # TODO: add functionality for easy fusing and splitting of tensor indices
 

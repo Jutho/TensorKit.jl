@@ -197,6 +197,24 @@ Base.@constprop :aggressive function insertunit(W::HomSpace, i::Int=numind(W) + 
     end
 end
 
+"""
+    removeunit(P::HomSpace, i::Int)
+
+This removes a trivial tensor product factor at position `1 ≤ i ≤ N`.
+For this to work, that factor has to be isomorphic to the field of scalars.
+
+This operation undoes the work of [`insertunit`](@ref).
+"""
+function removeunit(P::HomSpace, i::Int)
+    if i in 1:numout(P)
+        return removeunit(codomain(P), i) ← domain(P)
+    elseif i in (numout(P) + 1):numind(P)
+        return codomain(P) ← removeunit(domain(P), i - numout(P))
+    else
+        throw(BoundsError(P, i))
+    end
+end
+
 # Block and fusion tree ranges: structure information for building tensors
 #--------------------------------------------------------------------------
 struct FusionBlockStructure{I,N,F₁,F₂}
