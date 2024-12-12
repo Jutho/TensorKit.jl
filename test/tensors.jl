@@ -195,7 +195,7 @@ for V in spacelist
                     @test b == block(t4, c)
                 end
                 @test @constinferred(removeunit(t4, 4)) == t
-                t5 = @constinferred insertunit(t, 4; dual=true)
+                t5 = @constinferred insertunit(t, 4; dual=true, preferdomain=true)
                 @test numin(t5) == numin(t) + 1 && numout(t5) == numout(t)
                 for (c, b) in blocks(t)
                     @test b == block(t5, c)
