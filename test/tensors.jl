@@ -182,13 +182,13 @@ for V in spacelist
                 @test space(t2) == insertunit(space(t))
                 @test scalartype(t2) === T
                 @test t.data === t2.data
-                @test @constinferred(removeunit(t2, numind(t2))) == t
+                @test @constinferred(removeunit(t2, $(numind(t2)))) == t
                 t3 = @constinferred insertunit(t; copy=true)
                 @test t.data !== t3.data
                 for (c, b) in blocks(t)
                     @test b == block(t3, c)
                 end
-                @test @constinferred(removeunit(t3, numind(t3))) == t
+                @test @constinferred(removeunit(t3, $(numind(t3)))) == t
                 t4 = @constinferred insertunit(t, 4; dual=true)
                 @test numin(t4) == numin(t) && numout(t4) == numout(t) + 1
                 for (c, b) in blocks(t)

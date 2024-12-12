@@ -329,11 +329,12 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 This operation undoes the work of [`insertunit`](@ref).
 """
-function removeunit(t::TensorMap, i::Int; copy::Bool=false)
+Base.@constprop :aggressive function removeunit(t::TensorMap, i::Int; copy::Bool=false)
     W = removeunit(space(t), i)
     return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
 end
-function removeunit(t::AbstractTensorMap, i::Int=numind(t) + 1; copy::Bool=true)
+Base.@constprop :aggressive function removeunit(t::AbstractTensorMap, i::Int;
+                                                copy::Bool=true)
     W = removeunit(space(t), i)
     tdst = similar(t, W)
     for (c, b) in blocks(t)

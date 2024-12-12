@@ -422,7 +422,7 @@ println("------------------------------------")
         @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
         @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
         @test @constinferred(insertunit(W)) == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5))
-        @test @constinferred(removeunit(insertunit(W), numind(W) + 1)) == W
+        @test @constinferred(removeunit(insertunit(W), $(numind(W) + 1))) == W
         @test @constinferred(insertunit(W; conj=true)) == (V1 ⊗ V2 ←
                                                            V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)')
         @test @constinferred(insertunit(W, 1)) == (oneunit(V1) ⊗ V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
