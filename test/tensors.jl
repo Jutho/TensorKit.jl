@@ -173,6 +173,32 @@ for V in spacelist
                 @test w * w' == (w * w')^2
             end
         end
+        @timedtestset "Trivial spaces" begin
+            W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
+            for T in (Float32, ComplexF64)
+                t = @constinferred rand(T, W)
+                t2 = @constinferred insertunit(t)
+                @test numind(t2) == numind(t) + 1
+                @test space(t2) == insertunit(space(t))
+                @test scalartype(t2) === T
+                @test t.data === t2.data
+                t3 = @constinferred insertunit(t; copy=true)
+                @test t.data !== t3.data
+                for (c, b) in blocks(t)
+                    @test b == block(t3, c)
+                end
+                t4 = @constinferred insertunit(t, 4; dual=true)
+                @test numin(t4) == numin(t) && numout(t4) == numout(t) + 1
+                for (c, b) in blocks(t)
+                    @test b == block(t4, c)
+                end
+                t5 = @constinferred insertunit(t, 4; dual=true)
+                @test numin(t5) == numin(t) + 1 && numout(t5) == numout(t)
+                for (c, b) in blocks(t)
+                    @test b == block(t5, c)
+                end
+            end
+        end
         if hasfusiontensor(I)
             @timedtestset "Basic linear algebra: test via conversion" begin
                 W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
