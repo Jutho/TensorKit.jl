@@ -128,14 +128,14 @@ function _findnexttruncvalue(Σdata, truncdim::SectorDict{I,Int}, p::Real) where
 
     # find some suitable starting candidate
     cmin = findfirst(>(0), truncdim)
-    weightedσmin = dim(cmin)^inv(p) * Σdata[cmin][truncdim[cmin]]
+    σmin = Σdata[cmin][truncdim[cmin]]
 
     # find the actual minimum singular value
     for (c, σs) in Σdata
         if truncdim[c] > 0
-            weightedσ = dim(c)^inv(p) * σs[truncdim[c]]
-            if weightedσ < weightedσmin
-                cmin, weightedσmin = c, weightedσ
+            σ = σs[truncdim[c]]
+            if σ < σmin
+                cmin, σmin = c, σ
             end
         end
     end
@@ -148,14 +148,14 @@ function _findnextgrowvalue(Σdata, truncdim::SectorDict{I,Int}, p::Real) where 
 
     # find some suitable starting candidate
     cmax = findfirst(istruncated)
-    weightedσmax = dim(cmax)^inv(p) * Σdata[cmax][truncdim[cmax] + 1]
+    σmax = Σdata[cmax][truncdim[cmax] + 1]
 
     # find the actual maximal singular value
     for (c, σs) in Σdata
         if istruncated[c]
-            weightedσ = dim(c)^inv(p) * σs[truncdim[c] + 1]
-            if weightedσ > weightedσmax
-                cmax, weightedσmax = c, weightedσ
+            σ = σs[truncdim[c] + 1]
+            if σ > σmax
+                cmax, σmax = c, σ
             end
         end
     end
