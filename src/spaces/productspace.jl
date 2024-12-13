@@ -253,7 +253,8 @@ More specifically, adds a left monoidal unit or its dual.
 
 See also [`insertrightunit`](@ref), [`removeunit`](@ref).
 """
-function insertleftunit(P::ProductSpace, i::Int=length(P) + 1; kwargs...)
+function insertleftunit(P::ProductSpace, i::Int=length(P) + 1;
+                        conj::Bool=false, dual::Bool=false)
     u = oneunit(spacetype(P))
     if dual
         u = TensorKit.dual(u)
@@ -272,7 +273,8 @@ More specifically, adds a right monoidal unit or its dual.
 
 See also [`insertleftunit`](@ref), [`removeunit`](@ref).
 """
-function insertrightunit(P::ProductSpace, i::Int=length(P); kwargs...)
+function insertrightunit(P::ProductSpace, i::Int=length(P);
+                         conj::Bool=false, dual::Bool=false)
     u = oneunit(spacetype(P))
     if dual
         u = TensorKit.dual(u)
