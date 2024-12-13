@@ -128,12 +128,12 @@ function _findnexttruncvalue(Σdata, truncdim::SectorDict{I,Int}, p::Real) where
 
     # find some suitable starting candidate
     cmin = findfirst(>(0), truncdim)
-    σmin = dim(cmin)^inv(p) * Σdata[cmin][truncdim[cmin]]
+    σmin = Σdata[cmin][truncdim[cmin]]
 
     # find the actual minimum singular value
     for (c, σs) in Σdata
         if truncdim[c] > 0
-            σ = dim(c)^inv(p) * σs[truncdim[c]]
+            σ = σs[truncdim[c]]
             if σ < σmin
                 cmin, σmin = c, σ
             end
