@@ -1,6 +1,22 @@
 # Index manipulations
 #---------------------
 """
+    flip(t::AbstractTensorMap, I) -> t′::AbstractTensorMap
+
+Return a new tensor that is isomorphic to `t` but where the arrows on the indices `i` that satisfy
+`i ∈ I` are flipped, i.e. `space(t′, i) = flip(space(t, i))`.
+"""
+function flip(t::AbstractTensorMap, I)
+    P = flip(space(t), I)
+    t2 = similar(t, P)
+    for (c, b) in blocks(t)
+        copy!(t2[c], b)
+    end
+    return t
+end
+flip(t::TensorMap, I) = TensorMap(t.data, flip(space(t), I))
+
+"""
     permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
         -> tdst
 

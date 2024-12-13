@@ -148,6 +148,22 @@ function select(W::HomSpace{S}, (p₁, p₂)::Index2Tuple{N₁,N₂}) where {S,N
 end
 
 """
+    flip(W::HomSpace, I)
+
+Return a new `HomSpace` object by applying `flip` to each of the spaces in the domain and
+codomain of `W` for which the linear index `i` satisfies `i ∈ I`.
+"""
+function flip(W::HomSpace{S}, I) where {S}
+    cod′ = let cod = codomain(W)
+        ProductSpace{S}(ntuple(i -> i ∈ I ? flip(cod[i]) : cod[i], numout(W)))
+    end
+    dom′ = let dom = domain(W)
+        ProductSpace{S}(ntuple(i -> (i + numout(W)) ∈ I ? flip(dom[i]) : dom[i], numin(W)))
+    end
+    return cod′ ← dom′
+end
+
+"""
     compose(W::HomSpace, V::HomSpace)
 
 Obtain the HomSpace that is obtained from composing the morphisms in `W` and `V`. For this

@@ -326,6 +326,23 @@ for V in spacelist
                 @test HrA12array ≈ convert(Array, HrA12)
             end
         end
+        if BraidingStyle(I) isa Bosonic # TODO: add fermionic tests by including parity tensors
+            @timedtestset "Index flipping: test via contraction" begin
+                t1 = rand(ComplexF64, V1 ⊗ V2 ⊗ V3 ← V4)
+                t2 = rand(ComplexF64, V2' ⊗ V5 ← V4' ⊗ V1)
+                @tensor ta[a, b] := t1[x, y, a, z] * t2[y, b, z, x]
+                @tensor tb[a, b] := flip(t1, 1)[x, y, a, z] * flip(t2, 4)[y, b, z, x]
+                @test ta ≈ tb
+                @tensor tb[a, b] := flip(t1, (2, 4))[x, y, a, z] *
+                                    flip(t2, (1, 3))[y, b, z, x]
+                @test ta ≈ tb
+                @tensor tb[a, b] := flip(t1, (1, 2, 4))[x, y, a, z] *
+                                    flip(t2, (1, 3, 4))[y, b, z, x]
+                @tensor tb[a, b] := flip(t1, (1, 3))[x, y, a, z] *
+                                    flip(t2, (2, 4))[y, b, z, x]
+                @test flip(ta, (1, 2)) ≈ tb
+            end
+        end
         @timedtestset "Multiplication of isometries: test properties" begin
             W2 = V4 ⊗ V5
             W1 = W2 ⊗ (oneunit(V1) ⊕ oneunit(V1))
