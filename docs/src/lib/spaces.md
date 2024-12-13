@@ -106,7 +106,6 @@ fuse
 ismonomorphic
 isepimorphic
 isisomorphic
-insertunit
 ```
 
 There are also specific methods for `HomSpace` instances, that are used in determining
@@ -116,4 +115,6 @@ the resuling `HomSpace` after applying certain tensor operations.
 TensorKit.permute(::HomSpace{S}, ::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
 TensorKit.select(::HomSpace{S}, ::Index2Tuple{N₁,N₂}) where {S,N₁,N₂}
 TensorKit.compose(::HomSpace{S}, ::HomSpace{S}) where {S}
+insertleftunit(::HomSpace, ::Int)
+insertrightunit(::HomSpace, ::Int)
 ```
