@@ -278,7 +278,9 @@ println("------------------------------------")
         @test @constinferred(⊗(V1 ⊗ V2, V3 ⊗ V4)) == P
         @test @constinferred(⊗(V1, V2, V3 ⊗ V4)) == P
         @test @constinferred(⊗(V1, V2 ⊗ V3, V4)) == P
-        @test @constinferred(insertunit(P, 3)) == V1 * V2 * oneunit(V1) * V3 * V4
+        @test V1 * V2 * oneunit(V1) * V3 * V4 ==
+              @constinferred(insertleftunit(P, 3)) ==
+              @constinferred(insertrightunit(P, 2))
         @test @constinferred(removeunit(V1 * V2 * oneunit(V1)' * V3 * V4, 3)) == P
         @test fuse(V1, V2', V3) ≅ V1 ⊗ V2' ⊗ V3
         @test fuse(V1, V2', V3) ≾ V1 ⊗ V2' ⊗ V3
@@ -339,8 +341,10 @@ println("------------------------------------")
         @test @constinferred(*(V1, V2, V3)) == P
         @test @constinferred(⊗(V1, V2, V3)) == P
         @test @constinferred(adjoint(P)) == dual(P) == V3' ⊗ V2' ⊗ V1'
-        @test @constinferred(insertunit(P, 3; conj=true)) == V1 * V2 * oneunit(V1)' * V3
-        @test P == @constinferred(removeunit(insertunit(P, 3), 3))
+        @test V1 * V2 * oneunit(V1)' * V3 ==
+              @constinferred(insertleftunit(P, 3; conj=true)) ==
+              @constinferred(insertrightunit(P, 2; conj=true))
+        @test P == @constinferred(removeunit(insertleftunit(P, 3), 3))
         @test fuse(V1, V2', V3) ≅ V1 ⊗ V2' ⊗ V3
         @test fuse(V1, V2', V3) ≾ V1 ⊗ V2' ⊗ V3 ≾ fuse(V1 ⊗ V2' ⊗ V3)
         @test fuse(V1, V2') ⊗ V3 ≾ V1 ⊗ V2' ⊗ V3
@@ -421,15 +425,21 @@ println("------------------------------------")
         @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
         @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
         @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
-        @test @constinferred(insertunit(W)) == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5))
-        @test @constinferred(removeunit(insertunit(W), $(numind(W) + 1))) == W
-        @test @constinferred(insertunit(W; conj=true)) == (V1 ⊗ V2 ←
-                                                           V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)')
-        @test @constinferred(insertunit(W, 1)) == (oneunit(V1) ⊗ V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
-        @test @constinferred(insertunit(W, 3)) == (V1 ⊗ V2 ⊗ oneunit(V1) ← V3 ⊗ V4 ⊗ V5)
-        @test @constinferred(removeunit(insertunit(W, 3), 3)) == W
-        @test @constinferred(insertunit(W, 3; preferdomain=true)) ==
-              (V1 ⊗ V2 ← oneunit(V1) ⊗ V3 ⊗ V4 ⊗ V5)
-        @test @constinferred(removeunit(insertunit(W, 3; preferdomain=true), 3)) == W
+        @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)) ==
+              @constinferred(insertleftunit(W)) ==
+              @constinferred(insertrightunit(W))
+        @test @constinferred(removeunit(insertleftunit(W), $(numind(W) + 1))) == W
+        @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)') ==
+              @constinferred(insertleftunit(W; conj=true)) ==
+              @constinferred(insertrightunit(W; conj=true))
+        @test (oneunit(V1) ⊗ V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5) ==
+              @constinferred(insertleftunit(W, 1)) ==
+              @constinferred(insertrightunit(W, 0))
+        @test (V1 ⊗ V2 ⊗ oneunit(V1) ← V3 ⊗ V4 ⊗ V5) ==
+              @constinferred(insertrightunit(W, 2))
+        @test (V1 ⊗ V2 ← oneunit(V1) ⊗ V3 ⊗ V4 ⊗ V5) == @constinferred(insertleftunit(W, 3))
+        @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W
+        @test @constinferred(insertrightunit(one(V1) ← V1, 0)) == (oneunit(V1) ← V1)
+        @test_throws BoundsError insertleftunit(one(V1) ← V1, 0)
     end
 end

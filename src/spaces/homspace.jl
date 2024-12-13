@@ -175,25 +175,36 @@ function compose(W::HomSpace{S}, V::HomSpace{S}) where {S}
 end
 
 """
-    insertunit(W::HomSpace, i::Int=ndims(W) + 1; conj=false, dual=false, preferdomain=false)
+    insertleftunit(W::HomSpace, i::Int=numind(W) + 1; conj=false, dual=false)
 
 Insert a trivial vector space, isomorphic to the underlying field, at position `i`.
-Whenever `i == numout(W)`, the ambiguity to determine whether this space is added in the domain or
-codomain is controlled by `preferdomain`.
+More specifically, adds a left monoidal unit or its dual.
+
+See also [`insertrightunit`](@ref), [`removeunit`](@ref).
 """
-Base.@constprop :aggressive function insertunit(W::HomSpace, i::Int=numind(W) + 1;
-                                                conj::Bool=false, dual::Bool=false,
-                                                preferdomain::Bool=false)
+function insertleftunit(W::HomSpace, i::Int=numind(W) + 1;
+                        conj::Bool=false, dual::Bool=false)
     if i ≤ numout(W)
-        return insertunit(codomain(W), i; conj, dual) ← domain(W)
-    elseif i == numout(W) + 1
-        if preferdomain
-            return codomain(W) ← insertunit(domain(W), 1; conj, dual)
-        else
-            return insertunit(codomain(W); conj, dual) ← domain(W)
-        end
+        return insertleftunit(codomain(W), i; conj, dual) ← domain(W)
     else
-        return codomain(W) ← insertunit(domain(W), i - numout(W); conj, dual)
+        return codomain(W) ← insertleftunit(domain(W), i - numout(W); conj, dual)
+    end
+end
+
+"""
+    insertrightunit(W::HomSpace, i::Int=numind(W); conj=false, dual=false)
+
+Insert a trivial vector space, isomorphic to the underlying field, after position `i`.
+More specifically, adds a right monoidal unit or its dual.
+
+See also [`insertleftunit`](@ref), [`removeunit`](@ref).
+"""
+function insertrightunit(W::HomSpace, i::Int=numind(W);
+                         conj::Bool=false, dual::Bool=false)
+    if i ≤ numout(W)
+        return insertrightunit(codomain(W), i; conj, dual) ← domain(W)
+    else
+        return codomain(W) ← insertrightunit(domain(W), i - numout(W); conj, dual)
     end
 end
 
@@ -203,7 +214,7 @@ end
 This removes a trivial tensor product factor at position `1 ≤ i ≤ N`.
 For this to work, that factor has to be isomorphic to the field of scalars.
 
-This operation undoes the work of [`insertunit`](@ref).
+This operation undoes the work of [`insertleftunit`](@ref) or [`insertrightunit`](@ref).
 """
 function removeunit(P::HomSpace, i::Int)
     if i in 1:numout(P)

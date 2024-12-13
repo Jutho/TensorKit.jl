@@ -246,17 +246,14 @@ fuse(P::ProductSpace{S,0}) where {S<:ElementarySpace} = oneunit(S)
 fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 
 """
-    insertunit(P::ProductSpace, i::Int = length(P)+1; dual = false, conj = false)
+    insertleftunit(P::ProductSpace, i::Int=length(P) + 1; conj=false, dual=false)
 
-For `P::ProductSpace{S,N}`, this adds an extra tensor product factor at position
-`1 <= i <= N+1` (last position by default) which is just the `S`-equivalent of the
-underlying field of scalars, i.e. `oneunit(S)`. With the keyword arguments, one can choose
-to insert the conjugated or dual space instead, which are all isomorphic to the field of
-scalars.
+Insert a trivial vector space, isomorphic to the underlying field, at position `i`.
+More specifically, adds a left monoidal unit or its dual.
 
-This operation can be undone by [`removeunit`](@ref).
+See also [`insertrightunit`](@ref), [`removeunit`](@ref).
 """
-function insertunit(P::ProductSpace, i::Int=length(P) + 1; dual=false, conj=false)
+function insertleftunit(P::ProductSpace, i::Int=length(P) + 1; kwargs...)
     u = oneunit(spacetype(P))
     if dual
         u = TensorKit.dual(u)
@@ -265,6 +262,25 @@ function insertunit(P::ProductSpace, i::Int=length(P) + 1; dual=false, conj=fals
         u = TensorKit.conj(u)
     end
     return ProductSpace(TupleTools.insertafter(P.spaces, i - 1, (u,)))
+end
+
+"""
+    insertrightunit(P::ProductSpace, i::Int=lenght(P); conj=false, dual=false)
+
+Insert a trivial vector space, isomorphic to the underlying field, after position `i`.
+More specifically, adds a right monoidal unit or its dual.
+
+See also [`insertleftunit`](@ref), [`removeunit`](@ref).
+"""
+function insertrightunit(P::ProductSpace, i::Int=length(P); kwargs...)
+    u = oneunit(spacetype(P))
+    if dual
+        u = TensorKit.dual(u)
+    end
+    if conj
+        u = TensorKit.conj(u)
+    end
+    return ProductSpace(TupleTools.insertafter(P.spaces, i, (u,)))
 end
 
 """
