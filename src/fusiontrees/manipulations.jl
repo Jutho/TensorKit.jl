@@ -242,6 +242,26 @@ end
 # -> B-move (bendleft, bendright) is simple in standard basis
 # -> A-move (foldleft, foldright) is complicated, needs to be reexpressed in standard form
 
+# flip a duality flag of a fusion tree
+function flip(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}, i::Int) where {I<:Sector,N₁,N₂}
+    @assert 0 < i ≤ N₁ + N₂
+    if i ≤ N₁
+        a = f₁.uncoupled[i]
+        fs = frobeniusschur(a) * twist(a)
+        factor = f₁.isdual[i] ? fs : one(fs)
+        isdual′ = TupleTools.setindex(f₁.isdual, !f₁.isdual[i], i)
+        f₁′ = FusionTree{I}(f₁.uncoupled, f₁.coupled, isdual′, f₁.innerlines, f₁.vertices)
+        return SingletonDict((f₁′, f₂) => factor)
+    else
+        i -= N₁
+        a = f₂.uncoupled[i]
+        factor = f₂.isdual[i] ? frobeniusschur(a) : twist(a)
+        isdual′ = TupleTools.setindex(f₂.isdual, !f₂.isdual[i], i)
+        f₂′ = FusionTree{I}(f₂.uncoupled, f₂.coupled, isdual′, f₂.innerlines, f₂.vertices)
+        return SingletonDict((f₁, f₂′) => factor)
+    end
+end
+
 # change to N₁ - 1, N₂ + 1
 function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<:Sector,N₁,N₂}
     # map final splitting vertex (a, b)<-c to fusion vertex a<-(c, dual(b))

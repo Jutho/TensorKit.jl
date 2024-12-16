@@ -8,13 +8,18 @@ Return a new tensor that is isomorphic to `t` but where the arrows on the indice
 """
 function flip(t::AbstractTensorMap, I)
     P = flip(space(t), I)
-    t2 = similar(t, P)
-    for (c, b) in blocks(t)
-        copy!(t2[c], b)
+    t′ = similar(t, P)
+    for (f₁, f₂) in fusiontrees(t)
+        f₁′, f₂′ = f₁, f₂
+        factor = one(scalartype(t))
+        for i in I
+            (f₁′, f₂′), s = only(flip(f₁′, f₂′, i))
+            factor *= s
+        end
+        scale!(t′[f₁′, f₂′], t[f₁, f₂], factor)
     end
-    return t
+    return t′
 end
-flip(t::TensorMap, I) = TensorMap(t.data, flip(space(t), I))
 
 """
     permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
