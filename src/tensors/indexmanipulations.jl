@@ -1,6 +1,27 @@
 # Index manipulations
 #---------------------
 """
+    flip(t::AbstractTensorMap, I) -> t′::AbstractTensorMap
+
+Return a new tensor that is isomorphic to `t` but where the arrows on the indices `i` that satisfy
+`i ∈ I` are flipped, i.e. `space(t′, i) = flip(space(t, i))`.
+"""
+function flip(t::AbstractTensorMap, I)
+    P = flip(space(t), I)
+    t′ = similar(t, P)
+    for (f₁, f₂) in fusiontrees(t)
+        f₁′, f₂′ = f₁, f₂
+        factor = one(scalartype(t))
+        for i in I
+            (f₁′, f₂′), s = only(flip(f₁′, f₂′, i))
+            factor *= s
+        end
+        scale!(t′[f₁′, f₂′], t[f₁, f₂], factor)
+    end
+    return t′
+end
+
+"""
     permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
         -> tdst
 
