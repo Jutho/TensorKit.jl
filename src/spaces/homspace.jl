@@ -217,12 +217,10 @@ For this to work, that factor has to be isomorphic to the field of scalars.
 This operation undoes the work of [`insertleftunit`](@ref) or [`insertrightunit`](@ref).
 """
 function removeunit(P::HomSpace, i::Int)
-    if i in 1:numout(P)
+    if i ≤ numout(P)
         return removeunit(codomain(P), i) ← domain(P)
-    elseif i in (numout(P) + 1):numind(P)
-        return codomain(P) ← removeunit(domain(P), i - numout(P))
     else
-        throw(BoundsError(P, i))
+        return codomain(P) ← removeunit(domain(P), i - numout(P))
     end
 end
 
