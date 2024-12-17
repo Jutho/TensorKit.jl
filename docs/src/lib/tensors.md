@@ -174,6 +174,7 @@ permute(::AbstractTensorMap, ::Index2Tuple{N₁,N₂}; ::Bool) where {N₁,N₂}
 braid(::AbstractTensorMap, ::Index2Tuple, ::IndexTuple; ::Bool)
 transpose(::AbstractTensorMap, ::Index2Tuple; ::Bool)
 repartition(::AbstractTensorMap, ::Int, ::Int; ::Bool)
+flip(t::AbstractTensorMap, I)
 twist(::AbstractTensorMap, ::Int; ::Bool)
 insertleftunit(::AbstractTensorMap, ::Int)
 insertrightunit(::AbstractTensorMap, ::Int)

@@ -17,6 +17,23 @@ Features that are planned to be implemented before the release of v1.0.0, in no 
 
 ## v0.14
 
+### Use `DiagonalTensorMap` for singular values and eigenvalues
+
+The diagonal (1,1) tensor that contains the singular values or eigenvalues of a tensor
+are now explicitly represented as `DiagonalTensorMap` instances.
+
+### New index functionality
+There are is new functionality for manipulating the spaces associated with a tensor:
+* `flip(t, i)` changes the duality flag of the `i`th index of `t`, in such a way that flipping
+  a pair of contracted indices in an `@tensor` contraction does not affect the result.
+* `insertleftunit(t, i)` and `insertrightunit(t, i)` insert a trivial unit space to the left
+  or to right of index `i`, whereas `removeunit(t, i)` removes such a trivial unit space.
+
+### SVD truncation change (breaking)
+There is a subtle but breaking change in the truncation mechanism in SVD, where now it is
+guaranteed that smaller singular values are removed first, irrespective of the (quantum)
+dimension of the sector to which they belong
+
 ### `DiagonalTensorMap` and `reduceddim`
 
 This adds a `DiagonalTensorMap` type for representing tensor maps in which all of the
