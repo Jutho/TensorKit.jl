@@ -294,9 +294,8 @@ For this to work, that factor has to be isomorphic to the field of scalars.
 This operation undoes the work of [`insertunit`](@ref).
 """
 function removeunit(P::ProductSpace, i::Int)
-    1 ≤ i ≤ length(P) || throw(BoundsError(P, i))
-    isisomorphic(P[i], oneunit(P[i])) ||
-        throw(ArgumentError("Attempting to remove a non-trivial space $(P[i])"))
+    1 ≤ i ≤ length(P) || _boundserror(P, i)
+    isisomorphic(P[i], oneunit(P[i])) || _nontrivialspaceerror(P, i)
     return ProductSpace{spacetype(P)}(TupleTools.deleteat(P.spaces, i))
 end
 

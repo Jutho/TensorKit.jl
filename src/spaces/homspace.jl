@@ -182,8 +182,8 @@ More specifically, adds a left monoidal unit or its dual.
 
 See also [`insertrightunit`](@ref), [`removeunit`](@ref).
 """
-function insertleftunit(W::HomSpace, i::Int=numind(W) + 1;
-                        conj::Bool=false, dual::Bool=false)
+@constprop :aggressive function insertleftunit(W::HomSpace, i::Int=numind(W) + 1;
+                                               conj::Bool=false, dual::Bool=false)
     if i ≤ numout(W)
         return insertleftunit(codomain(W), i; conj, dual) ← domain(W)
     else
@@ -199,8 +199,8 @@ More specifically, adds a right monoidal unit or its dual.
 
 See also [`insertleftunit`](@ref), [`removeunit`](@ref).
 """
-function insertrightunit(W::HomSpace, i::Int=numind(W);
-                         conj::Bool=false, dual::Bool=false)
+@constprop :aggressive function insertrightunit(W::HomSpace, i::Int=numind(W);
+                                                conj::Bool=false, dual::Bool=false)
     if i ≤ numout(W)
         return insertrightunit(codomain(W), i; conj, dual) ← domain(W)
     else
@@ -216,7 +216,7 @@ For this to work, that factor has to be isomorphic to the field of scalars.
 
 This operation undoes the work of [`insertleftunit`](@ref) or [`insertrightunit`](@ref).
 """
-function removeunit(P::HomSpace, i::Int)
+@constprop :aggressive function removeunit(P::HomSpace, i::Int)
     if i ≤ numout(P)
         return removeunit(codomain(P), i) ← domain(P)
     else
