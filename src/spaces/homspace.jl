@@ -174,6 +174,56 @@ function compose(W::HomSpace{S}, V::HomSpace{S}) where {S}
     return HomSpace(codomain(W), domain(V))
 end
 
+"""
+    insertleftunit(W::HomSpace, i::Int=numind(W) + 1; conj=false, dual=false)
+
+Insert a trivial vector space, isomorphic to the underlying field, at position `i`.
+More specifically, adds a left monoidal unit or its dual.
+
+See also [`insertrightunit`](@ref), [`removeunit`](@ref).
+"""
+@constprop :aggressive function insertleftunit(W::HomSpace, i::Int=numind(W) + 1;
+                                               conj::Bool=false, dual::Bool=false)
+    if i ≤ numout(W)
+        return insertleftunit(codomain(W), i; conj, dual) ← domain(W)
+    else
+        return codomain(W) ← insertleftunit(domain(W), i - numout(W); conj, dual)
+    end
+end
+
+"""
+    insertrightunit(W::HomSpace, i::Int=numind(W); conj=false, dual=false)
+
+Insert a trivial vector space, isomorphic to the underlying field, after position `i`.
+More specifically, adds a right monoidal unit or its dual.
+
+See also [`insertleftunit`](@ref), [`removeunit`](@ref).
+"""
+@constprop :aggressive function insertrightunit(W::HomSpace, i::Int=numind(W);
+                                                conj::Bool=false, dual::Bool=false)
+    if i ≤ numout(W)
+        return insertrightunit(codomain(W), i; conj, dual) ← domain(W)
+    else
+        return codomain(W) ← insertrightunit(domain(W), i - numout(W); conj, dual)
+    end
+end
+
+"""
+    removeunit(P::HomSpace, i::Int)
+
+This removes a trivial tensor product factor at position `1 ≤ i ≤ N`.
+For this to work, that factor has to be isomorphic to the field of scalars.
+
+This operation undoes the work of [`insertleftunit`](@ref) or [`insertrightunit`](@ref).
+"""
+@constprop :aggressive function removeunit(P::HomSpace, i::Int)
+    if i ≤ numout(P)
+        return removeunit(codomain(P), i) ← domain(P)
+    else
+        return codomain(P) ← removeunit(domain(P), i - numout(P))
+    end
+end
+
 # Block and fusion tree ranges: structure information for building tensors
 #--------------------------------------------------------------------------
 struct FusionBlockStructure{I,N,F₁,F₂}

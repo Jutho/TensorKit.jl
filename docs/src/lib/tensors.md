@@ -175,6 +175,8 @@ braid(::AbstractTensorMap, ::Index2Tuple, ::IndexTuple; ::Bool)
 transpose(::AbstractTensorMap, ::Index2Tuple; ::Bool)
 repartition(::AbstractTensorMap, ::Int, ::Int; ::Bool)
 twist(::AbstractTensorMap, ::Int; ::Bool)
+insertleftunit(::AbstractTensorMap, ::Int)
+insertrightunit(::AbstractTensorMap, ::Int)
 ```
 
 ```@docs
