@@ -1,5 +1,18 @@
 # Tensor factorization
 #----------------------
+function factorisation_scalartype(t::AbstractTensorMap)
+    T = scalartype(t)
+    return promote_type(Float32, typeof(zero(T) / sqrt(abs2(one(T)))))
+end
+factorisation_scalartype(f, t) = factorisation_scalartype(t)
+
+function permutedcopy_oftype(t::AbstractTensorMap, T::Type{<:Number}, p::Index2Tuple)
+    return permute!(similar(t, T, permute(space(t), p)), t, p)
+end
+function copy_oftype(t::AbstractTensorMap, T::Type{<:Number})
+    return copy!(similar(t, T), t)
+end
+
 """
     tsvd(t::AbstractTensorMap, (leftind, rightind)::Index2Tuple;
         trunc::TruncationScheme = notrunc(), p::Real = 2, alg::Union{SVD, SDD} = SDD())
@@ -37,12 +50,12 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and `tsvd(!)`
 is currently only implemented for `InnerProductStyle(t) === EuclideanInnerProduct()`.
 """
 function tsvd(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(tsvd, t), p)
     return tsvd!(tcopy; kwargs...)
 end
 
 function LinearAlgebra.svdvals(t::AbstractTensorMap)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, factorisation_scalartype(tsvd, t))
     return LinearAlgebra.svdvals!(tcopy)
 end
 
@@ -69,7 +82,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
     `InnerProductStyle(t) === EuclideanInnerProduct()`.
 """
 function leftorth(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(leftorth, t), p)
     return leftorth!(tcopy; kwargs...)
 end
 
@@ -98,7 +111,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `InnerProductStyle(t) === EuclideanInnerProduct()`.
 """
 function rightorth(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(rightorth, t), p)
     return rightorth!(tcopy; kwargs...)
 end
 
@@ -125,7 +138,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `InnerProductStyle(t) === EuclideanInnerProduct()`.
 """
 function leftnull(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(leftnull, t), p)
     return leftnull!(tcopy; kwargs...)
 end
 
@@ -154,7 +167,7 @@ Orthogonality requires `InnerProductStyle(t) <: HasInnerProduct`, and
 `InnerProductStyle(t) === EuclideanInnerProduct()`.
 """
 function rightnull(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(rightnull, t), p)
     return rightnull!(tcopy; kwargs...)
 end
 
@@ -178,12 +191,12 @@ matrices. See the corresponding documentation for more information.
 See also `eig` and `eigh`
 """
 function LinearAlgebra.eigen(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(eigen, t), p)
     return eigen!(tcopy; kwargs...)
 end
 
 function LinearAlgebra.eigvals(t::AbstractTensorMap; kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, factorisation_scalartype(eigen, t))
     return LinearAlgebra.eigvals!(tcopy; kwargs...)
 end
 
@@ -210,7 +223,7 @@ matrices. See the corresponding documentation for more information.
 See also `eigen` and `eigh`.
 """
 function eig(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(eig, t), p)
     return eig!(tcopy; kwargs...)
 end
 
@@ -235,7 +248,7 @@ permute(t, (leftind, rightind)) * V = V * D
 See also `eigen` and `eig`.
 """
 function eigh(t::AbstractTensorMap, p::Index2Tuple; kwargs...)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(eigh, t), p)
     return eigh!(tcopy; kwargs...)
 end
 
@@ -251,7 +264,7 @@ which `isposdef!` is called should have equal domain and codomain, as otherwise 
 meaningless.
 """
 function LinearAlgebra.isposdef(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
-    tcopy = permute!(similar(t, float(scalartype(t)), permute(space(t), p)), t, p)
+    tcopy = permutedcopy_oftype(t, factorisation_scalartype(isposdef, t), p)
     return isposdef!(tcopy)
 end
 
