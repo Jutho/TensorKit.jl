@@ -107,7 +107,8 @@ import TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
 import TensorKitSectors: dual, type_repr
 import TensorKitSectors: twist
 
-using Base: @boundscheck, @propagate_inbounds, OneTo, tail, front,
+using Base: @boundscheck, @propagate_inbounds, @constprop,
+            OneTo, tail, front,
             tuple_type_head, tuple_type_tail, tuple_type_cons,
             SizeUnknown, HasLength, HasShape, IsInfinite, EltypeUnknown, HasEltype
 using Base.Iterators: product, filter

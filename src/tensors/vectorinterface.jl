@@ -102,8 +102,25 @@ function VectorInterface.inner(tx::AbstractTensorMap, ty::AbstractTensorMap)
     InnerProductStyle(tx) === EuclideanInnerProduct() || throw_invalid_innerproduct(:inner)
     T = VectorInterface.promote_inner(tx, ty)
     s = zero(T)
-    for c in blocksectors(tx)
-        s += convert(T, dim(c)) * inner(block(tx, c), block(ty, c))
+    for ((cx, bx), (cy, by)) in zip(blocks(tx), blocks(ty))
+        s += convert(T, dim(cx)) * inner(bx, by)
     end
     return s
 end
+function VectorInterface.inner(tx::TensorMap, ty::TensorMap)
+    space(tx) == space(ty) || throw(SpaceMismatch("$(space(tx)) ≠ $(space(ty))"))
+    InnerProductStyle(tx) === EuclideanInnerProduct() || throw_invalid_innerproduct(:inner)
+    if FusionStyle(sectortype(tx)) isa UniqueFusion # all quantum dimensions are one
+        return inner(tx.data, ty.data)
+    else
+        T = VectorInterface.promote_inner(tx, ty)
+        s = zero(T)
+        for c in blocksectors(tx)
+            bx = parent(block(tx, c)) # matrix structure (reshape) does not matter
+            by = parent(block(ty, c)) # but does lead to slower path in inner
+            s += convert(T, dim(c)) * inner(bx, by)
+        end
+    end
+    return s
+end
+# TODO: do we need a fast path for `AdjointTensorMap` instances?
