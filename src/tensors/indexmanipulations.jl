@@ -303,8 +303,9 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 See also [`insertrightunit`](@ref) and [`removeunit`](@ref).
 """
-function insertleftunit(t::AbstractTensorMap, i::Int=numind(t) + 1;
-                        copy::Bool=true, conj::Bool=false, dual::Bool=false)
+@constprop :aggressive function insertleftunit(t::AbstractTensorMap, i::Int=numind(t) + 1;
+                                               copy::Bool=true, conj::Bool=false,
+                                               dual::Bool=false)
     W = insertleftunit(space(t), i; conj, dual)
     tdst = similar(t, W)
     for (c, b) in blocks(t)
@@ -312,8 +313,9 @@ function insertleftunit(t::AbstractTensorMap, i::Int=numind(t) + 1;
     end
     return tdst
 end
-function insertleftunit(t::TensorMap, i::Int=numind(t) + 1;
-                        copy::Bool=false, conj::Bool=false, dual::Bool=false)
+@constprop :aggressive function insertleftunit(t::TensorMap, i::Int=numind(t) + 1;
+                                               copy::Bool=false, conj::Bool=false,
+                                               dual::Bool=false)
     W = insertleftunit(space(t), i; conj, dual)
     return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
 end
@@ -329,7 +331,8 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 See also [`insertleftunit`](@ref) and [`removeunit`](@ref).
 """
-function insertrightunit(t::AbstractTensorMap, i::Int=numind(t); copy::Bool=true, kwargs...)
+@constprop :aggressive function insertrightunit(t::AbstractTensorMap, i::Int=numind(t);
+                                                copy::Bool=true, kwargs...)
     W = insertrightunit(space(t), i; kwargs...)
     tdst = similar(t, W)
     for (c, b) in blocks(t)
@@ -337,7 +340,8 @@ function insertrightunit(t::AbstractTensorMap, i::Int=numind(t); copy::Bool=true
     end
     return tdst
 end
-function insertrightunit(t::TensorMap, i::Int=numind(t); copy::Bool=false, kwargs...)
+@constprop :aggressive function insertrightunit(t::TensorMap, i::Int=numind(t);
+                                                copy::Bool=false, kwargs...)
     W = insertrightunit(space(t), i; kwargs...)
     return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
 end
@@ -352,11 +356,11 @@ If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwis
 
 This operation undoes the work of [`insertunit`](@ref).
 """
-function removeunit(t::TensorMap, i::Int; copy::Bool=false)
+@constprop :aggressive function removeunit(t::TensorMap, i::Int; copy::Bool=false)
     W = removeunit(space(t), i)
     return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
 end
-function removeunit(t::AbstractTensorMap, i::Int; copy::Bool=true)
+@constprop :aggressive function removeunit(t::AbstractTensorMap, i::Int; copy::Bool=true)
     W = removeunit(space(t), i)
     tdst = similar(t, W)
     for (c, b) in blocks(t)
