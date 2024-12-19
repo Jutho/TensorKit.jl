@@ -44,15 +44,6 @@ end
 @noinline _boundserror(P, i) = throw(BoundsError(P, i))
 @noinline _nontrivialspaceerror(P, i) = throw(ArgumentError(lazy"Attempting to remove a non-trivial space $(P[i])"))
 
-# Compat implementation:
-@static if VERSION < v"1.7"
-    macro constprop(setting, ex)
-        return esc(ex)
-    end
-else
-    using Base: @constprop
-end
-
 const VecOrNumber{T<:Number} = Union{DenseVector{T},T}
 
 """
