@@ -198,21 +198,26 @@ function _fusiontree_iterate(uncoupledsectors::NTuple{N}, coupled::I, out, lines
     vertexiterN = c ⊗ dual(b)
     outstateN = states[end]
     vertexstateN = states[end - 1]
+    n = vertices[end]
     while isnothing(rest)
-        n = vertices[end]
-        n < Nsymbol(a, b, c) && return out, lines, (restvertices..., n + 1), states
-        nextline = iterate(vertexiterN, vertexstateN)
-        while isnothing(nextline)
-            nextout = iterate(outiterN, outstateN)
-            nextout === nothing && return nothing
-            b, outstateN = nextout
-            vertexiterN = c ⊗ dual(b)
-            nextline = iterate(vertexiterN)
+        if n < Nsymbol(a, b, c)
+            n += 1
+            # reset the first part of the fusion tree
+            rest = _fusiontree_iterate(Base.front(uncoupledsectors), a)
+        else
+            nextline = iterate(vertexiterN, vertexstateN)
+            while isnothing(nextline)
+                nextout = iterate(outiterN, outstateN)
+                nextout === nothing && return nothing
+                b, outstateN = nextout
+                vertexiterN = c ⊗ dual(b)
+                nextline = iterate(vertexiterN)
+            end
+            a, vertexstateN = nextline
+            n = 1
+            rest = _fusiontree_iterate(Base.front(uncoupledsectors), a)
         end
-        a, vertexstateN = nextline
-        rest = _fusiontree_iterate(Base.front(uncoupledsectors), a)
     end
-    n = 1
     restout, restlines, restvertices, reststates = rest
     out = (restout..., b)
     lines = (restlines..., a)
