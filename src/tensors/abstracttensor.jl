@@ -67,6 +67,8 @@ field(::Type{TT}) where {TT<:AbstractTensorMap} = field(spacetype(TT))
 Return the type of vector that stores the data of a tensor.
 """ storagetype
 
+similarstoragetype(TT::Type{<:AbstractTensorMap}) = similarstoragetype(TT, scalartype(TT))
+
 function similarstoragetype(TT::Type{<:AbstractTensorMap}, ::Type{T}) where {T}
     return Core.Compiler.return_type(similar, Tuple{storagetype(TT),Type{T}})
 end
@@ -193,7 +195,7 @@ sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
 InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
 field(t::AbstractTensorMap) = field(typeof(t))
 storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
-similarstoragetype(t::AbstractTensorMap, TT) = similarstoragetype(typeof(t), TT)
+similarstoragetype(t::AbstractTensorMap, T=scalartype(t)) = similarstoragetype(typeof(t), T)
 
 numout(t::AbstractTensorMap) = numout(typeof(t))
 numin(t::AbstractTensorMap) = numin(typeof(t))
@@ -382,19 +384,19 @@ end
 # 3 arguments
 function Base.similar(t::AbstractTensorMap, codomain::TensorSpace{S},
                       domain::TensorSpace{S}) where {S}
-    return similar(t, storagetype(t), codomain ← domain)
+    return similar(t, similarstoragetype(t), codomain ← domain)
 end
 function Base.similar(t::AbstractTensorMap, ::Type{T}, codomain::TensorSpace) where {T}
     return similar(t, T, codomain ← one(codomain))
 end
 # 2 arguments
 function Base.similar(t::AbstractTensorMap, codomain::TensorSpace)
-    return similar(t, storagetype(t), codomain ← one(codomain))
+    return similar(t, similarstoragetype(t), codomain ← one(codomain))
 end
 Base.similar(t::AbstractTensorMap, P::TensorMapSpace) = similar(t, storagetype(t), P)
 Base.similar(t::AbstractTensorMap, ::Type{T}) where {T} = similar(t, T, space(t))
 # 1 argument
-Base.similar(t::AbstractTensorMap) = similar(t, storagetype(t), space(t))
+Base.similar(t::AbstractTensorMap) = similar(t, similarstoragetype(t), space(t))
 
 # generic implementation for AbstractTensorMap -> returns `TensorMap`
 function Base.similar(t::AbstractTensorMap, ::Type{TorA},
@@ -408,6 +410,7 @@ function Base.similar(t::AbstractTensorMap, ::Type{TorA},
     else
         throw(ArgumentError("Type $TorA not supported for similar"))
     end
+
     N₁ = length(codomain(P))
     N₂ = length(domain(P))
     return TensorMap{T,S,N₁,N₂,A}(undef, P)
