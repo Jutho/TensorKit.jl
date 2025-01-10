@@ -29,4 +29,18 @@
         a = convert(Array, t)
         @test a == zeros(size(a))
     end
+
+    # https://github.com/Jutho/TensorKit.jl/issues/194
+    @testset "Issue #194" begin
+        t1 = rand(ℂ^4 ← ℂ^4)
+        t2 = tensoralloc(typeof(t1), space(t1), Val(true),
+                         TensorOperations.ManualAllocator())
+        t3 = similar(t2, ComplexF64, space(t1))
+        @test storagetype(t3) == Vector{ComplexF64}
+        t4 = similar(t2, domain(t1))
+        @test storagetype(t4) == Vector{Float64}
+        t5 = similar(t2)
+        @test storagetype(t5) == Vector{Float64}
+        tensorfree!(t2)
+    end
 end
