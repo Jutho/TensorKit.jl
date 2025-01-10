@@ -37,7 +37,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
         pΔC = ((codomainind(A)..., (domainind(A) .+ numout(B))...),
                ((codomainind(B) .+ numout(A))...,
                 (domainind(B) .+ (numin(A) + numout(A)))...))
-        dA_ = @thunk begin
+        dA_ = @thunk let
             ipA = (codomainind(A), domainind(A))
             pB = (allind(B), ())
             dA = zerovector(A, promote_contract(scalartype(ΔC), scalartype(B)))
@@ -45,7 +45,7 @@ function ChainRulesCore.rrule(::typeof(⊗), A::AbstractTensorMap, B::AbstractTe
             dA = tensorcontract!(dA, ΔC, pΔC, false, tB, pB, true, ipA)
             return projectA(dA)
         end
-        dB_ = @thunk begin
+        dB_ = @thunk let
             ipB = (codomainind(B), domainind(B))
             pA = ((), allind(A))
             dB = zerovector(B, promote_contract(scalartype(ΔC), scalartype(A)))

@@ -12,13 +12,13 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
         dC = @thunk projectC(scale(ΔC, conj(β)))
-        dA = @thunk begin
+        dA = @thunk let
             ipA = invperm(linearize(pA))
             _dA = zerovector(A, promote_add(ΔC, α))
             _dA = tensoradd!(_dA, ΔC, (ipA, ()), conjA, conjA ? α : conj(α), Zero(), ba...)
             return projectA(_dA)
         end
-        dα = @thunk begin
+        dα = @thunk let
             # TODO: this is an inner product implemented as a contraction
             # for non-symmetric tensors this might be more efficient like this,
             # but for symmetric tensors an intermediate object will anyways be created
@@ -59,7 +59,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
                TupleTools.getindices(ipAB, TO.numout(pA) .+ trivtuple(TO.numin(pB))))
 
         dC = @thunk projectC(scale(ΔC, conj(β)))
-        dA = @thunk begin
+        dA = @thunk let
             ipA = (invperm(linearize(pA)), ())
             conjΔC = conjA
             conjB′ = conjA ? conjB : !conjB
@@ -74,7 +74,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
                                   conjA ? α : conj(α), Zero(), ba...)
             return projectA(_dA)
         end
-        dB = @thunk begin
+        dB = @thunk let
             ipB = (invperm(linearize(pB)), ())
             conjΔC = conjB
             conjA′ = conjB ? conjA : !conjA
@@ -89,7 +89,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
                                   conjB ? α : conj(α), Zero(), ba...)
             return projectB(_dB)
         end
-        dα = @thunk begin
+        dα = @thunk let
             # TODO: this result should be AB = (C′ - βC) / α as C′ = βC + αAB
             AB = tensorcontract(A, pA, conjA, B, pB, conjB, pAB, One(), ba...)
             return projectα(inner(AB, ΔC))
@@ -119,7 +119,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensortrace!),
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
         dC = @thunk projectC(scale(ΔC, conj(β)))
-        dA = @thunk begin
+        dA = @thunk let
             ip = invperm((linearize(p)..., q[1]..., q[2]...))
             E = one!(TO.tensoralloc_add(scalartype(A), A, q, conjA))
             twist!(E, filter(x -> !isdual(space(E, x)), codomainind(E)))
@@ -130,7 +130,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensortrace!),
                                  conjA ? α : conj(α), Zero(), ba...)
             return projectA(_dA)
         end
-        dα = @thunk begin
+        dα = @thunk let
             # TODO: this result might be easier to compute as:
             # C′ = βC + α * trace(A) ⟹ At = (C′ - βC) / α
             At = tensortrace(A, p, q, conjA)
