@@ -121,7 +121,7 @@ Base.getindex(::TensorMap{T,S,N₁,N₂}, ::FusionTree{I,N₁}, ::FusionTree{I,N
 Base.setindex!(::TensorMap{T,S,N₁,N₂}, ::Any, ::FusionTree{I,N₁}, ::FusionTree{I,N₂}) where {T,S,N₁,N₂,I<:Sector}
 ```
 
-For a tensor `t` with `FusionType(sectortype(t)) isa UniqeFuison`, fusion trees are 
+For a tensor `t` with `FusionType(sectortype(t)) isa UniqueFusion`, fusion trees are 
 completely determined by the outcoming sectors, and the data can be accessed in a more
 straightforward way:
 ```@docs
