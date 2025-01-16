@@ -377,7 +377,7 @@ end
 #-------------------------------------
 """
     add_permute!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
-                 α::Number, β::Number, backend::AbstractBackend...)
+                 α::Number, β::Number, backend...)
 
 Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after permuting 
 the indices of `tsrc` according to `(p₁, p₂)`.
@@ -389,14 +389,14 @@ See also [`permute`](@ref), [`permute!`](@ref), [`add_braid!`](@ref), [`add_tran
                                           p::Index2Tuple,
                                           α::Number,
                                           β::Number,
-                                          backend::AbstractBackend...)
+                                          backend...)
     transformer = treepermuter(tdst, tsrc, p)
     return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
 end
 
 """
     add_braid!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
-               levels::IndexTuple, α::Number, β::Number, backend::AbstractBackend...)
+               levels::IndexTuple, α::Number, β::Number, backend...)
 
 Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after braiding
 the indices of `tsrc` according to `(p₁, p₂)` and `levels`.
@@ -409,7 +409,7 @@ See also [`braid`](@ref), [`braid!`](@ref), [`add_permute!`](@ref), [`add_transp
                                         levels::IndexTuple,
                                         α::Number,
                                         β::Number,
-                                        backend::AbstractBackend...)
+                                        backend...)
     length(levels) == numind(tsrc) ||
         throw(ArgumentError("incorrect levels $levels for tensor map $(codomain(tsrc)) ← $(domain(tsrc))"))
 
@@ -422,7 +422,7 @@ end
 
 """
     add_transpose!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, (p₁, p₂)::Index2Tuple,
-                   α::Number, β::Number, backend::AbstractBackend...)
+                   α::Number, β::Number, backend...)
 
 Return the updated `tdst`, which is the result of adding `α * tsrc` to `tdst` after transposing
 the indices of `tsrc` according to `(p₁, p₂)`.
@@ -434,9 +434,45 @@ See also [`transpose`](@ref), [`transpose!`](@ref), [`add_permute!`](@ref), [`ad
                                             p::Index2Tuple,
                                             α::Number,
                                             β::Number,
-                                            backend::AbstractBackend...)
+                                            backend...)
     transformer = treetransposer(tdst, tsrc, p)
     return add_transform!(tdst, tsrc, p, transformer, α, β, backend...)
+end
+
+# Implementation
+# --------------
+"""
+    add_transform!(C, A, pA, transformer, α, β, [backend], [allocator])
+
+Return the updated `C`, which is the result of adding `α * A` to `β * B`,
+permuting the data with `pA` while transforming the fusiontrees with `transformer`.
+"""
+function add_transform!(C::AbstractTensorMap, A::AbstractTensorMap, pA::Index2Tuple,
+                        transformer, α::Number, β::Number)
+    return add_transform!(C, A, pA, transformer, α, β, TO.DefaultBackend())
+end
+function add_transform!(C::AbstractTensorMap, A::AbstractTensorMap, pA::Index2Tuple,
+                        transformer, α::Number, β::Number, backend)
+    return add_transform!(C, A, pA, transformer, α, β, backend, TO.DefaultAllocator())
+end
+function add_transform!(C::AbstractTensorMap, A::AbstractTensorMap, pA::Index2Tuple,
+                        transformer, α::Number, β::Number, backend, allocator)
+    if backend isa TO.DefaultBackend
+        newbackend = TO.select_backend(add_transform!, C, A)
+        return add_transform!(C, A, pA, transformer, α, β, newbackend, allocator)
+    elseif backend isa TO.NoBackend # error for missing backend
+        TC = typeof(C)
+        TA = typeof(A)
+        throw(ArgumentError("No suitable backend found for `add_transform!` and tensor types $TC and $TA"))
+    else # error for unknown backend
+        TC = typeof(C)
+        TA = typeof(A)
+        throw(ArgumentError("Unknown backend $backend for `add_transform!` and tensor types $TC and $TA"))
+    end
+end
+function TO.select_backend(::typeof(add_transform!), C::AbstractTensorMap,
+                           A::AbstractTensorMap)
+    return TensorKitBackend()
 end
 
 function add_transform!(tdst::AbstractTensorMap,
@@ -445,7 +481,7 @@ function add_transform!(tdst::AbstractTensorMap,
                         transformer,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend...)
+                        backend::TensorKitBackend, allocator)
     @boundscheck begin
         permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
@@ -455,7 +491,7 @@ function add_transform!(tdst::AbstractTensorMap,
     if p₁ === codomainind(tsrc) && p₂ === domainind(tsrc)
         add!(tdst, tsrc, α, β)
     else
-        add_transform_kernel!(tdst, tsrc, (p₁, p₂), transformer, α, β, backend...)
+        add_transform_kernel!(tdst, tsrc, (p₁, p₂), transformer, α, β, backend, allocator)
     end
 
     return tdst
@@ -467,8 +503,9 @@ function add_transform_kernel!(tdst::TensorMap,
                                ::TrivialTreeTransformer,
                                α::Number,
                                β::Number,
-                               backend::AbstractBackend...)
-    return TO.tensoradd!(tdst[], tsrc[], (p₁, p₂), false, α, β, backend...)
+                               backend::TensorKitBackend, allocator)
+    return TO.tensoradd!(tdst[], tsrc[], (p₁, p₂), false, α, β, backend.arraybackend,
+                         allocator)
 end
 
 function add_transform_kernel!(tdst::TensorMap,
@@ -477,19 +514,20 @@ function add_transform_kernel!(tdst::TensorMap,
                                transformer::AbelianTreeTransformer,
                                α::Number,
                                β::Number,
-                               backend::AbstractBackend...)
+                               backend::TensorKitBackend, allocator)
     structure_dst = transformer.structure_dst.fusiontreestructure
     structure_src = transformer.structure_src.fusiontreestructure
 
-    # TODO: this could be multithreaded
-    for (row, col, val) in zip(transformer.rows, transformer.cols, transformer.vals)
+    tforeach(transformer.rows, transformer.cols, transformer.vals;
+             backend.scheduler) do row, col, val
         sz_dst, str_dst, offset_dst = structure_dst[col]
         subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
 
         sz_src, str_src, offset_src = structure_src[row]
         subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
 
-        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * val, β, backend...)
+        return TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * val, β,
+                             backend.arraybackend, allocator)
     end
 
     return nothing
@@ -501,15 +539,14 @@ function add_transform_kernel!(tdst::TensorMap,
                                transformer::GenericTreeTransformer,
                                α::Number,
                                β::Number,
-                               backend::AbstractBackend...)
+                               backend::TensorKitBackend, allocator)
     structure_dst = transformer.structure_dst.fusiontreestructure
     structure_src = transformer.structure_src.fusiontreestructure
 
     rows = rowvals(transformer.matrix)
     vals = nonzeros(transformer.matrix)
 
-    # TODO: this could be multithreaded
-    for j in axes(transformer.matrix, 2)
+    tforeach(axes(transformer.matrix, 2); backend.scheduler) do j
         sz_dst, str_dst, offset_dst = structure_dst[j]
         subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
         nzrows = nzrange(transformer.matrix, j)
@@ -519,14 +556,14 @@ function add_transform_kernel!(tdst::TensorMap,
         subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
         TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[first(nzrows)],
                       β,
-                      backend...)
+                      backend.arraybackend, allocator)
 
         # treat remaining entries
         for i in @view(nzrows[2:end])
             sz_src, str_src, offset_src = structure_src[rows[i]]
             subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
             TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[i], One(),
-                          backend...)
+                          backend.arraybackend, allocator)
         end
     end
 
@@ -539,66 +576,66 @@ function add_transform_kernel!(tdst::AbstractTensorMap,
                                fusiontreetransform::Function,
                                α::Number,
                                β::Number,
-                               backend::AbstractBackend...)
+                               backend::TensorKitBackend, allocator)
     I = sectortype(spacetype(tdst))
 
     if I === Trivial
-        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+                             backend, allocator)
     elseif FusionStyle(I) isa UniqueFusion
-        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+                             backend, allocator)
     else
-        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
+        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β,
+                             backend, allocator)
     end
 
     return nothing
 end
 
 # internal methods: no argument types
-function _add_trivial_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
-    TO.tensoradd!(tdst[], tsrc[], p, false, α, β, backend...)
+function _add_trivial_kernel!(tdst, tsrc, p, fusiontreetransform, α, β,
+                              backend::TensorKitBackend, allocator)
+    TO.tensoradd!(tdst[], tsrc[], p, false, α, β, backend.arraybackend, allocator)
     return nothing
 end
 
-function _add_abelian_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
-    if Threads.nthreads() > 1
-        Threads.@sync for (f₁, f₂) in fusiontrees(tsrc)
-            Threads.@spawn _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
-                                               f₁, f₂, α, β, backend...)
-        end
-    else
-        for (f₁, f₂) in fusiontrees(tsrc)
-            _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
-                                f₁, f₂, α, β, backend...)
-        end
+function _add_abelian_kernel!(tdst, tsrc, p, fusiontreetransform, α, β,
+                              backend::TensorKitBackend, allocator)
+    tforeach(fusiontrees(tsrc); backend.scheduler) do (f₁, f₂)
+        return _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
+                                   f₁, f₂, α, β, backend.arraybackend, allocator)
     end
     return nothing
 end
 
-function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)
+function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β,
+                             backend, allocator)
     (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
     @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
-                            backend...)
+                            backend, allocator)
     return nothing
 end
 
-function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
+function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend, allocator)
     if iszero(β)
         tdst = zerovector!(tdst)
     elseif β != 1
         tdst = scale!(tdst, β)
     end
     β′ = One()
-    if Threads.nthreads() > 1
-        Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
-            Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁,
-                                                   s₂, α, β′, backend...)
-        end
-    else
+    if backend.scheduler isa SerialScheduler
         for (f₁, f₂) in fusiontrees(tsrc)
             for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
                 @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff,
-                                        β′, backend...)
+                                        β′, backend.arraybackend, allocator)
             end
+        end
+    else
+        tforeach(Iterators.product(sectors(codomain(tsrc)), sectors(domain(tsrc)))) do (s₁,
+                                                                                        s₂)
+            return _add_nonabelian_sector!(tdts, tsrc, p, fusiontreetransform, s₁, s₂, α,
+                                           β′, backend.arraybackend, allocator)
         end
     end
     return nothing
@@ -606,12 +643,12 @@ end
 
 # TODO: β argument is weird here because it has to be 1
 function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, β,
-                                 backend...)
+                                 backend, allocator)
     for (f₁, f₂) in fusiontrees(tsrc)
         (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
         for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
             @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
-                                    backend...)
+                                    backend, allocator)
         end
     end
     return nothing

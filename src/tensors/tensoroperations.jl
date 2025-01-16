@@ -150,7 +150,7 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 # TODO: what should be the default scheduler?
 # TODO: should we allow a separate scheduler for "blocks" and "subblocks"
 @kwdef struct TensorKitBackend{B<:AbstractBackend,S<:Scheduler} <: AbstractBackend
-    arraybackend::B = DefaultBackend()
+    arraybackend::B = TO.DefaultBackend()
     scheduler::S = SerialScheduler()
 end
 
