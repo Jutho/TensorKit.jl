@@ -94,17 +94,17 @@ function TO.tensorcontract!(C::AbstractTensorMap,
         pA′ = adjointtensorindices(A, pA)
         B′ = B'
         pB′ = adjointtensorindices(B, pB)
-        contract!(C, A′, pA′, B′, pB′, pAB′, α, β, backend, allocator)
+        TO.blas_contract!(C, A′, pA′, B′, pB′, pAB′, α, β, backend, allocator)
     elseif conjA
         A′ = A'
         pA′ = adjointtensorindices(A, pA)
-        contract!(C, A′, pA′, B, pB, pAB′, α, β, backend, allocator)
+        TO.blas_contract!(C, A′, pA′, B, pB, pAB′, α, β, backend, allocator)
     elseif conjB
         B′ = B'
         pB′ = adjointtensorindices(B, pB)
-        contract!(C, A, pA, B′, pB′, pAB′, α, β, backend, allocator)
+        TO.blas_contract!(C, A, pA, B′, pB′, pAB′, α, β, backend, allocator)
     else
-        contract!(C, A, pA, B, pB, pAB′, α, β, backend, allocator)
+        TO.blas_contract!(C, A, pA, B, pB, pAB′, α, β, backend, allocator)
     end
     return C
 end
@@ -152,6 +152,19 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 @kwdef struct TensorKitBackend{B<:AbstractBackend,S<:Scheduler} <: AbstractBackend
     arraybackend::B = TO.DefaultBackend()
     scheduler::S = SerialScheduler()
+end
+
+function TO.select_backend(::typeof(TO.tensoradd!), C::AbstractTensorMap,
+                           A::AbstractTensorMap)
+    return TensorKitBackend()
+end
+function TO.select_backend(::typeof(TO.tensortrace!), C::AbstractTensorMap,
+                           A::AbstractTensorMap)
+    return TensorKitBackend()
+end
+function TO.select_backend(::typeof(TO.tensorcontract!), C::AbstractTensorMap,
+                           A::AbstractTensorMap, B::AbstractTensorMap)
+    return TensorKitBackend()
 end
 
 # Trace implementation
@@ -232,114 +245,105 @@ end
 # TODO: contraction with either A or B a rank (1, 1) tensor does not require to
 # permute the fusion tree and should therefore be special cased. This will speed
 # up MPS algorithms
-""" 
-    contract!(C::AbstractTensorMap,
-              A::AbstractTensorMap, (oindA, cindA)::Index2Tuple,
-              B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,
-              (p₁, p₂)::Index2Tuple,
-              α::Number, β::Number,
-              backend, allocator)
 
-Return the updated `C`, which is the result of adding `α * A * B` to `C` after permuting
-the indices of `A` and `B` according to `(oindA, cindA)` and `(cindB, oindB)` respectively.
-"""
-function contract!(C::AbstractTensorMap,
-                   A::AbstractTensorMap, (oindA, cindA)::Index2Tuple,
-                   B::AbstractTensorMap, (cindB, oindB)::Index2Tuple,
-                   (p₁, p₂)::Index2Tuple,
-                   α::Number, β::Number,
-                   backend, allocator)
-    length(cindA) == length(cindB) ||
-        throw(IndexError("number of contracted indices does not match"))
-    N₁, N₂ = length(oindA), length(oindB)
+# this is a copy of the TensorOperations implementation, adding two ways to
+# permute the contracted indices for 4 total possible implementations
+function TO.blas_contract!(C::AbstractTensorMap, A::AbstractTensorMap, pA,
+                           B::AbstractTensorMap, pB, pAB, α, β, backend, allocator)
+    # index permutations for reverse contraction
+    indCinoBA = let N₁ = TO.numout(pA), N₂ = TO.numin(pB)
+        map(n -> ifelse(n > N₁, n - N₁, n + N₂), TO.linearize(pAB))
+    end
+    tpAB = TO.trivialpermutation(pAB)
+    pBA = (TupleTools.getindices(indCinoBA, tpAB[1]),
+           TupleTools.getindices(indCinoBA, tpAB[2]))
 
-    # find optimal contraction scheme
-    hsp = has_shared_permute
-    ipAB = TupleTools.invperm((p₁..., p₂...))
-    oindAinC = TupleTools.getindices(ipAB, ntuple(n -> n, N₁))
-    oindBinC = TupleTools.getindices(ipAB, ntuple(n -> n + N₁, N₂))
+    # permutations of contracted indices
+    qA = TupleTools.sortperm(pA[2])
+    pA′ = (pA[1], TupleTools.getindices(pA[2], qA))
+    pB′ = (TupleTools.getindices(pB[1], qA), pB[2])
 
-    qA = TupleTools.sortperm(cindA)
-    cindA′ = TupleTools.getindices(cindA, qA)
-    cindB′ = TupleTools.getindices(cindB, qA)
+    qB = TupleTools.sortperm(pB[1])
+    pA″ = (pA[1], TupleTools.getindices(pA[2], qB))
+    pB″ = (TupleTools.getindices(pB[1], qB), pB[2])
 
-    qB = TupleTools.sortperm(cindB)
-    cindA′′ = TupleTools.getindices(cindA, qB)
-    cindB′′ = TupleTools.getindices(cindB, qB)
+    memcost1 = TO.contract_memcost(C, A, pA′, B, pB′, pAB)
+    memcost2 = TO.contract_memcost(C, A, pA″, B, pB″, pAB)
+    memcost3 = TO.contract_memcost(C, B, reverse(pB′), A, reverse(pA′), pBA)
+    memcost4 = TO.contract_memcost(C, B, reverse(pB″), A, reverse(pA″), pBA)
 
-    dA, dB, dC = dim(A), dim(B), dim(C)
-
-    # keep order A en B, check possibilities for cind
-    memcost1 = memcost2 = dC * (!hsp(C, (oindAinC, oindBinC)))
-    memcost1 += dA * (!hsp(A, (oindA, cindA′))) +
-                dB * (!hsp(B, (cindB′, oindB)))
-    memcost2 += dA * (!hsp(A, (oindA, cindA′′))) +
-                dB * (!hsp(B, (cindB′′, oindB)))
-
-    # reverse order A en B, check possibilities for cind
-    memcost3 = memcost4 = dC * (!hsp(C, (oindBinC, oindAinC)))
-    memcost3 += dB * (!hsp(B, (oindB, cindB′))) +
-                dA * (!hsp(A, (cindA′, oindA)))
-    memcost4 += dB * (!hsp(B, (oindB, cindB′′))) +
-                dA * (!hsp(A, (cindA′′, oindA)))
-
-    if min(memcost1, memcost2) <= min(memcost3, memcost4)
-        if memcost1 <= memcost2
-            return _contract!(α, A, B, β, C, oindA, cindA′, oindB, cindB′, p₁, p₂)
+    return if min(memcost1, memcost2) ≤ min(memcost3, memcost4)
+        if memcost1 ≤ memcost2
+            _blas_contract!(C, A, pA′, B, pB′, pAB, α, β, backend, allocator)
         else
-            return _contract!(α, A, B, β, C, oindA, cindA′′, oindB, cindB′′, p₁, p₂)
+            _blas_contract!(C, A, pA″, B, pB″, pAB, α, β, backend, allocator)
         end
     else
-        p1′ = map(n -> ifelse(n > N₁, n - N₁, n + N₂), p₁)
-        p2′ = map(n -> ifelse(n > N₁, n - N₁, n + N₂), p₂)
-        if memcost3 <= memcost4
-            return _contract!(α, B, A, β, C, oindB, cindB′, oindA, cindA′, p1′, p2′)
+        if memcost3 ≤ memcost4
+            _blas_contract!(C, B, reverse(pB′), A, reverse(pA′), pBA, α, β, backend,
+                            allocator)
         else
-            return _contract!(α, B, A, β, C, oindB, cindB′′, oindA, cindA′′, p1′, p2′)
+            _blas_contract!(C, B, reverse(pB″), A, reverse(pA″), pBA, α, β, backend,
+                            allocator)
         end
     end
 end
 
-# TODO: also transform _contract! into new interface, and add backend support
-function _contract!(α, A::AbstractTensorMap, B::AbstractTensorMap,
-                    β, C::AbstractTensorMap,
-                    oindA::IndexTuple, cindA::IndexTuple,
-                    oindB::IndexTuple, cindB::IndexTuple,
-                    p₁::IndexTuple, p₂::IndexTuple)
-    if !(BraidingStyle(sectortype(C)) isa SymmetricBraiding)
-        throw(SectorMismatch("only tensors with symmetric braiding rules can be contracted; try `@planar` instead"))
-    end
-    N₁, N₂ = length(oindA), length(oindB)
-    copyA = false
-    if BraidingStyle(sectortype(A)) isa Fermionic
-        for i in cindA
-            if !isdual(space(A, i))
-                copyA = true
-            end
-        end
-    end
-    A′ = permute(A, (oindA, cindA); copy=copyA)
-    B′ = permute(B, (cindB, oindB))
-    if BraidingStyle(sectortype(A)) isa Fermionic
-        for i in domainind(A′)
-            if !isdual(space(A′, i))
-                A′ = twist!(A′, i)
-            end
-        end
-        # A′ = twist!(A′, filter(i -> !isdual(space(A′, i)), domainind(A′)))
-        # commented version leads to boxing of `A′` and type instabilities in the result
-    end
-    ipAB = TupleTools.invperm((p₁..., p₂...))
-    oindAinC = TupleTools.getindices(ipAB, ntuple(n -> n, N₁))
-    oindBinC = TupleTools.getindices(ipAB, ntuple(n -> n + N₁, N₂))
-    if has_shared_permute(C, (oindAinC, oindBinC))
-        C′ = permute(C, (oindAinC, oindBinC))
-        mul!(C′, A′, B′, α, β)
+function TO.contract_memcost(C::AbstractTensorMap, A::AbstractTensorMap, pA,
+                             B::AbstractTensorMap, pB, pAB)
+    ipAB = TO.oindABinC(pAB, pA, pB)
+    return dim(A) * !isblascontractable(A, pA) + dim(B) * !isblascontractable(B, pB) +
+           dim(C) * !isblasdestination(C, ipAB)
+end
+
+# TODO: delibarately not importing private TO functions from here on out. Should we?
+function _blas_contract!(C, A, pA, B, pB, pAB, α, β, backend, allocator)
+    TC = eltype(C)
+
+    A_, pA, flagA = makeblascontractable(A, pA, TC, backend, allocator, true)
+    B_, pB, flagB = makeblascontractable(B, pB, TC, backend, allocator, false)
+
+    ipAB = TO.oindABinC(pAB, pA, pB)
+    flagC = isblasdestination(C, ipAB)
+    if flagC
+        mul!(C, A_, B_, α, β, backend)
     else
-        C′ = A′ * B′
-        add_permute!(C, C′, (p₁, p₂), α, β)
+        C_ = TO.tensoralloc_add(TC, C, ipAB, false, Val(true), allocator)
+        mul!(C_, A_, B_, One(), Zero(), backend)
+        TO.tensoradd!(C, C_, pAB, false, α, β, backend, allocator)
+        TO.tensorfree!(C_, allocator)
     end
+    flagA || TO.tensorfree!(A_, allocator)
+    flagB || TO.tensorfree!(B_, allocator)
     return C
+end
+
+isblascontractable(A, pA) = (pA[1] == codomainind(A) && pA[2] == domainind(A))
+function isblasdestination(A::AbstractTensorMap, p::Index2Tuple)
+    return (p[1] == codomainind(A) && p[2] == domainind(A))
+end
+
+@inline function makeblascontractable(A::AbstractTensorMap, pA, TC, backend, allocator,
+                                      dotwist::Bool=false)
+    flagA = (scalartype(A) === TC && isblascontractable(A, pA) && !dotwist)
+    if !flagA
+        A_ = TO.tensoralloc_add(TC, A, pA, false, Val(true), allocator)
+        Anew = TO.tensoradd!(A_, A, pA, false, One(), Zero(), backend, allocator)
+        if dotwist && (BraidingStyle(sectortype(A)) isa Fermionic)
+            for i in domainind(Anew)
+                if !isdual(space(Anew, i))
+                    twist!(Anew, i)
+                end
+            end
+            # TODO: this seems type-unstable:
+            # Anew  = twist!(Anew, filter(i -> !isdual(space(Anew, i)), domainind(Anew)))
+        end
+        pAnew = TO.trivialpermutation(pA)
+    else
+        Anew = A
+        pAnew = pA
+    end
+    return Anew, pAnew, flagA
 end
 
 # Scalar implementation

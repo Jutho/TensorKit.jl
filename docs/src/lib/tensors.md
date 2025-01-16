@@ -200,7 +200,6 @@ TensorKit.add_transpose!
 ```@docs
 compose(::AbstractTensorMap, ::AbstractTensorMap)
 trace_permute!
-contract!
 ⊗(::AbstractTensorMap, ::AbstractTensorMap)
 ```
 
