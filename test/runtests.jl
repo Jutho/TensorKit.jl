@@ -9,6 +9,7 @@ using Base.Iterators: take, product
 # using SUNRepresentations: SUNIrrep
 # const SU3Irrep = SUNIrrep{3}
 using LinearAlgebra: LinearAlgebra
+using Zygote: Zygote
 
 const TK = TensorKit
 

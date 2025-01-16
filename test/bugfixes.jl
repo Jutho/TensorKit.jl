@@ -43,4 +43,32 @@
         @test storagetype(t5) == Vector{Float64}
         tensorfree!(t2)
     end
+
+    @testset "Issue #201" begin
+        function f(A::AbstractTensorMap)
+            U, S, V, = tsvd(A)
+            return tr(S)
+        end
+        function f(A::AbstractMatrix)
+            S = LinearAlgebra.svdvals(A)
+            return sum(S)
+        end
+        A₀ = randn(Z2Space(4, 4) ← Z2Space(4, 4))
+        grad1, = Zygote.gradient(f, A₀)
+        grad2, = Zygote.gradient(f, convert(Array, A₀))
+        @test convert(Array, grad1) ≈ grad2
+
+        function g(A::AbstractTensorMap)
+            U, S, V, = tsvd(A)
+            return tr(U * V)
+        end
+        function g(A::AbstractMatrix)
+            U, S, V, = LinearAlgebra.svd(A)
+            return tr(U * V')
+        end
+        B₀ = randn(ComplexSpace(4) ← ComplexSpace(4))
+        grad3, = Zygote.gradient(g, B₀)
+        grad4, = Zygote.gradient(g, convert(Array, B₀))
+        @test convert(Array, grad3) ≈ grad4
+    end
 end
