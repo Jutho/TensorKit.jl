@@ -101,6 +101,7 @@ using TensorOperations: IndexTuple, Index2Tuple, linearize, AbstractBackend
 const TO = TensorOperations
 
 using LRUCache
+using OhMyThreads
 
 using TensorKitSectors
 import TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
