@@ -28,7 +28,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.permutedcopy_oftype), t::Abstra
                               T::Type{<:Number}, p::Index2Tuple)
     project = ProjectTo(t)
     function permutedcopy_oftype_pullback(Δt)
-        invp = TensorKit._canonicalize(TupleTools.invperm(linearize(p)), tsrc)
+        invp = TensorKit._canonicalize(TupleTools.invperm(linearize(p)), t)
         return project(TensorKit.permutedcopy_oftype(unthunk(Δt), scalartype(t), invp))
     end
     return TensorKit.permutedcopy_oftype(t, T, p), permutedcopy_oftype_pullback
