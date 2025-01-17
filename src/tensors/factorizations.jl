@@ -269,39 +269,39 @@ function LinearAlgebra.isposdef(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
 end
 
 function tsvd(t::AbstractTensorMap; kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return tsvd!(tcopy; kwargs...)
 end
 function leftorth(t::AbstractTensorMap; alg::OFA=QRpos(), kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return leftorth!(tcopy; alg=alg, kwargs...)
 end
 function rightorth(t::AbstractTensorMap; alg::OFA=LQpos(), kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return rightorth!(tcopy; alg=alg, kwargs...)
 end
 function leftnull(t::AbstractTensorMap; alg::OFA=QR(), kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return leftnull!(tcopy; alg=alg, kwargs...)
 end
 function rightnull(t::AbstractTensorMap; alg::OFA=LQ(), kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return rightnull!(tcopy; alg=alg, kwargs...)
 end
 function LinearAlgebra.eigen(t::AbstractTensorMap; kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return eigen!(tcopy; kwargs...)
 end
 function eig(t::AbstractTensorMap; kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return eig!(tcopy; kwargs...)
 end
 function eigh(t::AbstractTensorMap; kwargs...)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return eigh!(tcopy; kwargs...)
 end
 function LinearAlgebra.isposdef(t::AbstractTensorMap)
-    tcopy = copy!(similar(t, float(scalartype(t))), t)
+    tcopy = copy_oftype(t, float(scalartype(t)))
     return isposdef!(tcopy)
 end
 
