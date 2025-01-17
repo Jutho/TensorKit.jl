@@ -1,0 +1,85 @@
+# main structure of this file:
+# 
+# [group.benchmark] headers separate benchmarks
+# parameters here are expanded over all combinations
+#
+# [group.benchmark.sector] headers separate different tensor definitions
+# parameters here are zipped
+
+[linalg.mul]
+
+T = ["Float64", "ComplexF64"]
+
+[[linalg.mul.spaces]]
+I = "Trivial"
+dims = [[2, 2, 2], [8, 8, 8], [32, 32, 32], [64, 64, 64], [128, 128, 128]]
+
+[[linalg.mul.spaces]]
+I = "Z2Irrep"
+dims = [[2, 2, 2], [8, 8, 8], [32, 32, 32], [64, 64, 64], [128, 128, 128]]
+sigmas = [0.5, 0.5, 0.5]
+
+
+[indexmanipulations.permute]
+
+T = ["Float64", "ComplexF64"]
+
+[[indexmanipulations.permute.spaces]]
+I = "Trivial"
+p = [[5, 4, 3], [2, 1]]
+dims = [[[2, 2, 2], [2, 2]], [[3, 3, 3], [3, 3]]]
+
+
+# TensorNetwork contractions
+[tensornetworks.mpo]
+T = ["ComplexF64"]
+
+[[tensornetworks.mpo.spaces]]
+I = "Trivial"
+dims = [[10, 4, 3], [40, 4, 3], [160, 4, 3], [640, 4,3], [2560, 4, 3], [100, 10, 10], [200, 10, 10], [300, 20, 20]]
+
+[[tensornetworks.mpo.spaces]]
+I = "Z2Irrep"
+dims = [[10, 4, 4], [40, 4, 4], [160, 4, 4], [640, 4, 4], [2560, 4, 4], [100, 10, 10], [200, 10, 10], [300, 20, 20]]
+sigmas = [0.5, 0.5, 0.5]
+
+[[tensornetworks.mpo.spaces]]
+I = "U1Irrep"
+dims = [[40, 5, 3], [160, 5, 3], [640, 5, 3], [2560, 5, 3], [6120, 5, 3], [200, 20, 20], [400, 20, 20], [400, 40, 40]]
+sigmas = [0.5, 0.5, 0.5]
+
+[tensornetworks.pepo]
+T = ["ComplexF64"]
+
+[[tensornetworks.pepo.spaces]]
+I = "Trivial"
+dims = [[3, 2, 2, 50], [3, 3, 3, 100], [4, 2, 2, 50], [4, 3, 3, 100], [5, 2, 2, 50], [5, 2, 3, 100], [6, 2, 2, 50], [6, 3, 2, 100]]
+
+[[tensornetworks.pepo.spaces]]
+I = "Z2Irrep"
+dims = [[4, 2, 2, 50], [4, 4, 4, 100], [5, 2, 2, 50], [5, 3, 4, 100], [6, 2, 2, 50], [6, 2, 4, 100], [8, 2, 2, 50], [8, 3, 2, 100]]
+sigmas = [0.5, 0.5, 0.5, 0.5]
+
+[[tensornetworks.pepo.spaces]]
+I = "U1Irrep"
+dims = [[4, 2, 2, 100], [4, 4, 4, 200], [6, 2, 2, 100], [6, 3, 4, 200], [8, 2, 2, 100], [8, 2, 4, 200], [10, 2, 2, 50], [10, 3, 2, 100]]
+sigmas = [0.5, 0.5, 0.5, 0.5]
+
+
+[tensornetworks.mera]
+
+T = ["ComplexF64"]
+
+[[tensornetworks.mera.spaces]]
+I = "Trivial"
+dims = [2, 3, 4, 8, 12, 16]
+
+[[tensornetworks.mera.spaces]]
+I = "Z2Irrep"
+dims = [2, 4, 8, 12, 16, 20]
+sigmas = 0.5
+
+[[tensornetworks.mera.spaces]]
+I = "U1Irrep"
+dims = [4, 8, 12, 16, 22, 28]
+sigmas = 0.5
