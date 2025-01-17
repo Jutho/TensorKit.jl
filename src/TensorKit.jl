@@ -102,6 +102,7 @@ const TO = TensorOperations
 
 using LRUCache
 using OhMyThreads
+using ScopedValues
 
 using TensorKitSectors
 import TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
@@ -185,6 +186,7 @@ include("spaces/vectorspaces.jl")
 #-------------------------------------
 # general definitions
 include("tensors/abstracttensor.jl")
+include("tensors/backends.jl")
 include("tensors/blockiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")

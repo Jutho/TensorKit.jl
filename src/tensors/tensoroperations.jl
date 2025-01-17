@@ -144,30 +144,6 @@ TO.tensorcost(t::AbstractTensorMap, i::Int) = dim(space(t, i))
 # IMPLEMENTATONS
 #----------------
 
-# Backend implementation
-# ----------------------
-# TODO: figure out a name
-# TODO: what should be the default scheduler?
-# TODO: should we allow a separate scheduler for "blocks" and "subblocks"
-@kwdef struct TensorKitBackend{B<:AbstractBackend,BS,SBS} <: AbstractBackend
-    arraybackend::B = TO.DefaultBackend()
-    blockscheduler::BS = SerialScheduler()
-    subblockscheduler::SBS = SerialScheduler()
-end
-
-function TO.select_backend(::typeof(TO.tensoradd!), C::AbstractTensorMap,
-                           A::AbstractTensorMap)
-    return TensorKitBackend()
-end
-function TO.select_backend(::typeof(TO.tensortrace!), C::AbstractTensorMap,
-                           A::AbstractTensorMap)
-    return TensorKitBackend()
-end
-function TO.select_backend(::typeof(TO.tensorcontract!), C::AbstractTensorMap,
-                           A::AbstractTensorMap, B::AbstractTensorMap)
-    return TensorKitBackend()
-end
-
 # Trace implementation
 #----------------------
 """

@@ -519,7 +519,7 @@ function add_transform_kernel!(tdst::TensorMap,
     structure_src = transformer.structure_src.fusiontreestructure
 
     tforeach(transformer.rows, transformer.cols, transformer.vals;
-             backend.scheduler) do row, col, val
+             scheduler=backend.subblockscheduler) do row, col, val
         sz_dst, str_dst, offset_dst = structure_dst[col]
         subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
 
@@ -546,7 +546,7 @@ function add_transform_kernel!(tdst::TensorMap,
     rows = rowvals(transformer.matrix)
     vals = nonzeros(transformer.matrix)
 
-    tforeach(axes(transformer.matrix, 2); backend.scheduler) do j
+    tforeach(axes(transformer.matrix, 2); scheduler=backend.subblockscheduler) do j
         sz_dst, str_dst, offset_dst = structure_dst[j]
         subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
         nzrows = nzrange(transformer.matrix, j)
@@ -602,7 +602,7 @@ end
 
 function _add_abelian_kernel!(tdst, tsrc, p, fusiontreetransform, α, β,
                               backend::TensorKitBackend, allocator)
-    tforeach(fusiontrees(tsrc); backend.scheduler) do (f₁, f₂)
+    tforeach(fusiontrees(tsrc); scheduler=backend.subblockscheduler) do (f₁, f₂)
         return _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
                                    f₁, f₂, α, β, backend.arraybackend, allocator)
     end
@@ -624,7 +624,7 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
         tdst = scale!(tdst, β)
     end
     β′ = One()
-    if backend.scheduler isa SerialScheduler
+    if backend.subblockscheduler isa SerialScheduler
         for (f₁, f₂) in fusiontrees(tsrc)
             for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
                 @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff,
@@ -632,8 +632,9 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
             end
         end
     else
-        tforeach(Iterators.product(sectors(codomain(tsrc)), sectors(domain(tsrc)))) do (s₁,
-                                                                                        s₂)
+        tforeach(Iterators.product(sectors(codomain(tsrc)), sectors(domain(tsrc)));
+                 scheduler=backend.subblockscheduler) do (s₁,
+                                                          s₂)
             return _add_nonabelian_sector!(tdts, tsrc, p, fusiontreetransform, s₁, s₂, α,
                                            β′, backend.arraybackend, allocator)
         end
