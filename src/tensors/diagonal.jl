@@ -110,7 +110,21 @@ function block(d::DiagonalTensorMap, s::Sector)
     return Diagonal(view(d.data, 1:0))
 end
 
-# TODO: is relying on generic AbstractTensorMap blocks sufficient?
+blocks(t::DiagonalTensorMap) = BlockIterator(t, diagonalblockstructure(space(t)))
+blocktype(::Type{TT}) where {TT<:DiagonalTensorMap} = Diagonal{eltype(TT),storagetype(TT)}
+
+function Base.iterate(iter::BlockIterator{<:DiagonalTensorMap}, state...)
+    next = iterate(iter.structure, state...)
+    isnothing(next) && return next
+    (c, r), newstate = next
+    return c => Diagonal(view(iter.t.data, r)), newstate
+end
+
+function Base.getindex(iter::BlockIterator{<:DiagonalTensorMap}, c::Sector)
+    sectortype(iter.t) === typeof(c) || throw(SectorMismatch())
+    r = get(iter.structure, c, 1:0)
+    return Diagonal(view(iter.t.data, r))
+end
 
 # Indexing and getting and setting the data at the subblock level
 #-----------------------------------------------------------------

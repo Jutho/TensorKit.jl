@@ -349,3 +349,18 @@ function fusionblockstructure(W::HomSpace, ::GlobalLRUCache)
     end
     return structure
 end
+
+# Diagonal ranges
+#----------------
+# TODO: is this something we want to cache?
+function diagonalblockstructure(W::HomSpace)
+    structure = SectorDict{sectortype(W),UnitRange{Int}}() # range
+    offset = 0
+    dom = domain(W)[1]
+    for c in blocksectors(W)
+        d = dim(dom, c)
+        structure[c] = offset .+ (1:d)
+        offset += d
+    end
+    return structure
+end
