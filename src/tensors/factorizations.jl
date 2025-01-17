@@ -352,7 +352,7 @@ function leftorth!(t::TensorMap{<:RealOrComplexFloat};
     T = float(scalartype(t))
     Q = similar(t, T, codomain(t) ← W)
     R = similar(t, T, W ← domain(t))
-    if !isempty(blocksectors(domain(t)))
+    if !isempty(blocks(t))
         for (c, (Qc, Rc)) in QRdata
             copy!(block(Q, c), Qc)
             copy!(block(R, c), Rc)
@@ -441,7 +441,7 @@ function rightorth!(t::TensorMap{<:RealOrComplexFloat};
     T = float(scalartype(t))
     L = similar(t, T, codomain(t) ← W)
     Q = similar(t, T, W ← domain(t))
-    if !isempty(blocksectors(codomain(t)))
+    if !isempty(blocks(t))
         for (c, (Lc, Qc)) in LQdata
             copy!(block(L, c), Lc)
             copy!(block(Q, c), Qc)
