@@ -195,6 +195,7 @@ sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
 InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
 field(t::AbstractTensorMap) = field(typeof(t))
 storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
+blocktype(t::AbstractTensorMap) = blocktype(typeof(t))
 similarstoragetype(t::AbstractTensorMap, T=scalartype(t)) = similarstoragetype(typeof(t), T)
 
 numout(t::AbstractTensorMap) = numout(typeof(t))
@@ -309,6 +310,15 @@ Return the matrix block of a tensor corresponding to a coupled sector `c`.
 
 See also [`blocks`](@ref), [`blocksectors`](@ref), [`blockdim`](@ref) and [`hasblock`](@ref).
 """ block
+
+@doc """
+    blocktype(t)
+
+Return the type of the matrix blocks of a tensor.
+""" blocktype
+function blocktype(::Type{T}) where {T<:AbstractTensorMap}
+    return Core.Compiler.return_type(block, Tuple{T,sectortype(T)})
+end
 
 # Derived indexing behavior for tensors with trivial symmetry
 #-------------------------------------------------------------
