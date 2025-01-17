@@ -29,7 +29,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.permutedcopy_oftype), t::Abstra
     project = ProjectTo(t)
     function permutedcopy_oftype_pullback(Δt)
         invp = TensorKit._canonicalize(TupleTools.invperm(linearize(p)), t)
-        return project(TensorKit.permute(unthunk(Δt), invp))
+        return NoTangent(), project(TensorKit.permute(unthunk(Δt), invp)), NoTangent(), NoTangent()
     end
     return TensorKit.permutedcopy_oftype(t, T, p), permutedcopy_oftype_pullback
 end
