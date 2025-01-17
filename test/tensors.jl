@@ -91,6 +91,9 @@ for V in spacelist
                 @test space(t) == (W ← one(W))
                 @test domain(t) == one(W)
                 @test typeof(t) == TensorMap{T,spacetype(t),5,0,Vector{T}}
+                bs = @inferred blocks(t)
+                b = @inferred block(t, first(blocksectors(t)))
+                @test eltype(bs) === typeof(b) === TensorKit.blocktype(t)
             end
         end
         @timedtestset "Tensor Dict conversion" begin
