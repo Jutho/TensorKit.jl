@@ -57,6 +57,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.eig!), t::AbstractTensorMap; kw
     D, V = eig(t; kwargs...)
 
     function eig!_pullback((ΔD, ΔV))
+        ΔD, ΔV = unthunk(ΔD), unthunk(ΔV)
         Δt = similar(t)
         for (c, b) in blocks(Δt)
             Dc, Vc = block(D, c), block(V, c)
@@ -78,6 +79,7 @@ function ChainRulesCore.rrule(::typeof(TensorKit.eigh!), t::AbstractTensorMap; k
     D, V = eigh(t; kwargs...)
 
     function eigh!_pullback((ΔD, ΔV))
+        ΔD, ΔV = unthunk(ΔD), unthunk(ΔV)
         Δt = similar(t)
         for (c, b) in blocks(Δt)
             Dc, Vc = block(D, c), block(V, c)
@@ -115,6 +117,7 @@ function ChainRulesCore.rrule(::typeof(leftorth!), t::AbstractTensorMap; alg=QRp
         error("only `alg=QR()` and `alg=QRpos()` are supported")
     Q, R = leftorth(t; alg)
     function leftorth!_pullback((ΔQ, ΔR))
+        ΔQ, ΔR = unthunk(ΔQ), unthunk(ΔR)
         Δt = similar(t)
         for (c, b) in blocks(Δt)
             qr_pullback!(b, block(Q, c), block(R, c), block(ΔQ, c), block(ΔR, c))
@@ -130,6 +133,7 @@ function ChainRulesCore.rrule(::typeof(rightorth!), t::AbstractTensorMap; alg=LQ
         error("only `alg=LQ()` and `alg=LQpos()` are supported")
     L, Q = rightorth(t; alg)
     function rightorth!_pullback((ΔL, ΔQ))
+        ΔL, ΔQ = unthunk(ΔL), unthunk(ΔQ)
         Δt = similar(t)
         for (c, b) in blocks(Δt)
             lq_pullback!(b, block(L, c), block(Q, c), block(ΔL, c), block(ΔQ, c))
