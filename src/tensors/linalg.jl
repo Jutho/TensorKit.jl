@@ -283,12 +283,47 @@ function LinearAlgebra.tr(t::AbstractTensorMap)
 end
 
 # TensorMap multiplication
-function LinearAlgebra.mul!(tC::AbstractTensorMap,
-                            tA::AbstractTensorMap,
-                            tB::AbstractTensorMap, α=true, β=false)
+function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,
+                            tB::AbstractTensorMap,
+                            α::Number, β::Number,
+                            backend::AbstractBackend=TO.DefaultBackend())
+    if backend isa TO.DefaultBackend
+        newbackend = TO.select_backend(mul!, tC, tA, tB)
+        return mul!(tC, tA, tB, α, β, newbackend)
+    elseif backend isa TO.NoBackend # error for missing backend
+        TC = typeof(tC)
+        TA = typeof(tA)
+        TB = typeof(tB)
+        throw(ArgumentError("No suitable backend found for `mul!` and tensor types $TC, $TA and $TB"))
+    else # error for unknown backend
+        TC = typeof(tC)
+        TA = typeof(tA)
+        TB = typeof(tB)
+        throw(ArgumentError("Unknown backend for `mul!` and tensor types $TC, $TA and $TB"))
+    end
+end
+
+function TO.select_backend(::typeof(mul!), C::AbstractTensorMap, A::AbstractTensorMap,
+                           B::AbstractTensorMap)
+    return TensorKitBackend()
+end
+
+function LinearAlgebra.mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,
+                            tB::AbstractTensorMap, α::Number, β::Number,
+                            backend::TensorKitBackend)
     compose(space(tA), space(tB)) == space(tC) ||
         throw(SpaceMismatch(lazy"$(space(tC)) ≠ $(space(tA)) * $(space(tB))"))
 
+    scheduler = backend.blockscheduler
+    if isnothing(scheduler)
+        return sequential_mul!(tC, tA, tB, α, β)
+    else
+        return threaded_mul!(tC, tA, tB, α, β, scheduler)
+    end
+end
+
+function sequential_mul!(tC::AbstractTensorMap, tA::AbstractTensorMap,
+                         tB::AbstractTensorMap, α::Number, β::Number)
     iterC = blocks(tC)
     iterA = blocks(tA)
     iterB = blocks(tB)
@@ -310,13 +345,13 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
             elseif cB < cC
                 nextB = iterate(iterB, stateB)
             else
-                if β != one(β)
+                if !isone(β)
                     rmul!(C, β)
                 end
                 nextC = iterate(iterC, stateC)
             end
         else
-            if β != one(β)
+            if !isone(β)
                 rmul!(C, β)
             end
             nextC = iterate(iterC, stateC)
@@ -325,7 +360,21 @@ function LinearAlgebra.mul!(tC::AbstractTensorMap,
     return tC
 end
 
-# TODO: consider spawning threads for different blocks, support backends
+function threaded_mul!(tC::AbstractTensorMap, tA::AbstractTensorMap, tB::AbstractTensorMap,
+                       α::Number, β::Number, scheduler::Scheduler)
+    # obtain cached data before multithreading
+    bCs, bAs, bBs = blocks(tC), blocks(tA), blocks(tB)
+
+    tforeach(blocksectors(tC); scheduler) do c
+        if haskey(bAs, c) # then also bBs should have it
+            mul!(bCs[c], bAs[c], bBs[c], α, β)
+        elseif !isone(β)
+            scale!(bCs[c], β)
+        end
+    end
+
+    return tC
+end
 
 # TensorMap inverse
 function Base.inv(t::AbstractTensorMap)

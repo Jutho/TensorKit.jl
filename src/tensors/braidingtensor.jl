@@ -158,9 +158,9 @@ function add_transform!(tdst::AbstractTensorMap,
                         fusiontreetransform,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend...)
+                        backend::TensorKitBackend, allocator)
     return add_transform!(tdst, TensorMap(tsrc), (p₁, p₂), fusiontreetransform, α, β,
-                          backend...)
+                          backend, allocator)
 end
 
 # VectorInterface
@@ -173,8 +173,8 @@ end
 
 function TO.tensoradd!(C::AbstractTensorMap,
                        A::BraidingTensor, pA::Index2Tuple, conjA::Symbol,
-                       α::Number, β::Number, backend=TO.DefaultBackend(),
-                       allocator=TO.DefaultAllocator())
+                       α::Number, β::Number, backend::AbstractBackend,
+                       allocator)
     return TO.tensoradd!(C, TensorMap(A), pA, conjA, α, β, backend, allocator)
 end
 

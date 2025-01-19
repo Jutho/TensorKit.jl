@@ -55,8 +55,8 @@ sectorlist = (Z2Irrep, Z3Irrep, Z4Irrep, Z3Irrep ⊠ Z4Irrep,
               Z2Irrep ⊠ FibonacciAnyon ⊠ FibonacciAnyon)
 
 Ti = time()
-include("fusiontrees.jl")
-include("spaces.jl")
+# include("fusiontrees.jl")
+# include("spaces.jl")
 include("tensors.jl")
 include("diagonal.jl")
 include("planar.jl")
