@@ -12,6 +12,16 @@ function ChainRulesCore.rrule(::Type{<:TensorMap}, d::DenseArray, args...; kwarg
     return TensorMap(d, args...; kwargs...), TensorMap_pullback
 end
 
+function ChainRulesCore.rrule(::Type{<:DiagonalTensorMap}, d::DenseVector, args...; kwargs...)
+    D=TensorMap(d, args...; kwargs...)
+    project_D=ProjectTo(D)
+    function DiagonalTensorMap_pullback(Δt)
+        ∂d = project_D(unthunk(Δt)).data
+        return NoTangent(), ∂d, ntuple(_ -> NoTangent(), length(args))...
+    end
+    return D, DiagonalTensorMap_pullback
+end
+
 function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
     copy_pullback(Δt) = NoTangent(), Δt
     return copy(t), copy_pullback
