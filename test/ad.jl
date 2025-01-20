@@ -16,7 +16,8 @@ function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap
     return randn!(similar(x))
 end
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::DiagonalTensorMap)
-    return DiagonalTensorMap(randn(eltype(x), dim(x.domain)), x.domain)
+    S = x.domain
+    return DiagonalTensorMap(randn(eltype(x), sum(values(S.dims))), S)
 end
 ChainRulesTestUtils.rand_tangent(::AbstractRNG, ::VectorSpace) = NoTangent()
 function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
