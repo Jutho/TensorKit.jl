@@ -156,7 +156,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
                 P1 = ProjectTo(T1)
                 @test P1(T2) == T1
 
-                test_rrule(DiagonalTensorMap, T1.data, T1.domain)
+                @test test_rrule(DiagonalTensorMap, T1.data, T1.domain)
             end
         end
     end
