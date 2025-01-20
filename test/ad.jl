@@ -148,16 +148,33 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
     end
 
     @timedtestset "Basic utility (DiagonalTensor)" begin
-        for NumType in [Float64, ComplexF64]
-            for v in V
-                T1 = DiagonalTensorMap(randn(NumType, dim(v)), v)
-                T2 = TensorMap(T1)
+        for v in V
+            D1 = DiagonalTensorMap(randn(dim(v)), v)
+            D2 = DiagonalTensorMap(randn(dim(v)), v)
+            D = D1 + im * D2
+            T1 = TensorMap(D1)
+            T2 = TensorMap(D2)
+            T = T1 + im * T2
 
-                P1 = ProjectTo(T1)
-                @test P1(T2) == T1
+            # real -> real
+            P1 = ProjectTo(D1)
+            @test P1(D1) == D1
+            @test P1(T1) == D1
 
-                test_rrule(DiagonalTensorMap, T1.data, T1.domain)
-            end
+            # complex -> complex
+            P2 = ProjectTo(D)
+            @test P2(D) == D
+            @test P2(T) == D
+
+            # real -> complex 
+            @test P2(D1) == D1 + 0 * im * D1
+            @test P2(T1) == D1 + 0 * im * D1
+
+            # complex -> real
+            @test P1(D) == D1
+            @test P1(T) == D1
+
+            test_rrule(DiagonalTensorMap, D1.data, D1.domain)
         end
     end
 
