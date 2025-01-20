@@ -30,11 +30,9 @@ function (::ProjectTo{T1})(x::T2) where {S,N1,N2,T1<:AbstractTensorMap{<:Any,S,N
     return y
 end
 
-function (::ProjectTo{T1})(x::T2) where {S,NumType,StorType,
-                                         T1<:DiagonalTensorMap{NumType,S,StorType},
-                                         T2<:AbstractTensorMap{<:Any,S,1,1}}
+function (::ProjectTo{T1})(x::T2) where {T1<:DiagonalTensorMap,T2<:AbstractTensorMap}
     T1 === T2 && return x
-    y = DiagonalTensorMap{NumType,S,StorType}(undef, space(x, 1))
+    y = DiagonalTensorMap{scalartype(T1),spacetype(T1),storagetype(T1)}(undef, space(x, 1))
     for (c, b) in blocks(y)
         p = ProjectTo(b)
         b .= p(block(x, c))
