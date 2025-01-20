@@ -149,8 +149,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
     @timedtestset "Basic utility (DiagonalTensor)" begin
         for v in V
-            D1 = DiagonalTensorMap(randn(dim(v)), v)
-            D2 = DiagonalTensorMap(randn(dim(v)), v)
+            comp_num = sum(values(v.dims))
+            D1 = DiagonalTensorMap(randn(comp_num), v)
+            D2 = DiagonalTensorMap(randn(comp_num), v)
             D = D1 + im * D2
             T1 = TensorMap(D1)
             T2 = TensorMap(D2)
