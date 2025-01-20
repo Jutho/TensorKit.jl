@@ -15,6 +15,9 @@ end
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap)
     return randn!(similar(x))
 end
+function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::DiagonalTensorMap)
+    return DiagonalTensorMap(randn(eltype(x), dim(x.domain)), x.domain)
+end
 ChainRulesTestUtils.rand_tangent(::AbstractRNG, ::VectorSpace) = NoTangent()
 function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
                                          expected::AbstractTensorMap, msg=""; kwargs...)
@@ -142,6 +145,20 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(convert, Array, T1)
         test_rrule(TensorMap, convert(Array, T1), codomain(T1), domain(T1);
                    fkwargs=(; tol=Inf))
+    end
+
+    @timedtestset "Basic utility (DiagonalTensor)" begin
+        for NumType in [Float64, ComplexF64]
+            for v in V
+                T1 = DiagonalTensorMap(randn(NumType, dim(v)), v)
+                T2 = TensorMap(T1)
+
+                P1 = ProjectTo(T1)
+                @test P1(T2) == T1
+
+                test_rrule(DiagonalTensorMap, T1.data, T1.domain)
+            end
+        end
     end
 
     @timedtestset "Basic Linear Algebra with scalartype $T" for T in (Float64, ComplexF64)
