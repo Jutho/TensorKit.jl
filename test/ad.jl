@@ -176,8 +176,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             @test P1(D) == D1
             @test P1(T) == D1
 
-            test_rrule(DiagonalTensorMap, D1.data, D1.domain)
-            test_rrule(DiagonalTensorMap, D.data, D.domain)
+            test_rrule(DiagonalTensorMap, D1.data, D1.domain) # test fails when dimension dim of the representation is not 1.  
+            test_rrule(DiagonalTensorMap, D.data, D.domain) # the finite diff result is larger than the exact result exactly in dim times. It should be something with how diagonal tensor transforms into a vector. 
         end
     end
 
