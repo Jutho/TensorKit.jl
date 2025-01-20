@@ -175,6 +175,7 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             @test P1(T) == D1
 
             test_rrule(DiagonalTensorMap, D1.data, D1.domain)
+            test_rrule(DiagonalTensorMap, D.data, D.domain)
         end
     end
 
