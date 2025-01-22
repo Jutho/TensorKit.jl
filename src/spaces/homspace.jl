@@ -355,7 +355,7 @@ end
 # TODO: is this something we want to cache?
 function diagonalblockstructure(W::HomSpace)
     ((numin(W) == numout(W) == 1) && domain(W) == codomain(W)) ||
-        throw(ArgumentError("Input space is not diagonal"))
+        throw(SpaceMismatch("Diagonal only support on V←V with a single space V"))
     structure = SectorDict{sectortype(W),UnitRange{Int}}() # range
     offset = 0
     dom = domain(W)[1]

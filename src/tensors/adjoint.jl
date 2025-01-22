@@ -27,8 +27,8 @@ block(t::AdjointTensorMap, s::Sector) = block(parent(t), s)'
 
 blocks(t::AdjointTensorMap) = BlockIterator(t, blocks(parent(t)))
 
-function blocktype(::Type{TT}) where {T,TT<:AdjointTensorMap{T}}
-    return Base.promote_op(adjoint, blocktype(T))
+function blocktype(::Type{AdjointTensorMap{T,S,N₁,N₂,TT}}) where {T,S,N₁,N₂,TT}
+    return Base.promote_op(adjoint, blocktype(TT))
 end
 
 function Base.iterate(iter::BlockIterator{<:AdjointTensorMap}, state...)
