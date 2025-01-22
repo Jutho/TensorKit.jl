@@ -1,58 +1,33 @@
 # --------------------------------------------------------------------------------------- #
 # permute!
 # --------------------------------------------------------------------------------------- #
-function benchmark_permute!(benchgroup, allparams::Dict)
+function init_permute_tensors(T, W, p)
+    C = randn(T, permute(W, p))
+    A = randn(T, W)
+    return C, B
+end
+function benchmark_permute!(benchgroup, params::Dict)
     haskey(benchgroup, "permute") || addgroup!(benchgroup, "permute")
     bench = benchgroup["permute"]
-
-    Ts = if haskey(allparams, "T")
-        Tparam = allparams["T"]
-        if Tparam isa String
-            [eval(Meta.parse(Tparam))]
-        else
-            eval.(Meta.parse.(Tparam))
-        end
-    else
-        [Float64]
+    for kwargs in expand_kwargs(params)
+        benchmark_permute!(bench; kwargs...)
     end
-
-    @assert haskey(allparams, "spaces")
-    Vparam = allparams["spaces"]
-    @assert Vparam isa Vector
-
-    for spaces in Vparam
-        @assert haskey(spaces, "I")
-        I = eval(Meta.parse(spaces["I"]))
-
-        @assert haskey(spaces, "p")
-        p = (tuple(spaces["p"][1]...), tuple(spaces["p"][2]...))
-
-        @assert haskey(spaces, "dims")
-        dims = spaces["dims"]
-
-        I == Trivial || haskey(spaces, "sigmas")
-        sigmas = I === Trivial ? fill(1, length(p[1]) + length(p[2])) :
-                 spaces["sigmas"]
-
-        for T in Ts, ds in dims
-            benchmark_permute!(bench, T, I, ds, sigmas, p)
-        end
-    end
-
     return nothing
 end
-function benchmark_permute!(bench, T::Type{<:Number}, I::Type{<:Sector}, dims, sigmas, p)
+function benchmark_permute!(bench, sigmas=nothing, T="Float64", I="Trivial", dims, p)
+    T_ = parse_type(T)
+    I_ = parse_type(I)
+    p_ = (tuple(p[1]), tuple(p[2]))
     codomain = mapreduce(⊗, dims[1], sigmas[1:length(dims[1])]) do d, s
-        return generate_space(I, d, s)
+        return generate_space(I_, d, s)
     end
     domain = mapreduce(⊗, dims[2], sigmas[(length(dims[1]) + 1):end]) do d, s
-        return generate_space(I, d, s)
+        return generate_space(I_, d, s)
     end
-
     W = codomain ← domain
-    A = TensorMap(randn, T, W)
-    C = TensorMap(randn, T, permute(W, p))
-    bench[T, W, p] = @benchmarkable permute!(C, $A, $p) setup = (C = copy($C))
+    init() = init_permute_tensors(T_, W, p_)
+
+    bench[T, I, dims, sigmas, p] = @benchmarkable permute!(C, A, $p) setup = ((C, A) = $init())
     return nothing
 end
 

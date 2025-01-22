@@ -1,140 +1,76 @@
-# ---------------------------------------------------------------------------------------- #
 # mul!
-# ---------------------------------------------------------------------------------------- #
-function benchmark_mul!(benchgroup, allparams::Dict)
+# ----
+function init_mul_tensors(T, V)
+    A = randn(T, V[1] ← V[2])
+    B = randn(T, V[2] ← V[3])
+    C = randn(T, V[1] ← V[3])
+    return A, B, C
+end
+
+function benchmark_mul!(benchgroup, params::Dict)
     haskey(benchgroup, "mul") || addgroup!(benchgroup, "mul")
     bench = benchgroup["mul"]
-
-    Ts = if haskey(allparams, "T")
-        Tparam = allparams["T"]
-        if Tparam isa String
-            [eval(Meta.parse(Tparam))]
-        else
-            eval.(Meta.parse.(Tparam))
-        end
-    else
-        [Float64]
-    end
-
-    @assert haskey(allparams, "spaces")
-    Vparam = allparams["spaces"]
-    @assert Vparam isa Vector
-
-    for spaces in Vparam
-        @assert haskey(spaces, "I")
-        I = eval(Meta.parse(spaces["I"]))
-
-        @assert haskey(spaces, "dims")
-        dims = spaces["dims"]
-
-        I == Trivial || haskey(spaces, "sigmas")
-        sigmas = I === Trivial ? [1, 1, 1] : spaces["sigmas"]
-
-        for T in Ts, ds in dims
-            benchmark_mul!(bench, T, I, ds, sigmas)
-        end
+    for kwargs in expand_kwargs(params)
+        benchmark_mul!(bench; kwargs...)
     end
     return nothing
 end
-function benchmark_mul!(bench, T::Type{<:Number}, I::Type{<:Sector}, dims,
-                        sigmas)
-    V1, V2, V3 = generate_space.(I, dims, sigmas)
-    A = TensorMap(randn, T, V1 ← V2)
-    B = TensorMap(randn, T, V2 ← V3)
-    C = TensorMap(randn, T, V1 ← V3)
+function benchmark_mul!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
+    T_ = parse_type(T)
+    I_ = parse_type(I)
 
-    bench[T, I, dims, sigmas] = @benchmarkable mul!(C, $A, $B) setup = (C = copy($C))
+    Vs = generate_space.(I_, dims, sigmas)
+    init() = init_mul_tensors(T_, Vs)
+
+    bench[T, I, dims, sigmas] = @benchmarkable mul!(C, A, B) setup = ((A, B, C) = $init())
+
     return nothing
 end
 
-# ---------------------------------------------------------------------------------------- #
 # svd!
-# ---------------------------------------------------------------------------------------- #
-function benchmark_svd!(benchgroup, allparams::Dict)
+# ----
+function init_svd_tensor(T, V)
+    A = randn(T, V[1] ← V[2])
+    return A
+end
+
+function benchmark_svd!(benchgroup, params::Dict)
     haskey(benchgroup, "svd") || addgroup!(benchgroup, "svd")
     bench = benchgroup["svd"]
-
-    Ts = if haskey(allparams, "T")
-        Tparam = allparams["T"]
-        if Tparam isa String
-            [eval(Meta.parse(Tparam))]
-        else
-            eval.(Meta.parse.(Tparam))
-        end
-    else
-        [Float64]
-    end
-
-    @assert haskey(allparams, "spaces")
-    Vparam = allparams["spaces"]
-    @assert Vparam isa Vector
-
-    for spaces in Vparam
-        @assert haskey(spaces, "I")
-        I = eval(Meta.parse(spaces["I"]))
-
-        @assert haskey(spaces, "dims")
-        dims = spaces["dims"]
-
-        I == Trivial || haskey(spaces, "sigmas")
-        sigmas = I === Trivial ? fill(1, 2) : spaces["sigmas"]
-
-        for T in Ts, ds in dims
-            benchmark_svd!(bench, T, I, ds, sigmas)
-        end
+    for kwargs in expand_kwargs(params)
+        benchmark_svd!(bench; kwargs...)
     end
     return nothing
 end
-function benchmark_svd(bench, T, I::Type{<:Sector}, dims, sigmas)
-    haskey(SUITE["linalg"], "svd") || addgroup!(SUITE["linalg"], "mul")
-    V1, V2 = generate_space.(I, dims, sigmas)
-    A = TensorMap(randn, T, V1 ← V2)
-    bench[T, I, dims, sigmas] = @benchmarkable tsvd!(A) setup = (A = copy($A))
+function benchmark_svd!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
+    T_ = parse_type(T)
+    I_ = parse_type(I)
+    Vs = generate_space.(I_, dims, sigmas)
+    init() = init_svd_tensor(T_, Vs)
+    bench[T, I, dims, sigmas] = @benchmarkable tsvd!(A) setup = (A = $init())
     return nothing
 end
 
-# ---------------------------------------------------------------------------------------- #
 # qr!
-# ---------------------------------------------------------------------------------------- #
-function benchmark_qr!(benchgroup, allparams::Dict)
+# ---
+function init_qr_tensor(T, V)
+    A = randn(T, V[1] ← V[2])
+    return A
+end
+
+function benchmark_qr!(benchgroup, params::Dict)
     haskey(benchgroup, "qr") || addgroup!(benchgroup, "qr")
     bench = benchgroup["qr"]
-
-    Ts = if haskey(allparams, "T")
-        Tparam = allparams["T"]
-        if Tparam isa String
-            [eval(Meta.parse(Tparam))]
-        else
-            eval.(Meta.parse.(Tparam))
-        end
-    else
-        [Float64]
-    end
-
-    @assert haskey(allparams, "spaces")
-    Vparam = allparams["spaces"]
-    @assert Vparam isa Vector
-
-    for spaces in Vparam
-        @assert haskey(spaces, "I")
-        I = eval(Meta.parse(spaces["I"]))
-
-        @assert haskey(spaces, "dims")
-        dims = spaces["dims"]
-
-        I == Trivial || haskey(spaces, "sigmas")
-        sigmas = I === Trivial ? fill(1, 2) : spaces["sigmas"]
-
-        for T in Ts, ds in dims
-            benchmark_qr!(bench, T, I, ds, sigmas)
-        end
+    for kwargs in expand_kwargs(params)
+        benchmark_qr!(bench; kwargs...)
     end
     return nothing
 end
-function benchmark_qr!(bench, T, I::Type{<:Sector}, dims, sigmas)
-    haskey(SUITE["linalg"], "qr") || addgroup!(SUITE["linalg"], "qr")
-    V1, V2 = generate_space.(I, dims, sigmas)
-    A = TensorMap(randn, T, V1 ← V2)
-    bench[T, I, dims, sigmas] = @benchmarkable qr!(A) setup = (A = copy($A))
+function benchmark_qr!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
+    T_ = parse_type(T)
+    I_ = parse_type(I)
+    Vs = generate_space.(I_, dims, sigmas)
+    init() = init_qr_tensor(T_, Vs)
+    bench[T, I, dims, sigmas] = @benchmarkable qr!(A) setup = (A = $init())
     return nothing
 end
