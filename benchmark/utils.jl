@@ -1,17 +1,30 @@
-module BenchmarkUtils
+# module BenchmarkUtils
 # Converting sizes to spaces
 #---------------------------
 
-export generate_space
+# export parse_type
+# export generate_space
 
-using TensorKit
+# using TensorKit
+
+parse_type(x::String) = eval(Meta.parse(x))
+
+function expand_kwargs(params::Dict)
+    const_params = NamedTuple(Symbol(key) => value
+                              for (key, value) in params if !(value isa Vector))
+    nonconst_keys = Tuple(Symbol(key) for (key, value) in params if value isa Vector)
+    nonconst_vals = (value for value in values(params) if value isa Vector)
+    return Iterators.map(Iterators.product(nonconst_vals...)) do expanded_vals
+        return merge(const_params, NamedTuple{nonconst_keys}(expanded_vals))
+    end
+end
 
 """
     generate_space(::Type{I}, D::Int; sigma::Real=1.0)
 
 Creates a (graded) vector space with sectortype `I` and total dimension `D`, where the distribution of charges is controlled through a spread parameter `sigma`.
 """
-function generate_space(::Type{Trivial}, D::Int, sigma::Real=1.0)
+function generate_space(::Type{Trivial}, D::Int, sigma::Nothing=nothing)
     return ComplexSpace(round(Int, D))
 end
 function generate_space(::Type{Z2Irrep}, D::Int, sigma::Real=0.5)
@@ -60,4 +73,4 @@ function generate_space(::Type{SU2Irrep}, D::Int, sigma::Real=0.5)
     return SU2Space((s => d for (s, d) in zip(sectors, dims))...)
 end
 
-end
+# end
