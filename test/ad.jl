@@ -16,8 +16,8 @@ function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap
     return randn!(similar(x))
 end
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::DiagonalTensorMap)
-    S = x.domain
-    return DiagonalTensorMap(randn(eltype(x), sum(values(S.dims))), S)
+    V = x.domain
+    return DiagonalTensorMap(randn(eltype(x), reduceddim(V)), V)
 end
 ChainRulesTestUtils.rand_tangent(::AbstractRNG, ::VectorSpace) = NoTangent()
 function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
@@ -150,9 +150,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
     @timedtestset "Basic utility (DiagonalTensor)" begin
         for v in V
-            comp_num = sum(values(v.dims))
-            D1 = DiagonalTensorMap(randn(comp_num), v)
-            D2 = DiagonalTensorMap(randn(comp_num), v)
+            rdim = reduceddim(v)
+            D1 = DiagonalTensorMap(randn(rdim), v)
+            D2 = DiagonalTensorMap(randn(rdim), v)
             D = D1 + im * D2
             T1 = TensorMap(D1)
             T2 = TensorMap(D2)
