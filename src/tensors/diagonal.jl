@@ -111,7 +111,9 @@ function block(d::DiagonalTensorMap, s::Sector)
 end
 
 blocks(t::DiagonalTensorMap) = BlockIterator(t, diagonalblockstructure(space(t)))
-blocktype(::Type{TT}) where {TT<:DiagonalTensorMap} = Diagonal{eltype(TT),storagetype(TT)}
+function blocktype(::Type{DiagonalTensorMap{T,S,A}}) where {T,S,A}
+    return Diagonal{T,SubArray{T,1,A,Tuple{UnitRange{Int}},true}}
+end
 
 function Base.iterate(iter::BlockIterator{<:DiagonalTensorMap}, state...)
     next = iterate(iter.structure, state...)
