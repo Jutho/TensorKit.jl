@@ -3,6 +3,7 @@ using ChainRulesTestUtils
 using FiniteDifferences: FiniteDifferences
 using Random
 using LinearAlgebra
+using Zygote
 
 const _repartition = @static if isdefined(Base, :get_extension)
     Base.get_extension(TensorKit, :TensorKitChainRulesCoreExt)._repartition
@@ -218,6 +219,27 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
         B = randn(T, space(A))
         test_rrule(LinearAlgebra.dot, A, B)
+    end
+
+    @timedtestset "Matrix functions ($T)" for T in (Float64, ComplexF64)
+        for f in (sqrt, exp)
+            check_inferred = false # !(T <: Real) # not type-stable for real functions
+            t1 = randn(T, V[1] ← V[1])
+            t2 = randn(T, V[2] ← V[2])
+            d = DiagonalTensorMap{T}(undef, V[1])
+            randn!(d.data)
+            if T <: Real
+                d.data .= abs.(d.data)
+            end
+            d2 = DiagonalTensorMap{T}(undef, V[1])
+            randn!(d2.data)
+            if T <: Real
+                d2.data .= abs.(d2.data)
+            end
+            test_rrule(f, t1; rrule_f=Zygote.rrule_via_ad, check_inferred)
+            test_rrule(f, t2; rrule_f=Zygote.rrule_via_ad, check_inferred)
+            test_rrule(f, d; check_inferred, output_tangent=d2)
+        end
     end
 
     @timedtestset "TensorOperations with scalartype $T" for T in (Float64, ComplexF64)
