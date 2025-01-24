@@ -91,6 +91,14 @@ for V in spacelist
                 @test space(t) == (W ← one(W))
                 @test domain(t) == one(W)
                 @test typeof(t) == TensorMap{T,spacetype(t),5,0,Vector{T}}
+                # blocks
+                bs = @constinferred blocks(t)
+                (c, b1), state = @constinferred Nothing iterate(bs)
+                @test c == first(blocksectors(W))
+                next = @constinferred Nothing iterate(bs, state)
+                b2 = @constinferred block(t, first(blocksectors(t)))
+                @test b1 == b2
+                @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t)
             end
         end
         @timedtestset "Tensor Dict conversion" begin
@@ -143,6 +151,15 @@ for V in spacelist
                 @test dim(t) == dim(space(t))
                 @test codomain(t) == codomain(W)
                 @test domain(t) == domain(W)
+                # blocks for adjoint
+                bs = @constinferred blocks(t')
+                (c, b1), state = @constinferred Nothing iterate(bs)
+                @test c == first(blocksectors(W'))
+                next = @constinferred Nothing iterate(bs, state)
+                b2 = @constinferred block(t', first(blocksectors(t')))
+                @test b1 == b2
+                @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t')
+                # linear algebra
                 @test isa(@constinferred(norm(t)), real(T))
                 @test norm(t)^2 ≈ dot(t, t)
                 α = rand(T)

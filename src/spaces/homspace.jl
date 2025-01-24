@@ -88,12 +88,11 @@ function blocksectors(W::HomSpace)
     N₁ = length(codom)
     N₂ = length(dom)
     I = sectortype(W)
-    if N₁ == 0 || N₂ == 0
-        return (one(I),)
-    elseif N₂ <= N₁
-        return sort!(filter!(c -> hasblock(codom, c), collect(blocksectors(dom))))
+    # TODO: is sort! still necessary now that blocksectors of ProductSpace is sorted?
+    if N₂ <= N₁
+        return sort!(filter!(c -> hasblock(codom, c), blocksectors(dom)))
     else
-        return sort!(filter!(c -> hasblock(dom, c), collect(blocksectors(codom))))
+        return sort!(filter!(c -> hasblock(dom, c), blocksectors(codom)))
     end
 end
 
@@ -346,6 +345,23 @@ function fusionblockstructure(W::HomSpace, ::GlobalLRUCache)
     F₂ = fusiontreetype(I, N₂)
     structure::FusionBlockStructure{I,N,F₁,F₂} = get!(cache, W) do
         return fusionblockstructure(W, NoCache())
+    end
+    return structure
+end
+
+# Diagonal ranges
+#----------------
+# TODO: is this something we want to cache?
+function diagonalblockstructure(W::HomSpace)
+    ((numin(W) == numout(W) == 1) && domain(W) == codomain(W)) ||
+        throw(SpaceMismatch("Diagonal only support on V←V with a single space V"))
+    structure = SectorDict{sectortype(W),UnitRange{Int}}() # range
+    offset = 0
+    dom = domain(W)[1]
+    for c in blocksectors(W)
+        d = dim(dom, c)
+        structure[c] = offset .+ (1:d)
+        offset += d
     end
     return structure
 end

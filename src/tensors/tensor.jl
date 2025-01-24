@@ -421,28 +421,35 @@ end
 
 # Getting and setting the data at the block level
 #-------------------------------------------------
-function block(t::TensorMap, s::Sector)
-    sectortype(t) == typeof(s) || throw(SectorMismatch())
-    structure = fusionblockstructure(t).blockstructure
-    (d₁, d₂), r = get(structure, s) do
+block(t::TensorMap, c::Sector) = blocks(t)[c]
+
+blocks(t::TensorMap) = BlockIterator(t, fusionblockstructure(t).blockstructure)
+
+function blocktype(::Type{TT}) where {TT<:TensorMap}
+    A = storagetype(TT)
+    T = eltype(A)
+    return Base.ReshapedArray{T,2,SubArray{T,1,A,Tuple{UnitRange{Int}},true},Tuple{}}
+end
+
+function Base.iterate(iter::BlockIterator{<:TensorMap}, state...)
+    next = iterate(iter.structure, state...)
+    isnothing(next) && return next
+    (c, (sz, r)), newstate = next
+    return c => reshape(view(iter.t.data, r), sz), newstate
+end
+
+function Base.getindex(iter::BlockIterator{<:TensorMap}, c::Sector)
+    sectortype(iter.t) === typeof(c) || throw(SectorMismatch())
+    (d₁, d₂), r = get(iter.structure, c) do
         # is s is not a key, at least one of the two dimensions will be zero:
         # it then does not matter where exactly we construct a view in `t.data`,
         # as it will have length zero anyway
-        d₁′ = blockdim(codomain(t), s)
-        d₂′ = blockdim(domain(t), s)
+        d₁′ = blockdim(codomain(iter.t), c)
+        d₂′ = blockdim(domain(iter.t), c)
         l = d₁′ * d₂′
         return (d₁′, d₂′), 1:l
     end
-    return reshape(view(t.data, r), (d₁, d₂))
-end
-
-function blocks(t::TensorMap)
-    structure = fusionblockstructure(t).blockstructure
-    iter = Base.Iterators.map(structure) do (c, ((d₁, d₂), r))
-        b = reshape(view(t.data, r), (d₁, d₂))
-        return c => b
-    end
-    return iter
+    return reshape(view(iter.t.data, r), (d₁, d₂))
 end
 
 # Indexing and getting and setting the data at the subblock level

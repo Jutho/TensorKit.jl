@@ -184,7 +184,7 @@ include("spaces/vectorspaces.jl")
 #-------------------------------------
 # general definitions
 include("tensors/abstracttensor.jl")
-# include("tensors/tensortreeiterator.jl")
+include("tensors/blockiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
 include("tensors/linalg.jl")

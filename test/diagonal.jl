@@ -14,6 +14,15 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
             @test space(t) == (V ← V)
             @test space(t') == (V ← V)
             @test dim(t) == dim(space(t))
+            # blocks
+            bs = @constinferred blocks(t)
+            (c, b1), state = @constinferred Nothing iterate(bs)
+            @test c == first(blocksectors(V ← V))
+            next = @constinferred Nothing iterate(bs, state)
+            b2 = @constinferred block(t, first(blocksectors(t)))
+            @test b1 == b2
+            @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t)
+            # basic linear algebra
             @test isa(@constinferred(norm(t)), real(T))
             @test norm(t)^2 ≈ dot(t, t)
             α = rand(T)
