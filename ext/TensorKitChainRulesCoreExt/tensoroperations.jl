@@ -14,7 +14,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk let
             ipA = invperm(linearize(pA))
-            _dA = zerovector(A, promote_add(ΔC, α))
+            _dA = similar(A, promote_add(ΔC, α))
             _dA = tensoradd!(_dA, ΔC, (ipA, ()), conjA, conjA ? α : conj(α), Zero(), ba...)
             return projectA(_dA)
         end
@@ -63,8 +63,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
             ipA = (invperm(linearize(pA)), ())
             conjΔC = conjA
             conjB′ = conjA ? conjB : !conjB
-            _dA = zerovector(A,
-                             promote_contract(scalartype(ΔC), scalartype(B), scalartype(α)))
+            _dA = similar(A, promote_contract(scalartype(ΔC), scalartype(B), scalartype(α)))
             tB = twist(B,
                        TupleTools.vcat(filter(x -> !isdual(space(B, x)), pB[1]),
                                        filter(x -> isdual(space(B, x)), pB[2])))
@@ -78,8 +77,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
             ipB = (invperm(linearize(pB)), ())
             conjΔC = conjB
             conjA′ = conjB ? conjA : !conjA
-            _dB = zerovector(B,
-                             promote_contract(scalartype(ΔC), scalartype(A), scalartype(α)))
+            _dB = similar(B, promote_contract(scalartype(ΔC), scalartype(A), scalartype(α)))
             tA = twist(A,
                        TupleTools.vcat(filter(x -> isdual(space(A, x)), pA[1]),
                                        filter(x -> !isdual(space(A, x)), pA[2])))
@@ -123,7 +121,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensortrace!),
             ip = invperm((linearize(p)..., q[1]..., q[2]...))
             E = one!(TO.tensoralloc_add(scalartype(A), A, q, conjA))
             twist!(E, filter(x -> !isdual(space(E, x)), codomainind(E)))
-            _dA = zerovector(A, promote_scale(ΔC, α))
+            _dA = similar(A, promote_scale(ΔC, α))
             _dA = tensorproduct!(_dA, ΔC,
                                  (trivtuple(TO.numind(p)), ()), conjA, E,
                                  ((), trivtuple(TO.numind(q))), conjA, (ip, ()),
