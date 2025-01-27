@@ -71,4 +71,16 @@
         grad4, = Zygote.gradient(g, convert(Array, B₀))
         @test convert(Array, grad3) ≈ grad4
     end
+
+    @testset "Issue #209" begin
+        function f(T, D)
+            @tensor T[1, 4, 1, 3] * D[3, 4]
+        end
+        V = Z2Space(2, 2)
+        D = DiagonalTensorMap(randn(4), V)
+        T = randn(V ⊗ V ← V ⊗ V)
+        g1, = Zygote.gradient(f, T, D)
+        g2, = Zygote.gradient(f, T, TensorMap(D))
+        @test g1 ≈ g2
+    end
 end
