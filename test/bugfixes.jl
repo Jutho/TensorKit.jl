@@ -44,6 +44,7 @@
         tensorfree!(t2)
     end
 
+    # https://github.com/Jutho/TensorKit.jl/issues/201
     @testset "Issue #201" begin
         function f(A::AbstractTensorMap)
             U, S, V, = tsvd(A)
@@ -72,6 +73,7 @@
         @test convert(Array, grad3) ≈ grad4
     end
 
+    # https://github.com/Jutho/TensorKit.jl/issues/209
     @testset "Issue #209" begin
         function f(T, D)
             @tensor T[1, 4, 1, 3] * D[3, 4]
