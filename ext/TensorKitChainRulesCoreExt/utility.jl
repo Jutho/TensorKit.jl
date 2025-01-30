@@ -2,13 +2,15 @@
 # -------
 trivtuple(N) = ntuple(identity, N)
 
-function _repartition(p::IndexTuple, N₁::Int)
+Base.@constprop :aggressive function _repartition(p::IndexTuple, N₁::Int)
     length(p) >= N₁ ||
         throw(ArgumentError("cannot repartition $(typeof(p)) to $N₁, $(length(p) - N₁)"))
     return TupleTools.getindices(p, trivtuple(N₁)),
            TupleTools.getindices(p, trivtuple(length(p) - N₁) .+ N₁)
 end
-_repartition(p::Index2Tuple, N₁::Int) = _repartition(linearize(p), N₁)
+Base.@constprop :aggressive function _repartition(p::Index2Tuple, N₁::Int)
+    return _repartition(linearize(p), N₁)
+end
 function _repartition(p::Union{IndexTuple,Index2Tuple}, ::Index2Tuple{N₁}) where {N₁}
     return _repartition(p, N₁)
 end
