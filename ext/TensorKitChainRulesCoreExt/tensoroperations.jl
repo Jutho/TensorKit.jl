@@ -61,8 +61,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
         pΔC = _repartition(ipAB, TO.numout(pA))
 
         dC = @thunk projectC(scale(ΔC, conj(β)))
-        dA = @thunk let
-            ipA = _repartition(invperm(linearize(pA)), A)
+        dA = @thunk let ipA = _repartition(invperm(linearize(pA)), A)
             conjΔC = conjA
             conjB′ = conjA ? conjB : !conjB
             TA = promote_contract(scalartype(ΔC), scalartype(B), scalartype(α))
@@ -78,8 +77,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
                                   conjA ? α : conj(α), Zero(), ba...)
             return projectA(_dA)
         end
-        dB = @thunk let
-            ipB = _repartition(invperm(linearize(pB)), B)
+        dB = @thunk let ipB = _repartition(invperm(linearize(pB)), B)
             conjΔC = conjB
             conjA′ = conjB ? conjA : !conjA
             TB = promote_contract(scalartype(ΔC), scalartype(A), scalartype(α))
@@ -125,9 +123,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensortrace!),
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
         dC = @thunk projectC(scale(ΔC, conj(β)))
-        dA = @thunk let
-            ip = invperm((linearize(p)..., q[1]..., q[2]...))
-            pdA = _repartition(ip, A)
+        dA = @thunk let ip = invperm((linearize(p)..., q[1]..., q[2]...)), pdA = _repartition(ip, A)
             E = one!(TO.tensoralloc_add(scalartype(A), A, q, conjA))
             twist!(E, filter(x -> !isdual(space(E, x)), codomainind(E)))
             pE = ((), trivtuple(TO.numind(q)))
