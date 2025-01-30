@@ -14,7 +14,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk let
             ipA = invperm(linearize(pA))
-            pdA = (ipA, ())
+            pdA = _repartition(ipA, A)
             TA = promote_add(ΔC, α)
             # TODO: allocator
             _dA = tensoralloc_add(TA, ΔC, pdA, conjA, Val(false))
@@ -58,12 +58,11 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
         ipAB = invperm(linearize(pAB))
-        pΔC = (TupleTools.getindices(ipAB, trivtuple(TO.numout(pA))),
-               TupleTools.getindices(ipAB, TO.numout(pA) .+ trivtuple(TO.numin(pB))))
+        pΔC = _repartition(ipAB, TO.numout(pA))
 
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk let
-            ipA = (invperm(linearize(pA)), ())
+            ipA = _repartition(invperm(linearize(pA)), A)
             conjΔC = conjA
             conjB′ = conjA ? conjB : !conjB
             TA = promote_contract(scalartype(ΔC), scalartype(B), scalartype(α))
@@ -80,7 +79,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
             return projectA(_dA)
         end
         dB = @thunk let
-            ipB = (invperm(linearize(pB)), ())
+            ipB = _repartition(invperm(linearize(pB)), B)
             conjΔC = conjB
             conjA′ = conjB ? conjA : !conjA
             TB = promote_contract(scalartype(ΔC), scalartype(A), scalartype(α))
@@ -128,7 +127,7 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensortrace!),
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk let
             ip = invperm((linearize(p)..., q[1]..., q[2]...))
-            pdA = (ip, ())
+            pdA = _repartition(ip, A)
             E = one!(TO.tensoralloc_add(scalartype(A), A, q, conjA))
             twist!(E, filter(x -> !isdual(space(E, x)), codomainind(E)))
             pE = ((), trivtuple(TO.numind(q)))
