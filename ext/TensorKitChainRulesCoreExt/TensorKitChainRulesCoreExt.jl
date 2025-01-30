@@ -8,7 +8,7 @@ using LinearAlgebra
 using TupleTools
 
 import TensorOperations as TO
-using TensorOperations: promote_contract
+using TensorOperations: promote_contract, tensoralloc_add, tensoralloc_contract
 using VectorInterface: promote_scale, promote_add
 
 include("utility.jl")
