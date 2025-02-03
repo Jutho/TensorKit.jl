@@ -94,12 +94,12 @@ data there in a format that is explicit about how tensor data is associated with
 structural part of the tensor, i.e. the splitting and fusion tree pairs. Therefore, on the 
 older version of TensorKit.jl, use the following code to save the data
 
- ```julia
- using JLD2
- filename = "choose_some_filename.jld2"
- t_dict = Dict(:space => space(t), :data => Dict((f₁, f₂) => t[f₁, f₂] for (f₁, f₂) in fusiontrees(t)))
- jldsave(filename; t_dict)
- ```
+```julia
+using JLD2
+filename = "choose_some_filename.jld2"
+t_dict = Dict(:space => space(t), :data => Dict((f₁, f₂) => t[f₁, f₂] for (f₁, f₂) in fusiontrees(t)))
+jldsave(filename; t_dict)
+```
 
 If you have already upgraded to TensorKit.jl v0.13, you can still install the old version in
 a separate environment, for example a temporary environment. To do this, run
@@ -123,7 +123,12 @@ data and reconstruct the tensor as follows:
 ```julia
 using JLD2
 filename = "choose_some_filename.jld2"
-t = convert(TensorMap, load_object(filename))
+t_dict = jldload(filename)
+T = eltype(valtype(t_dict[:data]))
+t = TensorMap{T}(undef, t_dict[:space])
+for ((f₁, f₂), val) in t_dict[:data]
+    t[f₁, f₂] .= val
+end
 ```
 
 ## Overview
