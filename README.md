@@ -7,13 +7,13 @@
 
 A Julia package for large-scale tensor computations, with a hint of category theory.
 
-| **Documentation** | **Digital Object Identifier** | **Downloads** |
-|:-----------------:|:-----------------------------:|:-------------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![DOI][doi-img]][doi-url] | [![TensorOperations Downloads][downloads-img]][downloads-url] |
-<!-- | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![DOI][doi-img]][doi-url] | [![TensorOperations Downloads][downloads-img]][downloads-url] | -->
+|                             **Documentation**                             |                       **Digital Object Identifier**                       |                         **Downloads**                         |
+| :-----------------------------------------------------------------------: | :-----------------------------------------------------------------------: | :-----------------------------------------------------------: |
+| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] |                        [![DOI][doi-img]][doi-url]                         | [![TensorOperations Downloads][downloads-img]][downloads-url] |
+|                                   <!--                                    | [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] |                  [![DOI][doi-img]][doi-url]                   | [![TensorOperations Downloads][downloads-img]][downloads-url] | --> |
 
-| **Build Status** | **Coverage** | **Quality assurance** |
-|:----------------:|:------------:|:---------------------:|
+|    **Build Status**     |              **Coverage**              |      **Quality assurance**       |
+| :---------------------: | :------------------------------------: | :------------------------------: |
 | [![CI][ci-img]][ci-url] | [![Codecov][codecov-img]][codecov-url] | [![Aqua QA][aqua-img]][aqua-url] |
 
 
@@ -89,16 +89,18 @@ Major non-breaking changes include:
 
 ### Transferring `TensorMap` data from older versions to v0.13:
 
-To export `TensorMap` data from TensorKit.jl v0.12.7 or earlier, you should first export the
-data there in a format that is explicit about how tensor data is associated with the
-structural part of the tensor, i.e. the splitting and fusion tree pairs. Therefore, on the 
-older version of TensorKit.jl, use the following code to save the data
+To export `TensorMap` data from TensorKit.jl v0.12.7 or earlier, please use a format that is explicit about all "blocks" of the tensor, i.e. all coupled sectors and their corresponding matrix blocks. Therefore, on the 
+older version of TensorKit.jl, use the following code to save the data:
 
 ```julia
 using JLD2
 filename = "choose_some_filename.jld2"
-t_dict = Dict(:space => space(t), :data => Dict((f₁, f₂) => t[f₁, f₂] for (f₁, f₂) in fusiontrees(t)))
-jldsave(filename; t_dict)
+t_dict = Dict(
+    :codomain => repr(codomain(t)),
+    :domain => repr(domain(t)),
+    :data => Dict(repr(c) => Array(b) for (c, b) in blocks(t))
+)
+save_object(filename, t_dict)
 ```
 
 If you have already upgraded to TensorKit.jl v0.13, you can still install the old version in
@@ -123,12 +125,7 @@ data and reconstruct the tensor as follows:
 ```julia
 using JLD2
 filename = "choose_some_filename.jld2"
-t_dict = jldload(filename)
-T = eltype(valtype(t_dict[:data]))
-t = TensorMap{T}(undef, t_dict[:space])
-for ((f₁, f₂), val) in t_dict[:data]
-    t[f₁, f₂] .= val
-end
+t = convert(TensorMap, load_object(filename))
 ```
 
 ## Overview
@@ -136,7 +133,7 @@ end
 TensorKit.jl is a package that provides types and methods to represent and manipulate
 tensors with symmetries. The emphasis is on the structure and functionality needed to build
 tensor network algorithms for the simulation of quantum many-body systems. Such tensors are
-typically invariant under a symmetry group which acts via specific representions on each of
+typically invariant under a symmetry group which acts via specific representations on each of
 the indices of the tensor. TensorKit.jl provides the functionality for constructing such
 tensors and performing typical operations such as tensor contractions and decompositions,
 thereby preserving the symmetries and exploiting them for optimal performance.

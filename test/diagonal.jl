@@ -89,9 +89,14 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
     @timedtestset "Tensor conversion" begin
         t = @constinferred DiagonalTensorMap(undef, V)
         rand!(t.data)
+        # element type conversion
         tc = complex(t)
         @test convert(typeof(tc), t) == tc
         @test typeof(convert(typeof(tc), t)) == typeof(tc)
+        # to and from generic TensorMap
+        td = DiagonalTensorMap(TensorMap(t))
+        @test t == td
+        @test typeof(td) == typeof(t)
     end
     I = sectortype(V)
     if BraidingStyle(I) isa SymmetricBraiding
