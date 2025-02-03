@@ -52,10 +52,9 @@ function DiagonalTensorMap(data::DenseVector{T}, V::IndexSpace) where {T}
     return DiagonalTensorMap{T}(data, V)
 end
 
-function DiagonalTensorMap(t::AbstractTensorMap)
+function DiagonalTensorMap(t::AbstractTensorMap{T,S,1,1}) where {T,S}
     isa(t, DiagonalTensorMap) && return t
     @assert domain(t) == codomain(t) "Domain and codomain of the input tensor are different."
-    @assert numin(t) == numout(t) == 1 "Domain and codomain of the input tensor are not an IndexSpace."
     @assert all(Diagonal(b) == b for (k, b) in blocks(t)) "Input tensor is not diagonal."
     data = vcat((LinearAlgebra.diag(b) for (k, b) in blocks(t))...)
     return DiagonalTensorMap(data, space(t, 1))
@@ -81,6 +80,7 @@ function Base.copy!(t::AbstractTensorMap, d::DiagonalTensorMap)
 end
 TensorMap(d::DiagonalTensorMap) = copy!(similar(d), d)
 Base.convert(::Type{TensorMap}, d::DiagonalTensorMap) = TensorMap(d)
+Base.convert(::Type{DiagonalTensorMap}, t::AbstractTensorMap) = DiagonalTensorMap(t)
 
 function Base.convert(::Type{DiagonalTensorMap{T,S,A}},
                       d::DiagonalTensorMap{T,S,A}) where {T,S,A}
