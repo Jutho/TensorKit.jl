@@ -89,19 +89,17 @@ Major non-breaking changes include:
 
 ### Transferring `TensorMap` data from older versions to v0.13:
 
-To export `TensorMap` data from TensorKit.jl v0.12.7 or earlier, please use a format that is explicit about all "blocks" of the tensor, i.e. all coupled sectors and their corresponding matrix blocks. Therefore, on the 
-older version of TensorKit.jl, use the following code to save the data:
+To export `TensorMap` data from TensorKit.jl v0.12.7 or earlier, you should first export the
+data there in a format that is explicit about how tensor data is associated with the
+structural part of the tensor, i.e. the splitting and fusion tree pairs. Therefore, on the 
+older version of TensorKit.jl, use the following code to save the data
 
-```julia
-using JLD2
-filename = "choose_some_filename.jld2"
-t_dict = Dict(
-    :codomain => repr(codomain(t)),
-    :domain => repr(domain(t)),
-    :data => Dict(repr(c) => Array(b) for (c, b) in blocks(t))
-)
-save_object(filename, t_dict)
-```
+ ```julia
+ using JLD2
+ filename = "choose_some_filename.jld2"
+ t_dict = Dict(:space => space(t), :data => Dict((f₁, f₂) => t[f₁, f₂] for (f₁, f₂) in fusiontrees(t)))
+ jldsave(filename; t_dict)
+ ```
 
 If you have already upgraded to TensorKit.jl v0.13, you can still install the old version in
 a separate environment, for example a temporary environment. To do this, run
