@@ -56,10 +56,14 @@ function DiagonalTensorMap(t::AbstractTensorMap{T,S,1,1}) where {T,S}
     isa(t, DiagonalTensorMap) && return t
     domain(t) == codomain(t) ||
         throw(SpaceMismatch("DiagonalTensorMap requires equal domain and codomain"))
-    all(LinearAlgebra.isdiag ∘ last, blocks(t)) ||
-        throw(ArgumentError("DiagonalTensorMap requires input tensor that is diagonal"))
-    data = vcat((LinearAlgebra.diag(b) for (k, b) in blocks(t))...)
-    return DiagonalTensorMap(data, space(t, 1))
+    A = storagetype(t)
+    d = DiagonalTensorMap{T,S,A}(undef, space(t, 1))
+    for (c, b) in blocks(d)
+        bt = block(t, c)
+        # TODO: rewrite in terms of `diagview` from MatrixAlgebraKit.jl
+        copy!(b.diag, view(bt, LinearAlgebra.diagind(bt)))
+    end
+    return t
 end
 
 # TODO: more constructors needed?
@@ -82,7 +86,6 @@ function Base.copy!(t::AbstractTensorMap, d::DiagonalTensorMap)
 end
 TensorMap(d::DiagonalTensorMap) = copy!(similar(d), d)
 Base.convert(::Type{TensorMap}, d::DiagonalTensorMap) = TensorMap(d)
-Base.convert(::Type{DiagonalTensorMap}, t::AbstractTensorMap) = DiagonalTensorMap(t)
 
 function Base.convert(::Type{DiagonalTensorMap{T,S,A}},
                       d::DiagonalTensorMap{T,S,A}) where {T,S,A}
@@ -90,6 +93,11 @@ function Base.convert(::Type{DiagonalTensorMap{T,S,A}},
 end
 function Base.convert(D::Type{<:DiagonalTensorMap}, d::DiagonalTensorMap)
     return DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
+end
+function Base.convert(::Type{DiagonalTensorMap}, t::AbstractTensorMap)
+    all(LinearAlgebra.isdiag ∘ last, blocks(t)) ||
+        throw(ArgumentError("DiagonalTensorMap requires input tensor that is diagonal"))
+    return DiagonalTensorMap(t)
 end
 function Base.convert(::Type{DiagonalTensorMap}, d::Dict{Symbol,Any})
     return convert(DiagonalTensorMap, convert(TensorMap, d))
