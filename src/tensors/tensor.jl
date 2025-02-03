@@ -395,10 +395,15 @@ Base.copy(t::TensorMap) = typeof(t)(copy(t.data), t.space)
 # Conversion between TensorMap and Dict, for read and write purpose
 #------------------------------------------------------------------
 function Base.convert(::Type{Dict}, t::AbstractTensorMap)
-    return Dict{Symbol,Any}(:codomain => repr(codomain(t)),
-                            :domain => repr(domain(t)),
-                            :data => Dict{String,Any}(repr(c) => Array(b)
-                                                      for (c, b) in blocks(t)))
+    d = Dict{Symbol,Any}()
+    d[:codomain] = repr(codomain(t))
+    d[:domain] = repr(domain(t))
+    data = Dict{String,Any}()
+    for (c, b) in blocks(t)
+        data[repr(c)] = Array(b)
+    end
+    d[:data] = data
+    return d
 end
 function Base.convert(::Type{TensorMap}, d::Dict{Symbol,Any})
     try
