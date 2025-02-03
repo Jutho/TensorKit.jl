@@ -54,8 +54,10 @@ end
 
 function DiagonalTensorMap(t::AbstractTensorMap{T,S,1,1}) where {T,S}
     isa(t, DiagonalTensorMap) && return t
-    @assert domain(t) == codomain(t) "Domain and codomain of the input tensor are different."
-    @assert all(Diagonal(b) == b for (k, b) in blocks(t)) "Input tensor is not diagonal."
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("DiagonalTensorMap requires equal domain and codomain"))
+    all(LinearAlgebra.isdiag ∘ last, blocks(t)) ||
+        throw(ArgumentError("DiagonalTensorMap requires input tensor that is diagonal"))
     data = vcat((LinearAlgebra.diag(b) for (k, b) in blocks(t))...)
     return DiagonalTensorMap(data, space(t, 1))
 end

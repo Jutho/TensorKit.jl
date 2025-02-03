@@ -395,9 +395,10 @@ Base.copy(t::TensorMap) = typeof(t)(copy(t.data), t.space)
 # Conversion between TensorMap and Dict, for read and write purpose
 #------------------------------------------------------------------
 function Base.convert(::Type{Dict}, t::AbstractTensorMap)
-    return Dict(:codomain => repr(codomain(t)),
-                :domain => repr(domain(t)),
-                :data => Dict(repr(c) => Array(b) for (c, b) in blocks(t)))
+    return Dict{Symbol,Any}(:codomain => repr(codomain(t)),
+                            :domain => repr(domain(t)),
+                            :data => Dict{String,Any}(repr(c) => Array(b)
+                                                      for (c, b) in blocks(t)))
 end
 function Base.convert(::Type{TensorMap}, d::Dict{Symbol,Any})
     try
@@ -411,6 +412,9 @@ function Base.convert(::Type{TensorMap}, d::Dict{Symbol,Any})
         data = SectorDict(Base.eval(Main, Meta.parse(c)) => b for (c, b) in d[:data])
         return TensorMap(data, codomain, domain)
     end
+end
+function Base.convert(::Type{DiagonalTensorMap}, d::Dict{Symbol,Any})
+    return convert(DiagonalTensorMap, convert(TensorMap, d))
 end
 
 # Getting and setting the data at the block level
