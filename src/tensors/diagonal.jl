@@ -63,7 +63,7 @@ function DiagonalTensorMap(t::AbstractTensorMap{T,S,1,1}) where {T,S}
         # TODO: rewrite in terms of `diagview` from MatrixAlgebraKit.jl
         copy!(b.diag, view(bt, LinearAlgebra.diagind(bt)))
     end
-    return t
+    return d
 end
 
 # TODO: more constructors needed?
