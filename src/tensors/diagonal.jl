@@ -91,6 +91,9 @@ end
 function Base.convert(D::Type{<:DiagonalTensorMap}, d::DiagonalTensorMap)
     return DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
 end
+function Base.convert(::Type{DiagonalTensorMap}, d::Dict{Symbol,Any})
+    return convert(DiagonalTensorMap, convert(TensorMap, d))
+end
 
 # Complex, real and imaginary parts
 #-----------------------------------

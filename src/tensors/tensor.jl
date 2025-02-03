@@ -413,9 +413,6 @@ function Base.convert(::Type{TensorMap}, d::Dict{Symbol,Any})
         return TensorMap(data, codomain, domain)
     end
 end
-function Base.convert(::Type{DiagonalTensorMap}, d::Dict{Symbol,Any})
-    return convert(DiagonalTensorMap, convert(TensorMap, d))
-end
 
 # Getting and setting the data at the block level
 #-------------------------------------------------
