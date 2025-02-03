@@ -95,7 +95,7 @@ function Base.convert(D::Type{<:DiagonalTensorMap}, d::DiagonalTensorMap)
     return DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
 end
 function Base.convert(::Type{DiagonalTensorMap}, t::AbstractTensorMap)
-    all(LinearAlgebra.isdiag ∘ last, blocks(t)) ||
+    LinearAlgebra.isdiag(t) ||
         throw(ArgumentError("DiagonalTensorMap requires input tensor that is diagonal"))
     return DiagonalTensorMap(t)
 end
