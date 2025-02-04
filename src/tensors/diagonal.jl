@@ -87,13 +87,10 @@ end
 TensorMap(d::DiagonalTensorMap) = copy!(similar(d), d)
 Base.convert(::Type{TensorMap}, d::DiagonalTensorMap) = TensorMap(d)
 
-function Base.convert(::Type{DiagonalTensorMap{T,S,A}},
-                      d::DiagonalTensorMap{T,S,A}) where {T,S,A}
-    return d
-end
 function Base.convert(D::Type{<:DiagonalTensorMap}, d::DiagonalTensorMap)
-    return DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
+    return (d isa D) ? d : DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
 end
+Base.convert(::Type{DiagonalTensorMap}, t::DiagonalTensorMap) = t
 function Base.convert(::Type{DiagonalTensorMap}, t::AbstractTensorMap)
     LinearAlgebra.isdiag(t) ||
         throw(ArgumentError("DiagonalTensorMap requires input tensor that is diagonal"))
