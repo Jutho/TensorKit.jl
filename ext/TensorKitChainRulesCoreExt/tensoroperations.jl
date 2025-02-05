@@ -14,8 +14,11 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensoradd!),
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk let
             ipA = invperm(linearize(pA))
-            _dA = zerovector(A, promote_add(ΔC, α))
-            _dA = tensoradd!(_dA, ΔC, (ipA, ()), conjA, conjA ? α : conj(α), Zero(), ba...)
+            pdA = _repartition(ipA, A)
+            TA = promote_add(ΔC, α)
+            # TODO: allocator
+            _dA = tensoralloc_add(TA, ΔC, pdA, conjA, Val(false))
+            _dA = tensoradd!(_dA, ΔC, pdA, conjA, conjA ? α : conj(α), Zero(), ba...)
             return projectA(_dA)
         end
         dα = @thunk let
@@ -55,19 +58,20 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
     function pullback(ΔC′)
         ΔC = unthunk(ΔC′)
         ipAB = invperm(linearize(pAB))
-        pΔC = (TupleTools.getindices(ipAB, trivtuple(TO.numout(pA))),
-               TupleTools.getindices(ipAB, TO.numout(pA) .+ trivtuple(TO.numin(pB))))
+        pΔC = _repartition(ipAB, TO.numout(pA))
 
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk let
-            ipA = (invperm(linearize(pA)), ())
+            ipA = _repartition(invperm(linearize(pA)), A)
             conjΔC = conjA
             conjB′ = conjA ? conjB : !conjB
-            _dA = zerovector(A,
-                             promote_contract(scalartype(ΔC), scalartype(B), scalartype(α)))
+            TA = promote_contract(scalartype(ΔC), scalartype(B), scalartype(α))
+            # TODO: allocator
             tB = twist(B,
                        TupleTools.vcat(filter(x -> !isdual(space(B, x)), pB[1]),
                                        filter(x -> isdual(space(B, x)), pB[2])))
+            _dA = tensoralloc_contract(TA, ΔC, pΔC, conjΔC, tB, reverse(pB), conjB′, ipA,
+                                       Val(false))
             _dA = tensorcontract!(_dA,
                                   ΔC, pΔC, conjΔC,
                                   tB, reverse(pB), conjB′, ipA,
@@ -75,14 +79,16 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensorcontract!),
             return projectA(_dA)
         end
         dB = @thunk let
-            ipB = (invperm(linearize(pB)), ())
+            ipB = _repartition(invperm(linearize(pB)), B)
             conjΔC = conjB
             conjA′ = conjB ? conjA : !conjA
-            _dB = zerovector(B,
-                             promote_contract(scalartype(ΔC), scalartype(A), scalartype(α)))
+            TB = promote_contract(scalartype(ΔC), scalartype(A), scalartype(α))
+            # TODO: allocator
             tA = twist(A,
                        TupleTools.vcat(filter(x -> isdual(space(A, x)), pA[1]),
                                        filter(x -> !isdual(space(A, x)), pA[2])))
+            _dB = tensoralloc_contract(TB, tA, reverse(pA), conjA′, ΔC, pΔC, conjΔC, ipB,
+                                       Val(false))
             _dB = tensorcontract!(_dB,
                                   tA, reverse(pA), conjA′,
                                   ΔC, pΔC, conjΔC, ipB,
@@ -121,12 +127,15 @@ function ChainRulesCore.rrule(::typeof(TensorOperations.tensortrace!),
         dC = @thunk projectC(scale(ΔC, conj(β)))
         dA = @thunk let
             ip = invperm((linearize(p)..., q[1]..., q[2]...))
+            pdA = _repartition(ip, A)
             E = one!(TO.tensoralloc_add(scalartype(A), A, q, conjA))
             twist!(E, filter(x -> !isdual(space(E, x)), codomainind(E)))
-            _dA = zerovector(A, promote_scale(ΔC, α))
-            _dA = tensorproduct!(_dA, ΔC,
-                                 (trivtuple(TO.numind(p)), ()), conjA, E,
-                                 ((), trivtuple(TO.numind(q))), conjA, (ip, ()),
+            pE = ((), trivtuple(TO.numind(q)))
+            pΔC = (trivtuple(TO.numind(p)), ())
+            TA = promote_scale(ΔC, α)
+            # TODO: allocator
+            _dA = tensoralloc_contract(TA, ΔC, pΔC, conjA, E, pE, conjA, pdA, Val(false))
+            _dA = tensorproduct!(_dA, ΔC, pΔC, conjA, E, pE, conjA, pdA,
                                  conjA ? α : conj(α), Zero(), ba...)
             return projectA(_dA)
         end

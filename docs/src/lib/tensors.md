@@ -82,6 +82,7 @@ spacetype(::Type{<:AbstractTensorMap{<:Any,S}}) where {S}
 sectortype(::Type{TT}) where {TT<:AbstractTensorMap}
 field(::Type{TT}) where {TT<:AbstractTensorMap}
 storagetype
+blocktype
 ```
 
 To obtain information about the indices, you can use:

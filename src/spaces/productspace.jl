@@ -162,7 +162,7 @@ function blocksectors(P::ProductSpace{S,N}) where {S,N}
             end
         end
     end
-    return bs
+    return sort!(bs)
 end
 
 """

@@ -52,6 +52,20 @@ function DiagonalTensorMap(data::DenseVector{T}, V::IndexSpace) where {T}
     return DiagonalTensorMap{T}(data, V)
 end
 
+function DiagonalTensorMap(t::AbstractTensorMap{T,S,1,1}) where {T,S}
+    isa(t, DiagonalTensorMap) && return t
+    domain(t) == codomain(t) ||
+        throw(SpaceMismatch("DiagonalTensorMap requires equal domain and codomain"))
+    A = storagetype(t)
+    d = DiagonalTensorMap{T,S,A}(undef, space(t, 1))
+    for (c, b) in blocks(d)
+        bt = block(t, c)
+        # TODO: rewrite in terms of `diagview` from MatrixAlgebraKit.jl
+        copy!(b.diag, view(bt, LinearAlgebra.diagind(bt)))
+    end
+    return d
+end
+
 # TODO: more constructors needed?
 
 # Special case adjoint:
@@ -88,7 +102,16 @@ function Base.convert(::Type{DiagonalTensorMap{T,S,A}},
     return d
 end
 function Base.convert(D::Type{<:DiagonalTensorMap}, d::DiagonalTensorMap)
-    return DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
+    return (d isa D) ? d : DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
+end
+Base.convert(::Type{DiagonalTensorMap}, t::DiagonalTensorMap) = t
+function Base.convert(::Type{DiagonalTensorMap}, t::AbstractTensorMap)
+    LinearAlgebra.isdiag(t) ||
+        throw(ArgumentError("DiagonalTensorMap requires input tensor that is diagonal"))
+    return DiagonalTensorMap(t)
+end
+function Base.convert(::Type{DiagonalTensorMap}, d::Dict{Symbol,Any})
+    return convert(DiagonalTensorMap, convert(TensorMap, d))
 end
 
 # Complex, real and imaginary parts
@@ -120,7 +143,23 @@ function block(d::DiagonalTensorMap, s::Sector)
     return Diagonal(view(d.data, 1:0))
 end
 
-# TODO: is relying on generic AbstractTensorMap blocks sufficient?
+blocks(t::DiagonalTensorMap) = BlockIterator(t, diagonalblockstructure(space(t)))
+function blocktype(::Type{DiagonalTensorMap{T,S,A}}) where {T,S,A}
+    return Diagonal{T,SubArray{T,1,A,Tuple{UnitRange{Int}},true}}
+end
+
+function Base.iterate(iter::BlockIterator{<:DiagonalTensorMap}, state...)
+    next = iterate(iter.structure, state...)
+    isnothing(next) && return next
+    (c, r), newstate = next
+    return c => Diagonal(view(iter.t.data, r)), newstate
+end
+
+function Base.getindex(iter::BlockIterator{<:DiagonalTensorMap}, c::Sector)
+    sectortype(iter.t) === typeof(c) || throw(SectorMismatch())
+    r = get(iter.structure, c, 1:0)
+    return Diagonal(view(iter.t.data, r))
+end
 
 # Indexing and getting and setting the data at the subblock level
 #-----------------------------------------------------------------

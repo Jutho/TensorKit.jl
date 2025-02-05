@@ -136,7 +136,7 @@ end
 TensorKit.jl is a package that provides types and methods to represent and manipulate
 tensors with symmetries. The emphasis is on the structure and functionality needed to build
 tensor network algorithms for the simulation of quantum many-body systems. Such tensors are
-typically invariant under a symmetry group which acts via specific representions on each of
+typically invariant under a symmetry group which acts via specific representations on each of
 the indices of the tensor. TensorKit.jl provides the functionality for constructing such
 tensors and performing typical operations such as tensor contractions and decompositions,
 thereby preserving the symmetries and exploiting them for optimal performance.
