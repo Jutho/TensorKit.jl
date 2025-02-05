@@ -106,3 +106,24 @@ function ChainRulesCore.rrule(::typeof(imag), a::AbstractTensorMap)
     end
     return a_imag, imag_pullback
 end
+
+function ChainRulesCore.rrule(cfg::RuleConfig, ::typeof(exp), A::AbstractTensorMap)
+    domain(A) == codomain(A) ||
+        error("Exponential of a tensor only exist when domain == codomain.")
+    P_A = ProjectTo(A)
+    C = similar(A)
+    pullbacks = map(blocks(A)) do (c, b)
+        expB, pullback = rrule_via_ad(cfg, exp, b)
+        copy!(block(C, c), expB)
+        return c => pullback
+    end
+    function exp_pullback(ΔC_)
+        ΔC = unthunk(ΔC_)
+        dA = similar(A)
+        for (c, pb) in pullbacks
+            copy!(block(dA, c), last(pb(block(ΔC, c))))
+        end
+        return NoTangent(), P_A(dA)
+    end
+    return C, exp_pullback
+end
