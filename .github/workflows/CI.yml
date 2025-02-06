@@ -55,7 +55,6 @@ jobs:
     name: Julia nightly - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         version:
           - 'nightly'
@@ -65,6 +64,7 @@ jobs:
           - windows-latest
         arch:
           - x64
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
