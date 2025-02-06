@@ -163,6 +163,8 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(*, A, C)
 
         test_rrule(permute, A, ((1, 3, 2), (5, 4)))
+        test_rrule(twist, A, 1)
+        test_rrule(twist, A, [1, 3])
 
         D = randn(T, V[1] ⊗ V[2] ← V[3])
         E = randn(T, V[4] ← V[5])
