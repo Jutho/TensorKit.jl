@@ -87,20 +87,6 @@ end
 TensorMap(d::DiagonalTensorMap) = copy!(similar(d), d)
 Base.convert(::Type{TensorMap}, d::DiagonalTensorMap) = TensorMap(d)
 
-# similar to Diagonal: simply take diagonal
-function DiagonalTensorMap(t::AbstractTensorMap)
-    numin(t) == numout(t) == 1 && domain(t) == codomain(t) || throw(SpaceMismatch())
-    d = DiagonalTensorMap{scalartype(t)}(undef, space(t, 1))
-    for (c, b) in blocks(t)
-        copy!(block(d, c), Diagonal(b))
-    end
-    return d
-end
-
-function Base.convert(::Type{DiagonalTensorMap{T,S,A}},
-                      d::DiagonalTensorMap{T,S,A}) where {T,S,A}
-    return d
-end
 function Base.convert(D::Type{<:DiagonalTensorMap}, d::DiagonalTensorMap)
     return (d isa D) ? d : DiagonalTensorMap(convert(storagetype(D), d.data), d.domain)
 end
