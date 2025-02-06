@@ -62,7 +62,7 @@ include("diagonal.jl")
 include("planar.jl")
 # TODO: remove once we know AD is slow on macOS CI
 test_ad = try
-    !(Sys.isapple() && ENV["CI"] == true)
+    !(Sys.isapple() && ENV["CI"] == "true")
 catch
     true
 end
