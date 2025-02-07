@@ -12,8 +12,10 @@ function ChainRulesCore.rrule(::Type{TensorMap}, d::DenseArray, args...; kwargs.
     return TensorMap(d, args...; kwargs...), TensorMap_pullback
 end
 
-# these are not the conversion from array, but actually take in data parameters
-# -- as a result, requires quantum dimensions
+# these are not the conversion to/from array, but actually take in data parameters
+# -- as a result, requires quantum dimensions to keep inner product the same:
+#   ⟨Δdata, ∂data⟩ = ⟨Δtensor, ∂tensor⟩ = ∑_c d_c ⟨Δtensor_c, ∂tensor_c⟩
+#   ⟹ Δdata = d_c Δtensor_c
 function ChainRulesCore.rrule(::Type{TensorMap{T}}, data::DenseVector,
                               V::TensorMapSpace) where {T}
     t = TensorMap{T}(data, V)
@@ -21,7 +23,7 @@ function ChainRulesCore.rrule(::Type{TensorMap{T}}, data::DenseVector,
     function TensorMap_pullback(Δt_)
         Δt = copy(unthunk(Δt_))
         for (c, b) in blocks(Δt)
-            scale!(b, TensorKit.invsqrtdim(c))
+            scale!(b, dim(c))
         end
         ∂data = P(Δt.data)
         return NoTangent(), ∂data, NoTangent()
@@ -37,7 +39,7 @@ function ChainRulesCore.rrule(::Type{<:DiagonalTensorMap}, data::DenseVector, ar
         # unclear if we're allowed to modify/take ownership of the input
         Δt = copy(unthunk(Δt_))
         for (c, b) in blocks(Δt)
-            scale!(b, TensorKit.invsqrtdim(c))
+            scale!(b, dim(c))
         end
         ∂data = P(Δt.data)
         return NoTangent(), ∂data, NoTangent()
@@ -51,7 +53,7 @@ function ChainRulesCore.rrule(::typeof(Base.getproperty), t::TensorMap, prop::Sy
             # unclear if we're allowed to modify/take ownership of the input
             t′ = typeof(t)(copy(unthunk(Δdata)), t.space)
             for (c, b) in blocks(t′)
-                scale!(b, TensorKit.sqrtdim(c))
+                scale!(b, inv(dim(c)))
             end
             return NoTangent(), t′, NoTangent()
         end
@@ -70,7 +72,7 @@ function ChainRulesCore.rrule(::typeof(Base.getproperty), t::DiagonalTensorMap,
             # unclear if we're allowed to modify/take ownership of the input
             t′ = typeof(t)(copy(unthunk(Δdata)), t.domain)
             for (c, b) in blocks(t′)
-                scale!(b, TensorKit.sqrtdim(c))
+                scale!(b, inv(dim(c)))
             end
             return NoTangent(), t′, NoTangent()
         end
