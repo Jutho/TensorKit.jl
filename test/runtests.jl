@@ -61,12 +61,9 @@ include("tensors.jl")
 include("diagonal.jl")
 include("planar.jl")
 # TODO: remove once we know AD is slow on macOS CI
-test_ad = try
-    !(Sys.isapple() && ENV["CI"] == "true")
-catch
-    true
+if !(Sys.isapple() && get(ENV, "CI", "false") == "true")
+    include("ad.jl")
 end
-test_ad && include("ad.jl")
 include("bugfixes.jl")
 Tf = time()
 printstyled("Finished all tests in ",
