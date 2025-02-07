@@ -153,9 +153,10 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         if symmetricbraiding
             test_rrule(TensorKit.permutedcopy_oftype, T1, ComplexF64, ((3, 1), (2, 4)))
 
-        test_rrule(convert, Array, T1)
-        test_rrule(TensorMap, convert(Array, T1), codomain(T1), domain(T1);
-                   fkwargs=(; tol=Inf))
+            test_rrule(convert, Array, T1)
+            test_rrule(TensorMap, convert(Array, T1), codomain(T1), domain(T1);
+                       fkwargs=(; tol=Inf))
+        end
 
         test_rrule(Base.getproperty, T1, :data)
         test_rrule(TensorMap{scalartype(T1)}, T1.data, T1.space)
