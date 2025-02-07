@@ -18,13 +18,10 @@ jobs:
           - '1' # automatically expands to the latest stable 1.x release of Julia
         os:
           - ubuntu-latest
-        arch:
-          - x64
     steps:
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
 
       - uses: actions/checkout@v4
       - name: Install JuliaFormatter and format

@@ -77,6 +77,12 @@ function ChainRulesCore.rrule(::typeof(adjoint), A::AbstractTensorMap)
     return adjoint(A), adjoint_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(twist), A::AbstractTensorMap, is; inv::Bool=false)
+    tA = twist(A, is; inv)
+    twist_pullback(ΔA) = NoTangent(), twist(unthunk(ΔA), is; inv=!inv), NoTangent()
+    return tA, twist_pullback
+end
+
 function ChainRulesCore.rrule(::typeof(dot), a::AbstractTensorMap, b::AbstractTensorMap)
     dot_pullback(Δd) = NoTangent(), @thunk(b * Δd'), @thunk(a * Δd)
     return dot(a, b), dot_pullback
