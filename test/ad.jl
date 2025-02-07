@@ -147,6 +147,11 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(convert, Array, T1)
         test_rrule(TensorMap, convert(Array, T1), codomain(T1), domain(T1);
                    fkwargs=(; tol=Inf))
+
+        test_rrule(Base.getproperty, T1, :data)
+        test_rrule(TensorMap{scalartype(T1)}, T1.data, T1.space)
+        test_rrule(Base.getproperty, T2, :data)
+        test_rrule(TensorMap{scalartype(T2)}, T2.data, T2.space)
     end
 
     @timedtestset "Basic utility (DiagonalTensor)" begin
@@ -177,12 +182,10 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             @test P1(D) == D1
             @test P1(T) == D1
 
-            # These tests fail because here the data vector are the actual parameters,
-            # not a vectorized version of the tensor. (off by a quantum dimension factor)
-            if FusionStyle(sectortype(D)) == UniqueFusion()
-                test_rrule(DiagonalTensorMap, D1.data, D1.domain)
-                test_rrule(DiagonalTensorMap, D.data, D.domain)
-            end
+            test_rrule(DiagonalTensorMap, D1.data, D1.domain)
+            test_rrule(DiagonalTensorMap, D.data, D.domain)
+            test_rrule(Base.getproperty, D, :data)
+            test_rrule(Base.getproperty, D1, :data)
         end
     end
 

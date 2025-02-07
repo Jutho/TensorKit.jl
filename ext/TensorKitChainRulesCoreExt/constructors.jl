@@ -4,7 +4,7 @@
 @non_differentiable TensorKit.isometry(args...)
 @non_differentiable TensorKit.unitary(args...)
 
-function ChainRulesCore.rrule(::Type{<:TensorMap}, d::DenseArray, args...; kwargs...)
+function ChainRulesCore.rrule(::Type{TensorMap}, d::DenseArray, args...; kwargs...)
     function TensorMap_pullback(Δt)
         ∂d = convert(Array, unthunk(Δt))
         return NoTangent(), ∂d, ntuple(_ -> NoTangent(), length(args))...
@@ -12,15 +12,74 @@ function ChainRulesCore.rrule(::Type{<:TensorMap}, d::DenseArray, args...; kwarg
     return TensorMap(d, args...; kwargs...), TensorMap_pullback
 end
 
-function ChainRulesCore.rrule(::Type{<:DiagonalTensorMap}, d::DenseVector, args...;
+# these are not the conversion from array, but actually take in data parameters
+# -- as a result, requires quantum dimensions
+function ChainRulesCore.rrule(::Type{TensorMap{T}}, data::DenseVector,
+                              V::TensorMapSpace) where {T}
+    t = TensorMap{T}(data, V)
+    P = ProjectTo(data)
+    function TensorMap_pullback(Δt_)
+        Δt = copy(unthunk(Δt_))
+        for (c, b) in blocks(Δt)
+            scale!(b, TensorKit.sqrtdim(c))
+        end
+        ∂data = P(Δt.data)
+        return NoTangent(), ∂data, NoTangent()
+    end
+    return t, TensorMap_pullback
+end
+
+function ChainRulesCore.rrule(::Type{<:DiagonalTensorMap}, data::DenseVector, args...;
                               kwargs...)
-    D = DiagonalTensorMap(d, args...; kwargs...)
-    project_D = ProjectTo(D)
-    function DiagonalTensorMap_pullback(Δt)
-        ∂d = project_D(unthunk(Δt)).data
-        return NoTangent(), ∂d, ntuple(_ -> NoTangent(), length(args))...
+    D = DiagonalTensorMap(data, args...; kwargs...)
+    P = ProjectTo(data)
+    function DiagonalTensorMap_pullback(Δt_)
+        # unclear if we're allowed to modify/take ownership of the input
+        Δt = copy(unthunk(Δt_))
+        for (c, b) in blocks(Δt)
+            scale!(b, TensorKit.sqrtdim(c))
+        end
+        ∂data = P(Δt.data)
+        return NoTangent(), ∂data, NoTangent()
     end
     return D, DiagonalTensorMap_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(Base.getproperty), t::TensorMap, prop::Symbol)
+    if prop === :data
+        function getdata_pullback(Δdata)
+            # unclear if we're allowed to modify/take ownership of the input
+            t′ = typeof(t)(copy(unthunk(Δdata)), t.space)
+            for (c, b) in blocks(t′)
+                scale!(b, TensorKit.invsqrtdim(c))
+            end
+            return NoTangent(), t′, NoTangent()
+        end
+        return t.data, getdata_pullback
+    elseif prop === :space
+        return t.space, Returns((NoTangent(), ZeroTangent(), NoTangent()))
+    else
+        throw(ArgumentError("unknown property $prop"))
+    end
+end
+
+function ChainRulesCore.rrule(::typeof(Base.getproperty), t::DiagonalTensorMap,
+                              prop::Symbol)
+    if prop === :data
+        function getdata_pullback(Δdata)
+            # unclear if we're allowed to modify/take ownership of the input
+            t′ = typeof(t)(copy(unthunk(Δdata)), t.domain)
+            for (c, b) in blocks(t′)
+                scale!(b, TensorKit.invsqrtdim(c))
+            end
+            return NoTangent(), t′, NoTangent()
+        end
+        return t.data, getdata_pullback
+    elseif prop === :domain
+        return t.domain, Returns((NoTangent(), ZeroTangent(), NoTangent()))
+    else
+        throw(ArgumentError("unknown property $prop"))
+    end
 end
 
 function ChainRulesCore.rrule(::typeof(Base.copy), t::AbstractTensorMap)
