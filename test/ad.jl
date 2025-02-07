@@ -235,15 +235,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             t1 = randn(T, V[1] ← V[1])
             t2 = randn(T, V[2] ← V[2])
             d = DiagonalTensorMap{T}(undef, V[1])
-            randn!(d.data)
-            if T <: Real
-                d.data .= abs.(d.data)
-            end
+            (T <: Real && f === sqrt) ? randexp!(d.data) : randn!(d.data)
             d2 = DiagonalTensorMap{T}(undef, V[1])
-            randn!(d2.data)
-            if T <: Real
-                d2.data .= abs.(d2.data)
-            end
+            (T <: Real && f === sqrt) ? randexp!(d2.data) : randn!(d2.data)
             test_rrule(f, t1; rrule_f=Zygote.rrule_via_ad, check_inferred)
             test_rrule(f, t2; rrule_f=Zygote.rrule_via_ad, check_inferred)
             test_rrule(f, d; check_inferred, output_tangent=d2)
