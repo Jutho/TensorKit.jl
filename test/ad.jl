@@ -3,6 +3,7 @@ using ChainRulesTestUtils
 using FiniteDifferences: FiniteDifferences
 using Random
 using LinearAlgebra
+using Zygote
 
 const _repartition = @static if isdefined(Base, :get_extension)
     Base.get_extension(TensorKit, :TensorKitChainRulesCoreExt)._repartition
@@ -14,6 +15,10 @@ end
 # -------------
 function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::AbstractTensorMap)
     return randn!(similar(x))
+end
+function ChainRulesTestUtils.rand_tangent(rng::AbstractRNG, x::DiagonalTensorMap)
+    V = x.domain
+    return DiagonalTensorMap(randn(eltype(x), reduceddim(V)), V)
 end
 ChainRulesTestUtils.rand_tangent(::AbstractRNG, ::VectorSpace) = NoTangent()
 function ChainRulesTestUtils.test_approx(actual::AbstractTensorMap,
@@ -152,6 +157,46 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             test_rrule(TensorMap, convert(Array, T1), codomain(T1), domain(T1);
                        fkwargs=(; tol=Inf))
         end
+
+        test_rrule(Base.getproperty, T1, :data)
+        test_rrule(TensorMap{scalartype(T1)}, T1.data, T1.space)
+        test_rrule(Base.getproperty, T2, :data)
+        test_rrule(TensorMap{scalartype(T2)}, T2.data, T2.space)
+    end
+
+    @timedtestset "Basic utility (DiagonalTensor)" begin
+        for v in V
+            rdim = reduceddim(v)
+            D1 = DiagonalTensorMap(randn(rdim), v)
+            D2 = DiagonalTensorMap(randn(rdim), v)
+            D = D1 + im * D2
+            T1 = TensorMap(D1)
+            T2 = TensorMap(D2)
+            T = T1 + im * T2
+
+            # real -> real
+            P1 = ProjectTo(D1)
+            @test P1(D1) == D1
+            @test P1(T1) == D1
+
+            # complex -> complex
+            P2 = ProjectTo(D)
+            @test P2(D) == D
+            @test P2(T) == D
+
+            # real -> complex 
+            @test P2(D1) == D1 + 0 * im * D1
+            @test P2(T1) == D1 + 0 * im * D1
+
+            # complex -> real
+            @test P1(D) == D1
+            @test P1(T) == D1
+
+            test_rrule(DiagonalTensorMap, D1.data, D1.domain)
+            test_rrule(DiagonalTensorMap, D.data, D.domain)
+            test_rrule(Base.getproperty, D, :data)
+            test_rrule(Base.getproperty, D1, :data)
+        end
     end
 
     @timedtestset "Basic Linear Algebra with scalartype $T" for T in eltypes
@@ -194,6 +239,21 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
 
         B = randn(T, space(A))
         test_rrule(LinearAlgebra.dot, A, B)
+    end
+
+    @timedtestset "Matrix functions ($T)" for T in eltypes
+        for f in (sqrt, exp)
+            check_inferred = false # !(T <: Real) # not type-stable for real functions
+            t1 = randn(T, V[1] ← V[1])
+            t2 = randn(T, V[2] ← V[2])
+            d = DiagonalTensorMap{T}(undef, V[1])
+            (T <: Real && f === sqrt) ? randexp!(d.data) : randn!(d.data)
+            d2 = DiagonalTensorMap{T}(undef, V[1])
+            (T <: Real && f === sqrt) ? randexp!(d2.data) : randn!(d2.data)
+            test_rrule(f, t1; rrule_f=Zygote.rrule_via_ad, check_inferred)
+            test_rrule(f, t2; rrule_f=Zygote.rrule_via_ad, check_inferred)
+            test_rrule(f, d; check_inferred, output_tangent=d2)
+        end
     end
 
     symmetricbraiding &&

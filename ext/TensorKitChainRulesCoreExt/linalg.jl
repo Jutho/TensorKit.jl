@@ -113,7 +113,8 @@ function ChainRulesCore.rrule(::typeof(imag), a::AbstractTensorMap)
     return a_imag, imag_pullback
 end
 
-function ChainRulesCore.rrule(cfg::RuleConfig, ::typeof(exp), A::AbstractTensorMap)
+function ChainRulesCore.rrule(cfg::RuleConfig{>:HasReverseMode}, ::typeof(exp),
+                              A::AbstractTensorMap)
     domain(A) == codomain(A) ||
         error("Exponential of a tensor only exist when domain == codomain.")
     P_A = ProjectTo(A)
@@ -132,4 +133,22 @@ function ChainRulesCore.rrule(cfg::RuleConfig, ::typeof(exp), A::AbstractTensorM
         return NoTangent(), P_A(dA)
     end
     return C, exp_pullback
+end
+
+# define rrules for matrix functions for DiagonalTensorMap, since they access data directly.
+for f in
+    (:exp, :cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh, :sqrt,
+     :log, :asin, :acos, :acosh, :atanh, :acoth)
+    f_pullback = Symbol(f, :_pullback)
+    @eval function ChainRulesCore.rrule(cfg::RuleConfig{>:HasReverseMode}, ::typeof($f),
+                                        t::DiagonalTensorMap)
+        P = ProjectTo(t) # unsure if this is necessary, should already be in pullback
+        d, pullback = rrule_via_ad(cfg, broadcast, $f, t.data)
+        function $f_pullback(Δd_)
+            Δd = P(unthunk(Δd_))
+            _, _, ∂data = pullback(Δd.data)
+            return NoTangent(), DiagonalTensorMap(∂data, t.domain)
+        end
+        return DiagonalTensorMap(d, t.domain), $f_pullback
+    end
 end

@@ -23,6 +23,14 @@ function FiniteDifferences.to_vec(t::AbstractTensorMap)
 end
 FiniteDifferences.to_vec(t::TensorKit.AdjointTensorMap) = to_vec(copy(t))
 
+function FiniteDifferences.to_vec(t::DiagonalTensorMap)
+    x_vec, back = to_vec(TensorMap(t))
+    function DiagonalTensorMap_from_vec(x_vec)
+        return DiagonalTensorMap(back(x_vec))
+    end
+    return x_vec, DiagonalTensorMap_from_vec
+end
+
 end
 
 # TODO: Investigate why the approach below doesn't work

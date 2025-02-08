@@ -60,7 +60,8 @@ include("spaces.jl")
 include("tensors.jl")
 include("diagonal.jl")
 include("planar.jl")
-if !(Sys.isapple()) # TODO: remove once we know why this is so slow on macOS
+# TODO: remove once we know AD is slow on macOS CI
+if !(Sys.isapple() && get(ENV, "CI", "false") == "true")
     include("ad.jl")
 end
 include("bugfixes.jl")

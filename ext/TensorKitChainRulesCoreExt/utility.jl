@@ -32,3 +32,15 @@ function (::ProjectTo{T1})(x::T2) where {S,N1,N2,T1<:AbstractTensorMap{<:Any,S,N
     end
     return y
 end
+
+function (::ProjectTo{DiagonalTensorMap{T,S,A}})(x::AbstractTensorMap) where {T,S,A}
+    x isa DiagonalTensorMap{T,S,A} && return x
+    V = space(x, 1)
+    space(x) == (V ← V) || throw(SpaceMismatch())
+    y = DiagonalTensorMap{T,S,A}(undef, V)
+    for (c, b) in blocks(y)
+        p = ProjectTo(b)
+        b .= p(block(x, c))
+    end
+    return y
+end
