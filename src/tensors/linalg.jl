@@ -271,6 +271,16 @@ function _norm(blockiter, p::Real, init::Real)
     end
 end
 
+_default_rtol(t) = eps(real(float(scalartype(t)))) * min(dim(domain(t)), dim(codomain(t)))
+
+function LinearAlgebra.rank(t::AbstractTensorMap; atol::Real=0,
+                            rtol::Real=atol > 0 ? 0 : _default_rtol(t))
+    dim(t) == 0 && return 0
+    S = LinearAlgebra.svdvals(t)
+    tol = max(atol, rtol * maximum(((c, b),) -> b[1], S))
+    return sum(((c, s),) -> count(>(tol), s), values(S))
+end
+
 # TensorMap trace
 function LinearAlgebra.tr(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
