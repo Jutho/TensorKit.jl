@@ -281,6 +281,21 @@ function LinearAlgebra.rank(t::AbstractTensorMap; atol::Real=0,
     return sum(((c, s),) -> count(>(tol), s), values(S))
 end
 
+function LinearAlgebra.cond(t::AbstractTensorMap, p::Real=2)
+    if p == 2
+        if dim(t) == 0
+            domain(t) == codomain(t) ||
+                throw(SpaceMismatch("`cond` requires domain and codomain to be the same"))
+            return zero(real(float(scalartype(t))))
+        end
+        v = svdvals(t)
+        maxv = maximum(first, values(v))
+        return iszero(maxv) ? oftype(maxv, Inf) : maxv / minimum(last, values(v))
+    else
+        throw(ArgumentError("cond currently only defined for p=2"))
+    end
+end
+
 # TensorMap trace
 function LinearAlgebra.tr(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
