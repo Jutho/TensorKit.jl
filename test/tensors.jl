@@ -546,6 +546,23 @@ for V in spacelist
                             @test b ≈ s′[c]
                         end
                     end
+                    @testset "cond and rank" begin
+                        t2 = permute(t, ((3, 4, 2), (1, 5)))
+                        d1 = dim(codomain(t2))
+                        d2 = dim(domain(t2))
+                        @test rank(t2) == min(d1, d2)
+                        M = leftnull(t2)
+                        @test rank(M) == max(d1, d2) - min(d1, d2)
+                        t3 = unitary(T, V1 ⊗ V2, V1 ⊗ V2)
+                        @test cond(t3) ≈ one(real(T))
+                        @test rank(t3) == dim(V1 ⊗ V2)
+                        t4 = randn(T, V1 ⊗ V2, V1 ⊗ V2)
+                        t4 = (t4 + t4') / 2
+                        vals = LinearAlgebra.eigvals(t4)
+                        λmax = maximum(s -> maximum(abs, s), values(vals))
+                        λmin = minimum(s -> minimum(abs, s), values(vals))
+                        @test cond(t4) ≈ λmax / λmin
+                    end
                 end
                 @testset "empty tensor" begin
                     t = randn(T, V1 ⊗ V2, zero(V1))
@@ -586,6 +603,13 @@ for V in spacelist
                         @test U == t
                         @test dim(U) == dim(S) == dim(V)
                     end
+                    @testset "cond and rank" begin
+                        @test rank(t) == 0
+                        W2 = zero(V1) * zero(V2)
+                        t2 = rand(W2, W2)
+                        @test rank(t2) == 0
+                        @test cond(t2) == 0.0
+                    end
                 end
                 t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
                 @testset "eig and isposdef" begin
@@ -615,6 +639,7 @@ for V in spacelist
                     @test V ≈ Ṽ
                     λ = minimum(minimum(real(LinearAlgebra.diag(b)))
                                 for (c, b) in blocks(D))
+                    @test cond(Ṽ) ≈ one(real(T))
                     @test isposdef(t2) == isposdef(λ)
                     @test isposdef(t2 - λ * one(t2) + 0.1 * one(t2))
                     @test !isposdef(t2 - λ * one(t2) - 0.1 * one(t2))

@@ -277,8 +277,8 @@ function LinearAlgebra.rank(t::AbstractTensorMap; atol::Real=0,
                             rtol::Real=atol > 0 ? 0 : _default_rtol(t))
     dim(t) == 0 && return 0
     S = LinearAlgebra.svdvals(t)
-    tol = max(atol, rtol * maximum(((c, b),) -> b[1], S))
-    return sum(((c, s),) -> count(>(tol), s), values(S))
+    tol = max(atol, rtol * maximum(first, values(S)))
+    return sum(cs -> dim(cs[1]) * count(>(tol), cs[2]), S)
 end
 
 function LinearAlgebra.cond(t::AbstractTensorMap, p::Real=2)
@@ -288,9 +288,10 @@ function LinearAlgebra.cond(t::AbstractTensorMap, p::Real=2)
                 throw(SpaceMismatch("`cond` requires domain and codomain to be the same"))
             return zero(real(float(scalartype(t))))
         end
-        v = svdvals(t)
-        maxv = maximum(first, values(v))
-        return iszero(maxv) ? oftype(maxv, Inf) : maxv / minimum(last, values(v))
+        S = LinearAlgebra.svdvals(t)
+        maxS = maximum(first, values(S))
+        minS = minimum(last, values(S))
+        return iszero(maxS) ? oftype(maxS, Inf) : (maxS / minS)
     else
         throw(ArgumentError("cond currently only defined for p=2"))
     end
