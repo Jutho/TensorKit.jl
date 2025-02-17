@@ -219,7 +219,7 @@ function svd_pullback!(ΔA::AbstractMatrix, U::AbstractMatrix, S::AbstractVector
     Sp = view(S, 1:p)
 
     # rank
-    r = findlast(>=(tol), S)
+    r = count(>(tol), S)
 
     # compute antihermitian part of projection of ΔU and ΔV onto U and V
     # also already subtract this projection from ΔU and ΔV

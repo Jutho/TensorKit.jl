@@ -271,6 +271,32 @@ function _norm(blockiter, p::Real, init::Real)
     end
 end
 
+_default_rtol(t) = eps(real(float(scalartype(t)))) * min(dim(domain(t)), dim(codomain(t)))
+
+function LinearAlgebra.rank(t::AbstractTensorMap; atol::Real=0,
+                            rtol::Real=atol > 0 ? 0 : _default_rtol(t))
+    dim(t) == 0 && return 0
+    S = LinearAlgebra.svdvals(t)
+    tol = max(atol, rtol * maximum(first, values(S)))
+    return sum(cs -> dim(cs[1]) * count(>(tol), cs[2]), S)
+end
+
+function LinearAlgebra.cond(t::AbstractTensorMap, p::Real=2)
+    if p == 2
+        if dim(t) == 0
+            domain(t) == codomain(t) ||
+                throw(SpaceMismatch("`cond` requires domain and codomain to be the same"))
+            return zero(real(float(scalartype(t))))
+        end
+        S = LinearAlgebra.svdvals(t)
+        maxS = maximum(first, values(S))
+        minS = minimum(last, values(S))
+        return iszero(maxS) ? oftype(maxS, Inf) : (maxS / minS)
+    else
+        throw(ArgumentError("cond currently only defined for p=2"))
+    end
+end
+
 # TensorMap trace
 function LinearAlgebra.tr(t::AbstractTensorMap)
     domain(t) == codomain(t) ||
