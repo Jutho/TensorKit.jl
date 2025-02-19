@@ -470,10 +470,6 @@ function add_transform!(C::AbstractTensorMap, A::AbstractTensorMap, pA::Index2Tu
         throw(ArgumentError("Unknown backend $backend for `add_transform!` and tensor types $TC and $TA"))
     end
 end
-function TO.select_backend(::typeof(add_transform!), C::AbstractTensorMap,
-                           A::AbstractTensorMap)
-    return TensorKitBackend()
-end
 
 function add_transform!(tdst::AbstractTensorMap,
                         tsrc::AbstractTensorMap,
@@ -530,7 +526,7 @@ function add_transform_kernel!(tdst::TensorMap,
                              backend.arraybackend, allocator)
     end
 
-    return nothing
+    return tdst
 end
 
 function add_transform_kernel!(tdst::TensorMap,

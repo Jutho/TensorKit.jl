@@ -105,3 +105,8 @@ function TO.select_backend(::typeof(TO.tensorcontract!), C::AbstractTensorMap,
                            A::AbstractTensorMap, B::AbstractTensorMap)
     return TensorKitBackend()
 end
+
+function TO.select_backend(::typeof(add_transform!), C::AbstractTensorMap,
+                           A::AbstractTensorMap)
+    return TensorKitBackend()
+end
