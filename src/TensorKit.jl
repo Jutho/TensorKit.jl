@@ -82,7 +82,7 @@ export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQ
 
 # tensor operations
 export @tensor, @tensoropt, @ncon, ncon, @planar, @plansor
-export scalar, add!, contract!
+export scalar, add!
 
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace, truncbelow

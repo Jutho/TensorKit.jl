@@ -11,7 +11,7 @@ For controlling this value, see also [`set_blockscheduler`](@ref) and [`with_blo
 const blockscheduler = ScopedValue{Scheduler}(SerialScheduler())
 
 """
-    cosnt subblockscheduler = ScopedValue{Scheduler}(SerialScheduler())
+    const subblockscheduler = ScopedValue{Scheduler}(SerialScheduler())
 
 The default scheduler used when looping over different subblocks in a tensor.
 
