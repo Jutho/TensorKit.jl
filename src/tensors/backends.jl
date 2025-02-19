@@ -28,7 +28,7 @@ function select_scheduler(scheduler=OhMyThreads.Implementation.NotGiven(); kwarg
 end
 
 """
-    set_blockscheduler!([scheduler]; kwargs...) -> previuos
+    set_blockscheduler!([scheduler]; kwargs...) -> previous
 
 Set the default scheduler used in looping over the different blocks in the matrix representation
 of a tensor.
