@@ -114,7 +114,7 @@ function Base.iterate(iter::BlockIterator{<:BraidingTensor}, state...)
     next = iterate(iter.structure, state...)
     isnothing(next) && return next
     c, state = next
-    return block(iter.t, c), state
+    return c => block(iter.t, c), state
 end
 @inline Base.getindex(iter::BlockIterator{<:BraidingTensor}, c::Sector) = block(iter.t, c)
 
