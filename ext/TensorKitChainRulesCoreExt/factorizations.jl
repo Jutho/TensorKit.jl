@@ -376,7 +376,7 @@ end
 function qr_pullback!(ΔA::AbstractMatrix, Q::AbstractMatrix, R::AbstractMatrix, ΔQ, ΔR;
                       tol::Real=default_pullback_gaugetol(R))
     Rd = view(R, diagind(R))
-    p = searchsortedlast(Rd, tol; by=abs, rev=true)
+    p = something(findlast(≥(tol) ∘ abs, Rd), 0)
     m, n = size(R)
 
     Q1 = view(Q, :, 1:p)
@@ -427,7 +427,7 @@ end
 function lq_pullback!(ΔA::AbstractMatrix, L::AbstractMatrix, Q::AbstractMatrix, ΔL, ΔQ;
                       tol::Real=default_pullback_gaugetol(L))
     Ld = view(L, diagind(L))
-    p = searchsortedlast(Ld, tol; by=abs, rev=true)
+    p = something(findlast(≥(tol) ∘ abs, Ld), 0)
     m, n = size(L)
 
     L1 = view(L, :, 1:p)
