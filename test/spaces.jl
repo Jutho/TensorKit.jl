@@ -404,42 +404,42 @@ println("------------------------------------")
     end
 
     @timedtestset "HomSpace" begin
-        V1, V2, V3, V4, V5 = SU₂Space(0 => 3, 1 // 2 => 1), SU₂Space(0 => 2, 1 => 1),
-                             SU₂Space(1 // 2 => 1, 1 => 1)', SU₂Space(0 => 2, 1 // 2 => 2),
-                             SU₂Space(0 => 1, 1 // 2 => 1, 3 // 2 => 1)'
-        W = TensorKit.HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
-        @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
-        @test W == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
-        @test W' == (V1 ⊗ V2 → V3 ⊗ V4 ⊗ V5)
-        @test eval(Meta.parse(sprint(show, W))) == W
-        @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
-        @test spacetype(W) == SU₂Space
-        @test sectortype(W) == Irrep[SU₂]
-        @test W[1] == V1
-        @test W[2] == V2
-        @test W[3] == V3'
-        @test W[4] == V4'
-        @test W[5] == V5'
-        @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
-        @test W == deepcopy(W)
-        @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
-        @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
-        @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
-        @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)) ==
-              @constinferred(insertleftunit(W)) ==
-              @constinferred(insertrightunit(W))
-        @test @constinferred(removeunit(insertleftunit(W), $(numind(W) + 1))) == W
-        @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)') ==
-              @constinferred(insertleftunit(W; conj=true)) ==
-              @constinferred(insertrightunit(W; conj=true))
-        @test (oneunit(V1) ⊗ V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5) ==
-              @constinferred(insertleftunit(W, 1)) ==
-              @constinferred(insertrightunit(W, 0))
-        @test (V1 ⊗ V2 ⊗ oneunit(V1) ← V3 ⊗ V4 ⊗ V5) ==
-              @constinferred(insertrightunit(W, 2))
-        @test (V1 ⊗ V2 ← oneunit(V1) ⊗ V3 ⊗ V4 ⊗ V5) == @constinferred(insertleftunit(W, 3))
-        @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W
-        @test @constinferred(insertrightunit(one(V1) ← V1, 0)) == (oneunit(V1) ← V1)
-        @test_throws BoundsError insertleftunit(one(V1) ← V1, 0)
+        for (V1, V2, V3, V4, V5) in (Vtr, Vℤ₃, VSU₂)
+            W = TensorKit.HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
+            @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
+            @test W == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
+            @test W' == (V1 ⊗ V2 → V3 ⊗ V4 ⊗ V5)
+            @test eval(Meta.parse(sprint(show, W))) == W
+            @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
+            @test spacetype(W) == typeof(V1)
+            @test sectortype(W) == sectortype(V1)
+            @test W[1] == V1
+            @test W[2] == V2
+            @test W[3] == V3'
+            @test W[4] == V4'
+            @test W[5] == V5'
+            @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
+            @test W == deepcopy(W)
+            @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
+            @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
+            @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
+            @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)) ==
+                  @constinferred(insertleftunit(W)) ==
+                  @constinferred(insertrightunit(W))
+            @test @constinferred(removeunit(insertleftunit(W), $(numind(W) + 1))) == W
+            @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)') ==
+                  @constinferred(insertleftunit(W; conj=true)) ==
+                  @constinferred(insertrightunit(W; conj=true))
+            @test (oneunit(V1) ⊗ V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5) ==
+                  @constinferred(insertleftunit(W, 1)) ==
+                  @constinferred(insertrightunit(W, 0))
+            @test (V1 ⊗ V2 ⊗ oneunit(V1) ← V3 ⊗ V4 ⊗ V5) ==
+                  @constinferred(insertrightunit(W, 2))
+            @test (V1 ⊗ V2 ← oneunit(V1) ⊗ V3 ⊗ V4 ⊗ V5) ==
+                  @constinferred(insertleftunit(W, 3))
+            @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W
+            @test @constinferred(insertrightunit(one(V1) ← V1, 0)) == (oneunit(V1) ← V1)
+            @test_throws BoundsError insertleftunit(one(V1) ← V1, 0)
+        end
     end
 end

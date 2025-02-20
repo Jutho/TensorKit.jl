@@ -113,7 +113,7 @@ Finally, these are used to define large manipulations of fusion-splitting tree p
 are then used in the index manipulation of `AbstractTensorMap` objects. The following methods
 defined on fusion splitting tree pairs have an associated definition for tensors.
 ```@docs
-repartition
+repartition(::FusionTree{I,N₁}, ::FusionTree{I,N₂}, ::Int) where {I<:Sector,N₁,N₂}
 transpose(::FusionTree{I}, ::FusionTree{I}, ::IndexTuple{N₁}, ::IndexTuple{N₂}) where {I<:Sector,N₁,N₂}
 braid(::FusionTree{I}, ::FusionTree{I}, ::IndexTuple, ::IndexTuple, ::IndexTuple{N₁}, ::IndexTuple{N₂}) where {I<:Sector,N₁,N₂}
 permute(::FusionTree{I}, ::FusionTree{I}, ::IndexTuple{N₁}, ::IndexTuple{N₂}) where {I<:Sector,N₁,N₂}

@@ -1,54 +1,3 @@
-Vtr = (ℂ^3,
-       (ℂ^4)',
-       ℂ^5,
-       ℂ^6,
-       (ℂ^7)')
-Vℤ₂ = (ℂ[Z2Irrep](0 => 1, 1 => 1),
-       ℂ[Z2Irrep](0 => 1, 1 => 2)',
-       ℂ[Z2Irrep](0 => 3, 1 => 2)',
-       ℂ[Z2Irrep](0 => 2, 1 => 3),
-       ℂ[Z2Irrep](0 => 2, 1 => 5))
-Vfℤ₂ = (ℂ[FermionParity](0 => 1, 1 => 1),
-        ℂ[FermionParity](0 => 1, 1 => 2)',
-        ℂ[FermionParity](0 => 3, 1 => 2)',
-        ℂ[FermionParity](0 => 2, 1 => 3),
-        ℂ[FermionParity](0 => 2, 1 => 5))
-Vℤ₃ = (ℂ[Z3Irrep](0 => 1, 1 => 2, 2 => 2),
-       ℂ[Z3Irrep](0 => 3, 1 => 1, 2 => 1),
-       ℂ[Z3Irrep](0 => 2, 1 => 2, 2 => 1)',
-       ℂ[Z3Irrep](0 => 1, 1 => 2, 2 => 3),
-       ℂ[Z3Irrep](0 => 1, 1 => 3, 2 => 3)')
-VU₁ = (ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 2),
-       ℂ[U1Irrep](0 => 3, 1 => 1, -1 => 1),
-       ℂ[U1Irrep](0 => 2, 1 => 2, -1 => 1)',
-       ℂ[U1Irrep](0 => 1, 1 => 2, -1 => 3),
-       ℂ[U1Irrep](0 => 1, 1 => 3, -1 => 3)')
-VfU₁ = (ℂ[FermionNumber](0 => 1, 1 => 2, -1 => 2),
-        ℂ[FermionNumber](0 => 3, 1 => 1, -1 => 1),
-        ℂ[FermionNumber](0 => 2, 1 => 2, -1 => 1)',
-        ℂ[FermionNumber](0 => 1, 1 => 2, -1 => 3),
-        ℂ[FermionNumber](0 => 1, 1 => 3, -1 => 3)')
-VCU₁ = (ℂ[CU1Irrep]((0, 0) => 1, (0, 1) => 2, 1 => 1),
-        ℂ[CU1Irrep]((0, 0) => 3, (0, 1) => 0, 1 => 1),
-        ℂ[CU1Irrep]((0, 0) => 1, (0, 1) => 0, 1 => 2)',
-        ℂ[CU1Irrep]((0, 0) => 2, (0, 1) => 2, 1 => 1),
-        ℂ[CU1Irrep]((0, 0) => 2, (0, 1) => 1, 1 => 2)')
-VSU₂ = (ℂ[SU2Irrep](0 => 3, 1 // 2 => 1),
-        ℂ[SU2Irrep](0 => 2, 1 => 1),
-        ℂ[SU2Irrep](1 // 2 => 1, 1 => 1)',
-        ℂ[SU2Irrep](0 => 2, 1 // 2 => 2),
-        ℂ[SU2Irrep](0 => 1, 1 // 2 => 1, 3 // 2 => 1)')
-VfSU₂ = (ℂ[FermionSpin](0 => 3, 1 // 2 => 1),
-         ℂ[FermionSpin](0 => 2, 1 => 1),
-         ℂ[FermionSpin](1 // 2 => 1, 1 => 1)',
-         ℂ[FermionSpin](0 => 2, 1 // 2 => 2),
-         ℂ[FermionSpin](0 => 1, 1 // 2 => 1, 3 // 2 => 1)')
-# VSU₃ = (ℂ[SU3Irrep]((0, 0, 0) => 3, (1, 0, 0) => 1),
-#     ℂ[SU3Irrep]((0, 0, 0) => 3, (2, 0, 0) => 1)',
-#     ℂ[SU3Irrep]((1, 1, 0) => 1, (2, 1, 0) => 1),
-#     ℂ[SU3Irrep]((1, 0, 0) => 1, (2, 0, 0) => 1),
-#     ℂ[SU3Irrep]((0, 0, 0) => 1, (1, 0, 0) => 1, (1, 1, 0) => 1)')
-
 for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
@@ -190,7 +139,7 @@ for V in spacelist
                 @test w * w' == (w * w')^2
             end
         end
-        @timedtestset "Trivial spaces" begin
+        @timedtestset "Trivial space insertion and removal" begin
             W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
             for T in (Float32, ComplexF64)
                 t = @constinferred rand(T, W)

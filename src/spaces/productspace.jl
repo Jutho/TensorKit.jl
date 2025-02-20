@@ -248,13 +248,14 @@ fuse(P::ProductSpace{S}) where {S<:ElementarySpace} = fuse(P.spaces...)
 """
     insertleftunit(P::ProductSpace, i::Int=length(P) + 1; conj=false, dual=false)
 
-Insert a trivial vector space, isomorphic to the underlying field, at position `i`.
+Insert a trivial vector space, isomorphic to the underlying field, at position `i`,
+which can be specified as an `Int` or as `Val(i)` for improved type stability.
 More specifically, adds a left monoidal unit or its dual.
 
-See also [`insertrightunit`](@ref), [`removeunit`](@ref).
+See also [`insertrightunit`](@ref insertrightunit(::ProductSpace, ::Val{i}) where {i}), [`removeunit`](@ref removeunit(::ProductSpace, ::Val{i}) where {i}).
 """
-function insertleftunit(P::ProductSpace, i::Int=length(P) + 1;
-                        conj::Bool=false, dual::Bool=false)
+function insertleftunit(P::ProductSpace, ::Val{i}=Val(length(P) + 1);
+                        conj::Bool=false, dual::Bool=false) where {i}
     u = oneunit(spacetype(P))
     if dual
         u = TensorKit.dual(u)
@@ -266,15 +267,16 @@ function insertleftunit(P::ProductSpace, i::Int=length(P) + 1;
 end
 
 """
-    insertrightunit(P::ProductSpace, i::Int=lenght(P); conj=false, dual=false)
+    insertrightunit(P::ProductSpace, i=lenght(P); conj=false, dual=false)
 
-Insert a trivial vector space, isomorphic to the underlying field, after position `i`.
+Insert a trivial vector space, isomorphic to the underlying field, after position `i`,
+which can be specified as an `Int` or as `Val(i)` for improved type stability.
 More specifically, adds a right monoidal unit or its dual.
 
-See also [`insertleftunit`](@ref), [`removeunit`](@ref).
+See also [`insertleftunit`](@ref insertleftunit(::ProductSpace, ::Val{i}) where {i}), [`removeunit`](@ref removeunit(::ProductSpace, ::Val{i}) where {i}).
 """
-function insertrightunit(P::ProductSpace, i::Int=length(P);
-                         conj::Bool=false, dual::Bool=false)
+function insertrightunit(P::ProductSpace, ::Val{i}=Val(length(P));
+                         conj::Bool=false, dual::Bool=false) where {i}
     u = oneunit(spacetype(P))
     if dual
         u = TensorKit.dual(u)
@@ -288,12 +290,14 @@ end
 """
     removeunit(P::ProductSpace, i::Int)
 
-This removes a trivial tensor product factor at position `1 ≤ i ≤ N`.
+This removes a trivial tensor product factor at position `1 ≤ i ≤ N`, where `i`
+can be specified as an `Int` or as `Val(i)` for improved type stability.
 For this to work, that factor has to be isomorphic to the field of scalars.
 
-This operation undoes the work of [`insertunit`](@ref).
+This operation undoes the work of [`insertleftunit`](@ref insertleftunit(::ProductSpace, ::Val{i}) where {i}) 
+and [`insertrightunit`](@ref insertrightunit(::ProductSpace, ::Val{i}) where {i}).
 """
-function removeunit(P::ProductSpace, i::Int)
+function removeunit(P::ProductSpace, ::Val{i}) where {i}
     1 ≤ i ≤ length(P) || _boundserror(P, i)
     isisomorphic(P[i], oneunit(P[i])) || _nontrivialspaceerror(P, i)
     return ProductSpace{spacetype(P)}(TupleTools.deleteat(P.spaces, i))
