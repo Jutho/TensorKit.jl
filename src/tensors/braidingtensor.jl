@@ -81,7 +81,7 @@ end
         d = (dims(codomain(b), f₁.uncoupled)..., dims(domain(b), f₂.uncoupled)...)
         n1 = d[1] * d[2]
         n2 = d[3] * d[4]
-        data = sreshape(StridedView(Matrix{eltype(b)}(undef, n1, n2)), d)
+        data = sreshape(StridedView(blocktype(b)(undef, n1, n2)), d)
         fill!(data, zero(eltype(b)))
         if f₁.uncoupled == reverse(f₂.uncoupled)
             braiddict = artin_braid(f₂, 1; inv=b.adjoint)
@@ -104,13 +104,27 @@ Base.copy(b::BraidingTensor) = b
 TensorMap(b::BraidingTensor) = copy!(similar(b), b)
 Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
+# Blocks iterator
+# ---------------
+blocks(b::BraidingTensor) = BlockIterator(b, blocksectors(b))
+blocktype(::Type{TT}) where {TT<:BraidingTensor} = Matrix{eltype(TT)}
+
+# TODO: efficient iterator
+function Base.iterate(iter::BlockIterator{<:BraidingTensor}, state...)
+    next = iterate(iter.structure, state...)
+    isnothing(next) && return next
+    c, state = next
+    return block(iter.t, c), state
+end
+@inline Base.getindex(iter::BlockIterator{<:BraidingTensor}, c::Sector) = block(iter.t, c)
+
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
 
     # TODO: probably always square?
     m = blockdim(codomain(b), s)
     n = blockdim(domain(b), s)
-    data = Matrix{eltype(b)}(undef, (m, n))
+    data = blocktype(b)(undef, (m, n))
 
     length(data) == 0 && return data # s ∉ blocksectors(b)
 
