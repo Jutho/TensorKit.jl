@@ -391,12 +391,13 @@ function threaded_mul!(tC::AbstractTensorMap, tA::AbstractTensorMap, tB::Abstrac
     # obtain cached data before multithreading
     bCs, bAs, bBs = blocks(tC), blocks(tA), blocks(tB)
 
-    # TODO: investigate if it's worth it to attempt to sort/split off the mul! vs scale!
-    tforeach(bCs; scheduler) do (c, bC)
+    # Note: using blocksectors instead of blocks to support chunksplitting
+    # TODO: experiment with sorting/splitting strategies
+    tforeach(blocksectors(tC); scheduler) do c
         if haskey(bAs, c) # then also bBs should have it
-            mul!(bC, bAs[c], bBs[c], α, β)
+            mul!(bCs[c], bAs[c], bBs[c], α, β)
         elseif !isone(β)
-            scale!(bC, β)
+            scale!(bCs[c], β)
         end
     end
 
