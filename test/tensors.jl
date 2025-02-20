@@ -190,7 +190,7 @@ for V in spacelist
                 @test w * w' == (w * w')^2
             end
         end
-        @timedtestset "Trivial spaces" begin
+        @timedtestset "Trivial space insertion and removal" begin
             W = V1 ⊗ V2 ⊗ V3 ← V4 ⊗ V5
             for T in (Float32, ComplexF64)
                 t = @constinferred rand(T, W)

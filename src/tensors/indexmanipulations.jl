@@ -292,81 +292,81 @@ See [`twist!`](@ref) for storing the result in place.
 """
 twist(t::AbstractTensorMap, i; inv::Bool=false) = twist!(copy(t), i; inv)
 
+# Methods which change the number of indices, implement using `Val(i)` for type inference
 """
-    insertleftunit(tsrc::AbstractTensorMap, i::Int=numind(t) + 1;
+    insertleftunit(tsrc::AbstractTensorMap, i=numind(t) + 1;
                    conj=false, dual=false, copy=false) -> tdst
 
-Insert a trivial vector space, isomorphic to the underlying field, at position `i`.
+Insert a trivial vector space, isomorphic to the underlying field, at position `i`,
+which can be specified as an `Int` or as `Val(i)` for improved type stability.
 More specifically, adds a left monoidal unit or its dual.
 
 If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
 
 See also [`insertrightunit`](@ref) and [`removeunit`](@ref).
 """
-@constprop :aggressive function insertleftunit(t::AbstractTensorMap, i::Int=numind(t) + 1;
-                                               copy::Bool=true, conj::Bool=false,
-                                               dual::Bool=false)
-    W = insertleftunit(space(t), i; conj, dual)
-    tdst = similar(t, W)
-    for (c, b) in blocks(t)
-        copy!(block(tdst, c), b)
+function insertleftunit(t::AbstractTensorMap, ::Val{i}=Val(numind(t) + 1);
+                        copy::Bool=false, conj::Bool=false, dual::Bool=false) where {i}
+    W = insertleftunit(space(t), Val(i); conj, dual)
+    if t isa TensorMap
+        return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
+    else
+        tdst = similar(t, W)
+        for (c, b) in blocks(t)
+            copy!(block(tdst, c), b)
+        end
+        return tdst
     end
-    return tdst
-end
-@constprop :aggressive function insertleftunit(t::TensorMap, i::Int=numind(t) + 1;
-                                               copy::Bool=false, conj::Bool=false,
-                                               dual::Bool=false)
-    W = insertleftunit(space(t), i; conj, dual)
-    return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
 end
 
 """
-    insertrightunit(tsrc::AbstractTensorMap, i::Int=numind(t);
+    insertrightunit(tsrc::AbstractTensorMap, i=numind(t);
                     conj=false, dual=false, copy=false) -> tdst
 
-Insert a trivial vector space, isomorphic to the underlying field, after position `i`.
+Insert a trivial vector space, isomorphic to the underlying field, after position `i`,
+which can be specified as an `Int` or as `Val(i)` for improved type stability.
 More specifically, adds a right monoidal unit or its dual.
 
 If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
 
 See also [`insertleftunit`](@ref) and [`removeunit`](@ref).
 """
-@constprop :aggressive function insertrightunit(t::AbstractTensorMap, i::Int=numind(t);
-                                                copy::Bool=true, kwargs...)
-    W = insertrightunit(space(t), i; kwargs...)
-    tdst = similar(t, W)
-    for (c, b) in blocks(t)
-        copy!(block(tdst, c), b)
+function insertrightunit(t::AbstractTensorMap, ::Val{i}=Val(numind(t));
+                         copy::Bool=false, conj::Bool=false, dual::Bool=false) where {i}
+    W = insertrightunit(space(t), Val(i); conj, dual)
+    if t isa TensorMap
+        return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
+    else
+        tdst = similar(t, W)
+        for (c, b) in blocks(t)
+            copy!(block(tdst, c), b)
+        end
+        return tdst
     end
-    return tdst
-end
-@constprop :aggressive function insertrightunit(t::TensorMap, i::Int=numind(t);
-                                                copy::Bool=false, kwargs...)
-    W = insertrightunit(space(t), i; kwargs...)
-    return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
 end
 
 """
-    removeunit(tsrc::AbstractTensorMap, i::Int; copy=false) -> tdst
+    removeunit(tsrc::AbstractTensorMap, i; copy=false) -> tdst
 
-This removes a trivial tensor product factor at position `1 ≤ i ≤ N`.
+This removes a trivial tensor product factor at position `1 ≤ i ≤ N`, where `i`
+can be specified as an `Int` or as `Val(i)` for improved type stability.
 For this to work, that factor has to be isomorphic to the field of scalars.
 
 If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
 
 This operation undoes the work of [`insertunit`](@ref).
 """
-@constprop :aggressive function removeunit(t::TensorMap, i::Int; copy::Bool=false)
-    W = removeunit(space(t), i)
-    return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
-end
-@constprop :aggressive function removeunit(t::AbstractTensorMap, i::Int; copy::Bool=true)
-    W = removeunit(space(t), i)
-    tdst = similar(t, W)
-    for (c, b) in blocks(t)
-        copy!(block(tdst, c), b)
+function removeunit(t::AbstractTensorMap, ::Val{i}; copy::Bool=false) where {i}
+    W = removeunit(space(t), Val(i))
+    if t isa TensorMap
+        return TensorMap{scalartype(t)}(copy ? Base.copy(t.data) : t.data, W)
+    else
+        tdst = similar(t, W)
+        for (c, b) in blocks(t)
+            copy!(block(tdst, c), b)
+        end
+        return tdst
     end
-    return tdst
 end
 
 # Fusing and splitting
