@@ -28,58 +28,29 @@ function select_scheduler(scheduler=OhMyThreads.Implementation.NotGiven(); kwarg
 end
 
 """
-    set_blockscheduler!([scheduler]; kwargs...) -> previous
-
-Set the default scheduler used in looping over the different blocks in the matrix representation
-of a tensor.
-The arguments to this function are either an `OhMyThreads.Scheduler` or a `Symbol` with optional
-set of keywords arguments. For a detailed description, consult the
-[`OhMyThreads` documentation](https://juliafolds2.github.io/OhMyThreads.jl/stable/refs/api/#Schedulers).
-
-See also [`with_blockscheduler`](@ref).
-"""
-function set_blockscheduler!(scheduler=OhMyThreads.Implementation.NotGiven(); kwargs...)
-    previous = blockscheduler[]
-    blockscheduler[] = select_scheduler(scheduler; kwargs...)
-    return previous
-end
-
-"""
     with_blockscheduler(f, [scheduler]; kwargs...)
 
 Run `f` in a scope where the `blockscheduler` is determined by `scheduler` and `kwargs...`.
 
-See also [`set_blockscheduler!`](@ref).
+See also [`with_subblockscheduler!`](@ref).
 """
-function with_blockscheduler(f, scheduler=OhMyThreads.Implementation.NotGiven(); kwargs...)
+@inline function with_blockscheduler(f, scheduler=OhMyThreads.Implementation.NotGiven();
+                                     kwargs...)
     @with blockscheduler => select_scheduler(scheduler; kwargs...) f()
-end
-
-"""
-    set_subblockscheduler!([scheduler]; kwargs...) -> previous
-
-Set the default scheduler used in looping over the different subblocks in a tensor.
-The arguments to this function are either an `OhMyThreads.Scheduler` or a `Symbol` with optional
-set of keywords arguments. For a detailed description, consult the
-[`OhMyThreads` documentation](https://juliafolds2.github.io/OhMyThreads.jl/stable/refs/api/#Schedulers).
-
-See also [`with_subblockscheduler`](@ref).
-"""
-function set_subblockscheduler!(scheduler=OhMyThreads.Implementation.NotGiven(); kwargs...)
-    previous = subblockscheduler[]
-    subblockscheduler[] = select_scheduler(scheduler; kwargs...)
-    return previous
 end
 
 """
     with_subblockscheduler(f, [scheduler]; kwargs...)
 
 Run `f` in a scope where the [`subblockscheduler`](@ref) is determined by `scheduler` and `kwargs...`.
+The arguments to this function are either an `OhMyThreads.Scheduler` or a `Symbol` with optional
+set of keywords arguments. For a detailed description, consult the
+[`OhMyThreads` documentation](https://juliafolds2.github.io/OhMyThreads.jl/stable/refs/api/#Schedulers).
 
-See also [`set_subblockscheduler!`](@ref).
+See also [`with_blockscheduler!`](@ref).
 """
-function with_subblockscheduler(f, scheduler=OhMyThreads.Implementation.NotGiven();
-                                kwargs...)
+@inline function with_subblockscheduler(f, scheduler=OhMyThreads.Implementation.NotGiven();
+                                        kwargs...)
     @with subblockscheduler => select_scheduler(scheduler; kwargs...) f()
 end
 
