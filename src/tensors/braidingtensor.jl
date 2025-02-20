@@ -163,6 +163,30 @@ function block(b::BraidingTensor, s::Sector)
     return data
 end
 
+# Linear Algebra
+# --------------
+function LinearAlgebra.mul!(C::AbstractTensorMap, A::AbstractTensorMap, B::BraidingTensor,
+                            α::Number, β::Number)
+    compose(space(A), space(B)) == space(C) ||
+        throw(SpaceMismatch(lazy"$(space(C)) ≠ $(space(A)) * $(space(B))"))
+    levels = B.adjoint ? (1, 2, 3, 4) : (1, 2, 4, 3)
+    return add_braid!(C, A, ((1, 2), (4, 3)), levels, α, β)
+end
+function LinearAlgebra.mul!(C::AbstractTensorMap, A::BraidingTensor, B::AbstractTensorMap,
+                            α::Number, β::Number)
+    compose(space(A), space(B)) == space(C) ||
+        throw(SpaceMismatch(lazy"$(space(C)) ≠ $(space(A)) * $(space(B))"))
+    levels = A.adjoint ? (2, 1, 3, 4) : (1, 2, 3, 4)
+    return add_transpose!(C, B, ((2, 1), (3, 4)), levels, α, β)
+end
+# TODO: implement this?
+function LinearAlgebra.mul!(C::AbstractTensorMap, A::BraidingTensor, B::BraidingTensor,
+                            α::Number, β::Number)
+    compose(space(A), space(B)) == space(C) ||
+        throw(SpaceMismatch(lazy"$(space(C)) ≠ $(space(A)) * $(space(B))"))
+    return mul!(C, TensorMap(A), B, α, β)
+end
+
 # Index manipulations
 # -------------------
 has_shared_permute(t::BraidingTensor, ::Index2Tuple) = false
