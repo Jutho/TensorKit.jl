@@ -303,7 +303,8 @@ More specifically, adds a left monoidal unit or its dual.
 
 If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
 
-See also [`insertrightunit`](@ref) and [`removeunit`](@ref).
+See also [`insertrightunit`](@ref insertrightunit(::AbstractTensorMap, ::Val{i}) where {i}),
+[`removeunit`](@ref removeunit(::AbstractTensorMap, ::Val{i}) where {i}).
 """
 function insertleftunit(t::AbstractTensorMap, ::Val{i}=Val(numind(t) + 1);
                         copy::Bool=false, conj::Bool=false, dual::Bool=false) where {i}
@@ -329,7 +330,8 @@ More specifically, adds a right monoidal unit or its dual.
 
 If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
 
-See also [`insertleftunit`](@ref) and [`removeunit`](@ref).
+See also [`insertleftunit`](@ref insertleftunit(::AbstractTensorMap, ::Val{i}) where {i}),
+[`removeunit`](@ref removeunit(::AbstractTensorMap, ::Val{i}) where {i}).
 """
 function insertrightunit(t::AbstractTensorMap, ::Val{i}=Val(numind(t));
                          copy::Bool=false, conj::Bool=false, dual::Bool=false) where {i}
@@ -354,7 +356,8 @@ For this to work, that factor has to be isomorphic to the field of scalars.
 
 If `copy=false`, `tdst` might share data with `tsrc` whenever possible. Otherwise, a copy is always made.
 
-This operation undoes the work of [`insertunit`](@ref).
+This operation undoes the work of [`insertleftunit`](@ref insertleftunit(::AbstractTensorMap, ::Val{i}) where {i}) 
+and [`insertrightunit`](@ref insertrightunit(::AbstractTensorMap, ::Val{i}) where {i}).
 """
 function removeunit(t::AbstractTensorMap, ::Val{i}; copy::Bool=false) where {i}
     W = removeunit(space(t), Val(i))

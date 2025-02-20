@@ -252,7 +252,7 @@ Insert a trivial vector space, isomorphic to the underlying field, at position `
 which can be specified as an `Int` or as `Val(i)` for improved type stability.
 More specifically, adds a left monoidal unit or its dual.
 
-See also [`insertrightunit`](@ref), [`removeunit`](@ref).
+See also [`insertrightunit`](@ref insertrightunit(::ProductSpace, ::Val{i}) where {i}), [`removeunit`](@ref removeunit(::ProductSpace, ::Val{i}) where {i}).
 """
 function insertleftunit(P::ProductSpace, ::Val{i}=Val(length(P) + 1);
                         conj::Bool=false, dual::Bool=false) where {i}
@@ -273,7 +273,7 @@ Insert a trivial vector space, isomorphic to the underlying field, after positio
 which can be specified as an `Int` or as `Val(i)` for improved type stability.
 More specifically, adds a right monoidal unit or its dual.
 
-See also [`insertleftunit`](@ref), [`removeunit`](@ref).
+See also [`insertleftunit`](@ref insertleftunit(::ProductSpace, ::Val{i}) where {i}), [`removeunit`](@ref removeunit(::ProductSpace, ::Val{i}) where {i}).
 """
 function insertrightunit(P::ProductSpace, ::Val{i}=Val(length(P));
                          conj::Bool=false, dual::Bool=false) where {i}
@@ -294,7 +294,8 @@ This removes a trivial tensor product factor at position `1 ≤ i ≤ N`, where 
 can be specified as an `Int` or as `Val(i)` for improved type stability.
 For this to work, that factor has to be isomorphic to the field of scalars.
 
-This operation undoes the work of [`insertunit`](@ref).
+This operation undoes the work of [`insertleftunit`](@ref insertleftunit(::ProductSpace, ::Val{i}) where {i}) 
+and [`insertrightunit`](@ref insertrightunit(::ProductSpace, ::Val{i}) where {i}).
 """
 function removeunit(P::ProductSpace, ::Val{i}) where {i}
     1 ≤ i ≤ length(P) || _boundserror(P, i)

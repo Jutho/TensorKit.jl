@@ -137,6 +137,13 @@ Base.getindex(::AbstractTensorMap, ::Vararg{SliceIndex})
 Base.setindex!(::AbstractTensorMap, ::Any, ::Vararg{SliceIndex})
 ```
 
+The tensor data can also be filled with random numbers via
+```@docs
+Random.rand!
+Random.randn!
+Random.randexp!
+```
+
 ## `AbstractTensorMap` operations
 
 The operations that can be performed on an `AbstractTensorMap` can be organized into the
@@ -171,14 +178,15 @@ type `add_transform!`, for additional expert-mode options that allows for additi
 scaling, as well as the selection of a custom backend.
 
 ```@docs
-permute(::AbstractTensorMap, ::Index2Tuple{N₁,N₂}; ::Bool) where {N₁,N₂}
-braid(::AbstractTensorMap, ::Index2Tuple, ::IndexTuple; ::Bool)
-transpose(::AbstractTensorMap, ::Index2Tuple; ::Bool)
-repartition(::AbstractTensorMap, ::Int, ::Int; ::Bool)
+permute(::AbstractTensorMap, ::Index2Tuple{N₁,N₂}) where {N₁,N₂}
+braid(::AbstractTensorMap, ::Index2Tuple, ::IndexTuple)
+transpose(::AbstractTensorMap, ::Index2Tuple)
+repartition(::AbstractTensorMap, ::Int, ::Int)
 flip(t::AbstractTensorMap, I)
-twist(::AbstractTensorMap, ::Int; ::Bool)
-insertleftunit(::AbstractTensorMap, ::Int)
-insertrightunit(::AbstractTensorMap, ::Int)
+twist(::AbstractTensorMap, ::Int)
+insertleftunit(::AbstractTensorMap, ::Val{i}) where {i}
+insertrightunit(::AbstractTensorMap, ::Val{i}) where {i}
+removeunit(::AbstractTensorMap, ::Val{i}) where {i}
 ```
 
 ```@docs
