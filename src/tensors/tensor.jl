@@ -523,7 +523,7 @@ end
 
 Return a view into the data slice of `t` corresponding to the splitting - fusion tree pair
 with combined uncoupled charges `sectors`. In particular, if `sectors == (s₁..., s₂...)`
-where `s₁` and `s₂` correspond to the coupled charges in the codomain and domain
+where `s₁` and `s₂` correspond to the uncoupled charges in the codomain and domain
 respectively, then a `StridedViews.StridedView` of size
 `(dims(codomain(t), s₁)..., dims(domain(t), s₂))` is returned.
 
