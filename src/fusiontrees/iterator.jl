@@ -37,7 +37,7 @@ Base.IteratorEltype(::FusionTreeIterator) = Base.HasEltype()
 Base.eltype(::Type{<:FusionTreeIterator{I,N}}) where {I<:Sector,N} = fusiontreetype(I, N)
 
 Base.length(iter::FusionTreeIterator) = _fusiondim(iter.uncouplediterators, iter.coupled)
-_fusiondim(::Tuple{}, c::I) where {I<:Sector} = Int(one(c) == c)
+_fusiondim(::Tuple{}, c::I) where {I<:Sector} = Int(isone(c))
 _fusiondim(iters::NTuple{1}, c::I) where {I<:Sector} = Int(c ∈ iters[1])
 function _fusiondim(iters::NTuple{2}, c::I) where {I<:Sector}
     d = 0
@@ -60,9 +60,9 @@ end
 # * Iterator methods:
 #   Start with special cases:
 function Base.iterate(it::FusionTreeIterator{I,0},
-                      state=(it.coupled != one(I))) where {I<:Sector}
+                      state=!isone(it.coupled)) where {I<:Sector}
     state && return nothing
-    tree = FusionTree{I}((), one(I), (), (), ())
+    tree = FusionTree{I}((), it.coupled, (), (), ())
     return tree, true
 end
 
