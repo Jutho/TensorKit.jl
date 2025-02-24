@@ -235,13 +235,13 @@ include("iterator.jl")
 # _abelianinner: generate the inner indices for given outer indices in the abelian case
 _abelianinner(outer::Tuple{}) = ()
 function _abelianinner(outer::Tuple{I}) where {I<:Sector}
-    return outer[1] == one(I) ? () : throw(SectorMismatch())
+    return isone(outer[1]) ? () : throw(SectorMismatch())
 end
 function _abelianinner(outer::Tuple{I,I}) where {I<:Sector}
     return outer[1] == dual(outer[2]) ? () : throw(SectorMismatch())
 end
 function _abelianinner(outer::Tuple{I,I,I}) where {I<:Sector}
-    return first(⊗(outer...)) == one(I) ? () : throw(SectorMismatch())
+    return isone(first(⊗(outer...))) ? () : throw(SectorMismatch())
 end
 function _abelianinner(outer::Tuple{I,I,I,I,Vararg{I}}) where {I<:Sector}
     c = first(outer[1] ⊗ outer[2])

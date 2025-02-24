@@ -230,7 +230,7 @@ function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
     return insertat(f, N₁ + 1, f₂)
 end
 function merge(f₁::FusionTree{I,0}, f₂::FusionTree{I,0}, c::I, μ) where {I}
-    c == one(I) ||
+    isone(c) ||
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
     return fusiontreedict(I)(f₁ => Fsymbol(c, c, c, c, c, c)[1, 1, 1, 1])
 end
@@ -349,7 +349,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
             for μ in 1:Nsymbol(c1, c2, c)
                 fc = FusionTree((c1, c2), c, (!isduala, false), (), (μ,))
                 for (fl′, coeff1) in insertat(fc, 2, f₁)
-                    N₁ > 1 && fl′.innerlines[1] != one(I) && continue
+                    N₁ > 1 && !isone(fl′.innerlines[1]) && continue
                     coupled = fl′.coupled
                     uncoupled = Base.tail(Base.tail(fl′.uncoupled))
                     isdual = Base.tail(Base.tail(fl′.isdual))
@@ -694,7 +694,7 @@ corresponding coefficients.
 function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
     (N > 1 && 1 <= i <= N) ||
         throw(ArgumentError("Cannot trace outputs i=$i and i+1 out of only $N outputs"))
-    i < N || f.coupled == one(I) ||
+    i < N || isone(f.coupled) ||
         throw(ArgumentError("Cannot trace outputs i=$N and 1 of fusion tree that couples to non-trivial sector"))
 
     T = sectorscalartype(I)
@@ -808,15 +808,15 @@ function artin_braid(f::FusionTree{I,N}, i; inv::Bool=false) where {I<:Sector,N}
     inner = f.innerlines
     inner_extended = (uncoupled[1], inner..., coupled′)
     vertices = f.vertices
-    u = one(I)
     oneT = one(sectorscalartype(I))
 
-    if u in (uncoupled[i], uncoupled[i + 1])
+    if isone(uncoupled[i]) || isone(uncoupled[i + 1])
         # braiding with trivial sector: simple and always possible
         inner′ = inner
         vertices′ = vertices
         if i > 1 # we also need to alter innerlines and vertices
-            inner′ = TupleTools.setindex(inner, inner_extended[a == u ? (i + 1) : (i - 1)],
+            inner′ = TupleTools.setindex(inner,
+                                         inner_extended[isone(a) ? (i + 1) : (i - 1)],
                                          i - 1)
             vertices′ = TupleTools.setindex(vertices′, vertices[i], i - 1)
             vertices′ = TupleTools.setindex(vertices′, vertices[i - 1], i)
