@@ -628,10 +628,10 @@ function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backen
             end
         end
     else
-        tforeach(Iterators.product(sectors(codomain(tsrc)), sectors(domain(tsrc)));
+        tforeach(collect(Iterators.product(sectors(codomain(tsrc)), sectors(domain(tsrc))));
                  scheduler=backend.subblockscheduler) do (s₁,
                                                           s₂)
-            return _add_nonabelian_sector!(tdts, tsrc, p, fusiontreetransform, s₁, s₂, α,
+            return _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α,
                                            β′, backend.arraybackend, allocator)
         end
     end
