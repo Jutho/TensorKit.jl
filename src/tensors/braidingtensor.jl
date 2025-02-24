@@ -81,7 +81,7 @@ end
         d = (dims(codomain(b), f₁.uncoupled)..., dims(domain(b), f₂.uncoupled)...)
         n1 = d[1] * d[2]
         n2 = d[3] * d[4]
-        data = sreshape(StridedView(Matrix{eltype(b)}(undef, n1, n2)), d)
+        data = sreshape(StridedView(blocktype(b)(undef, n1, n2)), d)
         fill!(data, zero(eltype(b)))
         if f₁.uncoupled == reverse(f₂.uncoupled)
             braiddict = artin_braid(f₂, 1; inv=b.adjoint)
@@ -104,13 +104,27 @@ Base.copy(b::BraidingTensor) = b
 TensorMap(b::BraidingTensor) = copy!(similar(b), b)
 Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
+# Blocks iterator
+# ---------------
+blocks(b::BraidingTensor) = BlockIterator(b, blocksectors(b))
+blocktype(::Type{TT}) where {TT<:BraidingTensor} = Matrix{eltype(TT)}
+
+# TODO: efficient iterator
+function Base.iterate(iter::BlockIterator{<:BraidingTensor}, state...)
+    next = iterate(iter.structure, state...)
+    isnothing(next) && return next
+    c, state = next
+    return c => block(iter.t, c), state
+end
+@inline Base.getindex(iter::BlockIterator{<:BraidingTensor}, c::Sector) = block(iter.t, c)
+
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
 
     # TODO: probably always square?
     m = blockdim(codomain(b), s)
     n = blockdim(domain(b), s)
-    data = Matrix{eltype(b)}(undef, (m, n))
+    data = blocktype(b)(undef, (m, n))
 
     length(data) == 0 && return data # s ∉ blocksectors(b)
 
@@ -149,6 +163,30 @@ function block(b::BraidingTensor, s::Sector)
     return data
 end
 
+# Linear Algebra
+# --------------
+function LinearAlgebra.mul!(C::AbstractTensorMap, A::AbstractTensorMap, B::BraidingTensor,
+                            α::Number, β::Number)
+    compose(space(A), space(B)) == space(C) ||
+        throw(SpaceMismatch(lazy"$(space(C)) ≠ $(space(A)) * $(space(B))"))
+    levels = B.adjoint ? (1, 2, 3, 4) : (1, 2, 4, 3)
+    return add_braid!(C, A, ((1, 2), (4, 3)), levels, α, β)
+end
+function LinearAlgebra.mul!(C::AbstractTensorMap, A::BraidingTensor, B::AbstractTensorMap,
+                            α::Number, β::Number)
+    compose(space(A), space(B)) == space(C) ||
+        throw(SpaceMismatch(lazy"$(space(C)) ≠ $(space(A)) * $(space(B))"))
+    levels = A.adjoint ? (2, 1, 3, 4) : (1, 2, 3, 4)
+    return add_transpose!(C, B, ((2, 1), (3, 4)), levels, α, β)
+end
+# TODO: implement this?
+function LinearAlgebra.mul!(C::AbstractTensorMap, A::BraidingTensor, B::BraidingTensor,
+                            α::Number, β::Number)
+    compose(space(A), space(B)) == space(C) ||
+        throw(SpaceMismatch(lazy"$(space(C)) ≠ $(space(A)) * $(space(B))"))
+    return mul!(C, TensorMap(A), B, α, β)
+end
+
 # Index manipulations
 # -------------------
 has_shared_permute(t::BraidingTensor, ::Index2Tuple) = false
@@ -158,9 +196,9 @@ function add_transform!(tdst::AbstractTensorMap,
                         fusiontreetransform,
                         α::Number,
                         β::Number,
-                        backend::AbstractBackend...)
+                        backend::TensorKitBackend, allocator)
     return add_transform!(tdst, TensorMap(tsrc), (p₁, p₂), fusiontreetransform, α, β,
-                          backend...)
+                          backend, allocator)
 end
 
 # VectorInterface
@@ -173,8 +211,8 @@ end
 
 function TO.tensoradd!(C::AbstractTensorMap,
                        A::BraidingTensor, pA::Index2Tuple, conjA::Symbol,
-                       α::Number, β::Number, backend=TO.DefaultBackend(),
-                       allocator=TO.DefaultAllocator())
+                       α::Number, β::Number, backend::AbstractBackend,
+                       allocator)
     return TO.tensoradd!(C, TensorMap(A), pA, conjA, α, β, backend, allocator)
 end
 

@@ -82,7 +82,7 @@ export OrthogonalFactorizationAlgorithm, QR, QRpos, QL, QLpos, LQ, LQpos, RQ, RQ
 
 # tensor operations
 export @tensor, @tensoropt, @ncon, ncon, @planar, @plansor
-export scalar, add!, contract!
+export scalar, add!
 
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace, truncbelow
@@ -101,6 +101,8 @@ using TensorOperations: IndexTuple, Index2Tuple, linearize, AbstractBackend
 const TO = TensorOperations
 
 using LRUCache
+using OhMyThreads
+using ScopedValues
 
 using TensorKitSectors
 import TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
@@ -184,6 +186,7 @@ include("spaces/vectorspaces.jl")
 #-------------------------------------
 # general definitions
 include("tensors/abstracttensor.jl")
+include("tensors/backends.jl")
 include("tensors/blockiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")

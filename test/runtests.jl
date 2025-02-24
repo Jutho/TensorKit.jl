@@ -107,8 +107,8 @@ VfSU₂ = (ℂ[FermionSpin](0 => 3, 1 // 2 => 1),
 #     ℂ[SU3Irrep]((0, 0, 0) => 1, (1, 0, 0) => 1, (1, 1, 0) => 1)')
 
 Ti = time()
-include("fusiontrees.jl")
-include("spaces.jl")
+# include("fusiontrees.jl")
+# include("spaces.jl")
 include("tensors.jl")
 include("diagonal.jl")
 include("planar.jl")
