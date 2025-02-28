@@ -104,6 +104,11 @@ Base.copy(b::BraidingTensor) = b
 TensorMap(b::BraidingTensor) = copy!(similar(b), b)
 Base.convert(::Type{TensorMap}, b::BraidingTensor) = TensorMap(b)
 
+Base.complex(b::BraidingTensor{<:Complex}) = b
+function Base.complex(b::BraidingTensor)
+    return BraidingTensor{complex(scalartype(b))}(space(b), b.adjoint)
+end
+
 function block(b::BraidingTensor, s::Sector)
     sectortype(b) == typeof(s) || throw(SectorMismatch())
 

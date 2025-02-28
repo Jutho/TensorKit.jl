@@ -72,6 +72,8 @@ Vfib = (Vect[FibonacciAnyon](:I => 1, :τ => 2),
         @test_throws SpaceMismatch BraidingTensor(W2)
 
         @test adjoint(t1) isa BraidingTensor
+        @test complex(t1) isa BraidingTensor
+        @test scalartype(complex(t1)) <: Complex
 
         t3 = @inferred TensorMap(t2)
         t4 = braid(id(storagetype(t2), domain(t2)), ((2, 1), (3, 4)), (1, 2, 3, 4))
