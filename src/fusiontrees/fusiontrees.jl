@@ -114,7 +114,7 @@ function Base.hash(f::FusionTree{I}, h::UInt) where {I}
     end
     return h
 end
-function Base.isequal(f₁::FusionTree{I,N}, f₂::FusionTree{I,N}) where {I<:Sector,N}
+function Base.:(==)(f₁::FusionTree{I,N}, f₂::FusionTree{I,N}) where {I<:Sector,N}
     f₁.coupled == f₂.coupled || return false
     @inbounds for i in 1:N
         f₁.uncoupled[i] == f₂.uncoupled[i] || return false
@@ -132,7 +132,7 @@ function Base.isequal(f₁::FusionTree{I,N}, f₂::FusionTree{I,N}) where {I<:Se
     end
     return true
 end
-Base.isequal(f₁::FusionTree, f₂::FusionTree) = false
+Base.:(==)(f₁::FusionTree, f₂::FusionTree) = false
 
 # Facilitate getting correct fusion tree types
 function fusiontreetype(::Type{I}, N::Int) where {I<:Sector}
