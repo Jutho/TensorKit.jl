@@ -68,7 +68,7 @@ function planartrace!(C::AbstractTensorMap,
     (S = spacetype(C)) == spacetype(A) ||
         throw(SpaceMismatch("incompatible spacetypes"))
     if BraidingStyle(sectortype(S)) == Bosonic()
-        return trace_permute!(C, A, p, q, α, β, backend)
+        return trace_permute!(C, A, (p₁, p₂), (q₁, q₂), α, β, backend)
     end
     (N₃ = length(q₁)) == length(q₂) ||
         throw(IndexError("number of trace indices does not match"))
