@@ -268,7 +268,7 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     # map final splitting vertex (a, b)<-c to fusion vertex a<-(c, dual(b))
     @assert N₁ > 0
     c = f₁.coupled
-    a = N₁ == 1 ? one(I) : (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
+    a = N₁ == 1 ? leftone(f₁.uncoupled[1]) : (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
     b = f₁.uncoupled[N₁]
 
     uncoupled1 = TupleTools.front(f₁.uncoupled)
