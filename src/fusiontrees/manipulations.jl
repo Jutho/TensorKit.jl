@@ -339,7 +339,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
         hasmultiplicities = FusionStyle(a) isa GenericFusion
         local newtrees
         if N₁ == 1
-            cset = (one(c1),)
+            cset = (leftone(c1),) # or rightone(a)
         elseif N₁ == 2
             cset = (f₁.uncoupled[2],)
         else
