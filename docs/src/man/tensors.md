@@ -1139,7 +1139,7 @@ TensorKit.jl, and is true for any subcategory of ``\mathbf{Vect}``, i.e. ordinar
 possibly with some symmetry constraint. The case of ``\mathbf{SVect}`` and its
 subcategories, and more general categories, are discussed below.
 
-In the case of triival twists, we can deform the diagram such that we first combine every
+In the case of trivial twists, we can deform the diagram such that we first combine every
 morphism with a number of coevaluations ``η`` so as to represent it as a tensor, i.e. with a
 trivial domain. We can then rearrange the morphism to be all ligned up horizontally, where
 the original morphism compositions are now being performed by evaluations ``ϵ``. This
