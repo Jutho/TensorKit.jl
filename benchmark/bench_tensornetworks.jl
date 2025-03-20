@@ -1,164 +1,110 @@
-# --------------------------------------------------------------------------------------- #
 # mpo contraction
-# --------------------------------------------------------------------------------------- #
-function benchmark_mpo!(benchgroup, allparams::Dict)
-    haskey(benchgroup, "mpo") || addgroup!(benchgroup, "mpo")
-    bench = benchgroup["mpo"]
-
-    Ts = if haskey(allparams, "T")
-        Tparam = allparams["T"]
-        if Tparam isa String
-            [eval(Meta.parse(Tparam))]
-        else
-            eval.(Meta.parse.(Tparam))
-        end
-    else
-        [Float64]
-    end
-
-    @assert haskey(allparams, "spaces")
-    Vparam = allparams["spaces"]
-    @assert Vparam isa Vector
-
-    for spaces in Vparam
-        @assert haskey(spaces, "I")
-        I = eval(Meta.parse(spaces["I"]))
-
-        @assert haskey(spaces, "dims")
-        dims = spaces["dims"]
-
-        I == Trivial || haskey(spaces, "sigmas")
-        sigmas = I === Trivial ? fill(1, 3) : spaces["sigmas"]
-
-        for T in Ts, d in dims
-            benchmark_mpo!(bench, T, I, d, sigmas)
-        end
-    end
-
-    return nothing
-end
-function benchmark_mpo!(bench, T::Type{<:Number}, I::Type{<:Sector}, dims, sigmas)
-    Vmps, Vmpo, Vphys = generate_space.(I, dims, sigmas)
+# ---------------
+function init_mpo_tensors(T, (Vmps, Vmpo, Vphys))
     A = Tensor(randn, T, Vmps ⊗ Vphys ⊗ Vmps')
     M = Tensor(randn, T, Vmpo ⊗ Vphys ⊗ Vphys' ⊗ Vmpo')
     FL = Tensor(randn, T, Vmps ⊗ Vmpo' ⊗ Vmps')
     FR = Tensor(randn, T, Vmps ⊗ Vmpo ⊗ Vmps')
-    bench[T, Vmpo, Vmps, Vphys] = @benchmarkable benchmark_mpo($A, $M, $FL, $FR)
-    return nothing
+    return A, M, FL, FR
 end
+
 function benchmark_mpo(A, M, FL, FR)
-    return @tensor C = FL[4, 2, 1] * A[1, 3, 6] * M[2, 5, 3, 7] * conj(A[4, 5, 8]) *
-                       FR[6, 7, 8]
+    return @tensor FL[4, 2, 1] * A[1, 3, 6] * M[2, 5, 3, 7] * conj(A[4, 5, 8]) * FR[6, 7, 8]
 end
 
-# --------------------------------------------------------------------------------------- #
-# pepo contraction
-# --------------------------------------------------------------------------------------- #
-function benchmark_pepo!(benchgroup, allparams::Dict)
-    haskey(benchgroup, "pepo") || addgroup!(benchgroup, "pepo")
-    bench = benchgroup["pepo"]
-
-    Ts = if haskey(allparams, "T")
-        Tparam = allparams["T"]
-        if Tparam isa String
-            [eval(Meta.parse(Tparam))]
-        else
-            eval.(Meta.parse.(Tparam))
-        end
-    else
-        [Float64]
+function benchmark_mpo!(benchgroup, params::Dict)
+    haskey(benchgroup, "mpo") || addgroup!(benchgroup, "mpo")
+    bench = benchgroup["mpo"]
+    for kwargs in expand_kwargs(params)
+        benchmark_mpo!(bench; kwargs...)
     end
+    return nothing
+end
+function benchmark_mpo!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
+    T_ = parse_type(T)
+    I_ = parse_type(I)
 
-    @assert haskey(allparams, "spaces")
-    Vparam = allparams["spaces"]
-    @assert Vparam isa Vector
+    Vs = generate_space.(I_, dims, sigmas)
+    init() = init_mpo_tensors(T_, Vs)
 
-    for spaces in Vparam
-        @assert haskey(spaces, "I")
-        I = eval(Meta.parse(spaces["I"]))
-
-        @assert haskey(spaces, "dims")
-        dims = spaces["dims"]
-
-        I == Trivial || haskey(spaces, "sigmas")
-        sigmas = I === Trivial ? fill(1, 4) : spaces["sigmas"]
-
-        for T in Ts, d in dims
-            benchmark_pepo!(bench, T, I, d, sigmas)
-        end
-    end
+    bench[T, I, dims, sigmas] = @benchmarkable benchmark_mpo(A, M, FL, FR) setup = ((A, M, FL, FR) = $init())
 
     return nothing
 end
-function benchmark_pepo!(bench, T::Type{<:Number}, I::Type{<:Sector}, dims, sigmas)
-    Vpepo, Vpeps, Vphys, Venv = generate_space.(I, dims, sigmas)
+
+# pepo contraction
+# ----------------
+function init_pepo_tensors(T, (Vpeps, Vpepo, Vphys, Venv))
     A = Tensor(randn, T, Vpeps ⊗ Vpeps ⊗ Vphys ⊗ Vpeps' ⊗ Vpeps')
     P = Tensor(randn, T, Vpepo ⊗ Vpepo ⊗ Vphys ⊗ Vphys' ⊗ Vpepo' ⊗ Vpepo')
     FL = Tensor(randn, T, Venv ⊗ Vpeps ⊗ Vpepo' ⊗ Vpeps' ⊗ Venv')
     FD = Tensor(randn, T, Venv ⊗ Vpeps ⊗ Vpepo' ⊗ Vpeps' ⊗ Venv')
     FR = Tensor(randn, T, Venv ⊗ Vpeps ⊗ Vpepo ⊗ Vpeps' ⊗ Venv')
     FU = Tensor(randn, T, Venv ⊗ Vpeps ⊗ Vpepo ⊗ Vpeps' ⊗ Venv')
-    bench[T, Vpepo, Vpeps, Venv, Vphys] = @benchmarkable benchmark_pepo($A, $P, $FL, $FD,
-                                                                        $FR, $FU)
-    return nothing
+    return A, P, FL, FD, FR, FU
 end
+
 function benchmark_pepo(A, P, FL, FD, FR, FU)
-    @tensor C = FL[18, 7, 4, 2, 1] * FU[1, 3, 6, 9, 10] * A[2, 17, 5, 3, 11] *
-                P[4, 16, 8, 5, 6, 12] * conj(A[7, 15, 8, 9, 13]) * FR[10, 11, 12, 13, 14] *
-                FD[14, 15, 16, 17, 18]
+    return @tensor FL[18, 7, 4, 2, 1] * FU[1, 3, 6, 9, 10] * A[2, 17, 5, 3, 11] *
+                   P[4, 16, 8, 5, 6, 12] * conj(A[7, 15, 8, 9, 13]) *
+                   FR[10, 11, 12, 13, 14] * FD[14, 15, 16, 17, 18]
 end
 
-# --------------------------------------------------------------------------------------- #
-# mera contraction
-# --------------------------------------------------------------------------------------- #
-function benchmark_mera!(benchgroup, allparams::Dict)
-    haskey(benchgroup, "mera") || addgroup!(benchgroup, "mera")
-    bench = benchgroup["mera"]
-    Ts = if haskey(allparams, "T")
-        Tparam = allparams["T"]
-        if Tparam isa String
-            [eval(Meta.parse(Tparam))]
-        else
-            eval.(Meta.parse.(Tparam))
-        end
-    else
-        [Float64]
+function benchmark_pepo!(benchgroup, params::Dict)
+    haskey(benchgroup, "pepo") || addgroup!(benchgroup, "pepo")
+    bench = benchgroup["pepo"]
+    for kwargs in expand_kwargs(params)
+        benchmark_pepo!(bench; kwargs...)
     end
+    return nothing
+end
+function benchmark_pepo!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
+    T_ = parse_type(T)
+    I_ = parse_type(I)
 
-    @assert haskey(allparams, "spaces")
-    Vparam = allparams["spaces"]
-    @assert Vparam isa Vector
+    Vs = generate_space.(I_, dims, sigmas)
+    init() = init_pepo_tensors(T_, Vs)
 
-    for spaces in Vparam
-        @assert haskey(spaces, "I")
-        I = eval(Meta.parse(spaces["I"]))
-
-        @assert haskey(spaces, "dims")
-        dims = spaces["dims"]
-
-        I == Trivial || haskey(spaces, "sigmas")
-        sigmas = I === Trivial ? 1 : spaces["sigmas"]
-
-        for T in Ts, d in dims
-            benchmark_mera!(bench, T, I, d, sigmas)
-        end
-    end
+    bench[T, I, dims, sigmas] = @benchmarkable benchmark_pepo(A, P, FL, FD, FR, FU) setup = ((A, P, FL, FD, FR, FU) = $init())
 
     return nothing
 end
-function benchmark_mera!(bench, T::Type{<:Number}, I::Type{<:Sector}, dim, sigma)
-    V = generate_space(I, dim, sigma)
+
+# mera contraction
+# ----------------
+function init_mera_tensors(T, V)
     u = Tensor(randn, T, V ⊗ V ⊗ V' ⊗ V')
     w = Tensor(randn, T, V ⊗ V ⊗ V')
     ρ = Tensor(randn, T, V ⊗ V ⊗ V ⊗ V' ⊗ V' ⊗ V')
     h = Tensor(randn, T, V ⊗ V ⊗ V ⊗ V' ⊗ V' ⊗ V')
-    bench[T, V] = @benchmarkable benchmark_mera($u, $w, $ρ, $h)
+    return u, w, ρ, h
+end
+
+function benchmark_mera(u, w, ρ, h)
+    return @tensor (((((((h[9, 3, 4, 5, 1, 2] * u[1, 2, 7, 12]) * conj(u[3, 4, 11, 13])) *
+                        (u[8, 5, 15, 6] * w[6, 7, 19])) *
+                       (conj(u[8, 9, 17, 10]) * conj(w[10, 11, 22]))) *
+                      ((w[12, 14, 20] * conj(w[13, 14, 23])) * ρ[18, 19, 20, 21, 22, 23])) *
+                     w[16, 15, 18]) * conj(w[16, 17, 21]))
+end
+
+function benchmark_mera!(benchgroup, params::Dict)
+    haskey(benchgroup, "mera") || addgroup!(benchgroup, "mera")
+    bench = benchgroup["mera"]
+    for kwargs in expand_kwargs(params)
+        benchmark_mera!(bench; kwargs...)
+    end
     return nothing
 end
-function benchmark_mera(u, w, ρ, h)
-    @tensor C = (((((((h[9, 3, 4, 5, 1, 2] * u[1, 2, 7, 12]) * conj(u[3, 4, 11, 13])) *
-                     (u[8, 5, 15, 6] * w[6, 7, 19])) *
-                    (conj(u[8, 9, 17, 10]) * conj(w[10, 11, 22]))) *
-                   ((w[12, 14, 20] * conj(w[13, 14, 23])) * ρ[18, 19, 20, 21, 22, 23])) *
-                  w[16, 15, 18]) * conj(w[16, 17, 21]))
+
+function benchmark_mera!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
+    T_ = parse_type(T)
+    I_ = parse_type(I)
+
+    Vs = generate_space.(I_, dims, sigmas)
+    init() = init_mera_tensors(T_, Vs)
+
+    bench[T, I, dims, sigmas] = @benchmarkable benchmark_mera(u, w, ρ, h) setup = ((u, w, ρ, h) = $init())
+
+    return nothing
 end
