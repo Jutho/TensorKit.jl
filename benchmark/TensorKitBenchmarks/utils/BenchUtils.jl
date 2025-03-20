@@ -1,11 +1,9 @@
-# module BenchmarkUtils
-# Converting sizes to spaces
-#---------------------------
+module BenchUtils
 
-# export parse_type
-# export generate_space
+export parse_type, expand_kwargs
+export generate_space
 
-# using TensorKit
+using TensorKit
 
 parse_type(x::String) = eval(Meta.parse(x))
 
@@ -73,4 +71,4 @@ function generate_space(::Type{SU2Irrep}, D::Int, sigma::Real=0.5)
     return SU2Space((s => d for (s, d) in zip(sectors, dims))...)
 end
 
-# end
+end
