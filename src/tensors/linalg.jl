@@ -104,7 +104,7 @@ See also [`unitary`](@ref) when `InnerProductStyle(cod) === EuclideanInnerProduc
 
 function isomorphism!(t::AbstractTensorMap)
     domain(t) ≅ codomain(t) ||
-        throw(SpaceMismatch("domain and codomain are not isomorphic: $t"))
+        throw(SpaceMismatch(lazy"domain and codomain are not isomorphic: $(space(t))"))
     for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
@@ -153,7 +153,7 @@ function isometry!(t::AbstractTensorMap)
     InnerProductStyle(t) === EuclideanInnerProduct() ||
         throw_invalid_innerproduct(:isometry)
     domain(t) ≾ codomain(t) ||
-        throw(SpaceMismatch("domain and codomain are not isometrically embeddable: $t"))
+        throw(SpaceMismatch(lazy"domain and codomain are not isometrically embeddable: $(space(t))"))
     for (_, b) in blocks(t)
         MatrixAlgebra.one!(b)
     end
