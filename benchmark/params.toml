@@ -6,6 +6,8 @@
 # [group.benchmark.sector] headers separate different tensor definitions
 # parameters here are zipped
 
+# Linear Algebra
+# --------------
 [[linalg.mul]]
 T = ["Float64", "ComplexF64"]
 I = "Trivial"
@@ -27,6 +29,22 @@ dims = [[2, 2], [8, 8], [32, 32], [64, 64], [128, 128]]
 I = "Z2Irrep"
 dims = [[2, 2], [8, 8], [32, 32], [64, 64], [128, 128]]
 sigmas = [[0.5, 0.5]]
+
+# Index Manipulations
+# -------------------
+[[indexmanipulations.permute]]
+T = ["Float64"]
+I = "Trivial"
+p = [[[2, 1], []]]
+dims = [[7264, 7264], [43408, 1216]]
+
+[[indexmanipulations.permute]]
+T = ["Float64"]
+I = "Z2Irrep"
+p = [[[2, 1], []]]
+dims = [[7264, 7264], [43408, 1216]]
+sigmas = [[0.5, 0.5]]
+
 
 # [indexmanipulations.permute]
 #
@@ -91,3 +109,5 @@ sigmas = [[0.5, 0.5]]
 # I = "U1Irrep"
 # dims = [4, 8, 12, 16, 22, 28]
 # sigmas = 0.5
+# T = ["Float64", "ComplexF64"]
+# I = "Trivial"

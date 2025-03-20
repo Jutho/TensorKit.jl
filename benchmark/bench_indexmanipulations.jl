@@ -4,7 +4,7 @@
 function init_permute_tensors(T, W, p)
     C = randn(T, permute(W, p))
     A = randn(T, W)
-    return C, B
+    return C, A
 end
 function benchmark_permute!(benchgroup, params::Dict)
     haskey(benchgroup, "permute") || addgroup!(benchgroup, "permute")
@@ -14,20 +14,18 @@ function benchmark_permute!(benchgroup, params::Dict)
     end
     return nothing
 end
-function benchmark_permute!(bench, sigmas=nothing, T="Float64", I="Trivial", dims, p)
+function benchmark_permute!(bench; sigmas=nothing, T="Float64", I="Trivial", dims, p)
     T_ = parse_type(T)
     I_ = parse_type(I)
-    p_ = (tuple(p[1]), tuple(p[2]))
-    codomain = mapreduce(⊗, dims[1], sigmas[1:length(dims[1])]) do d, s
-        return generate_space(I_, d, s)
-    end
-    domain = mapreduce(⊗, dims[2], sigmas[(length(dims[1]) + 1):end]) do d, s
-        return generate_space(I_, d, s)
-    end
-    W = codomain ← domain
-    init() = init_permute_tensors(T_, W, p_)
 
-    bench[T, I, dims, sigmas, p] = @benchmarkable permute!(C, A, $p) setup = ((C, A) = $init())
+    p_ = (Tuple(p[1]), Tuple(p[2]))
+    Vs = generate_space.(I_, dims, sigmas)
+
+    codomain = mapreduce(Base.Fix1(getindex, Vs), ⊗, p_[1]; init=one(eltype(Vs)))
+    domain = mapreduce(Base.Fix1(getindex, Vs), ⊗, p_[2]; init=one(eltype(Vs)))
+    init() = init_permute_tensors(T_, codomain ← domain, p_)
+
+    bench[T, I, dims, sigmas, p] = @benchmarkable permute!(C, A, $p_) setup = ((C, A) = $init())
     return nothing
 end
 
