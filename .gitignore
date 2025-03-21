@@ -10,4 +10,4 @@ Manifest.toml
 experimental
 refs
 *.mathcha
-
+/benchmark/results/
