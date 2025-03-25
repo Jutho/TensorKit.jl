@@ -196,6 +196,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
             test_rrule(DiagonalTensorMap, D.data, D.domain)
             test_rrule(Base.getproperty, D, :data)
             test_rrule(Base.getproperty, D1, :data)
+
+            test_rrule(DiagonalTensorMap, rand!(T1))
+            test_rrule(DiagonalTensorMap, randn!(T))
         end
     end
 
