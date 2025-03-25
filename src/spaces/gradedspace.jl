@@ -90,9 +90,9 @@ Base.hash(V::GradedSpace, h::UInt) = hash(V.dual, hash(V.dims, h))
 # properties
 field(::Type{<:GradedSpace}) = ℂ
 InnerProductStyle(::Type{<:GradedSpace}) = EuclideanInnerProduct()
-function dim(V::GradedSpace)
+function dim(V::GradedSpace{I}) where {I<:Sector}
     return reduce(+, dim(V, c) * dim(c) for c in sectors(V);
-                  init=zero(dim(one(sectortype(V)))))
+                  init=zero(TensorKitSectors._Fscalartype(I)))
 end
 function dim(V::GradedSpace{I,<:AbstractDict}, c::I) where {I<:Sector}
     return get(V.dims, isdual(V) ? dual(c) : c, 0)
