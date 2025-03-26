@@ -92,7 +92,7 @@ field(::Type{<:GradedSpace}) = ℂ
 InnerProductStyle(::Type{<:GradedSpace}) = EuclideanInnerProduct()
 function dim(V::GradedSpace{I}) where {I<:Sector}
     return reduce(+, dim(V, c) * dim(c) for c in sectors(V);
-                  init=zero(TensorKitSectors._Fscalartype(I)))
+                  init=zero(sectorscalartype(I)))
 end
 function dim(V::GradedSpace{I,<:AbstractDict}, c::I) where {I<:Sector}
     return get(V.dims, isdual(V) ? dual(c) : c, 0)
