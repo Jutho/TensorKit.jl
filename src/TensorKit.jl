@@ -101,7 +101,11 @@ using TensorOperations: TensorOperations, @tensor, @tensoropt, @ncon, ncon
 using TensorOperations: IndexTuple, Index2Tuple, linearize, AbstractBackend
 const TO = TensorOperations
 
+using MatrixAlgebraKit: MatrixAlgebraKit as MAK
+
 using LRUCache
+using OhMyThreads
+using ScopedValues
 
 using TensorKitSectors
 import TensorKitSectors: dim, BraidingStyle, FusionStyle, ⊠, ⊗
@@ -114,7 +118,7 @@ using Base: @boundscheck, @propagate_inbounds, @constprop,
             SizeUnknown, HasLength, HasShape, IsInfinite, EltypeUnknown, HasEltype
 using Base.Iterators: product, filter
 
-using LinearAlgebra: LinearAlgebra
+using LinearAlgebra: LinearAlgebra, BlasFloat
 using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      axpy!, axpby!, lmul!, rmul!, mul!, ldiv!, rdiv!,
                      adjoint, adjoint!, transpose, transpose!,
@@ -122,6 +126,7 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      eigen, eigen!, svd, svd!,
                      isposdef, isposdef!, ishermitian, rank, cond,
                      Diagonal, Hermitian
+using MatrixAlgebraKit
 
 using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
 
@@ -185,6 +190,7 @@ include("spaces/vectorspaces.jl")
 #-------------------------------------
 # general definitions
 include("tensors/abstracttensor.jl")
+include("tensors/backends.jl")
 include("tensors/blockiterator.jl")
 include("tensors/tensor.jl")
 include("tensors/adjoint.jl")
@@ -195,6 +201,7 @@ include("tensors/treetransformers.jl")
 include("tensors/indexmanipulations.jl")
 include("tensors/diagonal.jl")
 include("tensors/truncation.jl")
+include("tensors/matrixalgebrakit.jl")
 include("tensors/factorizations.jl")
 include("tensors/braidingtensor.jl")
 
