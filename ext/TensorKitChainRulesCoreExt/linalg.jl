@@ -97,6 +97,14 @@ function ChainRulesCore.rrule(::typeof(norm), a::AbstractTensorMap, p::Real=2)
     return n, norm_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(inv), A::AbstractTensorMap)
+    Ainv = inv(A)
+    inv_pullback = let Ainv = Ainv
+        inv_pullback(ΔAinv) = NoTangent(), -Ainv' * unthunk(ΔAinv) * Ainv'
+    end
+    return Ainv, inv_pullback
+end
+
 function ChainRulesCore.rrule(::typeof(real), a::AbstractTensorMap)
     a_real = real(a)
     real_pullback(Δa) = NoTangent(), eltype(a) <: Real ? Δa : complex(unthunk(Δa))
