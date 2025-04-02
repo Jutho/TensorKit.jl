@@ -667,6 +667,12 @@ for V in spacelist
                     @test tanh(@constinferred atanh(t7)) ≈ t7
                     t8 = coth(t)
                     @test coth(@constinferred acoth(t8)) ≈ t8
+                    t = randn(T, W, V1) # not square
+                    for f in
+                        (cos, sin, tan, cot, cosh, sinh, tanh, coth, atan, acot, asinh,
+                         sqrt, log, asin, acos, acosh, atanh, acoth)
+                        @test_throws SpaceMismatch f(t)
+                    end
                 end
             end
         end
