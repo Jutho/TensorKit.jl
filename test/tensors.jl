@@ -668,6 +668,13 @@ for V in spacelist
                     t8 = coth(t)
                     @test coth(@constinferred acoth(t8)) ≈ t8
                 end
+
+                t = randn(T, W, V1) # not square
+                for f in
+                    (cos, sin, tan, cot, cosh, sinh, tanh, coth, atan, acot, asinh, sqrt,
+                     log, asin, acos, acosh, atanh, acoth)
+                    @test_throws SpaceMismatch f(t)
+                end
             end
         end
         @timedtestset "Sylvester equation" begin
