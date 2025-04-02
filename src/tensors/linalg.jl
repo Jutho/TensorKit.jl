@@ -444,7 +444,7 @@ for f in (:cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asi
     sf = string(f)
     @eval function Base.$f(t::AbstractTensorMap)
         domain(t) == codomain(t) ||
-            error("$sf of a tensor only exist when domain == codomain.")
+            throw(SpaceMismatch("`$($sf)` of a tensor only exist when domain == codomain"))
         T = float(scalartype(t))
         tf = similar(t, T)
         if T <: Real
@@ -464,7 +464,7 @@ for f in (:sqrt, :log, :asin, :acos, :acosh, :atanh, :acoth)
     sf = string(f)
     @eval function Base.$f(t::AbstractTensorMap)
         domain(t) == codomain(t) ||
-            error("$($sf) of a tensor only exist when domain == codomain.")
+            throw(SpaceMismatch("`$($sf)` of a tensor only exist when domain == codomain"))
         T = complex(float(scalartype(t)))
         tf = similar(t, T)
         for (c, b) in blocks(t)
