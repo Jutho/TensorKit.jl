@@ -272,6 +272,13 @@ function twist!(t::AbstractTensorMap, is; inv::Bool=false)
         throw(ArgumentError(msg))
     end
     (BraidingStyle(sectortype(t)) == Bosonic() || isempty(is)) && return t
+    if BraidingStyle(sectortype(t)) == NoBraiding()
+        for i in is
+            cs = sectors(space(t, i))
+            all(isone, cs) || throw(SectorMismatch(lazy"Cannot twist sectors $cs"))
+        end
+        return t
+    end
     N₁ = numout(t)
     for (f₁, f₂) in fusiontrees(t)
         θ = prod(i -> i <= N₁ ? twist(f₁.uncoupled[i]) : twist(f₂.uncoupled[i - N₁]), is)
