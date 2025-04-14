@@ -5,17 +5,19 @@
 
 Return a new tensor that is isomorphic to `t` but where the arrows on the indices `i` that satisfy
 `i ∈ I` are flipped, i.e. `space(t′, i) = flip(space(t, i))`.
+
+!!! note
+    The isomorphism that `flip` applies to each of the indices `i ∈ I` is such that flipping two indices
+    that are afterwards contracted within an `@tensor` contraction will yield the same result as without
+    flipping those indices first. However, `flip` is not involutary, i.e. `flip(flip(t, I), I) != t` in
+    general. To obtain the original tensor, one can use the `inv` keyword, i.e. it holds that
+    `flip(flip(t, I), I; inv=true) == t`.
 """
-function flip(t::AbstractTensorMap, I)
+function flip(t::AbstractTensorMap, I; inv::Bool=false)
     P = flip(space(t), I)
     t′ = similar(t, P)
     for (f₁, f₂) in fusiontrees(t)
-        f₁′, f₂′ = f₁, f₂
-        factor = one(scalartype(t))
-        for i in I
-            (f₁′, f₂′), s = only(flip(f₁′, f₂′, i))
-            factor *= s
-        end
+        (f₁′, f₂′), factor = only(flip(f₁, f₂, I; inv))
         scale!(t′[f₁′, f₂′], t[f₁, f₂], factor)
     end
     return t′

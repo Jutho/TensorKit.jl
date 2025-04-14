@@ -83,9 +83,9 @@ function ChainRulesCore.rrule(::typeof(twist), A::AbstractTensorMap, is; inv::Bo
     return tA, twist_pullback
 end
 
-function ChainRulesCore.rrule(::typeof(flip), A::AbstractTensorMap, is)
-    tA = flip(A, is)
-    flip_pullback(ΔA) = NoTangent(), flip(unthunk(ΔA), is), NoTangent()
+function ChainRulesCore.rrule(::typeof(flip), A::AbstractTensorMap, is; inv::Bool=false)
+    tA = flip(A, is; inv)
+    flip_pullback(ΔA) = NoTangent(), flip(unthunk(ΔA), is; inv=!inv), NoTangent()
     return tA, flip_pullback
 end
 
