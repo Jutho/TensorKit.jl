@@ -224,6 +224,9 @@ Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
         test_rrule(twist, A, 1)
         test_rrule(twist, A, [1, 3])
 
+        test_rrule(flip, A, 1)
+        test_rrule(flip, A, [1, 3, 4])
+
         D = randn(T, V[1] ⊗ V[2] ← V[3])
         E = randn(T, V[4] ← V[5])
         symmetricbraiding && test_rrule(⊗, D, E)
