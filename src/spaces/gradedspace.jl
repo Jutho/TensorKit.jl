@@ -189,16 +189,16 @@ end
 
 function Base.show(io::IO, V::GradedSpace{I}) where {I<:Sector}
     print(io, type_repr(typeof(V)), "(")
-    seperator = ""
+    separator = ""
     comma = ", "
     io2 = IOContext(io, :typeinfo => I)
     for c in sectors(V)
         if isdual(V)
-            print(io2, seperator, dual(c), "=>", dim(V, c))
+            print(io2, separator, dual(c), "=>", dim(V, c))
         else
-            print(io2, seperator, c, "=>", dim(V, c))
+            print(io2, separator, c, "=>", dim(V, c))
         end
-        seperator = comma
+        separator = comma
     end
     print(io, ")")
     V.dual && print(io, "'")
