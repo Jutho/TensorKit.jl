@@ -70,64 +70,29 @@ function TreeTransformer(transform::Function, Vsrc::HomSpace{S},
 end
 
 # braid is special because it has levels
-const treebraidercache = LRU{Any,Any}(; maxsize=10^5)
-const usetreebraidercache = Ref{Bool}(true)
-@noinline function _get_treebraider(A, key)
-    d::A = get!(treebraidercache, key) do
-        return _treebraider(key)
-    end
-    return d
-end
-function _treebraider((Vdst, Vsrc, p, levels))
-    fusiontreebraider(f1, f2) = braid(f1, f2, levels..., p...)
-    return TreeTransformer(fusiontreebraider, Vsrc, Vdst)
-end
-function treebraider(::AbstractTensorMap, ::AbstractTensorMap, p, levels)
+function treebraider(::AbstractTensorMap, ::AbstractTensorMap, p::Index2Tuple, levels)
     return fusiontreetransform(f1, f2) = braid(f1, f2, levels..., p...)
 end
-function treebraider(tdst::TensorMap, tsrc::TensorMap, p, levels)
-    if usetreebraidercache[]
-        key = (space(tdst), space(tsrc), p, levels)
-        A = treetransformertype(space(tdst), space(tsrc))
-        return _get_treebraider(A, key)
-    else
-        return _treebraider((space(tdst), space(tsrc), p, levels))
-    end
+@cached function treebraider(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple,
+                             levels)::treetransformertype(space(tdst),
+                                                          space(tsrc))
+    fusiontreebraider(f1, f2) = braid(f1, f2, levels..., p...)
+    return TreeTransformer(fusiontreebraider, space(tsrc), space(tdst))
 end
 
-for (transform, transformer) in
-    ((:permute, :permuter), (:transpose, :transposer))
-    treetransformcache = Symbol("tree", transformer, "cache")
-    usetreetransformcache = Symbol("usetree", transformer, "cache")
-    treetransformer = Symbol("tree", transformer)
-    _get_treetransformer = Symbol("_get_", treetransformer)
-    _treetransformer = Symbol("_", treetransformer)
-
+for (transform, treetransformer) in
+    ((:permute, :treepermuter), (:transpose, :treetransposer))
     @eval begin
-        const $treetransformcache = LRU{Any,Any}(; maxsize=10^5)
-        const $usetreetransformcache = Ref{Bool}(true)
-
         function $treetransformer(::AbstractTensorMap, ::AbstractTensorMap, p::Index2Tuple)
             return fusiontreetransform(f1, f2) = $transform(f1, f2, p...)
         end
-        function $treetransformer(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple)
-            if $usetreetransformcache[]
-                key = (space(tdst), space(tsrc), p)
-                A = treetransformertype(space(tdst), space(tsrc))
-                return $_get_treetransformer(A, key)
-            else
-                return $_treetransformer((space(tdst), space(tsrc), p))
-            end
-        end
-        @noinline function $_get_treetransformer(A, key)
-            d::A = get!($treetransformcache, key) do
-                return $_treetransformer(key)
-            end
-            return d
-        end
-        function $_treetransformer((Vdst, Vsrc, p))
+        @cached function $treetransformer(tdst::TensorMap, tsrc::TensorMap,
+                                          p::Index2Tuple)::treetransformertype(space(tdst),
+                                                                               space(tsrc))
             fusiontreetransform(f1, f2) = $transform(f1, f2, p...)
-            return TreeTransformer(fusiontreetransform, Vsrc, Vdst)
+            return TreeTransformer(fusiontreetransform, space(tsrc), space(tdst))
         end
     end
 end
+
+# default cachestyle is GlobalLRUCache
