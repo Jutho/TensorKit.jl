@@ -12,7 +12,7 @@ isomorphism classes of simple objects of a unitary and pivotal (pre-)fusion cate
 
 Here `dims` represents the degeneracy or multiplicity of every sector.
 
-The data structure `D` of `dims` will depend on the result `Base.IteratorElsize(values(I))`;
+The data structure `D` of `dims` will depend on the result `Base.IteratorSize(values(I))`;
 if the result is of type `HasLength` or `HasShape`, `dims` will be stored in a
 `NTuple{N,Int}` with `N = length(values(I))`. This requires that a sector `s::I` can be
 transformed into an index via `s == getindex(values(I), i)` and
