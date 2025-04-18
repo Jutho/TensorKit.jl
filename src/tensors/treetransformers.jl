@@ -73,11 +73,13 @@ end
 function treebraider(::AbstractTensorMap, ::AbstractTensorMap, p::Index2Tuple, levels)
     return fusiontreetransform(f1, f2) = braid(f1, f2, levels..., p...)
 end
-@cached function treebraider(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple,
-                             levels)::treetransformertype(space(tdst),
-                                                          space(tsrc))
+function treebraider(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple, levels)
+    return treebraider(space(tdst), space(tsrc), p, levels)
+end
+@cached function treebraider(Vdst::TensorMapSpace, Vsrc::TensorMapSpace, p::Index2Tuple,
+                             levels)::treetransformertype(Vdst, Vsrc)
     fusiontreebraider(f1, f2) = braid(f1, f2, levels..., p...)
-    return TreeTransformer(fusiontreebraider, space(tsrc), space(tdst))
+    return TreeTransformer(fusiontreebraider, Vdst, Vsrc)
 end
 
 for (transform, treetransformer) in
@@ -86,11 +88,13 @@ for (transform, treetransformer) in
         function $treetransformer(::AbstractTensorMap, ::AbstractTensorMap, p::Index2Tuple)
             return fusiontreetransform(f1, f2) = $transform(f1, f2, p...)
         end
-        @cached function $treetransformer(tdst::TensorMap, tsrc::TensorMap,
-                                          p::Index2Tuple)::treetransformertype(space(tdst),
-                                                                               space(tsrc))
+        function $treetransformer(tdst::TensorMap, tsrc::TensorMap, p::Index2Tuple)
+            return $treetransformer(space(tdst), space(tsrc), p)
+        end
+        @cached function $treetransformer(Vdst::TensorMapSpace, Vsrc::TensorMapSpace,
+                                          p::Index2Tuple)::treetransformertype(Vdst, Vsrc)
             fusiontreetransform(f1, f2) = $transform(f1, f2, p...)
-            return TreeTransformer(fusiontreetransform, space(tsrc), space(tdst))
+            return TreeTransformer(fusiontreetransform, Vdst, Vsrc)
         end
     end
 end
