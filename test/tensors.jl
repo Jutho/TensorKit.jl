@@ -736,6 +736,7 @@ for V in spacelist
             end
         end
     end
+    TensorKit.empty_globalcaches!()
 end
 
 @timedtestset "Deligne tensor product: test via conversion" begin

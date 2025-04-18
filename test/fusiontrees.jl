@@ -566,6 +566,7 @@ ti = time()
             end
         end
     end
+    TensorKit.empty_globalcaches!()
 end
 tf = time()
 printstyled("Finished fusion tree tests in ",
