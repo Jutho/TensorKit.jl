@@ -38,8 +38,8 @@ function treetransformertype(Vdst, Vsrc)
     end
 end
 
-function TreeTransformer(transform::Function, Vsrc::HomSpace{S},
-                         Vdst::HomSpace{S}) where {S}
+function TreeTransformer(transform::Function, Vdst::HomSpace{S},
+                         Vsrc::HomSpace{S}) where {S}
     I = sectortype(Vdst)
     I === Trivial && return TrivialTreeTransformer()
 
