@@ -297,8 +297,8 @@ corresponding spaces, but in general none of those will be canonical.
 There are also a number of convenience functions to create isomorphic spaces. The function
 `fuse(V1, V2, ...)` or `fuse(V1 ⊗ V2 ⊗ ...)` returns an elementary space that is isomorphic
 to `V1 ⊗ V2 ⊗ ...`. The function `flip(V::ElementarySpace)` returns a space that is
-isomorphic to `V` but has `isdual(flip(V)) == isdual(V')`, i.e. if `V` is a normal space
-than `flip(V)` is a dual space. `flip(V)` is different from `dual(V)` in the case of
+isomorphic to `V` but has `isdual(flip(V)) == isdual(V')`, i.e., if `V` is a normal space,
+then `flip(V)` is a dual space. `flip(V)` is different from `dual(V)` in the case of
 [`GradedSpace`](@ref). It is useful to flip a tensor index from a ket to a bra (or
 vice versa), by contracting that index with a unitary map from `V1` to `flip(V1)`. We refer
 to the reference on [vector space methods](@ref s_spacemethods) for further information.
