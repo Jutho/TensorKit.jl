@@ -83,6 +83,12 @@ function ChainRulesCore.rrule(::typeof(twist), A::AbstractTensorMap, is; inv::Bo
     return tA, twist_pullback
 end
 
+function ChainRulesCore.rrule(::typeof(flip), A::AbstractTensorMap, is; inv::Bool=false)
+    tA = flip(A, is; inv)
+    flip_pullback(ΔA) = NoTangent(), flip(unthunk(ΔA), is; inv=!inv), NoTangent()
+    return tA, flip_pullback
+end
+
 function ChainRulesCore.rrule(::typeof(dot), a::AbstractTensorMap, b::AbstractTensorMap)
     dot_pullback(Δd) = NoTangent(), @thunk(b * Δd'), @thunk(a * Δd)
     return dot(a, b), dot_pullback
@@ -95,6 +101,14 @@ function ChainRulesCore.rrule(::typeof(norm), a::AbstractTensorMap, p::Real=2)
         return NoTangent(), a * (Δn' + Δn) / 2 / hypot(n, eps(one(n))), NoTangent()
     end
     return n, norm_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(inv), A::AbstractTensorMap)
+    Ainv = inv(A)
+    inv_pullback = let Ainv = Ainv
+        inv_pullback(ΔAinv) = NoTangent(), -Ainv' * unthunk(ΔAinv) * Ainv'
+    end
+    return Ainv, inv_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(real), a::AbstractTensorMap)

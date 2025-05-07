@@ -5,17 +5,19 @@
 
 Return a new tensor that is isomorphic to `t` but where the arrows on the indices `i` that satisfy
 `i ∈ I` are flipped, i.e. `space(t′, i) = flip(space(t, i))`.
+
+!!! note
+    The isomorphism that `flip` applies to each of the indices `i ∈ I` is such that flipping two indices
+    that are afterwards contracted within an `@tensor` contraction will yield the same result as without
+    flipping those indices first. However, `flip` is not involutory, i.e. `flip(flip(t, I), I) != t` in
+    general. To obtain the original tensor, one can use the `inv` keyword, i.e. it holds that
+    `flip(flip(t, I), I; inv=true) == t`.
 """
-function flip(t::AbstractTensorMap, I)
+function flip(t::AbstractTensorMap, I; inv::Bool=false)
     P = flip(space(t), I)
     t′ = similar(t, P)
     for (f₁, f₂) in fusiontrees(t)
-        f₁′, f₂′ = f₁, f₂
-        factor = one(scalartype(t))
-        for i in I
-            (f₁′, f₂′), s = only(flip(f₁′, f₂′, i))
-            factor *= s
-        end
+        (f₁′, f₂′), factor = only(flip(f₁, f₂, I; inv))
         scale!(t′[f₁′, f₂′], t[f₁, f₂], factor)
     end
     return t′
@@ -272,6 +274,13 @@ function twist!(t::AbstractTensorMap, is; inv::Bool=false)
         throw(ArgumentError(msg))
     end
     (BraidingStyle(sectortype(t)) == Bosonic() || isempty(is)) && return t
+    if BraidingStyle(sectortype(t)) == NoBraiding()
+        for i in is
+            cs = sectors(space(t, i))
+            all(isone, cs) || throw(SectorMismatch(lazy"Cannot twist sectors $cs"))
+        end
+        return t
+    end
     N₁ = numout(t)
     for (f₁, f₂) in fusiontrees(t)
         θ = prod(i -> i <= N₁ ? twist(f₁.uncoupled[i]) : twist(f₂.uncoupled[i - N₁]), is)

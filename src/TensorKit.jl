@@ -61,7 +61,8 @@ export blocksectors, blockdim, block, blocks
 export randisometry, randisometry!, rand, rand!, randn, randn!
 
 # special purpose constructors
-export zero, one, one!, id, isomorphism, unitary, isometry
+export zero, one, one!, id, id!, isomorphism, isomorphism!, unitary, unitary!, isometry,
+       isometry!
 
 # reexport most of VectorInterface and some more tensor algebra
 export zerovector, zerovector!, zerovector!!, scale, scale!, scale!!, add, add!, add!!

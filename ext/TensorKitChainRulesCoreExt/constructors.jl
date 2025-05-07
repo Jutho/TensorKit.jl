@@ -47,6 +47,18 @@ function ChainRulesCore.rrule(::Type{<:DiagonalTensorMap}, data::DenseVector, ar
     return D, DiagonalTensorMap_pullback
 end
 
+function ChainRulesCore.rrule(::Type{DiagonalTensorMap}, t::AbstractTensorMap)
+    d = DiagonalTensorMap(t)
+    function DiagonalTensorMap_pullback(Δd_)
+        Δt = similar(t) # no projector needed
+        for (c, b) in blocks(unthunk(Δd_))
+            copy!(block(Δt, c), Diagonal(b))
+        end
+        return NoTangent(), Δt
+    end
+    return d, DiagonalTensorMap_pullback
+end
+
 function ChainRulesCore.rrule(::typeof(Base.getproperty), t::TensorMap, prop::Symbol)
     if prop === :data
         function getdata_pullback(Δdata)

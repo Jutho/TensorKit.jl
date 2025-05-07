@@ -324,6 +324,13 @@ for V in spacelist
                 @test HrA12array ≈ convert(Array, HrA12)
             end
         end
+        @timedtestset "Index flipping: test flipping inverse" begin
+            t = rand(ComplexF64, V1 ⊗ V1' ← V1' ⊗ V1)
+            for i in 1:4
+                @test t ≈ flip(flip(t, i), i; inv=true)
+                @test t ≈ flip(flip(t, i; inv=true), i)
+            end
+        end
         @timedtestset "Index flipping: test via explicit flip" begin
             t = rand(ComplexF64, V1 ⊗ V1' ← V1' ⊗ V1)
             F1 = unitary(flip(V1), V1)
@@ -667,6 +674,12 @@ for V in spacelist
                     @test tanh(@constinferred atanh(t7)) ≈ t7
                     t8 = coth(t)
                     @test coth(@constinferred acoth(t8)) ≈ t8
+                    t = randn(T, W, V1) # not square
+                    for f in
+                        (cos, sin, tan, cot, cosh, sinh, tanh, coth, atan, acot, asinh,
+                         sqrt, log, asin, acos, acosh, atanh, acoth)
+                        @test_throws SpaceMismatch f(t)
+                    end
                 end
             end
         end

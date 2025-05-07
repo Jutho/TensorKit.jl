@@ -244,23 +244,45 @@ end
 # -> A-move (foldleft, foldright) is complicated, needs to be reexpressed in standard form
 
 # flip a duality flag of a fusion tree
-function flip(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}, i::Int) where {I<:Sector,N₁,N₂}
+function flip(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}, i::Int;
+              inv::Bool=false) where {I<:Sector,N₁,N₂}
     @assert 0 < i ≤ N₁ + N₂
     if i ≤ N₁
         a = f₁.uncoupled[i]
-        fs = frobeniusschur(a) * twist(a)
-        factor = f₁.isdual[i] ? fs : one(fs)
+        χₐ = frobeniusschur(a)
+        θₐ = twist(a)
+        if !inv
+            factor = f₁.isdual[i] ? χₐ * θₐ : one(θₐ)
+        else
+            factor = f₁.isdual[i] ? one(θₐ) : χₐ * conj(θₐ)
+        end
         isdual′ = TupleTools.setindex(f₁.isdual, !f₁.isdual[i], i)
         f₁′ = FusionTree{I}(f₁.uncoupled, f₁.coupled, isdual′, f₁.innerlines, f₁.vertices)
         return SingletonDict((f₁′, f₂) => factor)
     else
         i -= N₁
         a = f₂.uncoupled[i]
-        factor = f₂.isdual[i] ? frobeniusschur(a) : twist(a)
+        χₐ = frobeniusschur(a)
+        θₐ = twist(a)
+        if !inv
+            factor = f₂.isdual[i] ? χₐ * one(θₐ) : θₐ
+        else
+            factor = f₂.isdual[i] ? conj(θₐ) : χₐ * one(θₐ)
+        end
         isdual′ = TupleTools.setindex(f₂.isdual, !f₂.isdual[i], i)
         f₂′ = FusionTree{I}(f₂.uncoupled, f₂.coupled, isdual′, f₂.innerlines, f₂.vertices)
         return SingletonDict((f₁, f₂′) => factor)
     end
+end
+function flip(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}, ind;
+              inv::Bool=false) where {I<:Sector,N₁,N₂}
+    f₁′, f₂′ = f₁, f₂
+    factor = one(sectorscalartype(I))
+    for i in ind
+        (f₁′, f₂′), s = only(flip(f₁′, f₂′, i; inv))
+        factor *= s
+    end
+    return SingletonDict((f₁′, f₂′) => factor)
 end
 
 # change to N₁ - 1, N₂ + 1
