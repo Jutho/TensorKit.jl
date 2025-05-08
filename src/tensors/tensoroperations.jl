@@ -52,7 +52,8 @@ end
 
 function TO.tensoradd_type(TC, A::AbstractTensorMap, ::Index2Tuple{N₁,N₂},
                            ::Bool) where {N₁,N₂}
-    Tnew = VectorInterface.promote_add(TC, scalartype(A), sectorscalartype(sectortype(A)))
+    sst = sectorscalartype(sectortype(A))
+    Tnew = sst <: Real ? TC : VectorInterface.promote_add(TC, scalartype(A), sst)
     M = similarstoragetype(A, Tnew)
     return tensormaptype(spacetype(A), N₁, N₂, M)
 end
@@ -114,9 +115,10 @@ function TO.tensorcontract_type(TC,
                                 A::AbstractTensorMap, ::Index2Tuple, ::Bool,
                                 B::AbstractTensorMap, ::Index2Tuple, ::Bool,
                                 ::Index2Tuple{N₁,N₂}) where {N₁,N₂}
-    Tnew = TensorOperations.promote_contract(TC, scalartype(A),
-                                             sectorscalartype(sectortype(A)),
-                                             scalartype(B), sectorscalartype(sectortype(B)))
+    sst(x) = sectorscalartype(sectortype(x))
+    Tnew = (sst(A) <: Real && sst(B) <: Real) ? TC :
+           TO.promote_contract(TC, scalartype(A), sst(A),
+                               scalartype(B), sst(B))
     M = similarstoragetype(A, Tnew)
     M == similarstoragetype(B, Tnew) ||
         throw(ArgumentError("incompatible storage types:\n$(M) ≠ $(similarstoragetype(B, Tnew))"))
