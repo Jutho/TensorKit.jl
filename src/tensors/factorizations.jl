@@ -268,6 +268,11 @@ function LinearAlgebra.isposdef(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
     return isposdef!(tcopy)
 end
 
+function isisometry(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
+    t = permute(t, (p₁, p₂); copy=false)
+    return isisometry(t)
+end
+
 function tsvd(t::AbstractTensorMap; kwargs...)
     tcopy = copy_oftype(t, float(scalartype(t)))
     return tsvd!(tcopy; kwargs...)
@@ -311,54 +316,64 @@ end
 #------------------------------------------------------------------------------------------
 const RealOrComplexFloat = Union{AbstractFloat,Complex{<:AbstractFloat}}
 
+function _reverse!(t::AbstractTensorMap; dims=:)
+    for (c, b) in blocks(t)
+        reverse!(b; dims)
+    end
+    return t
+end
+
 function leftorth!(t::TensorMap{<:RealOrComplexFloat};
                    alg::Union{QR,QRpos,QL,QLpos,SVD,SDD,Polar}=QRpos(),
                    atol::Real=zero(float(real(scalartype(t)))),
-                   rtol::Real=(alg ∉ (SVD(), SDD())) ? zero(float(real(scalartype(t)))) :
-                              eps(real(float(one(scalartype(t))))) * iszero(atol))
+                   rtol::Real=(alg ∉ (SVD(), SDD())) ?
+                              zero(float(real(scalartype(t)))) :
+                              eps(real(float(one(scalartype(t))))) *
+                              iszero(atol))
     InnerProductStyle(t) === EuclideanInnerProduct() ||
         throw_invalid_innerproduct(:leftorth!)
-    if !iszero(rtol)
-        atol = max(atol, rtol * norm(t))
-    end
-    I = sectortype(t)
-    dims = SectorDict{I,Int}()
-
-    # compute QR factorization for each block
-    if !isempty(blocks(t))
-        generator = Base.Iterators.map(blocks(t)) do (c, b)
-            Qc, Rc = MatrixAlgebra.leftorth!(b, alg, atol)
-            dims[c] = size(Qc, 2)
-            return c => (Qc, Rc)
-        end
-        QRdata = SectorDict(generator)
-    end
-
-    # construct new space
-    S = spacetype(t)
-    V = S(dims)
-    if alg isa Polar
-        @assert V ≅ domain(t)
-        W = domain(t)
-    elseif length(domain(t)) == 1 && domain(t) ≅ V
-        W = domain(t)
-    elseif length(codomain(t)) == 1 && codomain(t) ≅ V
-        W = codomain(t)
+    if alg == SVD() || alg == SDD()
+        return _leftorth!(t, alg; atol, rtol)
     else
-        W = ProductSpace(V)
+        (iszero(atol) && iszero(rtol)) ||
+            throw(ArgumentError("`leftorth!` with nonzero atol or rtol requires SVD or SDD algorithm"))
+        return _leftorth!(t, alg)
     end
+end
 
-    # construct output tensors
-    T = float(scalartype(t))
-    Q = similar(t, T, codomain(t) ← W)
-    R = similar(t, T, W ← domain(t))
-    if !isempty(blocks(t))
-        for (c, (Qc, Rc)) in QRdata
-            copy!(block(Q, c), Qc)
-            copy!(block(R, c), Rc)
-        end
+# this promotes the algorithm to a positional argument for type stability reasons
+# since polar has different number of output legs
+# TODO: this seems like duplication from MatrixAlgebraKit.left_orth!, but that function
+# only has its logic with the output already specified, which breaks for polar
+function _leftorth!(t::TensorMap{<:RealOrComplexFloat}, alg::Union{SVD,SDD}; atol::Real,
+                    rtol::Real)
+    alg′ = alg == SVD() ? MatrixAlgebraKit.LAPACK_QRIteration() :
+           MatrixAlgebraKit.LAPACK_DivideAndConquer()
+    alg_svd = BlockAlgorithm(alg′, default_blockscheduler(t))
+    if iszero(atol) && iszero(rtol)
+        U, S, Vᴴ = svd_compact!(t, alg_svd)
+        return U, lmul!(S, Vᴴ)
+    else
+        trunc = MatrixAlgebraKit.TruncationKeepAbove(atol, rtol)
+        alg_svd = MatrixAlgebraKit.select_algorithm(svd_trunc!, t; trunc,
+                                                    alg=alg_svd)
+
+        U, S, Vᴴ = svd_trunc!(t, alg_svd)
+        return U, lmul!(S, Vᴴ)
     end
+end
+function _leftorth!(t::TensorMap{<:RealOrComplexFloat}, alg::Union{QR,QRpos})
+    return qr_compact!(t; positive=alg == QRpos())
+end
+function _leftorth!(t::TensorMap{<:RealOrComplexFloat}, alg::Union{QL,QLpos})
+    _reverse!(t; dims=2)
+    Q, R = qr_compact!(t; positive=alg == QLpos())
+    _reverse!(Q; dims=2)
+    _reverse!(R)
     return Q, R
+end
+function _leftorth!(t::TensorMap{<:RealOrComplexFloat}, ::Polar)
+    return MatrixAlgebraKit.left_polar!(t)
 end
 
 function leftnull!(t::TensorMap{<:RealOrComplexFloat};
@@ -368,36 +383,26 @@ function leftnull!(t::TensorMap{<:RealOrComplexFloat};
                               eps(real(float(one(scalartype(t))))) * iszero(atol))
     InnerProductStyle(t) === EuclideanInnerProduct() ||
         throw_invalid_innerproduct(:leftnull!)
-    if !iszero(rtol)
-        atol = max(atol, rtol * norm(t))
-    end
-    I = sectortype(t)
-    dims = SectorDict{I,Int}()
 
-    # compute QR factorization for each block
-    V = codomain(t)
-    if !isempty(blocksectors(V))
-        generator = Base.Iterators.map(blocksectors(V)) do c
-            Nc = MatrixAlgebra.leftnull!(block(t, c), alg, atol)
-            dims[c] = size(Nc, 2)
-            return c => Nc
+    if alg == SVD() || alg == SDD()
+        kind = :svd
+        alg_svd = BlockAlgorithm(alg == SVD() ? MatrixAlgebraKit.LAPACK_QRIteration() :
+                                 MatrixAlgebraKit.LAPACK_DivideAndConquer(),
+                                 default_blockscheduler(t))
+        trunc = if iszero(atol) && iszero(rtol)
+            nothing
+        else
+            (; atol, rtol)
         end
-        Ndata = SectorDict(generator)
+        return left_null!(t; kind, alg_svd, trunc)
     end
 
-    # construct new space
-    S = spacetype(t)
-    W = S(dims)
+    (iszero(atol) && iszero(rtol)) ||
+        throw(ArgumentError("`leftnull!` with nonzero atol or rtol requires SVD or SDD algorithm"))
 
-    # construct output tensor
-    T = float(scalartype(t))
-    N = similar(t, T, V ← W)
-    if !isempty(blocksectors(V))
-        for (c, Nc) in Ndata
-            copy!(block(N, c), Nc)
-        end
-    end
-    return N
+    kind = :qr
+    alg_qr = (; positive=alg == QRpos())
+    return left_null!(t; kind, alg_qr)
 end
 
 function rightorth!(t::TensorMap{<:RealOrComplexFloat};
@@ -531,6 +536,13 @@ function tsvd!(t::AdjointTensorMap; trunc=NoTruncation(), p::Real=2, alg=SDD())
 end
 
 # implementation dispatches on algorithm
+function _tsvd!(t::TensorMap{<:BlasFloat}, alg::Union{SVD,SDD},
+                ::NoTruncation, p::Real=2)
+    scheduler = default_blockscheduler(t)
+    svd_alg = alg isa SDD ? LAPACK_DivideAndConquer() : LAPACK_QRIteration()
+    return MatrixAlgebraKit.svd_compact!(t; alg=BlockAlgorithm(svd_alg, scheduler))...,
+           zero(real(scalartype(t)))
+end
 function _tsvd!(t::TensorMap{<:RealOrComplexFloat}, alg::Union{SVD,SDD},
                 trunc::TruncationScheme, p::Real=2)
     # early return
@@ -617,50 +629,53 @@ function LinearAlgebra.eigvals!(t::AdjointTensorMap{<:RealOrComplexFloat}; kwarg
                       for (c, b) in blocks(t))
 end
 
-function eigh!(t::TensorMap{<:RealOrComplexFloat})
-    InnerProductStyle(t) === EuclideanInnerProduct() || throw_invalid_innerproduct(:eigh!)
-    domain(t) == codomain(t) ||
-        throw(SpaceMismatch("`eigh!` requires domain and codomain to be the same"))
+eigh!(t::TensorMap{<:RealOrComplexFloat}) = eigh_full!(t)
+eig!(t::TensorMap{<:RealOrComplexFloat}) = eig_full!(t)
 
-    T = scalartype(t)
-    I = sectortype(t)
-    S = spacetype(t)
-    dims = SectorDict{I,Int}(c => size(b, 1) for (c, b) in blocks(t))
-    W = S(dims)
+# function eigh!(t::TensorMap{<:RealOrComplexFloat})
+# InnerProductStyle(t) === EuclideanInnerProduct() || throw_invalid_innerproduct(:eigh!)
+# domain(t) == codomain(t) ||
+#     throw(SpaceMismatch("`eigh!` requires domain and codomain to be the same"))
 
-    Tr = real(T)
-    A = similarstoragetype(t, Tr)
-    D = DiagonalTensorMap{Tr,S,A}(undef, W)
-    V = similar(t, domain(t) ← W)
-    for (c, b) in blocks(t)
-        values, vectors = MatrixAlgebra.eigh!(b)
-        copy!(block(D, c), Diagonal(values))
-        copy!(block(V, c), vectors)
-    end
-    return D, V
-end
+# T = scalartype(t)
+# I = sectortype(t)
+# S = spacetype(t)
+# dims = SectorDict{I,Int}(c => size(b, 1) for (c, b) in blocks(t))
+# W = S(dims)
 
-function eig!(t::TensorMap{<:RealOrComplexFloat}; kwargs...)
-    domain(t) == codomain(t) ||
-        throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
+# Tr = real(T)
+# A = similarstoragetype(t, Tr)
+# D = DiagonalTensorMap{Tr,S,A}(undef, W)
+# V = similar(t, domain(t) ← W)
+# for (c, b) in blocks(t)
+#     values, vectors = MatrixAlgebra.eigh!(b)
+#     copy!(block(D, c), Diagonal(values))
+#     copy!(block(V, c), vectors)
+# end
+# return D, V
+# end
 
-    T = scalartype(t)
-    I = sectortype(t)
-    S = spacetype(t)
-    dims = SectorDict{I,Int}(c => size(b, 1) for (c, b) in blocks(t))
-    W = S(dims)
+# function eig!(t::TensorMap{<:RealOrComplexFloat}; kwargs...)
+#     domain(t) == codomain(t) ||
+#         throw(SpaceMismatch("`eig!` requires domain and codomain to be the same"))
 
-    Tc = complex(T)
-    A = similarstoragetype(t, Tc)
-    D = DiagonalTensorMap{Tc,S,A}(undef, W)
-    V = similar(t, Tc, domain(t) ← W)
-    for (c, b) in blocks(t)
-        values, vectors = MatrixAlgebra.eig!(b; kwargs...)
-        copy!(block(D, c), Diagonal(values))
-        copy!(block(V, c), vectors)
-    end
-    return D, V
-end
+#     T = scalartype(t)
+#     I = sectortype(t)
+#     S = spacetype(t)
+#     dims = SectorDict{I,Int}(c => size(b, 1) for (c, b) in blocks(t))
+#     W = S(dims)
+
+#     Tc = complex(T)
+#     A = similarstoragetype(t, Tc)
+#     D = DiagonalTensorMap{Tc,S,A}(undef, W)
+#     V = similar(t, Tc, domain(t) ← W)
+#     for (c, b) in blocks(t)
+#         values, vectors = MatrixAlgebra.eig!(b; kwargs...)
+#         copy!(block(D, c), Diagonal(values))
+#         copy!(block(V, c), vectors)
+#     end
+#     return D, V
+# end
 
 #--------------------------------------------------#
 # Checks for hermiticity and positive definiteness #
@@ -680,6 +695,15 @@ function LinearAlgebra.isposdef!(t::TensorMap)
     InnerProductStyle(spacetype(t)) === EuclideanInnerProduct() || return false
     for (c, b) in blocks(t)
         isposdef!(b) || return false
+    end
+    return true
+end
+
+# TODO: tolerances are per-block, not global or weighted - does that matter?
+function isisometry(t::AbstractTensorMap; kwargs...)
+    domain(t) ≾ codomain(t) || return false
+    for (_, b) in blocks(t)
+        MatrixAlgebra.isisometry(b; kwargs...) || return false
     end
     return true
 end
