@@ -150,6 +150,17 @@ function ⊕ end
 const oplus = ⊕
 
 """
+    ⊖(V::ElementarySpace, W::ElementarySpace) -> X::ElementarySpace
+    ominus(V::ElementarySpace, W::ElementarySpace) -> X::ElementarySpace
+
+Return the set difference of two elementary spaces, i.e. an instance `X::ElementarySpace`
+such that `V = W ⊕ X`.
+"""
+⊖(V₁::S, V₂::S) where {S<:ElementarySpace}
+⊖(V₁::VectorSpace, V₂::VectorSpace) = ⊖(promote(V₁, V₂)...)
+const ominus = ⊖
+
+"""
     ⊗(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace} -> S
 
 Create a [`ProductSpace{S}(V₁, V₂, V₃...)`](@ref) representing the tensor product of several
@@ -395,3 +406,4 @@ have the same value.
 function supremum(V₁::S, V₂::S, V₃::S...) where {S<:ElementarySpace}
     return supremum(supremum(V₁, V₂), V₃...)
 end
+
