@@ -44,7 +44,7 @@ function DiagonalTensorMap{T}(::UndefInitializer, V::TensorMapSpace) where {T}
 end
 function DiagonalTensorMap{T}(::UndefInitializer, V::ProductSpace) where {T}
     length(V) == 1 ||
-        throw(DimensionMismatch("length(V) = $(length(V)) is not compatible with the space $V"))
+        throw(DimensionMismatch("DiagonalTensorMap requires `numin(d) == numout(d) == 1`"))
     return DiagonalTensorMap{T}(undef, only(V))
 end
 function DiagonalTensorMap{T}(::UndefInitializer, V::S) where {T,S<:IndexSpace}
