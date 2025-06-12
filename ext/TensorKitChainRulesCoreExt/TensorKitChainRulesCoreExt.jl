@@ -12,7 +12,7 @@ import TensorOperations as TO
 using TensorOperations: promote_contract, tensoralloc_add, tensoralloc_contract
 using VectorInterface: promote_scale, promote_add
 
-using MatrixAlgebraKit: TruncationStrategy,
+using MatrixAlgebraKit: MatrixAlgebraKit, TruncationStrategy,
                         svd_compact_pullback!, eig_full_pullback!, eigh_full_pullback!
 
 include("utility.jl")
