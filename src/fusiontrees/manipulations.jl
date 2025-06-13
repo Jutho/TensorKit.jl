@@ -166,8 +166,8 @@ operation is the inverse of `insertat` in the sense that if
         return f₁, f₂
     elseif M === 0
         # TODO: evaluate diagrams to see which unit is used here
-        f₁ = FusionTree{I}((), one(I), (), ()) 
-        uncoupled2 = (one(I), f.uncoupled...) 
+        f₁ = FusionTree{I}((), one(I), (), ())
+        uncoupled2 = (one(I), f.uncoupled...)
         coupled2 = f.coupled
         isdual2 = (false, f.isdual...)
         innerlines2 = N >= 2 ? (f.uncoupled[1], f.innerlines...) : ()
@@ -290,7 +290,8 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     # map final splitting vertex (a, b)<-c to fusion vertex a<-(c, dual(b))
     @assert N₁ > 0
     c = f₁.coupled
-    a = N₁ == 1 ? leftone(f₁.uncoupled[1]) : (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
+    a = N₁ == 1 ? leftone(f₁.uncoupled[1]) :
+        (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
     b = f₁.uncoupled[N₁]
 
     uncoupled1 = TupleTools.front(f₁.uncoupled)
@@ -641,8 +642,8 @@ function planar_trace(f₁::FusionTree{I}, f₂::FusionTree{I},
     F₂ = fusiontreetype(I, N₂)
     newtrees = FusionTreeDict{Tuple{F₁,F₂},T}()
     for ((f₁′, f₂′), coeff′) in repartition(f₁, f₂, N)
-        for (f₁′′, coeff′′) in planar_trace(f₁′, q1′, q2′) # errors in this planar_trace first
-            for (f12′′′, coeff′′′) in transpose(f₁′′, f₂′, p1′, p2′) # for a different unit errors here
+        for (f₁′′, coeff′′) in planar_trace(f₁′, q1′, q2′)
+            for (f12′′′, coeff′′′) in transpose(f₁′′, f₂′, p1′, p2′)
                 coeff = coeff′ * coeff′′ * coeff′′′
                 if !iszero(coeff)
                     newtrees[f12′′′] = get(newtrees, f12′′′, zero(coeff)) + coeff
@@ -695,7 +696,7 @@ function planar_trace(f::FusionTree{I,N},
     q2′ = let i = i, j = j
         map(l -> (l - (l > i) - (l > j)), TupleTools.deleteat(q2, k))
     end
-    for (f′, coeff′) in elementary_trace(f, i) # errors then here
+    for (f′, coeff′) in elementary_trace(f, i)
         for (f′′, coeff′′) in planar_trace(f′, q1′, q2′)
             coeff = coeff′ * coeff′′
             if !iszero(coeff)
@@ -723,7 +724,7 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
     T = sectorscalartype(I)
     F = fusiontreetype(I, N - 2)
     newtrees = FusionTreeDict{F,T}()
-    _one = f.coupled # otherwise ArgumentError above thrown
+    _one = f.coupled
 
     j = mod1(i + 1, N)
     b = f.uncoupled[i]
@@ -731,7 +732,8 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
     # if trace is zero, return empty dict
     (b == dual(b′) && f.isdual[i] != f.isdual[j]) || return newtrees
     if i < N
-        inner_extended = (leftone(f.uncoupled[1]), f.uncoupled[1], f.innerlines..., f.coupled)
+        inner_extended = (leftone(f.uncoupled[1]), f.uncoupled[1], f.innerlines...,
+                          f.coupled)
         a = inner_extended[i]
         d = inner_extended[i + 2]
         a == d || return newtrees
