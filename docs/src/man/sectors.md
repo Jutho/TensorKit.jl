@@ -771,7 +771,7 @@ groups.
 
 Other methods for `ElementarySpace`, such as [`dual`](@ref), [`fuse`](@ref) and
 [`flip`](@ref) also work. In fact, `GradedSpace` is the reason `flip` exists, cause
-in this case it is different then `dual`. The existence of flip originates from the
+in this case it is different than `dual`. The existence of flip originates from the
 non-trivial isomorphism between ``R_{\overline{a}}`` and ``R_{a}^*``, i.e. the
 representation space of the dual ``\overline{a}`` of sector ``a`` and the dual of the
 representation space of sector ``a``. In order for `flip(V)` to be isomorphic to `V`, it is
