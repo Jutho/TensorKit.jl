@@ -225,7 +225,7 @@ morphism from ``I`` to ``V``. To map morphisms from ``\mathrm{Hom}(W,V)`` to ele
 ``V ⊗ W^*``, i.e. morphisms in ``\mathrm{Hom}(I, V ⊗ W^*)``, we use another morphism
 ``\mathrm{Hom}(I, W ⊗ W^*)`` which can be considered as the inverse of the evaluation map.
 
-Hence, duality in a monoidal category is defined via an *exact paring*, i.e. two families
+Hence, duality in a monoidal category is defined via an *exact pairing*, i.e. two families
 of non-degenerate morphisms, the evaluation (or co-unit) ``ϵ_V: {}^{∨}V ⊗ V → I`` and the
 coevaluation (or unit) ``η_V: I → V ⊗ {}^{∨}V`` which satisfy the "snake rules":
 
