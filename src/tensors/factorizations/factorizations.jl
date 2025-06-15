@@ -36,7 +36,7 @@ import MatrixAlgebraKit: select_algorithm,
                          left_null_svd!, right_null_svd!,
                          left_orth!, right_orth!, left_null!, right_null!,
                          truncate!, findtruncated, findtruncated_sorted,
-                         diagview
+                         diagview, isisometry
 
 include("utility.jl")
 include("interface.jl")
@@ -176,10 +176,7 @@ end
 # TODO: tolerances are per-block, not global or weighted - does that matter?
 function isisometry(t::AbstractTensorMap; kwargs...)
     domain(t) ≾ codomain(t) || return false
-    for (_, b) in blocks(t)
-        MatrixAlgebra.isisometry(b; kwargs...) || return false
-    end
-    return true
+    return all(x -> isisometry(x[2]; kwargs...), blocks(t))
 end
 
 end
