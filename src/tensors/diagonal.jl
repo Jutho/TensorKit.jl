@@ -37,6 +37,16 @@ storagetype(::Type{<:DiagonalTensorMap{T,S,A}}) where {T,S,A<:DenseVector{T}} = 
 
 Construct a `DiagonalTensorMap` with uninitialized data.
 """
+function DiagonalTensorMap{T}(::UndefInitializer, V::TensorMapSpace) where {T}
+    (numin(V) == numout(V) == 1 && domain(V) == codomain(V)) ||
+        throw(SpaceMismatch("DiagonalTensorMap requires a space with equal domain and codomain and 2 indices"))
+    return DiagonalTensorMap{T}(undef, domain(V))
+end
+function DiagonalTensorMap{T}(::UndefInitializer, V::ProductSpace) where {T}
+    length(V) == 1 ||
+        throw(DimensionMismatch("DiagonalTensorMap requires `numin(d) == numout(d) == 1`"))
+    return DiagonalTensorMap{T}(undef, only(V))
+end
 function DiagonalTensorMap{T}(::UndefInitializer, V::S) where {T,S<:IndexSpace}
     return DiagonalTensorMap{T,S,Vector{T}}(undef, V)
 end
@@ -265,6 +275,21 @@ function LinearAlgebra.mul!(dC::DiagonalTensorMap,
     return dC
 end
 
+function LinearAlgebra.lmul!(D::DiagonalTensorMap, t::AbstractTensorMap)
+    domain(D) == codomain(t) || throw(SpaceMismatch())
+    for (c, b) in blocks(t)
+        lmul!(block(D, c), b)
+    end
+    return t
+end
+function LinearAlgebra.rmul!(t::AbstractTensorMap, D::DiagonalTensorMap)
+    codomain(D) == domain(t) || throw(SpaceMismatch())
+    for (c, b) in blocks(t)
+        rmul!(b, block(D, c))
+    end
+    return t
+end
+
 Base.inv(d::DiagonalTensorMap) = DiagonalTensorMap(inv.(d.data), d.domain)
 function Base.:\(d1::DiagonalTensorMap, d2::DiagonalTensorMap)
     d1.domain == d2.domain || throw(SpaceMismatch())
@@ -289,54 +314,6 @@ function LinearAlgebra.pinv(d::DiagonalTensorMap; kwargs...)
 end
 function LinearAlgebra.isposdef(d::DiagonalTensorMap)
     return all(isposdef, d.data)
-end
-
-function eig!(d::DiagonalTensorMap)
-    return d, one(d)
-end
-function eigh!(d::DiagonalTensorMap{<:Real})
-    return d, one(d)
-end
-function eigh!(d::DiagonalTensorMap{<:Complex})
-    # TODO: should this test for hermiticity? `eigh!(::TensorMap)` also does not do this.
-    return DiagonalTensorMap(real(d.data), d.domain), one(d)
-end
-
-function leftorth!(d::DiagonalTensorMap; alg=QR(), kwargs...)
-    @assert alg isa Union{QR,QL}
-    return one(d), d # TODO: this is only correct for `alg = QR()` or `alg = QL()`
-end
-function rightorth!(d::DiagonalTensorMap; alg=LQ(), kwargs...)
-    @assert alg isa Union{LQ,RQ}
-    return d, one(d) # TODO: this is only correct for `alg = LQ()` or `alg = RQ()`
-end
-# not much to do here:
-leftnull!(d::DiagonalTensorMap; kwargs...) = leftnull!(TensorMap(d); kwargs...)
-rightnull!(d::DiagonalTensorMap; kwargs...) = rightnull!(TensorMap(d); kwargs...)
-
-function tsvd!(d::DiagonalTensorMap; trunc=NoTruncation(), p::Real=2, alg=SDD())
-    return _tsvd!(d, alg, trunc, p)
-end
-# helper function
-function _compute_svddata!(d::DiagonalTensorMap, alg::Union{SVD,SDD})
-    InnerProductStyle(d) === EuclideanInnerProduct() || throw_invalid_innerproduct(:tsvd!)
-    I = sectortype(d)
-    dims = SectorDict{I,Int}()
-    generator = Base.Iterators.map(blocks(d)) do (c, b)
-        lb = length(b.diag)
-        U = zerovector!(similar(b.diag, lb, lb))
-        V = zerovector!(similar(b.diag, lb, lb))
-        p = sortperm(b.diag; by=abs, rev=true)
-        for (i, pi) in enumerate(p)
-            U[pi, i] = MatrixAlgebra.safesign(b.diag[pi])
-            V[i, pi] = 1
-        end
-        Σ = abs.(view(b.diag, p))
-        dims[c] = lb
-        return c => (U, Σ, V)
-    end
-    SVDdata = SectorDict(generator)
-    return SVDdata, dims
 end
 
 # matrix functions
