@@ -42,11 +42,14 @@ represent objects in 𝕜-linear monoidal categories.
 abstract type VectorSpace end
 
 """
-    field(V::VectorSpace) -> Field
+    field(a) -> Type{𝔽<:Field}
+    field(::Type{T}) -> Type{𝔽<:Field}
 
-Return the field type over which a vector space is defined.
+Return the type of field over which object `a` (e.g. a vector space or a tensor) is defined.
+Also works in type domain.
 """
-function field end
+field(x) = field(typeof(x))
+field(::Type{T}) where {T} = field(spacetype(T))
 
 # Basic vector space methods
 #----------------------------
@@ -239,11 +242,14 @@ dual(::EuclideanInnerProduct, V::VectorSpace) = conj(V)
 
 """
     sectortype(a) -> Type{<:Sector}
+    sectortype(::Type) -> Type{<:Sector}
 
 Return the type of sector over which object `a` (e.g. a representation space or a tensor) is
 defined. Also works in type domain.
 """
-sectortype(V::VectorSpace) = sectortype(typeof(V))
+sectortype(x) = sectortype(typeof(x))
+sectortype(::Type{T}) where {T} = sectortype(spacetype(T))
+sectortype(::Type{S}) where {S<:Sector} = S
 
 """
     hassector(V::VectorSpace, a::Sector) -> Bool
@@ -272,18 +278,19 @@ abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
 InnerProductStyle(::Type{<:CompositeSpace{S}}) where {S} = InnerProductStyle(S)
 
+"""
+    spacetype(a) -> Type{S<:IndexSpace}
+    spacetype(::Type) -> Type{S<:IndexSpace}
+
+Return the type of the elementary space `S` of object `a` (e.g. a tensor). Also works in
+type domain.
+"""
 spacetype(x) = spacetype(typeof(x))
 function spacetype(::Type{T}) where {T}
-    throw(MethodError(spacetype, ("spacetype not defined for type $T",)))
+    throw(MethodError(spacetype, (T,)))
 end
 spacetype(S::Type{<:ElementarySpace}) = S
 spacetype(::Type{<:CompositeSpace{S}}) where {S} = S
-
-sectortype(x) = sectortype(typeof(x))
-sectortype(::Type{T}) where {T} = sectortype(spacetype(T))
-
-field(x) = field(typeof(x))
-field(::Type{T}) where {T} = field(spacetype(T))
 
 # make ElementarySpace instances behave similar to ProductSpace instances
 blocksectors(V::ElementarySpace) = collect(sectors(V))
