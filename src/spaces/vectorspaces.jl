@@ -289,8 +289,8 @@ spacetype(x) = spacetype(typeof(x))
 function spacetype(::Type{T}) where {T}
     throw(MethodError(spacetype, (T,)))
 end
-spacetype(S::Type{<:ElementarySpace}) = S
-spacetype(::Type{<:CompositeSpace{S}}) where {S} = S
+spacetype(::Type{E}) where {E<:ElementarySpace} = E
+spacetype(::Type{S}) where {E,S<:CompositeSpace{E}} = E
 
 # make ElementarySpace instances behave similar to ProductSpace instances
 blocksectors(V::ElementarySpace) = collect(sectors(V))
