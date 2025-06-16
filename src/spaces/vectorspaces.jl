@@ -47,7 +47,6 @@ abstract type VectorSpace end
 Return the field type over which a vector space is defined.
 """
 function field end
-field(V::VectorSpace) = field(typeof(V))
 
 # Basic vector space methods
 #----------------------------
@@ -102,7 +101,6 @@ of a homogeneous tensor product of these spaces.
 abstract type ElementarySpace <: VectorSpace end
 const IndexSpace = ElementarySpace
 
-field(V::ElementarySpace) = field(typeof(V))
 # field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
 
 @doc """
@@ -274,13 +272,18 @@ abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
 InnerProductStyle(::Type{<:CompositeSpace{S}}) where {S} = InnerProductStyle(S)
 
+spacetype(x) = spacetype(typeof(x))
+function spacetype(::Type{T}) where {T}
+    throw(MethodError(spacetype, ("spacetype not defined for type $T",)))
+end
 spacetype(S::Type{<:ElementarySpace}) = S
-spacetype(V::ElementarySpace) = typeof(V) # = spacetype(typeof(V))
 spacetype(::Type{<:CompositeSpace{S}}) where {S} = S
-spacetype(V::CompositeSpace) = spacetype(typeof(V)) # = spacetype(typeof(V))
 
-field(P::Type{<:CompositeSpace}) = field(spacetype(P))
-sectortype(P::Type{<:CompositeSpace}) = sectortype(spacetype(P))
+sectortype(x) = sectortype(typeof(x))
+sectortype(::Type{T}) where {T} = sectortype(spacetype(T))
+
+field(x) = field(typeof(x))
+field(::Type{T}) where {T} = field(spacetype(T))
 
 # make ElementarySpace instances behave similar to ProductSpace instances
 blocksectors(V::ElementarySpace) = collect(sectors(V))

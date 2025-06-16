@@ -190,10 +190,7 @@ end
 
 # tensor characteristics: work on instances and pass to type
 #------------------------------------------------------------
-spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
-sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
 InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
-field(t::AbstractTensorMap) = field(typeof(t))
 storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
 blocktype(t::AbstractTensorMap) = blocktype(typeof(t))
 similarstoragetype(t::AbstractTensorMap, T=scalartype(t)) = similarstoragetype(typeof(t), T)

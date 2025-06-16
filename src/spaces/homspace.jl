@@ -27,13 +27,7 @@ function Base.:(==)(W₁::HomSpace, W₂::HomSpace)
     return (W₁.codomain == W₂.codomain) && (W₁.domain == W₂.domain)
 end
 
-spacetype(W::HomSpace) = spacetype(typeof(W))
-sectortype(W::HomSpace) = sectortype(typeof(W))
-field(W::HomSpace) = field(typeof(W))
-
 spacetype(::Type{<:HomSpace{S}}) where {S} = S
-field(L::Type{<:HomSpace}) = field(spacetype(L))
-sectortype(L::Type{<:HomSpace}) = sectortype(spacetype(L))
 
 numout(W::HomSpace) = length(codomain(W))
 numin(W::HomSpace) = length(domain(W))
