@@ -98,7 +98,6 @@ FusionStyle(::Type{<:FusionTree{I}}) where {I<:Sector} = FusionStyle(I)
 BraidingStyle(::Type{<:FusionTree{I}}) where {I<:Sector} = BraidingStyle(I)
 Base.length(::Type{<:FusionTree{<:Sector,N}}) where {N} = N
 
-sectortype(f::FusionTree) = sectortype(typeof(f))
 FusionStyle(f::FusionTree) = FusionStyle(typeof(f))
 BraidingStyle(f::FusionTree) = BraidingStyle(typeof(f))
 Base.length(f::FusionTree) = length(typeof(f))
