@@ -231,7 +231,7 @@ function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
     return insertat(f, N₁ + 1, f₂)
 end
 function merge(f₁::FusionTree{I,0}, f₂::FusionTree{I,0}, c::I, μ) where {I}
-    isone(c) || # I had this as Nsymbol(f₁.coupled, f₂.coupled, c) > 0, valid?
+    Nsymbol(f₁.coupled, f₂.coupled, c) == μ == 1 ||
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
     return fusiontreedict(I)(f₁ => Fsymbol(c, c, c, c, c, c)[1, 1, 1, 1])
 end
