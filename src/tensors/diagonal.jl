@@ -265,6 +265,22 @@ function LinearAlgebra.mul!(dC::DiagonalTensorMap,
     return dC
 end
 
+function LinearAlgebra.lmul!(D::DiagonalTensorMap, t::AbstractTensorMap)
+    domain(D) == codomain(t) || throw(SpaceMismatch())
+    for (c, b) in blocks(t)
+        lmul!(block(D, c), b)
+    end
+    return t
+end
+
+function LinearAlgebra.rmul!(t::AbstractTensorMap, D::DiagonalTensorMap)
+    codomain(D) == domain(t) || throw(SpaceMismatch())
+    for (c, b) in blocks(t)
+        rmul!(b, block(D, c))
+    end
+    return t
+end
+
 Base.inv(d::DiagonalTensorMap) = DiagonalTensorMap(inv.(d.data), d.domain)
 function Base.:\(d1::DiagonalTensorMap, d2::DiagonalTensorMap)
     d1.domain == d2.domain || throw(SpaceMismatch())
