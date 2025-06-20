@@ -37,6 +37,16 @@ storagetype(::Type{<:DiagonalTensorMap{T,S,A}}) where {T,S,A<:DenseVector{T}} = 
 
 Construct a `DiagonalTensorMap` with uninitialized data.
 """
+function DiagonalTensorMap{T}(::UndefInitializer, V::TensorMapSpace) where {T}
+    (numin(V) == numout(V) == 1 && domain(V) == codomain(V)) ||
+        throw(SpaceMismatch("DiagonalTensorMap requires a space with equal domain and codomain and 2 indices"))
+    return DiagonalTensorMap{T}(undef, domain(V))
+end
+function DiagonalTensorMap{T}(::UndefInitializer, V::ProductSpace) where {T}
+    length(V) == 1 ||
+        throw(DimensionMismatch("DiagonalTensorMap requires `numin(d) == numout(d) == 1`"))
+    return DiagonalTensorMap{T}(undef, only(V))
+end
 function DiagonalTensorMap{T}(::UndefInitializer, V::S) where {T,S<:IndexSpace}
     return DiagonalTensorMap{T,S,Vector{T}}(undef, V)
 end
