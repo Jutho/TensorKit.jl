@@ -339,6 +339,13 @@ function _compute_svddata!(d::DiagonalTensorMap, alg::Union{SVD,SDD})
     return SVDdata, dims
 end
 
+function LinearAlgebra.svdvals(d::DiagonalTensorMap)
+    return SectorDict(c => LinearAlgebra.svdvals(b) for (c, b) in blocks(d))
+end
+function LinearAlgebra.svdvals!(d::DiagonalTensorMap)
+    return SectorDict(c => LinearAlgebra.svdvals!(b) for (c, b) in blocks(d))
+end
+
 # matrix functions
 for f in
     (:exp, :cos, :sin, :tan, :cot, :cosh, :sinh, :tanh, :coth, :atan, :acot, :asinh, :sqrt,
