@@ -135,6 +135,16 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
         @test u / t1 ≈ u / TensorMap(t1)
         @test t1 * u' ≈ TensorMap(t1) * u'
         @test t1 \ u' ≈ TensorMap(t1) \ u'
+
+        t3 = rand(Float64, V ← V^2)
+        t4 = rand(ComplexF64, V ← V^2)
+        @test t1 * t3 ≈ lmul!(t1, copy(t3))
+        @test t2 * t4 ≈ lmul!(t2, copy(t4))
+
+        t3 = rand(Float64, V^2 ← V)
+        t4 = rand(ComplexF64, V^2 ← V)
+        @test t3 * t1 ≈ rmul!(copy(t3), t1)
+        @test t4 * t2 ≈ rmul!(copy(t4), t2)
     end
     @timedtestset "Tensor contraction" begin
         d = DiagonalTensorMap(rand(ComplexF64, reduceddim(V)), V)
