@@ -175,6 +175,12 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
                 VdV2 = V2' * V2
                 @test VdV2 ≈ one(VdV2)
                 @test t2 * V2 ≈ V2 * D2
+
+                @test rank(D) ≈ rank(t)
+                @test cond(D) ≈ cond(t)
+                @test all(((s, t),) -> isapprox(s, t),
+                          zip(values(LinearAlgebra.eigvals(D)),
+                              values(LinearAlgebra.eigvals(t))))
             end
             @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QL())
                 Q, R = @constinferred leftorth(t; alg=alg)
@@ -201,6 +207,12 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
                 VdV = Vᴴ * Vᴴ'
                 @test VdV ≈ one(VdV)
                 @test U * S * Vᴴ ≈ t
+
+                @test rank(S) ≈ rank(t)
+                @test cond(S) ≈ cond(t)
+                @test all(((s, t),) -> isapprox(s, t),
+                          zip(values(LinearAlgebra.svdvals(S)),
+                              values(LinearAlgebra.svdvals(t))))
             end
         end
     end
