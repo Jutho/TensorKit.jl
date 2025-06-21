@@ -368,6 +368,10 @@ end
 function LinearAlgebra.svdvals(d::DiagonalTensorMap)
     return SectorDict(c => LinearAlgebra.svdvals(b) for (c, b) in blocks(d))
 end
+function LinearAlgebra.eigvals(d::DiagonalTensorMap)
+    return SectorDict(c => LinearAlgebra.eigvals(b) for (c, b) in blocks(d))
+end
+
 
 function LinearAlgebra.cond(d::DiagonalTensorMap, p::Real=2)
     return LinearAlgebra.cond(Diagonal(d.data), p)
