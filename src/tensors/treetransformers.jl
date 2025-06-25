@@ -94,9 +94,9 @@ function OuterTreeTransformer(transform, p, Vsrc, Vdst)
         fusiontrees_outer_dst = structure_dst.fusiontreelist[ids_dst]
 
         matrix = zeros(sectorscalartype(I), length(ids_dst), length(ids_src))
-        for (col, (f₁, f₂)) in enumerate(fusiontrees_outer_src)
+        for (row, (f₁, f₂)) in enumerate(fusiontrees_outer_src)
             for ((f₃, f₄), coeff) in transform(f₁, f₂)
-                row = findfirst(==((f₃, f₄)), fusiontrees_outer_dst)::Int
+                col = findfirst(==((f₃, f₄)), fusiontrees_outer_dst)::Int
                 matrix[row, col] = coeff
             end
         end
@@ -153,7 +153,7 @@ const usetreebraidercache = Ref{Bool}(true)
 end
 function _treebraider((Vdst, Vsrc, p, levels))
     fusiontreebraider(f1, f2) = braid(f1, f2, levels..., p...)
-    return TreeTransformer(fusiontreebraider, Vsrc, Vdst)
+    return TreeTransformer(fusiontreebraider, p, Vsrc, Vdst)
 end
 function treebraider(::AbstractTensorMap, ::AbstractTensorMap, p, levels)
     return fusiontreetransform(f1, f2) = braid(f1, f2, levels..., p...)
