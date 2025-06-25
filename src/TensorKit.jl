@@ -88,6 +88,9 @@ export scalar, add!, contract!
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace, truncbelow
 
+# cache management
+export empty_globalcaches!
+
 # Imports
 #---------
 using TupleTools
@@ -134,6 +137,7 @@ using PackageExtensionCompat
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
+include("auxiliary/caches.jl")
 include("auxiliary/dicts.jl")
 include("auxiliary/iterators.jl")
 include("auxiliary/linalg.jl")

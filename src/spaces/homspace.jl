@@ -233,18 +233,17 @@ struct FusionBlockStructure{I,N,F₁,F₂}
     fusiontreeindices::FusionTreeDict{Tuple{F₁,F₂},Int}
 end
 
-abstract type CacheStyle end
-struct NoCache <: CacheStyle end
-struct TaskLocalCache{D<:AbstractDict} <: CacheStyle end
-struct GlobalLRUCache <: CacheStyle end
-
-function CacheStyle(I::Type{<:Sector})
-    return GlobalLRUCache()
+function fusionblockstructuretype(W::HomSpace)
+    N₁ = length(codomain(W))
+    N₂ = length(domain(W))
+    N = N₁ + N₂
+    I = sectortype(W)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+    return FusionBlockStructure{I,N,F₁,F₂}
 end
 
-fusionblockstructure(W::HomSpace) = fusionblockstructure(W, CacheStyle(sectortype(W)))
-
-function fusionblockstructure(W::HomSpace, ::NoCache)
+@cached function fusionblockstructure(W::HomSpace)::fusionblockstructuretype(W)
     codom = codomain(W)
     dom = domain(W)
     N₁ = length(codom)
@@ -317,36 +316,8 @@ function _subblock_strides(subsz, sz, str)
     return Strided.StridedViews._computereshapestrides(subsz, sz_simplify...)
 end
 
-function fusionblockstructure(W::HomSpace, ::TaskLocalCache{D}) where {D}
-    cache::D = get!(task_local_storage(), :_local_tensorstructure_cache) do
-        return D()
-    end
-    N₁ = length(codomain(W))
-    N₂ = length(domain(W))
-    N = N₁ + N₂
-    I = sectortype(W)
-    F₁ = fusiontreetype(I, N₁)
-    F₂ = fusiontreetype(I, N₂)
-    structure::FusionBlockStructure{I,N,F₁,F₂} = get!(cache, W) do
-        return fusionblockstructure(W, NoCache())
-    end
-    return structure
-end
-
-const GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE = LRU{Any,Any}(; maxsize=10^4)
-# 10^4 different tensor spaces should be enough for most purposes
-function fusionblockstructure(W::HomSpace, ::GlobalLRUCache)
-    cache = GLOBAL_FUSIONBLOCKSTRUCTURE_CACHE
-    N₁ = length(codomain(W))
-    N₂ = length(domain(W))
-    N = N₁ + N₂
-    I = sectortype(W)
-    F₁ = fusiontreetype(I, N₁)
-    F₂ = fusiontreetype(I, N₂)
-    structure::FusionBlockStructure{I,N,F₁,F₂} = get!(cache, W) do
-        return fusionblockstructure(W, NoCache())
-    end
-    return structure
+function CacheStyle(::typeof(fusionblockstructure), W::HomSpace)
+    return GlobalLRUCache()
 end
 
 # Diagonal ranges

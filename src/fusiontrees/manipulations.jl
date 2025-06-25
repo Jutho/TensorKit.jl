@@ -526,10 +526,6 @@ function _recursive_repartition(f₁::FusionTree{I,N₁},
     end
 end
 
-# transpose double fusion tree
-const transposecache = LRU{Any,Any}(; maxsize=10^5)
-const usetransposecache = Ref{Bool}(true)
-
 """
     transpose(f₁::FusionTree{I}, f₂::FusionTree{I},
             p1::NTuple{N₁, Int}, p2::NTuple{N₂, Int}) where {I, N₁, N₂}
@@ -548,28 +544,24 @@ function Base.transpose(f₁::FusionTree{I}, f₂::FusionTree{I},
     @assert length(f₁) + length(f₂) == N
     p = linearizepermutation(p1, p2, length(f₁), length(f₂))
     @assert iscyclicpermutation(p)
-    if usetransposecache[]
-        T = sectorscalartype(I)
-        F₁ = fusiontreetype(I, N₁)
-        F₂ = fusiontreetype(I, N₂)
-        D = fusiontreedict(I){Tuple{F₁,F₂},T}
-        return _get_transpose(D, (f₁, f₂, p1, p2))
-    else
-        return _transpose((f₁, f₂, p1, p2))
-    end
+    return fstranspose((f₁, f₂, p1, p2))
 end
 
-@noinline function _get_transpose(::Type{D}, @nospecialize(key)) where {D}
-    d::D = get!(transposecache, key) do
-        return _transpose(key)
-    end
-    return d
+const FSTransposeKey{I<:Sector,N₁,N₂} = Tuple{<:FusionTree{I},<:FusionTree{I},
+                                              IndexTuple{N₁},IndexTuple{N₂}}
+
+function _fsdicttype(I, N₁, N₂)
+    F₁ = fusiontreetype(I, N₁)
+    F₂ = fusiontreetype(I, N₂)
+    T = sectorscalartype(I)
+    return fusiontreedict(I){Tuple{F₁,F₂},T}
 end
 
-const TransposeKey{I<:Sector,N₁,N₂} = Tuple{<:FusionTree{I},<:FusionTree{I},
-                                            IndexTuple{N₁},IndexTuple{N₂}}
-
-function _transpose((f₁, f₂, p1, p2)::TransposeKey{I,N₁,N₂}) where {I<:Sector,N₁,N₂}
+@cached function fstranspose(key::FSTransposeKey{I,N₁,N₂})::_fsdicttype(I, N₁,
+                                                                        N₂) where {I<:Sector,
+                                                                                   N₁,
+                                                                                   N₂}
+    f₁, f₂, p1, p2 = key
     N = N₁ + N₂
     p = linearizepermutation(p1, p2, length(f₁), length(f₂))
     newtrees = repartition(f₁, f₂, N₁)
@@ -609,6 +601,14 @@ function _transpose((f₁, f₂, p1, p2)::TransposeKey{I,N₁,N₂}) where {I<:S
         i1 = mod1(i1 + 1, N)
     end
     return newtrees
+end
+
+function CacheStyle(::typeof(fstranspose), k::FSTransposeKey{I}) where {I<:Sector}
+    if FusionStyle(I) isa UniqueFusion
+        return NoCache()
+    else
+        return GlobalLRUCache()
+    end
 end
 
 # COMPOSITE DUALITY MANIPULATIONS PART 2: Planar traces
@@ -1015,10 +1015,6 @@ function permute(f::FusionTree{I,N}, p::NTuple{N,Int}) where {I<:Sector,N}
 end
 
 # braid double fusion tree
-const braidcache = LRU{Any,Any}(; maxsize=10^5)
-const usebraidcache_abelian = Ref{Bool}(false)
-const usebraidcache_nonabelian = Ref{Bool}(true)
-
 """
     braid(f₁::FusionTree{I}, f₂::FusionTree{I},
             levels1::IndexTuple, levels2::IndexTuple,
@@ -1043,42 +1039,15 @@ function braid(f₁::FusionTree{I}, f₂::FusionTree{I},
     @assert length(f₁) + length(f₂) == N₁ + N₂
     @assert length(f₁) == length(levels1) && length(f₂) == length(levels2)
     @assert TupleTools.isperm((p1..., p2...))
-    if FusionStyle(f₁) isa UniqueFusion &&
-       BraidingStyle(f₁) isa SymmetricBraiding
-        if usebraidcache_abelian[]
-            T = Int # do we hardcode this ?
-            F₁ = fusiontreetype(I, N₁)
-            F₂ = fusiontreetype(I, N₂)
-            D = SingletonDict{Tuple{F₁,F₂},T}
-            return _get_braid(D, (f₁, f₂, levels1, levels2, p1, p2))
-        else
-            return _braid((f₁, f₂, levels1, levels2, p1, p2))
-        end
-    else
-        if usebraidcache_nonabelian[]
-            T = sectorscalartype(I)
-            F₁ = fusiontreetype(I, N₁)
-            F₂ = fusiontreetype(I, N₂)
-            D = FusionTreeDict{Tuple{F₁,F₂},T}
-            return _get_braid(D, (f₁, f₂, levels1, levels2, p1, p2))
-        else
-            return _braid((f₁, f₂, levels1, levels2, p1, p2))
-        end
-    end
+    return fsbraid((f₁, f₂, levels1, levels2, p1, p2))
 end
+const FSBraidKey{I<:Sector,N₁,N₂} = Tuple{<:FusionTree{I},<:FusionTree{I},
+                                          IndexTuple,IndexTuple,
+                                          IndexTuple{N₁},IndexTuple{N₂}}
 
-@noinline function _get_braid(::Type{D}, @nospecialize(key)) where {D}
-    d::D = get!(braidcache, key) do
-        return _braid(key)
-    end
-    return d
-end
-
-const BraidKey{I<:Sector,N₁,N₂} = Tuple{<:FusionTree{I},<:FusionTree{I},
-                                        IndexTuple,IndexTuple,
-                                        IndexTuple{N₁},IndexTuple{N₂}}
-
-function _braid((f₁, f₂, l1, l2, p1, p2)::BraidKey{I,N₁,N₂}) where {I<:Sector,N₁,N₂}
+@cached function fsbraid(key::FSBraidKey{I,N₁,N₂})::_fsdicttype(I, N₁,
+                                                                N₂) where {I<:Sector,N₁,N₂}
+    (f₁, f₂, l1, l2, p1, p2) = key
     p = linearizepermutation(p1, p2, length(f₁), length(f₂))
     levels = (l1..., reverse(l2)...)
     local newtrees
@@ -1095,6 +1064,14 @@ function _braid((f₁, f₂, l1, l2, p1, p2)::BraidKey{I,N₁,N₂}) where {I<:S
         end
     end
     return newtrees
+end
+
+function CacheStyle(::typeof(fsbraid), k::FSBraidKey{I}) where {I<:Sector}
+    if FusionStyle(I) isa UniqueFusion
+        return NoCache()
+    else
+        return GlobalLRUCache()
+    end
 end
 
 """

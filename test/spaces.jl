@@ -442,4 +442,5 @@ println("------------------------------------")
             @test_throws BoundsError insertleftunit(one(V1) ← V1, 0)
         end
     end
+    TensorKit.empty_globalcaches!()
 end
