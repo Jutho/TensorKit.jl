@@ -9,7 +9,7 @@ struct NoCache <: CacheStyle end
 struct TaskLocalCache{D<:AbstractDict} <: CacheStyle end
 struct GlobalLRUCache <: CacheStyle end
 
-const DEFAULT_GLOBALCACHE_SIZE = Ref(10^5)
+const DEFAULT_GLOBALCACHE_SIZE = Ref(10^4)
 
 function CacheStyle(args...)
     return GlobalLRUCache()
