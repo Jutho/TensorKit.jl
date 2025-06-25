@@ -485,23 +485,16 @@ end
 
 function add_transform_kernel!(tdst::TensorMap,
                                tsrc::TensorMap,
-                               (p₁, p₂)::Index2Tuple,
+                               p::Index2Tuple,
                                transformer::AbelianTreeTransformer,
                                α::Number,
                                β::Number,
                                backend::AbstractBackend...)
-    structure_dst = transformer.structure_dst.fusiontreestructure
-    structure_src = transformer.structure_src.fusiontreestructure
-
     # TODO: this could be multithreaded
-    for (row, col, val) in zip(transformer.rows, transformer.cols, transformer.vals)
-        sz_dst, str_dst, offset_dst = structure_dst[col]
-        subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
-
-        sz_src, str_src, offset_src = structure_src[row]
-        subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
-
-        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * val, β, backend...)
+    for (stridestructure_dst, stridestructure_src, coeff) in transformer.data
+        subblock_dst = StridedView(tdst.data, stridestructure_dst...)
+        subblock_src = StridedView(tsrc.data, stridestructure_src...)
+        TO.tensoradd!(subblock_dst, subblock_src, p, false, α * coeff, β, backend...)
     end
 
     return nothing
@@ -514,8 +507,8 @@ function add_transform_kernel!(tdst::TensorMap,
                                α::Number,
                                β::Number,
                                backend::AbstractBackend...)
-    structure_dst = transformer.structure_dst.fusiontreestructure
-    structure_src = transformer.structure_src.fusiontreestructure
+    structure_dst = transformer.structure_dst
+    structure_src = transformer.structure_src
 
     rows = rowvals(transformer.matrix)
     vals = nonzeros(transformer.matrix)
@@ -542,6 +535,53 @@ function add_transform_kernel!(tdst::TensorMap,
         end
     end
 
+    return tdst
+end
+
+function add_transform_kernel!(tdst::TensorMap,
+                               tsrc::TensorMap,
+                               p::Index2Tuple,
+                               transformer::OuterTreeTransformer,
+                               α::Number,
+                               β::Number,
+                               backend::AbstractBackend...)
+    # preallocate buffers - for now overshooting the size by assuming maximal value
+    buffer1 = similar(tsrc.data)
+    buffer2 = similar(buffer1)
+
+    # TODO: this could be multithreaded
+    for (basistransform, structures_dst, structures_src) in transformer.data
+        # Special case without intermediate buffers whenever there is only a single block
+        if length(basistransform) == 1
+            subblock_dst = StridedView(tdst.data, only(structures_dst)...)
+            subblock_src = StridedView(tsrc.data, only(structures_src)...)
+            TO.tensoradd!(subblock_dst, subblock_src, p, false, α * only(basistransform), β,
+                          backend...)
+            continue
+        end
+
+        rows, cols = size(basistransform)
+        sz_src = first(first(structures_src))
+        blocksize = prod(sz_src)
+
+        # Filling up a buffer with contiguous data
+        buffer_src = StridedView(buffer1, (blocksize, cols), (1, blocksize), 1)
+        for (i, structure_src) in enumerate(structures_src)
+            subblock_src = StridedView(tsrc.data, structure_src...)
+            copyto!(@view(buffer_src[:, i]), subblock_src)
+        end
+
+        # Resummation into a second buffer using BLAS
+        buffer_dst = StridedView(buffer2, (blocksize, rows), (1, blocksize), 1)
+        mul!(buffer_dst, buffer_src, basistransform)
+
+        # Filling up the output
+        for (i, structure_dst) in enumerate(structures_dst)
+            subblock_dst = StridedView(tdst.data, structure_dst...)
+            bufblock_dst = sreshape(@view(buffer_dst[:, i]), sz_src)
+            TO.tensoradd!(subblock_dst, bufblock_dst, p, false, One(), β)
+        end
+    end
     return tdst
 end
 
