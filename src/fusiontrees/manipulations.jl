@@ -550,7 +550,7 @@ end
 const FSTransposeKey{I<:Sector,N₁,N₂} = Tuple{<:FusionTree{I},<:FusionTree{I},
                                               IndexTuple{N₁},IndexTuple{N₂}}
 
-Base.@pure function _fsdicttype(I, N₁, N₂)
+function _fsdicttype(I, N₁, N₂)
     F₁ = fusiontreetype(I, N₁)
     F₂ = fusiontreetype(I, N₂)
     T = sectorscalartype(I)
