@@ -37,6 +37,16 @@ storagetype(::Type{<:DiagonalTensorMap{T,S,A}}) where {T,S,A<:DenseVector{T}} = 
 
 Construct a `DiagonalTensorMap` with uninitialized data.
 """
+function DiagonalTensorMap{T}(::UndefInitializer, V::TensorMapSpace) where {T}
+    (numin(V) == numout(V) == 1 && domain(V) == codomain(V)) ||
+        throw(ArgumentError("DiagonalTensorMap requires a space with equal domain and codomain and 2 indices"))
+    return DiagonalTensorMap{T}(undef, domain(V))
+end
+function DiagonalTensorMap{T}(::UndefInitializer, V::ProductSpace) where {T}
+    length(V) == 1 ||
+        throw(ArgumentError("DiagonalTensorMap requires `numin(d) == numout(d) == 1`"))
+    return DiagonalTensorMap{T}(undef, only(V))
+end
 function DiagonalTensorMap{T}(::UndefInitializer, V::S) where {T,S<:IndexSpace}
     return DiagonalTensorMap{T,S,Vector{T}}(undef, V)
 end
@@ -265,6 +275,22 @@ function LinearAlgebra.mul!(dC::DiagonalTensorMap,
     return dC
 end
 
+function LinearAlgebra.lmul!(D::DiagonalTensorMap, t::AbstractTensorMap)
+    domain(D) == codomain(t) || throw(SpaceMismatch())
+    for (c, b) in blocks(t)
+        lmul!(block(D, c), b)
+    end
+    return t
+end
+
+function LinearAlgebra.rmul!(t::AbstractTensorMap, D::DiagonalTensorMap)
+    codomain(D) == domain(t) || throw(SpaceMismatch())
+    for (c, b) in blocks(t)
+        rmul!(b, block(D, c))
+    end
+    return t
+end
+
 Base.inv(d::DiagonalTensorMap) = DiagonalTensorMap(inv.(d.data), d.domain)
 function Base.:\(d1::DiagonalTensorMap, d2::DiagonalTensorMap)
     d1.domain == d2.domain || throw(SpaceMismatch())
@@ -337,6 +363,17 @@ function _compute_svddata!(d::DiagonalTensorMap, alg::Union{SVD,SDD})
     end
     SVDdata = SectorDict(generator)
     return SVDdata, dims
+end
+
+function LinearAlgebra.svdvals(d::DiagonalTensorMap)
+    return SectorDict(c => LinearAlgebra.svdvals(b) for (c, b) in blocks(d))
+end
+function LinearAlgebra.eigvals(d::DiagonalTensorMap)
+    return SectorDict(c => LinearAlgebra.eigvals(b) for (c, b) in blocks(d))
+end
+
+function LinearAlgebra.cond(d::DiagonalTensorMap, p::Real=2)
+    return LinearAlgebra.cond(Diagonal(d.data), p)
 end
 
 # matrix functions
