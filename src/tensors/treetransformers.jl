@@ -114,9 +114,9 @@ function OuterTreeTransformer(transform, p, Vsrc, Vdst)
         fusiontrees_outer_dst = structure_dst.fusiontreelist[ids_dst]
 
         matrix = zeros(sectorscalartype(I), length(ids_dst), length(ids_src))
-        for (col, (f₁, f₂)) in enumerate(fusiontrees_outer_src)
+        for (row, (f₁, f₂)) in enumerate(fusiontrees_outer_src)
             for ((f₃, f₄), coeff) in transform(f₁, f₂)
-                row = findfirst(==((f₃, f₄)), fusiontrees_outer_dst)::Int
+                col = findfirst(==((f₃, f₄)), fusiontrees_outer_dst)::Int
                 matrix[row, col] = coeff
             end
         end
@@ -172,7 +172,7 @@ end
 @cached function treebraider(Vdst::TensorMapSpace, Vsrc::TensorMapSpace, p::Index2Tuple,
                              levels)::treetransformertype(Vdst, Vsrc)
     fusiontreebraider(f1, f2) = braid(f1, f2, levels..., p...)
-    return TreeTransformer(fusiontreebraider, Vdst, Vsrc)
+    return TreeTransformer(fusiontreebraider, p, Vdst, Vsrc)
 end
 
 for (transform, treetransformer) in
@@ -187,7 +187,7 @@ for (transform, treetransformer) in
         @cached function $treetransformer(Vdst::TensorMapSpace, Vsrc::TensorMapSpace,
                                           p::Index2Tuple)::treetransformertype(Vdst, Vsrc)
             fusiontreetransform(f1, f2) = $transform(f1, f2, p...)
-            return TreeTransformer(fusiontreetransform, Vsrc, Vdst)
+            return TreeTransformer(fusiontreetransform, p, Vsrc, Vdst)
         end
     end
 end
