@@ -5,8 +5,16 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
 @testset "DiagonalTensor with domain $V" for V in diagspacelist
     @timedtestset "Basic properties and algebra" begin
         for T in (Float32, Float64, ComplexF32, ComplexF64, BigFloat)
+            # constructors
             t = @constinferred DiagonalTensorMap{T}(undef, V)
             t = @constinferred DiagonalTensorMap(rand(T, reduceddim(V)), V)
+            t2 = @constinferred DiagonalTensorMap{T}(undef, space(t))
+            @test space(t2) == space(t)
+            @test_throws ArgumentError DiagonalTensorMap{T}(undef, V^2 ← V)
+            t2 = @constinferred DiagonalTensorMap{T}(undef, domain(t))
+            @test space(t2) == space(t)
+            @test_throws ArgumentError DiagonalTensorMap{T}(undef, V^2)
+            # properties
             @test @constinferred(hash(t)) == hash(deepcopy(t))
             @test scalartype(t) == T
             @test codomain(t) == ProductSpace(V)
