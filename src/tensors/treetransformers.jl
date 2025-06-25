@@ -7,42 +7,40 @@ abstract type TreeTransformer end
 
 struct TrivialTreeTransformer <: TreeTransformer end
 
-struct AbelianTreeTransformer{T,I,N,F1,F2,F3,F4} <: TreeTransformer
-    rows::Vector{Int}
-    cols::Vector{Int}
-    vals::Vector{T}
-    structure_dst::FusionBlockStructure{I,N,F1,F2}
-    structure_src::FusionBlockStructure{I,N,F3,F4}
+struct AbelianTreeTransformer{T,N} <: TreeTransformer
+    data::Vector{Tuple{StridedStructure{N},StridedStructure{N},T}}
 end
 
-struct GenericTreeTransformer{T,I,N,F1,F2,F3,F4} <: TreeTransformer
-    matrix::SparseMatrixCSC{T,Int}
-    structure_dst::FusionBlockStructure{I,N,F1,F2}
-    structure_src::FusionBlockStructure{I,N,F3,F4}
-end
+function AbelianTreeTransformer(transform, p, Vsrc, Vdst)
+    permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
+    structure_dst = fusionblockstructure(Vdst)
+    structure_src = fusionblockstructure(Vsrc)
 
-function treetransformertype(Vdst, Vsrc)
-    I = sectortype(Vdst)
-    I === Trivial && return TrivialTreeTransformer
+    L = length(structure_src.fusiontreelist)
+    T = sectorscalartype(sectortype(Vdst))
+    N = numind(Vsrc)
+    data = Vector{Tuple{StridedStructure{N},StridedStructure{N},T}}(undef, L)
 
-    N = numind(Vdst)
-    F1 = fusiontreetype(I, numout(Vdst))
-    F2 = fusiontreetype(I, numin(Vdst))
-    F3 = fusiontreetype(I, numout(Vsrc))
-    F4 = fusiontreetype(I, numin(Vsrc))
-
-    if FusionStyle(I) isa UniqueFusion
-        return AbelianTreeTransformer{sectorscalartype(I),I,N,F1,F2,F3,F4}
-    else
-        return GenericTreeTransformer{sectorscalartype(I),I,N,F1,F2,F3,F4}
+    for i in 1:L
+        f₁, f₂ = structure_src.fusiontreelist[i]
+        (f₃, f₄), coeff = only(transform(f₁, f₂))
+        j = structure_dst.fusiontreeindices[(f₃, f₄)]
+        stridestructure_dst = structure_dst.fusiontreestructure[j]
+        stridestructure_src = structure_src.fusiontreestructure[i]
+        data[i] = (stridestructure_dst, stridestructure_src, coeff)
     end
+
+    return AbelianTreeTransformer(data)
 end
 
-function TreeTransformer(transform::Function, Vsrc::HomSpace{S},
-                         Vdst::HomSpace{S}) where {S}
-    I = sectortype(Vdst)
-    I === Trivial && return TrivialTreeTransformer()
+struct GenericTreeTransformer{T,N} <: TreeTransformer
+    matrix::SparseMatrixCSC{T,Int}
+    structure_dst::Vector{StridedStructure{N}}
+    structure_src::Vector{StridedStructure{N}}
+end
 
+function GenericTreeTransformer(transform, p, Vsrc, Vdst)
+    permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
     structure_dst = fusionblockstructure(Vdst)
     structure_src = fusionblockstructure(Vsrc)
 
@@ -58,14 +56,89 @@ function TreeTransformer(transform::Function, Vsrc::HomSpace{S},
             push!(vals, coeff)
         end
     end
+    ldst = length(structure_dst.fusiontreelist)
+    lsrc = length(structure_src.fusiontreelist)
+    matrix = sparse(rows, cols, vals, ldst, lsrc)
 
-    if FusionStyle(I) isa UniqueFusion
-        return AbelianTreeTransformer(rows, cols, vals, structure_dst, structure_src)
+    return GenericTreeTransformer(matrix,
+                                  structure_dst.fusiontreestructure,
+                                  structure_src.fusiontreestructure)
+end
+
+struct OuterTreeTransformer{T,N} <: TreeTransformer
+    data::Vector{Tuple{Matrix{T},Vector{StridedStructure{N}},Vector{StridedStructure{N}}}}
+end
+
+function OuterTreeTransformer(transform, p, Vsrc, Vdst)
+    permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
+    structure_dst = fusionblockstructure(Vdst)
+    structure_src = fusionblockstructure(Vsrc)
+    I = sectortype(Vsrc)
+
+    uncoupleds_src = map(structure_src.fusiontreelist) do (f₁, f₂)
+        return TupleTools.vcat(f₁.uncoupled, f₂.uncoupled)
+    end
+    uncoupleds_src_unique = unique(uncoupleds_src)
+
+    uncoupleds_dst = map(structure_dst.fusiontreelist) do (f₁, f₂)
+        return TupleTools.vcat(f₁.uncoupled, f₂.uncoupled)
+    end
+
+    outer_data = map(uncoupleds_src_unique) do uncoupled
+        ids_src = findall(==(uncoupled), uncoupleds_src)
+        fusiontrees_outer_src = structure_src.fusiontreelist[ids_src]
+
+        uncoupled_dst = TupleTools.getindices(uncoupled, (p[1]..., p[2]...))
+        ids_dst = findall(==(uncoupled_dst), uncoupleds_dst)
+
+        fusiontrees_outer_dst = structure_dst.fusiontreelist[ids_dst]
+
+        matrix = zeros(sectorscalartype(I), length(ids_dst), length(ids_src))
+        for (col, (f₁, f₂)) in enumerate(fusiontrees_outer_src)
+            for ((f₃, f₄), coeff) in transform(f₁, f₂)
+                row = findfirst(==((f₃, f₄)), fusiontrees_outer_dst)::Int
+                matrix[row, col] = coeff
+            end
+        end
+
+        return (matrix,
+                structure_dst.fusiontreestructure[ids_dst],
+                structure_src.fusiontreestructure[ids_src])
+    end
+    return OuterTreeTransformer(outer_data)
+end
+
+useouter() = true
+
+function treetransformertype(Vdst, Vsrc)
+    I = sectortype(Vdst)
+    I === Trivial && return TrivialTreeTransformer
+
+    T = sectorscalartype(I)
+    N = numind(Vdst)
+    if useouter()
+        return FusionStyle(I) == UniqueFusion() ? AbelianTreeTransformer{T,N} :
+               OuterTreeTransformer{T,N}
     else
-        ldst = length(structure_dst.fusiontreelist)
-        lsrc = length(structure_src.fusiontreelist)
-        matrix = sparse(rows, cols, vals, ldst, lsrc)
-        return GenericTreeTransformer(matrix, structure_dst, structure_src)
+        return FusionStyle(I) == UniqueFusion() ? AbelianTreeTransformer{T,N} :
+               GenericTreeTransformer{T,N}
+    end
+end
+
+function TreeTransformer(transform::Function, p, Vsrc::HomSpace{S},
+                         Vdst::HomSpace{S}) where {S}
+    permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
+
+    I = sectortype(Vdst)
+    I === Trivial && return TrivialTreeTransformer()
+
+    FusionStyle(I) == UniqueFusion() &&
+        return AbelianTreeTransformer(transform, p, Vsrc, Vdst)
+
+    if useouter()
+        return OuterTreeTransformer(transform, p, Vsrc, Vdst)
+    else
+        return GenericTreeTransformer(transform, p, Vsrc, Vdst)
     end
 end
 
@@ -127,7 +200,7 @@ for (transform, transformer) in
         end
         function $_treetransformer((Vdst, Vsrc, p))
             fusiontreetransform(f1, f2) = $transform(f1, f2, p...)
-            return TreeTransformer(fusiontreetransform, Vsrc, Vdst)
+            return TreeTransformer(fusiontreetransform, p, Vsrc, Vdst)
         end
     end
 end
