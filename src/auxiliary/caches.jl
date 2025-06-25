@@ -1,7 +1,13 @@
-const GLOBAL_CACHES = Any[]
+const GLOBAL_CACHES = Pair{Symbol,Any}[]
 function empty_globalcaches!()
-    foreach(empty!, GLOBAL_CACHES)
+    foreach(empty! ∘ last, GLOBAL_CACHES)
     return nothing
+end
+
+function global_cache_info(io::IO=stdout)
+    for (name, cache) in GLOBAL_CACHES
+        println(io, name, ":\t", LRUCache.cache_info(cache))
+    end
 end
 
 abstract type CacheStyle end
@@ -140,7 +146,8 @@ macro cached(ex)
     fglobalcachedef = Expr(:const,
                            Expr(:(=), globalcachename,
                                 :(LRU{Any,Any}(; maxsize=DEFAULT_GLOBALCACHE_SIZE[]))))
-    fglobalcacheregister = Expr(:call, :push!, :GLOBAL_CACHES, globalcachename)
+    fglobalcacheregister = Expr(:call, :push!, :GLOBAL_CACHES,
+                                :($(QuoteNode(globalcachename)) => $globalcachename))
 
     # # total expression
     return esc(Expr(:block, _fex, newfex, fnocacheex, flocalcacheex,
