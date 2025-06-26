@@ -125,7 +125,16 @@ function OuterTreeTransformer(transform, p, Vsrc, Vdst)
                 structure_dst.fusiontreestructure[ids_dst],
                 structure_src.fusiontreestructure[ids_src])
     end
+
+    # sort by (approximate) weight to make the buffers happy
+    # and use round-robin strategy for multi-threading
+    sort!(outer_data; by=_transformer_weight, rev=true)
+
     return OuterTreeTransformer(outer_data)
+end
+
+function _transformer_weight((matrix, structures_dst, structures_src))
+    return size(matrix, 1) * prod(structures_dst[1][1])
 end
 
 useouter() = true
