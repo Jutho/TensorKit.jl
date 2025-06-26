@@ -546,8 +546,8 @@ function add_transform_kernel!(tdst::TensorMap,
                                β::Number,
                                backend::AbstractBackend...)
     # preallocate buffers - for now overshooting the size by assuming maximal value
-    buffer1 = similar(tsrc.data)
-    buffer2 = similar(buffer1)
+    buffer1 = eltype(tsrc.data)[]
+    buffer2 = eltype(tsrc.data)[]
 
     # TODO: this could be multithreaded
     for (basistransform, structures_dst, structures_src) in transformer.data
@@ -565,14 +565,16 @@ function add_transform_kernel!(tdst::TensorMap,
         blocksize = prod(sz_src)
 
         # Filling up a buffer with contiguous data
-        buffer_src = StridedView(buffer1, (blocksize, cols), (1, blocksize), 1)
+        resize!(buffer1, blocksize * cols) # ensure large enough
+        buffer_src = StridedView(buffer1, (blocksize, cols), (1, blocksize), 0)
         for (i, structure_src) in enumerate(structures_src)
             subblock_src = StridedView(tsrc.data, structure_src...)
             copyto!(@view(buffer_src[:, i]), subblock_src)
         end
 
         # Resummation into a second buffer using BLAS
-        buffer_dst = StridedView(buffer2, (blocksize, rows), (1, blocksize), 1)
+        resize!(buffer2, blocksize * rows) # ensure large enough
+        buffer_dst = StridedView(buffer2, (blocksize, rows), (1, blocksize), 0)
         mul!(buffer_dst, buffer_src, basistransform)
 
         # Filling up the output
