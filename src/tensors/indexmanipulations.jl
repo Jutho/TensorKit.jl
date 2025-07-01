@@ -546,8 +546,9 @@ function add_transform_kernel!(tdst::TensorMap,
                                β::Number,
                                backend::AbstractBackend...)
     # preallocate buffers
-    basistransform, structures_dst, _ = first(transformer.data)
-    buffersize = size(basistransform, 1) * prod(structures_dst[1][1])
+    buffersize = maximum(transformer.data) do (_, structures_dst, _)
+        return prod(structures_dst[1][1])
+    end
     buffer1 = similar(tsrc.data, buffersize)
     buffer2 = similar(tdst.data, buffersize)
 
