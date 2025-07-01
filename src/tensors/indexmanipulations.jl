@@ -502,46 +502,8 @@ end
 
 function add_transform_kernel!(tdst::TensorMap,
                                tsrc::TensorMap,
-                               (p₁, p₂)::Index2Tuple,
-                               transformer::GenericTreeTransformer,
-                               α::Number,
-                               β::Number,
-                               backend::AbstractBackend...)
-    structure_dst = transformer.structure_dst
-    structure_src = transformer.structure_src
-
-    rows = rowvals(transformer.matrix)
-    vals = nonzeros(transformer.matrix)
-
-    # TODO: this could be multithreaded
-    for j in axes(transformer.matrix, 2)
-        sz_dst, str_dst, offset_dst = structure_dst[j]
-        subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
-        nzrows = nzrange(transformer.matrix, j)
-
-        # treat first entry
-        sz_src, str_src, offset_src = structure_src[rows[first(nzrows)]]
-        subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
-        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[first(nzrows)],
-                      β,
-                      backend...)
-
-        # treat remaining entries
-        for i in @view(nzrows[2:end])
-            sz_src, str_src, offset_src = structure_src[rows[i]]
-            subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
-            TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[i], One(),
-                          backend...)
-        end
-    end
-
-    return tdst
-end
-
-function add_transform_kernel!(tdst::TensorMap,
-                               tsrc::TensorMap,
                                p::Index2Tuple,
-                               transformer::OuterTreeTransformer,
+                               transformer::GenericTreeTransformer,
                                α::Number,
                                β::Number,
                                backend::AbstractBackend...)
