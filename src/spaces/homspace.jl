@@ -313,7 +313,10 @@ end
 
 function _subblock_strides(subsz, sz, str)
     sz_simplify = Strided.StridedViews._simplifydims(sz, str)
-    return Strided.StridedViews._computereshapestrides(subsz, sz_simplify...)
+    strides = Strided.StridedViews._computereshapestrides(subsz, sz_simplify...)
+    isnothing(strides) &&
+        throw(ArgumentError("unexpected error in computing subblock strides"))
+    return strides
 end
 
 function CacheStyle(::typeof(fusionblockstructure), W::HomSpace)
