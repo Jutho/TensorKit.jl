@@ -120,6 +120,8 @@ function OuterTreeTransformer(transform, p, Vsrc, Vdst)
                 matrix[row, col] = coeff
             end
         end
+        @debug("Created recoupling block for uncoupled: $uncoupled",
+               sz = size(matrix), sparsity = count(!iszero, matrix) / length(matrix))
 
         return (matrix,
                 structure_dst.fusiontreestructure[ids_dst],
@@ -129,6 +131,11 @@ function OuterTreeTransformer(transform, p, Vsrc, Vdst)
     # sort by (approximate) weight to make the buffers happy
     # and use round-robin strategy for multi-threading
     sort!(outer_data; by=_transformer_weight, rev=true)
+
+    @debug("TreeTransformer for $Vsrc to $Vdst via $p",
+           nblocks = length(outer_data),
+           sz_median = size(outer_data[end ÷ 2][1], 1),
+           sz_max = size(outer_data[1][1], 1))
 
     return OuterTreeTransformer(outer_data)
 end
