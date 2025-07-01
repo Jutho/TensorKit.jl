@@ -515,39 +515,54 @@ function add_transform_kernel!(tdst::TensorMap,
     buffer2 = similar(tdst.data, buffersize)
 
     # TODO: this could be multithreaded
-    for (basistransform, structures_dst, structures_src) in transformer.data
+    for subtransformer in transformer.data
         # Special case without intermediate buffers whenever there is only a single block
-        if length(basistransform) == 1
-            subblock_dst = StridedView(tdst.data, only(structures_dst)...)
-            subblock_src = StridedView(tsrc.data, only(structures_src)...)
-            TO.tensoradd!(subblock_dst, subblock_src, p, false, α * only(basistransform), β,
-                          backend...)
-            continue
-        end
-
-        rows, cols = size(basistransform)
-        sz_src = first(first(structures_src))
-        blocksize = prod(sz_src)
-
-        # Filling up a buffer with contiguous data
-        buffer_src = StridedView(buffer1, (blocksize, cols), (1, blocksize), 0)
-        for (i, structure_src) in enumerate(structures_src)
-            subblock_src = StridedView(tsrc.data, structure_src...)
-            copyto!(@view(buffer_src[:, i]), subblock_src)
-        end
-
-        # Resummation into a second buffer using BLAS
-        buffer_dst = StridedView(buffer2, (blocksize, rows), (1, blocksize), 0)
-        mul!(buffer_dst, buffer_src, basistransform)
-
-        # Filling up the output
-        for (i, structure_dst) in enumerate(structures_dst)
-            subblock_dst = StridedView(tdst.data, structure_dst...)
-            bufblock_dst = sreshape(@view(buffer_dst[:, i]), sz_src)
-            TO.tensoradd!(subblock_dst, bufblock_dst, p, false, One(), β, backend...)
+        if length(subtransformer[1]) == 1
+            _add_transform_single!(tdst, tsrc, p, α, β, subtransformer, backend...)
+        else
+            _add_transform_multi!(tdst, tsrc, p, α, β, subtransformer,
+                                  (buffer1, buffer2), backend...)
         end
     end
     return tdst
+end
+
+function _add_transform_single!(tdst, tsrc, p, α, β,
+                                (basistransform, structures_dst, structures_src),
+                                backend...)
+    subblock_dst = StridedView(tdst.data, only(structures_dst)...)
+    subblock_src = StridedView(tsrc.data, only(structures_src)...)
+    TO.tensoradd!(subblock_dst, subblock_src, p, false, α * only(basistransform), β,
+                  backend...)
+    return nothing
+end
+
+function _add_transform_multi!(tdst, tsrc, p, α, β,
+                               (basistransform, structures_dst, structures_src),
+                               (buffer1, buffer2), backend...)
+    rows, cols = size(basistransform)
+    sz_src = first(first(structures_src))
+    blocksize = prod(sz_src)
+
+    # Filling up a buffer with contiguous data
+    buffer_src = StridedView(buffer1, (blocksize, cols), (1, blocksize), 0)
+    for (i, structure_src) in enumerate(structures_src)
+        subblock_src = StridedView(tsrc.data, structure_src...)
+        copyto!(@view(buffer_src[:, i]), subblock_src)
+    end
+
+    # Resummation into a second buffer using BLAS
+    buffer_dst = StridedView(buffer2, (blocksize, rows), (1, blocksize), 0)
+    mul!(buffer_dst, buffer_src, basistransform, α)
+
+    # Filling up the output
+    for (i, structure_dst) in enumerate(structures_dst)
+        subblock_dst = StridedView(tdst.data, structure_dst...)
+        bufblock_dst = sreshape(@view(buffer_dst[:, i]), sz_src)
+        TO.tensoradd!(subblock_dst, bufblock_dst, p, false, One(), β, backend...)
+    end
+
+    return nothing
 end
 
 function add_transform_kernel!(tdst::AbstractTensorMap,
