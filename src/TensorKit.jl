@@ -126,8 +126,6 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      isposdef, isposdef!, ishermitian, rank, cond,
                      Diagonal, Hermitian
 
-using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
-
 import Base.Meta
 
 using Random: Random, rand!, randn!
