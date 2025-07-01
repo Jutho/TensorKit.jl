@@ -8,7 +8,7 @@ abstract type TreeTransformer end
 struct TrivialTreeTransformer <: TreeTransformer end
 
 struct AbelianTreeTransformer{T,N} <: TreeTransformer
-    data::Vector{Tuple{StridedStructure{N},StridedStructure{N},T}}
+    data::Vector{Tuple{T,StridedStructure{N},StridedStructure{N}}}
 end
 
 function AbelianTreeTransformer(transform, p, Vsrc, Vdst)
@@ -19,7 +19,7 @@ function AbelianTreeTransformer(transform, p, Vsrc, Vdst)
     L = length(structure_src.fusiontreelist)
     T = sectorscalartype(sectortype(Vdst))
     N = numind(Vsrc)
-    data = Vector{Tuple{StridedStructure{N},StridedStructure{N},T}}(undef, L)
+    data = Vector{Tuple{T,StridedStructure{N},StridedStructure{N}}}(undef, L)
 
     for i in 1:L
         f₁, f₂ = structure_src.fusiontreelist[i]
@@ -27,7 +27,7 @@ function AbelianTreeTransformer(transform, p, Vsrc, Vdst)
         j = structure_dst.fusiontreeindices[(f₃, f₄)]
         stridestructure_dst = structure_dst.fusiontreestructure[j]
         stridestructure_src = structure_src.fusiontreestructure[i]
-        data[i] = (stridestructure_dst, stridestructure_src, coeff)
+        data[i] = (coeff, stridestructure_dst, stridestructure_src)
     end
 
     return AbelianTreeTransformer(data)

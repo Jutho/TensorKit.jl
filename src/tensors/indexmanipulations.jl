@@ -473,38 +473,68 @@ function add_transform!(tdst::AbstractTensorMap,
     return tdst
 end
 
-function add_transform_kernel!(tdst::TensorMap,
-                               tsrc::TensorMap,
-                               (p₁, p₂)::Index2Tuple,
-                               ::TrivialTreeTransformer,
-                               α::Number,
-                               β::Number,
-                               backend::AbstractBackend...)
-    return TO.tensoradd!(tdst[], tsrc[], (p₁, p₂), false, α, β, backend...)
+function use_threaded_transform(t::TensorMap, transformer::TreeTransformer)
+    # TODO: heuristic for not threading over small tensors
+    return get_num_transformer_threads() > 1
 end
 
 function add_transform_kernel!(tdst::TensorMap,
                                tsrc::TensorMap,
                                p::Index2Tuple,
-                               transformer::AbelianTreeTransformer,
+                               transformer::TreeTransformer,
                                α::Number,
                                β::Number,
                                backend::AbstractBackend...)
-    # TODO: this could be multithreaded
-    for subtransformer in transformer.data
-        _add_transform_single!(tdst, tsrc, p, α, β, subtransformer, backend...)
+    if use_threaded_transform(tsrc, transformer)
+        _add_transform_threaded!(tdst, tsrc, p, transformer, α, β, backend...)
+    else
+        _add_transform_nonthreaded!(tdst, tsrc, p, transformer, α, β, backend...)
     end
 
     return nothing
 end
 
-function add_transform_kernel!(tdst::TensorMap,
-                               tsrc::TensorMap,
-                               p::Index2Tuple,
-                               transformer::GenericTreeTransformer,
-                               α::Number,
-                               β::Number,
-                               backend::AbstractBackend...)
+# Trivial implementation
+# ----------------------
+# Hijack before threading is used
+function add_transform_kernel!(tdst::TensorMap, tsrc::TensorMap, (p₁, p₂)::Index2Tuple,
+                               ::TrivialTreeTransformer,
+                               α::Number, β::Number, backend::AbstractBackend...)
+    TO.tensoradd!(tdst[], tsrc[], (p₁, p₂), false, α, β, backend...)
+    return nothing
+end
+
+# Abelian implementations
+# -----------------------
+function _add_transform_nonthreaded!(tdst, tsrc, p, transformer::AbelianTreeTransformer,
+                                     α, β, backend...)
+    for subtransformer in transformer.data
+        _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
+    end
+    return nothing
+end
+
+function _add_transform_threaded!(tdst, tsrc, p, transformer::AbelianTreeTransformer, α, β,
+                                  backend...; ntasks::Int=get_num_transformer_threads())
+    nblocks = length(transformer.data)
+    counter = Threads.Atomic{Int}(1)
+    Threads.@sync for _ in 1:min(ntasks, nblocks)
+        Threads.@spawn begin
+            while true
+                local_counter = Threads.atomic_add!(counter, 1)
+                local_counter > nblocks && break
+                @inbounds subtransformer = transformer.data[local_counter]
+                _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
+            end
+        end
+    end
+    return nothing
+end
+
+# Non-abelian implementations
+# ---------------------------
+function _add_transform_nonthreaded!(tdst, tsrc, p, transformer::GenericTreeTransformer,
+                                     α, β, backend...)
     # preallocate buffers
     buffersize = maximum(transformer.data) do (_, structures_dst, _)
         return prod(structures_dst[1][1])
@@ -522,24 +552,59 @@ function add_transform_kernel!(tdst::TensorMap,
                                   (buffer1, buffer2), backend...)
         end
     end
-    return tdst
+    return nothing
 end
 
-function _add_transform_single!(tdst, tsrc, p, α, β,
+function _add_transform_threaded!(tdst, tsrc, p, transformer::GenericTreeTransformer,
+                                  α, β, backend...;
+                                  ntasks::Int=get_num_transformer_threads())
+    buffersize = maximum(transformer.data) do (_, structures_dst, _)
+        return prod(structures_dst[1][1])
+    end
+    nblocks = length(transformer.data)
+
+    counter = Threads.Atomic{Int}(1)
+    Threads.@sync for _ in 1:min(ntasks, nblocks)
+        Threads.@spawn begin
+            # preallocate buffers for each task
+            buffer1 = similar(tsrc.data, buffersize)
+            buffer2 = similar(tdst.data, buffersize)
+
+            while true
+                local_counter = Threads.atomic_add!(counter, 1)
+                local_counter > nblocks && break
+                @inbounds subtransformer = transformer.data[local_counter]
+                if length(subtransformer[1]) == 1
+                    _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
+                else
+                    _add_transform_multi!(tdst, tsrc, p, subtransformer, (buffer1, buffer2),
+                                          α, β, backend...)
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+# Kernels
+# -------
+function _add_transform_single!(tdst, tsrc, p,
                                 (basistransform, structures_dst, structures_src),
-                                backend...)
+                                α, β, backend...)
     structure_dst = structures_dst isa Vector ? only(structures_dst) : structures_dst
     structure_src = structures_src isa Vector ? only(structures_src) : structures_src
     coeff = basistransform isa Number ? basistransform : only(basistransform)
+
     subblock_dst = StridedView(tdst.data, structure_dst...)
     subblock_src = StridedView(tsrc.data, structure_src...)
     TO.tensoradd!(subblock_dst, subblock_src, p, false, α * coeff, β, backend...)
     return nothing
 end
 
-function _add_transform_multi!(tdst, tsrc, p, α, β,
+function _add_transform_multi!(tdst, tsrc, p,
                                (basistransform, structures_dst, structures_src),
-                               (buffer1, buffer2), backend...)
+                               (buffer1, buffer2), α, β, backend...)
     rows, cols = size(basistransform)
     sz_src = first(first(structures_src))
     blocksize = prod(sz_src)
@@ -553,7 +618,7 @@ function _add_transform_multi!(tdst, tsrc, p, α, β,
 
     # Resummation into a second buffer using BLAS
     buffer_dst = StridedView(buffer2, (blocksize, rows), (1, blocksize), 0)
-    mul!(buffer_dst, buffer_src, basistransform, α)
+    mul!(buffer_dst, buffer_src, basistransform, α, Zero())
 
     # Filling up the output
     for (i, structure_dst) in enumerate(structures_dst)
@@ -564,6 +629,9 @@ function _add_transform_multi!(tdst, tsrc, p, α, β,
 
     return nothing
 end
+
+# Other implementations
+# ---------------------
 
 function add_transform_kernel!(tdst::AbstractTensorMap,
                                tsrc::AbstractTensorMap,
