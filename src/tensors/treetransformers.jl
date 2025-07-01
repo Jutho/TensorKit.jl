@@ -92,6 +92,18 @@ function _transformer_weight((matrix, structures_dst, structures_src))
     return size(matrix, 1) * prod(structures_dst[1][1])
 end
 
+function buffersize(transformer::GenericTreeTransformer)
+    return maximum(transformer.data) do (basistransform, structures_dst, _)
+        return prod(structures_dst[1][1]) * max(size(basistransform)...)
+    end
+end
+
+function allocate_buffers(tdst::TensorMap, tsrc::TensorMap,
+                          transformer::GenericTreeTransformer)
+    sz = buffersize(transformer)
+    return similar(tdst.data, sz), similar(tsrc.data, sz)
+end
+
 function treetransformertype(Vdst, Vsrc)
     I = sectortype(Vdst)
     I === Trivial && return TrivialTreeTransformer
