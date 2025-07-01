@@ -536,11 +536,7 @@ end
 function _add_transform_nonthreaded!(tdst, tsrc, p, transformer::GenericTreeTransformer,
                                      α, β, backend...)
     # preallocate buffers
-    buffersize = maximum(transformer.data) do (_, structures_dst, _)
-        return prod(structures_dst[1][1])
-    end
-    buffer1 = similar(tsrc.data, buffersize)
-    buffer2 = similar(tdst.data, buffersize)
+    buffers = allocate_buffers(tdst, tsrc, transformer)
 
     # TODO: this could be multithreaded
     for subtransformer in transformer.data
@@ -549,7 +545,7 @@ function _add_transform_nonthreaded!(tdst, tsrc, p, transformer::GenericTreeTran
             _add_transform_single!(tdst, tsrc, p, α, β, subtransformer, backend...)
         else
             _add_transform_multi!(tdst, tsrc, p, α, β, subtransformer,
-                                  (buffer1, buffer2), backend...)
+                                  buffers, backend...)
         end
     end
     return nothing
@@ -558,17 +554,14 @@ end
 function _add_transform_threaded!(tdst, tsrc, p, transformer::GenericTreeTransformer,
                                   α, β, backend...;
                                   ntasks::Int=get_num_transformer_threads())
-    buffersize = maximum(transformer.data) do (_, structures_dst, _)
-        return prod(structures_dst[1][1])
-    end
+    buffersz = buffersize(transformer)
     nblocks = length(transformer.data)
 
     counter = Threads.Atomic{Int}(1)
     Threads.@sync for _ in 1:min(ntasks, nblocks)
         Threads.@spawn begin
             # preallocate buffers for each task
-            buffer1 = similar(tsrc.data, buffersize)
-            buffer2 = similar(tdst.data, buffersize)
+            buffers = allocate_buffers(tdst, tsrc, transformer)
 
             while true
                 local_counter = Threads.atomic_add!(counter, 1)
@@ -577,7 +570,7 @@ function _add_transform_threaded!(tdst, tsrc, p, transformer::GenericTreeTransfo
                 if length(subtransformer[1]) == 1
                     _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
                 else
-                    _add_transform_multi!(tdst, tsrc, p, subtransformer, (buffer1, buffer2),
+                    _add_transform_multi!(tdst, tsrc, p, subtransformer, buffers,
                                           α, β, backend...)
                 end
             end
@@ -610,14 +603,14 @@ function _add_transform_multi!(tdst, tsrc, p,
     blocksize = prod(sz_src)
 
     # Filling up a buffer with contiguous data
-    buffer_src = StridedView(buffer1, (blocksize, cols), (1, blocksize), 0)
+    buffer_src = StridedView(buffer2, (blocksize, cols), (1, blocksize), 0)
     for (i, structure_src) in enumerate(structures_src)
         subblock_src = StridedView(tsrc.data, structure_src...)
         copyto!(@view(buffer_src[:, i]), subblock_src)
     end
 
     # Resummation into a second buffer using BLAS
-    buffer_dst = StridedView(buffer2, (blocksize, rows), (1, blocksize), 0)
+    buffer_dst = StridedView(buffer1, (blocksize, rows), (1, blocksize), 0)
     mul!(buffer_dst, buffer_src, basistransform, α, Zero())
 
     # Filling up the output
