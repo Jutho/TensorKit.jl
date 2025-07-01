@@ -542,10 +542,9 @@ function _add_transform_nonthreaded!(tdst, tsrc, p, transformer::GenericTreeTran
     for subtransformer in transformer.data
         # Special case without intermediate buffers whenever there is only a single block
         if length(subtransformer[1]) == 1
-            _add_transform_single!(tdst, tsrc, p, α, β, subtransformer, backend...)
+            _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
         else
-            _add_transform_multi!(tdst, tsrc, p, α, β, subtransformer,
-                                  buffers, backend...)
+            _add_transform_multi!(tdst, tsrc, p, subtransformer, buffers, α, β, backend...)
         end
     end
     return nothing
@@ -554,7 +553,6 @@ end
 function _add_transform_threaded!(tdst, tsrc, p, transformer::GenericTreeTransformer,
                                   α, β, backend...;
                                   ntasks::Int=get_num_transformer_threads())
-    buffersz = buffersize(transformer)
     nblocks = length(transformer.data)
 
     counter = Threads.Atomic{Int}(1)
