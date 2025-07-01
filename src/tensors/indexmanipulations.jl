@@ -491,10 +491,8 @@ function add_transform_kernel!(tdst::TensorMap,
                                β::Number,
                                backend::AbstractBackend...)
     # TODO: this could be multithreaded
-    for (stridestructure_dst, stridestructure_src, coeff) in transformer.data
-        subblock_dst = StridedView(tdst.data, stridestructure_dst...)
-        subblock_src = StridedView(tsrc.data, stridestructure_src...)
-        TO.tensoradd!(subblock_dst, subblock_src, p, false, α * coeff, β, backend...)
+    for subtransformer in transformer.data
+        _add_transform_single!(tdst, tsrc, p, α, β, subtransformer, backend...)
     end
 
     return nothing
@@ -530,10 +528,12 @@ end
 function _add_transform_single!(tdst, tsrc, p, α, β,
                                 (basistransform, structures_dst, structures_src),
                                 backend...)
-    subblock_dst = StridedView(tdst.data, only(structures_dst)...)
-    subblock_src = StridedView(tsrc.data, only(structures_src)...)
-    TO.tensoradd!(subblock_dst, subblock_src, p, false, α * only(basistransform), β,
-                  backend...)
+    structure_dst = structures_dst isa Vector ? only(structures_dst) : structures_dst
+    structure_src = structures_src isa Vector ? only(structures_src) : structures_src
+    coeff = basistransform isa Number ? basistransform : only(basistransform)
+    subblock_dst = StridedView(tdst.data, structure_dst...)
+    subblock_src = StridedView(tsrc.data, structure_src...)
+    TO.tensoradd!(subblock_dst, subblock_src, p, false, α * coeff, β, backend...)
     return nothing
 end
 
