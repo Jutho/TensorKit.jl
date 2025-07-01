@@ -11,7 +11,7 @@ struct AbelianTreeTransformer{T,N} <: TreeTransformer
     data::Vector{Tuple{T,StridedStructure{N},StridedStructure{N}}}
 end
 
-function AbelianTreeTransformer(transform, p, Vsrc, Vdst)
+function AbelianTreeTransformer(transform, p, Vdst, Vsrc)
     permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
     structure_dst = fusionblockstructure(Vdst)
     structure_src = fusionblockstructure(Vsrc)
@@ -37,7 +37,7 @@ struct GenericTreeTransformer{T,N} <: TreeTransformer
     data::Vector{Tuple{Matrix{T},Vector{StridedStructure{N}},Vector{StridedStructure{N}}}}
 end
 
-function GenericTreeTransformer(transform, p, Vsrc, Vdst)
+function GenericTreeTransformer(transform, p, Vdst, Vsrc)
     permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
     structure_dst = fusionblockstructure(Vdst)
     structure_src = fusionblockstructure(Vsrc)
@@ -114,16 +114,17 @@ function treetransformertype(Vdst, Vsrc)
            GenericTreeTransformer{T,N}
 end
 
-function TreeTransformer(transform::Function, p, Vsrc::HomSpace{S},
-                         Vdst::HomSpace{S}) where {S}
-    permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
+function TreeTransformer(transform::Function, p, Vdst::HomSpace{S},
+                         Vsrc::HomSpace{S}) where {S}
+    permute(Vsrc, p) == Vdst ||
+        throw(SpaceMismatch("Incompatible spaces for permuting"))
 
     I = sectortype(Vdst)
     I === Trivial && return TrivialTreeTransformer()
 
     return FusionStyle(I) == UniqueFusion() ?
-           AbelianTreeTransformer(transform, p, Vsrc, Vdst) :
-           GenericTreeTransformer(transform, p, Vsrc, Vdst)
+           AbelianTreeTransformer(transform, p, Vdst, Vsrc) :
+           GenericTreeTransformer(transform, p, Vdst, Vsrc)
 end
 
 # braid is special because it has levels
@@ -151,7 +152,7 @@ for (transform, treetransformer) in
         @cached function $treetransformer(Vdst::TensorMapSpace, Vsrc::TensorMapSpace,
                                           p::Index2Tuple)::treetransformertype(Vdst, Vsrc)
             fusiontreetransform(f1, f2) = $transform(f1, f2, p...)
-            return TreeTransformer(fusiontreetransform, p, Vsrc, Vdst)
+            return TreeTransformer(fusiontreetransform, p, Vdst, Vsrc)
         end
     end
 end
