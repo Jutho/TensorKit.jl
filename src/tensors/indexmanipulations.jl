@@ -474,8 +474,7 @@ function add_transform!(tdst::AbstractTensorMap,
 end
 
 function use_threaded_transform(t::TensorMap, transformer::TreeTransformer)
-    # TODO: heuristic for not threading over small tensors
-    return get_num_transformer_threads() > 1
+    return get_num_transformer_threads() > 1 && length(t.data) > Strided.MINTHREADLENGTH
 end
 
 function add_transform_kernel!(tdst::TensorMap,
