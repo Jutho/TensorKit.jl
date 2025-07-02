@@ -52,7 +52,14 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
         return TupleTools.vcat(f₁.uncoupled, f₂.uncoupled)
     end
 
-    outer_data = map(uncoupleds_src_unique) do uncoupled
+    T = sectorscalartype(I)
+    N = numind(Vdst)
+    L = length(uncoupleds_src_unique)
+    TStrided = StridedStructure{N}
+    data = Vector{Tuple{Matrix{T},Vector{TStrided},Vector{TStrided}}}(undef, L)
+
+    # TODO: this can be multithreaded
+    for (i, uncoupled) in enumerate(uncoupleds_src_unique)
         ids_src = findall(==(uncoupled), uncoupleds_src)
         fusiontrees_outer_src = structure_src.fusiontreelist[ids_src]
 
@@ -71,21 +78,21 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
         @debug("Created recoupling block for uncoupled: $uncoupled",
                sz = size(matrix), sparsity = count(!iszero, matrix) / length(matrix))
 
-        return (matrix,
-                structure_dst.fusiontreestructure[ids_dst],
-                structure_src.fusiontreestructure[ids_src])
+        data[i] = (matrix,
+                   structure_dst.fusiontreestructure[ids_dst],
+                   structure_src.fusiontreestructure[ids_src])
     end
 
     # sort by (approximate) weight to make the buffers happy
     # and use round-robin strategy for multi-threading
-    sort!(outer_data; by=_transformer_weight, rev=true)
+    sort!(data; by=_transformer_weight, rev=true)
 
     @debug("TreeTransformer for $Vsrc to $Vdst via $p",
-           nblocks = length(outer_data),
-           sz_median = size(outer_data[end ÷ 2][1], 1),
-           sz_max = size(outer_data[1][1], 1))
+           nblocks = length(data),
+           sz_median = size(data[end ÷ 2][1], 1),
+           sz_max = size(data[1][1], 1))
 
-    return GenericTreeTransformer(outer_data)
+    return GenericTreeTransformer{T,N}(data)
 end
 
 function _transformer_weight((matrix, structures_dst, structures_src))
