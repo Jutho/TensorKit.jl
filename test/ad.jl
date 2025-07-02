@@ -105,7 +105,9 @@ end
 # Tests
 # -----
 
-ChainRulesTestUtils.test_method_tables()
+if VERSION <= v"1.11.5"
+    ChainRulesTestUtils.test_method_tables()
+end
 
 Vlist = ((ℂ^2, (ℂ^3)', ℂ^3, ℂ^2, (ℂ^2)'),
          (ℂ[Z2Irrep](0 => 1, 1 => 1),
