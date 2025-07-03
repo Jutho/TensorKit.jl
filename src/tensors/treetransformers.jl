@@ -95,8 +95,11 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
     return GenericTreeTransformer{T,N}(data)
 end
 
+# Cost model for transforming a set of subblocks with fixed uncoupled sectors:
+# L x L x size(subblock) where L is the number of subblocks
+# this is L input blocks each going to L output blocks of given size
 function _transformer_weight((matrix, structures_dst, structures_src))
-    return size(matrix, 1) * prod(structures_dst[1][1])
+    return length(matrix) * prod(structures_dst[1][1])
 end
 
 function buffersize(transformer::GenericTreeTransformer)
