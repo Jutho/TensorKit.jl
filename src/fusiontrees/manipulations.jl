@@ -165,8 +165,9 @@ operation is the inverse of `insertat` in the sense that if
         f₂ = FusionTree{I}(f.uncoupled, f.coupled, isdual2, f.innerlines, f.vertices)
         return f₁, f₂
     elseif M === 0
-        f₁ = FusionTree{I}((), leftone(f.uncoupled[1]), (), ())
-        uncoupled2 = (leftone(f.uncoupled[1]), f.uncoupled...)
+        u = leftone(f.uncoupled[1])
+        f₁ = FusionTree{I}((), u, (), ())
+        uncoupled2 = (u, f.uncoupled...)
         coupled2 = f.coupled
         isdual2 = (false, f.isdual...)
         innerlines2 = N >= 2 ? (f.uncoupled[1], f.innerlines...) : ()
