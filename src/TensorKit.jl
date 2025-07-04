@@ -126,8 +126,6 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      isposdef, isposdef!, ishermitian, rank, cond,
                      Diagonal, Hermitian
 
-using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
-
 import Base.Meta
 
 using Random: Random, rand!, randn!
@@ -185,6 +183,21 @@ include("fusiontrees/fusiontrees.jl")
 #-------------------------------------------
 include("spaces/vectorspaces.jl")
 
+# Multithreading settings
+#-------------------------
+const TRANSFORMER_THREADS = Ref(1)
+
+get_num_transformer_threads() = TRANSFORMER_THREADS[]
+
+function set_num_transformer_threads(n::Int)
+    N = Base.Threads.nthreads()
+    if n > N
+        n = N
+        Strided._set_num_threads_warn(n)
+    end
+    return TRANSFORMER_THREADS[] = n
+end
+
 # Definitions and methods for tensors
 #-------------------------------------
 # general definitions
@@ -220,6 +233,8 @@ include("auxiliary/deprecate.jl")
 # ----------
 function __init__()
     @require_extensions
+    set_num_transformer_threads(Threads.nthreads())
+    return nothing
 end
 
 end

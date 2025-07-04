@@ -225,11 +225,15 @@ end
 
 # Block and fusion tree ranges: structure information for building tensors
 #--------------------------------------------------------------------------
+
+# sizes, strides, offset
+const StridedStructure{N} = Tuple{NTuple{N,Int},NTuple{N,Int},Int}
+
 struct FusionBlockStructure{I,N,F₁,F₂}
     totaldim::Int
     blockstructure::SectorDict{I,Tuple{Tuple{Int,Int},UnitRange{Int}}}
     fusiontreelist::Vector{Tuple{F₁,F₂}}
-    fusiontreestructure::Vector{Tuple{NTuple{N,Int},NTuple{N,Int},Int}}
+    fusiontreestructure::Vector{StridedStructure{N}}
     fusiontreeindices::FusionTreeDict{Tuple{F₁,F₂},Int}
 end
 
