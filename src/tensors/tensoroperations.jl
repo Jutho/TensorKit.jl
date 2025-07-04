@@ -52,9 +52,8 @@ end
 
 function TO.tensoradd_type(TC, A::AbstractTensorMap, ::Index2Tuple{N₁,N₂},
                            ::Bool) where {N₁,N₂}
-    sst = sectorscalartype(sectortype(A))
-    Tnew = sst <: Real ? TC : VectorInterface.promote_add(TC, scalartype(A), sst)
-    M = similarstoragetype(A, Tnew)
+    I = sectortype(A)  
+    M = similarstoragetype(A, sectorscalartype(I) <: Real ? TC : complex(TC))
     return tensormaptype(spacetype(A), N₁, N₂, M)
 end
 
@@ -115,14 +114,11 @@ function TO.tensorcontract_type(TC,
                                 A::AbstractTensorMap, ::Index2Tuple, ::Bool,
                                 B::AbstractTensorMap, ::Index2Tuple, ::Bool,
                                 ::Index2Tuple{N₁,N₂}) where {N₁,N₂}
-    sst(x) = sectorscalartype(sectortype(x))
-    Tnew = (sst(A) <: Real && sst(B) <: Real) ? TC :
-           TO.promote_contract(TC, scalartype(A), sst(A),
-                               scalartype(B), sst(B))
-    M = similarstoragetype(A, Tnew)
-    M == similarstoragetype(B, Tnew) ||
-        throw(ArgumentError("incompatible storage types:\n$(M) ≠ $(similarstoragetype(B, Tnew))"))
     spacetype(A) == spacetype(B) || throw(SpaceMismatch("incompatible space types"))
+    I = sectortype(A)
+    M = similarstoragetype(A, sectorscalartype(I) <: Real ? TC : complex(TC))
+    MB = similarstoragetype(B, sectorscalartype(I) <: Real ? TC : complex(TC))
+    M == MB || throw(ArgumentError("incompatible storage types:\n$(M) ≠ $(MB)"))
     return tensormaptype(spacetype(A), N₁, N₂, M)
 end
 
