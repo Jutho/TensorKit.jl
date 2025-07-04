@@ -723,7 +723,6 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
     T = sectorscalartype(I)
     F = fusiontreetype(I, N - 2)
     newtrees = FusionTreeDict{F,T}()
-    _one = f.coupled
 
     j = mod1(i + 1, N)
     b = f.uncoupled[i]
@@ -770,7 +769,7 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
         return newtrees
     else # i == N
         if N == 2
-            f′ = FusionTree{I}((), _one, (), (), ()) # or leftone(f.uncoupled[1]) == rightone(f.uncoupled[2])
+            f′ = FusionTree{I}((), f.coupled, (), (), ()) # or leftone(f.uncoupled[1]) == rightone(f.uncoupled[2])
             coeff = sqrtdim(b)
             if !(f.isdual[N])
                 coeff *= conj(frobeniusschur(b))
