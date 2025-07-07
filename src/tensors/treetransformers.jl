@@ -7,8 +7,10 @@ abstract type TreeTransformer end
 
 struct TrivialTreeTransformer <: TreeTransformer end
 
+const _AbelianTransformerData{T,N} = Tuple{T,StridedStructure{N},StridedStructure{N}}
+
 struct AbelianTreeTransformer{T,N} <: TreeTransformer
-    data::Vector{Tuple{T,StridedStructure{N},StridedStructure{N}}}
+    data::Vector{_AbelianTransformerData{T,N}}
 end
 
 function AbelianTreeTransformer(transform, p, Vdst, Vsrc)
@@ -33,8 +35,11 @@ function AbelianTreeTransformer(transform, p, Vdst, Vsrc)
     return AbelianTreeTransformer(data)
 end
 
+const _GenericTransformerData{T,N} = Tuple{Matrix{T},Vector{StridedStructure{N}},
+                                           Vector{StridedStructure{N}}}
+
 struct GenericTreeTransformer{T,N} <: TreeTransformer
-    data::Vector{Tuple{Matrix{T},Vector{StridedStructure{N}},Vector{StridedStructure{N}}}}
+    data::Vector{_GenericTransformerData{T,N}}
 end
 
 function GenericTreeTransformer(transform, p, Vdst, Vsrc)
@@ -55,8 +60,7 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
     T = sectorscalartype(I)
     N = numind(Vdst)
     L = length(uncoupleds_src_unique)
-    TStrided = StridedStructure{N}
-    data = Vector{Tuple{Matrix{T},Vector{TStrided},Vector{TStrided}}}(undef, L)
+    data = Vector{_GenericTransformerData{T,N}}(undef, L)
 
     # TODO: this can be multithreaded
     for (i, uncoupled) in enumerate(uncoupleds_src_unique)
