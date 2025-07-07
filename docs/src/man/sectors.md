@@ -108,7 +108,7 @@ There is a graphical representation associated with the fusion tensors and their
 manipulations, which we summarize here:
 
 ```@raw html
-<img src="img/tree-summary.svg" alt="summary" class="color-invertible"/>
+<img src="../img/tree-summary.svg" alt="summary" class="color-invertible"/>
 ```
 
 As always, we refer to the subsection on
@@ -891,7 +891,7 @@ for a given tensor mapping from ``(((W_1 ⊗ W_2) ⊗ W_3) ⊗ … )⊗ W_{N_2})
 ⊗ V_3) ⊗ … )⊗ V_{N_1})``, the corresponding fusion and splitting trees take the form
 
 ```@raw html
-<img src="img/tree-simple.svg" alt="double fusion tree" class="color-invertible"/>
+<img src="../img/tree-simple.svg" alt="double fusion tree" class="color-invertible"/>
 ```
 
 for the specific case ``N_1=4`` and ``N_2=3``. We can separate this tree into the fusing
@@ -926,7 +926,7 @@ codomain and the second space in the domain of the tensor were dual spaces, the 
 of splitting and fusion tree would look as
 
 ```@raw html
-<img src="img/tree-extended.svg" alt="extended double fusion tree" class="color-invertible"/>
+<img src="../img/tree-extended.svg" alt="extended double fusion tree" class="color-invertible"/>
 ```
 
 The presence of these isomorphisms will be important when we start to bend lines, to move
@@ -1011,7 +1011,7 @@ The following represents two different ways to compute the result of such a brai
 linear combination of new fusion trees in canonical order:
 
 ```@raw html
-<img src="img/tree-artinbraid.svg" alt="artin braid" class="color-invertible"/>
+<img src="../img/tree-artinbraid.svg" alt="artin braid" class="color-invertible"/>
 ```
 
 While the upper path is the most intuitive, it requires two recouplings or F-moves (one
@@ -1049,7 +1049,7 @@ Artin generators. A graphical example makes this probably more clear, i.e for
 `levels=(1,2,3,4,5)` and `permutation=(5,3,1,4,2)`, the corresponding braid is given by
 
 ```@raw html
-<img src="img/tree-braidinterface.svg" alt="braid interface" class="color-invertible"/>
+<img src="../img/tree-braidinterface.svg" alt="braid interface" class="color-invertible"/>
 ```
 
 that is, the first sector or space goes to position 3, and crosses over all other lines,
@@ -1129,7 +1129,7 @@ between the (co)evaluation (exact pairing) and the fusion tensors, discussed in
 that we need is summarized in
 
 ```@raw html
-<img src="img/tree-linebending.svg" alt="line bending" class="color-invertible"/>
+<img src="../img/tree-linebending.svg" alt="line bending" class="color-invertible"/>
 ```
 
 We will only need the B-symbol and not the A-symbol. Applying the left evaluation on the
@@ -1144,7 +1144,7 @@ adjoint) is already present. Indeed, it is exactly for this operation that we ex
 need to take the presence of these isomorphisms into account. Indeed, we obtain the relation
 
 ```@raw html
-<img src="img/tree-linebending2.svg" alt="dual line bending" class="color-invertible"/>
+<img src="../img/tree-linebending2.svg" alt="dual line bending" class="color-invertible"/>
 ```
 
 Hence, bending an `isdual` sector from the splitting tree to the fusion tree yields an
@@ -1168,7 +1168,7 @@ Graphically, for `N₁ = 4`, `N₂ = 3`, `N = 2` and some particular choice of `
 the fusion and splitting tree:
 
 ```@raw html
-<img src="img/tree-repartition.svg" alt="repartition" class="color-invertible"/>
+<img src="../img/tree-repartition.svg" alt="repartition" class="color-invertible"/>
 ```
 
 The result is returned as a dictionary with keys `(f1′, f2′)` and the corresponding `coeff`

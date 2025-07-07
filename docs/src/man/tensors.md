@@ -149,7 +149,7 @@ fusiontrees((a1, …, aN₁), c)` as ``X^{a_1, …, a_{N₁}}_{c,α}`` where
 [corresponding section](@ref ss_fusiontrees). The tensor is then represented as
 
 ```@raw html
-<img src="img/tensor-storage.svg" alt="tensor storage" class="color-invertible"/>
+<img src="../img/tensor-storage.svg" alt="tensor storage" class="color-invertible"/>
 ```
 
 In this diagram, we have indicated how the tensor map can be rewritten in terms of a block
@@ -172,7 +172,7 @@ To understand this better, we need to understand the basis transform, e.g. on th
 (codomain) side. In more detail, it is given by
 
 ```@raw html
-<img src="img/tensor-unitary.svg" alt="tensor unitary" class="color-invertible"/>
+<img src="../img/tensor-unitary.svg" alt="tensor unitary" class="color-invertible"/>
 ```
 
 Indeed, remembering that ``V_i = ⨁_{a_i} R_{a_i} ⊗ ℂ^{n_{a_i}}`` with ``R_{a_i}`` the
@@ -802,7 +802,7 @@ makes clear that this introduces an additional (inverse) twist, which is then co
 in the `transpose` implementation.
 
 ```@raw html
-<img src="img/tensor-transpose.svg" alt="transpose" class="color-invertible"/>
+<img src="../img/tensor-transpose.svg" alt="transpose" class="color-invertible"/>
 ```
 
 In categorical language, the reason for this extra twist is that we use the left
@@ -1159,7 +1159,7 @@ trivial domain, we just have one type of unconnected lines, henceforth called op
 We sketch such a rearrangement in the following picture
 
 ```@raw html
-<img src="img/tensor-bosoniccontraction.svg" alt="tensor unitary" class="color-invertible"/>
+<img src="../img/tensor-bosoniccontraction.svg" alt="tensor unitary" class="color-invertible"/>
 ```
 
 Hence, we can now specify such a tensor diagram, henceforth called a tensor contraction or
@@ -1229,7 +1229,7 @@ can be omitted, and we just use the same rules to evaluate the newly ordered ten
 network. For the particular case of matrix matrix multiplication, which also captures more general settings by appropriotely combining spaces into a single line, we indeed find
 
 ```@raw html
-<img src="img/tensor-contractionreorder.svg" alt="tensor contraction reorder" class="color-invertible"/>
+<img src="../img/tensor-contractionreorder.svg" alt="tensor contraction reorder" class="color-invertible"/>
 ```
 
 or thus, the following to lines of code yield the same result
