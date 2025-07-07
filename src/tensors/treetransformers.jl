@@ -32,7 +32,12 @@ function AbelianTreeTransformer(transform, p, Vdst, Vsrc)
         data[i] = (coeff, stridestructure_dst, stridestructure_src)
     end
 
-    return AbelianTreeTransformer(data)
+    transformer = AbelianTreeTransformer(data)
+
+    # sort by (approximate) weight to facilitate multi-threading strategies
+    # sort!(transformer)
+
+    return transformer
 end
 
 const _GenericTransformerData{T,N} = Tuple{Matrix{T},Vector{StridedStructure{N}},
@@ -87,25 +92,17 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
                    structure_src.fusiontreestructure[ids_src])
     end
 
-    # sort by (approximate) weight to make the buffers happy
-    # and use round-robin strategy for multi-threading
-    sort!(data; by=_transformer_weight, rev=true)
-
     @debug("TreeTransformer for $Vsrc to $Vdst via $p",
            nblocks = length(data),
            sz_median = size(data[end ÷ 2][1], 1),
            sz_max = size(data[1][1], 1))
 
-    return GenericTreeTransformer{T,N}(data)
-end
+    transformer = GenericTreeTransformer{T,N}(data)
 
-# Cost model for transforming a set of subblocks with fixed uncoupled sectors:
-# L x L x length(subblock) where L is the number of subblocks
-# this is L input blocks each going to L output blocks of given length
-# Note that it might be the case that the permutations are dominant, in which case the
-# actual cost model would scale like L x length(subblock)
-function _transformer_weight((matrix, structures_dst, structures_src))
-    return length(matrix) * prod(structures_dst[1][1])
+    # sort by (approximate) weight to facilitate multi-threading strategies
+    # sort!(transformer)
+
+    return transformer
 end
 
 function buffersize(transformer::GenericTreeTransformer)
@@ -174,3 +171,24 @@ for (transform, treetransformer) in
 end
 
 # default cachestyle is GlobalLRUCache
+
+# Sorting based on cost model
+# ---------------------------
+function Base.sort!(transformer::Union{AbelianTreeTransformer,GenericTreeTransformer};
+                    by=_transformer_weight, rev::Bool=true)
+    sort!(transformer.data; by, rev)
+    return transformer
+end
+
+function _transformer_weight((coeff, struct_dst, struct_src)::_AbelianTransformerData)
+    return prod(struct_dst[1])
+end
+
+# Cost model for transforming a set of subblocks with fixed uncoupled sectors:
+# L x L x length(subblock) where L is the number of subblocks
+# this is L input blocks each going to L output blocks of given length
+# Note that it might be the case that the permutations are dominant, in which case the
+# actual cost model would scale like L x length(subblock)
+function _transformer_weight((mat, structs_dst, structs_src)::_GenericTransformerData)
+    return length(mat) * prod(structs_dst[1][1])
+end
