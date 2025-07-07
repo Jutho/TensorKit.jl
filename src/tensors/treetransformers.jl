@@ -14,6 +14,7 @@ struct AbelianTreeTransformer{T,N} <: TreeTransformer
 end
 
 function AbelianTreeTransformer(transform, p, Vdst, Vsrc)
+    t₀ = Base.time()
     permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
     structure_dst = fusionblockstructure(Vdst)
     structure_src = fusionblockstructure(Vsrc)
@@ -37,6 +38,10 @@ function AbelianTreeTransformer(transform, p, Vdst, Vsrc)
     # sort by (approximate) weight to facilitate multi-threading strategies
     # sort!(transformer)
 
+    Δt = Base.time() - t₀
+
+    @debug("Treetransformer for $Vsrc to $Vdst via $p", nblocks = L, Δt)
+
     return transformer
 end
 
@@ -48,6 +53,7 @@ struct GenericTreeTransformer{T,N} <: TreeTransformer
 end
 
 function GenericTreeTransformer(transform, p, Vdst, Vsrc)
+    t₀ = Base.time()
     permute(Vsrc, p) == Vdst || throw(SpaceMismatch("Incompatible spaces for permuting."))
     structure_dst = fusionblockstructure(Vdst)
     structure_src = fusionblockstructure(Vsrc)
@@ -92,15 +98,18 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
                    structure_src.fusiontreestructure[ids_src])
     end
 
-    @debug("TreeTransformer for $Vsrc to $Vdst via $p",
-           nblocks = length(data),
-           sz_median = size(data[end ÷ 2][1], 1),
-           sz_max = size(data[1][1], 1))
-
     transformer = GenericTreeTransformer{T,N}(data)
 
     # sort by (approximate) weight to facilitate multi-threading strategies
-    # sort!(transformer)
+    sort!(transformer)
+
+    Δt = Base.time() - t₀
+
+    @debug("TreeTransformer for $Vsrc to $Vdst via $p",
+           nblocks = length(data),
+           sz_median = size(data[end ÷ 2][1], 1),
+           sz_max = size(data[1][1], 1),
+           Δt)
 
     return transformer
 end
