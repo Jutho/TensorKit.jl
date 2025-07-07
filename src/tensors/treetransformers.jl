@@ -106,7 +106,7 @@ end
 
 function buffersize(transformer::GenericTreeTransformer)
     return maximum(transformer.data; init=0) do (basistransform, structures_dst, _)
-        return prod(structures_dst[1][1]) * max(size(basistransform)...)
+        return prod(structures_dst[1][1]) * size(basistransform, 1)
     end
 end
 
