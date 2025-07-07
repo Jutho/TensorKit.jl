@@ -52,7 +52,7 @@ end
 
 function TO.tensoradd_type(TC, A::AbstractTensorMap, ::Index2Tuple{N₁,N₂},
                            ::Bool) where {N₁,N₂}
-    I = sectortype(A)  
+    I = sectortype(A)
     M = similarstoragetype(A, sectorscalartype(I) <: Real ? TC : complex(TC))
     return tensormaptype(spacetype(A), N₁, N₂, M)
 end
