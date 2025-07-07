@@ -233,8 +233,6 @@ include("auxiliary/deprecate.jl")
 # ----------
 function __init__()
     @require_extensions
-    set_num_transformer_threads(Threads.nthreads())
-    return nothing
 end
 
 end
