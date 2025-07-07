@@ -13,7 +13,7 @@ makedocs(; modules=[TensorKit, TensorKitSectors],
          authors="Jutho Haegeman",
          warnonly=[:missing_docs, :cross_references],
          format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true",
-                                mathengine=MathJax()),
+                                mathengine=MathJax(), assets=["assets/custom.css"]),
          pages=pages,
          pagesonly=true)
 
