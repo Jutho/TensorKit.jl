@@ -641,7 +641,7 @@ function _add_transform_multi!(tdst, tsrc, p,
     buffer_src = StridedView(buffer2, (blocksize, cols), (1, blocksize), 0)
     for (i, structure_src) in enumerate(structures_src)
         subblock_src = StridedView(tsrc.data, structure_src...)
-        copyto!(@view(buffer_src[:, i]), subblock_src)
+        copyto!(buffer_src[:, i], subblock_src)
     end
 
     # Resummation into a second buffer using BLAS
@@ -651,7 +651,7 @@ function _add_transform_multi!(tdst, tsrc, p,
     # Filling up the output
     for (i, structure_dst) in enumerate(structures_dst)
         subblock_dst = StridedView(tdst.data, structure_dst...)
-        bufblock_dst = sreshape(@view(buffer_dst[:, i]), sz_src)
+        bufblock_dst = sreshape(buffer_dst[:, i], sz_src)
         TO.tensoradd!(subblock_dst, bufblock_dst, p, false, One(), β, backend...)
     end
 
