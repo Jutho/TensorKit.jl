@@ -96,8 +96,10 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
 end
 
 # Cost model for transforming a set of subblocks with fixed uncoupled sectors:
-# L x L x size(subblock) where L is the number of subblocks
-# this is L input blocks each going to L output blocks of given size
+# L x L x length(subblock) where L is the number of subblocks
+# this is L input blocks each going to L output blocks of given length
+# Note that it might be the case that the permutations are dominant, in which case the
+# actual cost model would scale like L x length(subblock)
 function _transformer_weight((matrix, structures_dst, structures_src))
     return length(matrix) * prod(structures_dst[1][1])
 end
