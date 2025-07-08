@@ -534,14 +534,10 @@ function _add_abelian_kernel_threaded!(tdst, tsrc, p, transformer::AbelianTreeTr
 end
 
 function _add_transform_single!(tdst, tsrc, p,
-                                (basistransform, structures_dst, structures_src),
+                                (coeff, struct_dst, struct_src)::_AbelianTransformerData,
                                 α, β, backend...)
-    structure_dst = structures_dst isa Vector ? only(structures_dst) : structures_dst
-    structure_src = structures_src isa Vector ? only(structures_src) : structures_src
-    coeff = basistransform isa Number ? basistransform : only(basistransform)
-
-    subblock_dst = StridedView(tdst.data, structure_dst...)
-    subblock_src = StridedView(tsrc.data, structure_src...)
+    subblock_dst = StridedView(tdst.data, struct_dst...)
+    subblock_src = StridedView(tsrc.data, struct_src...)
     TO.tensoradd!(subblock_dst, subblock_src, p, false, α * coeff, β, backend...)
     return nothing
 end
@@ -630,18 +626,31 @@ function _add_general_kernel_nonthreaded!(tdst, tsrc, p, transformer, α, β, ba
     return nothing
 end
 
+function _add_transform_single!(tdst, tsrc, p,
+                                (basistransform, structs_dst,
+                                 structs_src)::_GenericTransformerData,
+                                α, β, backend...)
+    struct_dst = (structs_dst[1], only(structs_dst[2])...)
+    struct_src = (structs_src[1], only(structs_src[2])...)
+    coeff = only(basistransform)
+    _add_transform_single!(tdst, tsrc, p, (coeff, struct_dst, struct_src), α, β, backend...)
+    return nothing
+end
+
 function _add_transform_multi!(tdst, tsrc, p,
-                               (basistransform, structures_dst, structures_src),
+                               (basistransform, (sz_dst, structs_dst),
+                                (sz_src, structs_src)),
                                (buffer1, buffer2), α, β, backend...)
     rows, cols = size(basistransform)
-    sz_src = first(first(structures_src))
     blocksize = prod(sz_src)
+    matsize = (prod(TupleTools.getindices(sz_src, codomainind(tsrc))),
+               prod(TupleTools.getindices(sz_src, domainind(tsrc))))
 
     # Filling up a buffer with contiguous data
     buffer_src = StridedView(buffer2, (blocksize, cols), (1, blocksize), 0)
-    for (i, structure_src) in enumerate(structures_src)
-        subblock_src = StridedView(tsrc.data, structure_src...)
-        copy!(sreshape(buffer_src[:, i], sz_src), subblock_src)
+    for (i, struct_src) in enumerate(structs_src)
+        subblock_src = sreshape(StridedView(tsrc.data, sz_src, struct_src...), matsize)
+        copyto!(buffer_src[:, i], subblock_src)
     end
 
     # Resummation into a second buffer using BLAS
@@ -649,8 +658,8 @@ function _add_transform_multi!(tdst, tsrc, p,
     mul!(buffer_dst, buffer_src, basistransform, α, Zero())
 
     # Filling up the output
-    for (i, structure_dst) in enumerate(structures_dst)
-        subblock_dst = StridedView(tdst.data, structure_dst...)
+    for (i, struct_dst) in enumerate(structs_dst)
+        subblock_dst = StridedView(tdst.data, sz_dst, struct_dst...)
         bufblock_dst = sreshape(buffer_dst[:, i], sz_src)
         TO.tensoradd!(subblock_dst, bufblock_dst, p, false, One(), β, backend...)
     end

@@ -45,8 +45,11 @@ function AbelianTreeTransformer(transform, p, Vdst, Vsrc)
     return transformer
 end
 
-const _GenericTransformerData{T,N} = Tuple{Matrix{T},Vector{StridedStructure{N}},
-                                           Vector{StridedStructure{N}}}
+const _GenericTransformerData{T,N} = Tuple{Matrix{T},
+                                           Tuple{NTuple{N,Int},
+                                                 Vector{Tuple{NTuple{N,Int},Int}}},
+                                           Tuple{NTuple{N,Int},
+                                                 Vector{Tuple{NTuple{N,Int},Int}}}}
 
 struct GenericTreeTransformer{T,N} <: TreeTransformer
     data::Vector{_GenericTransformerData{T,N}}
@@ -90,12 +93,19 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
                 matrix[row, col] = coeff
             end
         end
+
+        structs_src = structure_src.fusiontreestructure[ids_src]
+        sz_src = structs_src[1][1]
+        newstructs_src = map(x -> (x[2], x[3]), structs_src)
+
+        structs_dst = structure_dst.fusiontreestructure[ids_dst]
+        sz_dst = structs_dst[1][1]
+        newstructs_dst = map(x -> (x[2], x[3]), structs_dst)
+
         @debug("Created recoupling block for uncoupled: $uncoupled",
                sz = size(matrix), sparsity = count(!iszero, matrix) / length(matrix))
 
-        data[i] = (matrix,
-                   structure_dst.fusiontreestructure[ids_dst],
-                   structure_src.fusiontreestructure[ids_src])
+        data[i] = (matrix, (sz_dst, newstructs_dst), (sz_src, newstructs_src))
     end
 
     transformer = GenericTreeTransformer{T,N}(data)
@@ -116,7 +126,7 @@ end
 
 function buffersize(transformer::GenericTreeTransformer)
     return maximum(transformer.data; init=0) do (basistransform, structures_dst, _)
-        return prod(structures_dst[1][1]) * size(basistransform, 1)
+        return prod(structures_dst[1]) * size(basistransform, 1)
     end
 end
 
@@ -199,5 +209,5 @@ end
 # Note that it might be the case that the permutations are dominant, in which case the
 # actual cost model would scale like L x length(subblock)
 function _transformer_weight((mat, structs_dst, structs_src)::_GenericTransformerData)
-    return length(mat) * prod(structs_dst[1][1])
+    return length(mat) * prod(structs_dst[1])
 end
