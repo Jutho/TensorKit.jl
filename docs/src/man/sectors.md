@@ -773,7 +773,7 @@ groups.
 
 Other methods for `ElementarySpace`, such as [`dual`](@ref), [`fuse`](@ref) and
 [`flip`](@ref) also work. In fact, `GradedSpace` is the reason `flip` exists, cause
-in this case it is different then `dual`. The existence of flip originates from the
+in this case it is different than `dual`. The existence of flip originates from the
 non-trivial isomorphism between ``R_{\overline{a}}`` and ``R_{a}^*``, i.e. the
 representation space of the dual ``\overline{a}`` of sector ``a`` and the dual of the
 representation space of sector ``a``. In order for `flip(V)` to be isomorphic to `V`, it is
@@ -898,7 +898,7 @@ for the specific case ``N_1=4`` and ``N_2=3``. We can separate this tree into th
 part ``(b_1⊗b_2)⊗b_3 → c`` and the splitting part ``c→(((a_1⊗a_2)⊗a_3)⊗a_4)``. Given that
 the fusion tree can be considered to be the adjoint of a corresponding splitting tree
 ``c→(b_1⊗b_2)⊗b_3``, we now first consider splitting trees in isolation. A splitting tree
-which goes from one coupled sectors ``c`` to ``N`` uncoupled sectors ``a_1``, ``a_2``, …,
+which goes from one coupled sector ``c`` to ``N`` uncoupled sectors ``a_1``, ``a_2``, …,
 ``a_N`` needs ``N-2`` additional internal sector labels ``e_1``, …, ``e_{N-2}``, and, if
 `FusionStyle(I) isa GenericFusion`, ``N-1`` additional multiplicity labels ``μ_1``,
 …, ``μ_{N-1}``. We henceforth refer to them as vertex labels, as they are associated with
@@ -912,7 +912,7 @@ the orthogonality condition
 which now forces all internal lines ``e_k`` and vertex labels ``μ_l`` to be the same.
 
 There is one subtle remark that we have so far ignored. Within the specific subtypes of
-`Sector`, we do not explicitly distinguish between ``R_a^*`` (simply denoted as ``a`^*``
+`Sector`, we do not explicitly distinguish between ``R_a^*`` (simply denoted as ``a^*``
 and graphically depicted as an upgoing arrow ``a``) and ``R_{\bar{a}}`` (simply denoted as
 ``\bar{a}`` and depicted with a downgoing arrow), i.e. between the dual space of ``R_a`` on
 which the conjugated irrep acts, or the irrep ``\bar{a}`` to which the complex conjugate of
