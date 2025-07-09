@@ -80,15 +80,15 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
 
     # TODO: this can be multithreaded
     for (i, uncoupled) in enumerate(uncoupleds_src_unique)
-        ids_src = findall(==(uncoupled), uncoupleds_src)
-        fusiontrees_outer_src = structure_src.fusiontreelist[ids_src]
+        inds_src = findall(==(uncoupled), uncoupleds_src)
+        fusiontrees_outer_src = structure_src.fusiontreelist[inds_src]
 
         uncoupled_dst = TupleTools.getindices(uncoupled, (p[1]..., p[2]...))
-        ids_dst = findall(==(uncoupled_dst), uncoupleds_dst)
+        inds_dst = findall(==(uncoupled_dst), uncoupleds_dst)
 
-        fusiontrees_outer_dst = structure_dst.fusiontreelist[ids_dst]
+        fusiontrees_outer_dst = structure_dst.fusiontreelist[inds_dst]
 
-        matrix = zeros(sectorscalartype(I), length(ids_dst), length(ids_src))
+        matrix = zeros(sectorscalartype(I), length(inds_dst), length(inds_src))
         for (row, (f₁, f₂)) in enumerate(fusiontrees_outer_src)
             for ((f₃, f₄), coeff) in transform(f₁, f₂)
                 col = findfirst(==((f₃, f₄)), fusiontrees_outer_dst)::Int
@@ -98,8 +98,8 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
 
         # size is shared between blocks, so repack:
         # from [(sz, strides, offset), ...] to (sz, [(strides, offset), ...])
-        sz_src, newstructs_src = repack_transformer_structure(fusionstructure_src, ids_src)
-        sz_dst, newstructs_dst = repack_transformer_structure(fusionstructure_dst, ids_dst)
+        sz_src, newstructs_src = repack_transformer_structure(fusionstructure_src, inds_src)
+        sz_dst, newstructs_dst = repack_transformer_structure(fusionstructure_dst, inds_dst)
 
         @debug("Created recoupling block for uncoupled: $uncoupled",
                sz = size(matrix), sparsity = count(!iszero, matrix) / length(matrix))
