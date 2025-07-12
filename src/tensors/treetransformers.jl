@@ -116,7 +116,7 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
 
     @debug("TreeTransformer for $Vsrc to $Vdst via $p",
            nblocks = length(data),
-           sz_median = size(data[end ÷ 2][1], 1),
+           sz_median = size(data[cld(end, 2)][1], 1),
            sz_max = size(data[1][1], 1),
            Δt)
 
