@@ -65,12 +65,12 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
     I = sectortype(Vsrc)
 
     uncoupleds_src = map(structure_src.fusiontreelist) do (f₁, f₂)
-        return TupleTools.vcat(f₁.uncoupled, f₂.uncoupled)
+        return TupleTools.vcat(f₁.uncoupled, dual.(f₂.uncoupled))
     end
     uncoupleds_src_unique = unique(uncoupleds_src)
 
     uncoupleds_dst = map(structure_dst.fusiontreelist) do (f₁, f₂)
-        return TupleTools.vcat(f₁.uncoupled, f₂.uncoupled)
+        return TupleTools.vcat(f₁.uncoupled, dual.(f₂.uncoupled))
     end
 
     T = sectorscalartype(I)
@@ -116,7 +116,7 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
 
     @debug("TreeTransformer for $Vsrc to $Vdst via $p",
            nblocks = length(data),
-           sz_median = size(data[end ÷ 2][1], 1),
+           sz_median = size(data[cld(end, 2)][1], 1),
            sz_max = size(data[1][1], 1),
            Δt)
 
