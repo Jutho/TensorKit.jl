@@ -769,8 +769,9 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
         push!(newtrees, f′ => coeff)
         return newtrees
     else # i == N
+        unit = leftone(b)
         if N == 2
-            f′ = FusionTree{I}((), f.coupled, (), (), ()) # or leftone(f.uncoupled[1]) == rightone(f.uncoupled[2])
+            f′ = FusionTree{I}((), unit, (), (), ())
             coeff = sqrtdim(b)
             if !(f.isdual[N])
                 coeff *= conj(frobeniusschur(b))
@@ -781,14 +782,12 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
         uncoupled_ = TupleTools.front(f.uncoupled)
         inner_ = TupleTools.front(f.innerlines)
         coupled_ = f.innerlines[end]
-        @assert coupled_ == dual(b) # isn't this always true at this point?
         isdual_ = TupleTools.front(f.isdual)
         vertices_ = TupleTools.front(f.vertices)
         f_ = FusionTree(uncoupled_, coupled_, isdual_, inner_, vertices_)
         fs = FusionTree((b,), b, (!f.isdual[1],), (), ())
-        unit = leftone(fs.coupled)
         for (f_′, coeff) in merge(fs, f_, unit, 1) # coloring gets reversed here, should be the other unit
-            f_′.innerlines[1] == unit || continue # is this one valid?
+            f_′.innerlines[1] == unit || continue
             uncoupled′ = Base.tail(Base.tail(f_′.uncoupled))
             isdual′ = Base.tail(Base.tail(f_′.isdual))
             inner′ = N <= 4 ? () : Base.tail(Base.tail(f_′.innerlines))
