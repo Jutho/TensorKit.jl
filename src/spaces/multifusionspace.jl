@@ -1,0 +1,84 @@
+# additional interface to deal with IsingBimod Sector
+#------------------------------------------------------------------------------
+
+# make this a separate module?
+
+function Base.oneunit(S::Vect[IsingBimod])
+    allequal(a.i for a in sectors(S)) && allequal(a.j for a in sectors(S)) ||
+        throw(ArgumentError("sectors of $S are not all equal"))
+    first(sectors(S)).i == first(sectors(S)).j ||
+        throw(ArgumentError("sectors of $S are non-diagonal"))
+    sector = one(first(sectors(S)))
+    return spacetype(S)(sector => 1)
+end
+
+function TensorKit.blocksectors(W::TensorMapSpace{S,N₁,N₂}) where
+         {S::Vect[IsingBimod],N₁,N₂}
+    codom = codomain(W)
+    dom = domain(W)
+    if N₁ == 0 && N₂ == 0
+        return NTuple{2,IsingBimod}(IsingBimod(1, 1, 0), IsingBimod(2, 2, 0))
+    elseif N₁ == 0
+        @assert N₂ != 0 "one of Type IsingBimod doesn't exist"
+        return filter!(isone, collect(blocksectors(dom)))
+    elseif N₂ == 0
+        @assert N₁ != 0 "one of Type IsingBimod doesn't exist"
+        return filter!(isone, collect(blocksectors(codom)))
+    elseif N₂ <= N₁ # keep intersection
+        return filter!(c -> hasblock(codom, c), collect(blocksectors(dom)))
+    else
+        return filter!(c -> hasblock(dom, c), collect(blocksectors(codom)))
+    end
+end
+
+function rightoneunit(S::Vect[IsingBimod])
+    allequal(a.j for a in sectors(S)) ||
+        throw(ArgumentError("sectors of $S do not have the same rightone"))
+
+    allequal(a.i for a in sectors(S)) ||
+        throw(ArgumentError("sectors of $S are not all equal"))
+
+    sector = rightone(first(sectors(S)))
+    return spacetype(S)(sector => 1)
+end
+
+function leftoneunit(S::Vect[IsingBimod])
+    allequal(a.i for a in sectors(S)) ||
+        throw(ArgumentError("sectors of $S do not have the same leftone"))
+
+    allequal(a.j for a in sectors(S)) ||
+        throw(ArgumentError("sectors of $S are not all equal"))
+
+    sector = leftone(first(sectors(S)))
+    return spacetype(S)(sector => 1)
+end
+
+function TensorKit.insertrightunit(P::ProductSpace{V,N}, ::Val{i};
+                                   conj::Bool=false,
+                                   dual::Bool=false) where {i,V::Vect[IsingBimod],N}
+    i > N && error("cannot insert a sensible right unit onto $P at index $(i+1)")
+    # possible change to rightone of correct space for N = 0
+    u = N > 0 ? rightoneunit(P[i]) : error("no unit object in $P")
+    if dual
+        u = TensorKit.dual(u)
+    end
+    if conj
+        u = TensorKit.conj(u)
+    end
+    return ProductSpace(TupleTools.insertafter(P.spaces, i, (u,)))
+end
+
+# possible TODO: overwrite defaults at level of HomSpace and TensorMap?
+function TensorKit.insertleftunit(P::ProductSpace{V,N}, ::Val{i}; # want no defaults?
+                                  conj::Bool=false,
+                                  dual::Bool=false) where {i,V::Vect[IsingBimod],N}
+    i > N && error("cannot insert a sensible left unit onto $P at index $i") # do we want this to error in the diagonal case?
+    u = N > 0 ? leftoneunit(P[i]) : error("no unit object in $P")
+    if dual
+        u = TensorKit.dual(u)
+    end
+    if conj
+        u = TensorKit.conj(u)
+    end
+    return ProductSpace(TupleTools.insertafter(P.spaces, i - 1, (u,)))
+end
