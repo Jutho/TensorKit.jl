@@ -12,8 +12,7 @@ function Base.oneunit(S::Vect[IsingBimod])
     return spacetype(S)(sector => 1)
 end
 
-function TensorKit.blocksectors(W::TensorMapSpace{S,N₁,N₂}) where
-         {S::Vect[IsingBimod],N₁,N₂}
+function TensorKit.blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁,N₂}
     codom = codomain(W)
     dom = domain(W)
     if N₁ == 0 && N₂ == 0
@@ -53,9 +52,9 @@ function leftoneunit(S::Vect[IsingBimod])
     return spacetype(S)(sector => 1)
 end
 
-function TensorKit.insertrightunit(P::ProductSpace{V,N}, ::Val{i};
+function TensorKit.insertrightunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i};
                                    conj::Bool=false,
-                                   dual::Bool=false) where {i,V::Vect[IsingBimod],N}
+                                   dual::Bool=false) where {i,N}
     i > N && error("cannot insert a sensible right unit onto $P at index $(i+1)")
     # possible change to rightone of correct space for N = 0
     u = N > 0 ? rightoneunit(P[i]) : error("no unit object in $P")
@@ -69,9 +68,9 @@ function TensorKit.insertrightunit(P::ProductSpace{V,N}, ::Val{i};
 end
 
 # possible TODO: overwrite defaults at level of HomSpace and TensorMap?
-function TensorKit.insertleftunit(P::ProductSpace{V,N}, ::Val{i}; # want no defaults?
+function TensorKit.insertleftunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i}; # want no defaults?
                                   conj::Bool=false,
-                                  dual::Bool=false) where {i,V::Vect[IsingBimod],N}
+                                  dual::Bool=false) where {i,N}
     i > N && error("cannot insert a sensible left unit onto $P at index $i") # do we want this to error in the diagonal case?
     u = N > 0 ? leftoneunit(P[i]) : error("no unit object in $P")
     if dual
