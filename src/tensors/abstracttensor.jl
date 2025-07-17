@@ -32,33 +32,11 @@ Return the scalar or element type `T` of a tensor.
 """
 Base.eltype(::Type{<:AbstractTensorMap{T}}) where {T} = T
 
-"""
-    spacetype(::AbstractTensorMap) -> Type{S<:IndexSpace}
-    spacetype(::Type{<:AbstractTensorMap}) -> Type{S<:IndexSpace}
-
-Return the type of the elementary space `S` of a tensor.
-"""
 spacetype(::Type{<:AbstractTensorMap{<:Any,S}}) where {S} = S
-
-"""
-    sectortype(::AbstractTensorMap) -> Type{I<:Sector}
-    sectortype(::Type{<:AbstractTensorMap}) -> Type{I<:Sector}
-
-Return the type of sector `I` of a tensor.
-"""
-sectortype(::Type{TT}) where {TT<:AbstractTensorMap} = sectortype(spacetype(TT))
 
 function InnerProductStyle(::Type{TT}) where {TT<:AbstractTensorMap}
     return InnerProductStyle(spacetype(TT))
 end
-
-"""
-    field(::AbstractTensorMap) -> Type{𝔽<:Field}
-    field(::Type{<:AbstractTensorMap}) -> Type{𝔽<:Field}
-
-Return the type of field `𝔽` of a tensor.
-"""
-field(::Type{TT}) where {TT<:AbstractTensorMap} = field(spacetype(TT))
 
 @doc """
     storagetype(t::AbstractTensorMap) -> Type{A<:AbstractVector}
@@ -190,10 +168,7 @@ end
 
 # tensor characteristics: work on instances and pass to type
 #------------------------------------------------------------
-spacetype(t::AbstractTensorMap) = spacetype(typeof(t))
-sectortype(t::AbstractTensorMap) = sectortype(typeof(t))
 InnerProductStyle(t::AbstractTensorMap) = InnerProductStyle(typeof(t))
-field(t::AbstractTensorMap) = field(typeof(t))
 storagetype(t::AbstractTensorMap) = storagetype(typeof(t))
 blocktype(t::AbstractTensorMap) = blocktype(typeof(t))
 similarstoragetype(t::AbstractTensorMap, T=scalartype(t)) = similarstoragetype(typeof(t), T)

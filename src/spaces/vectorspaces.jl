@@ -42,12 +42,14 @@ represent objects in 𝕜-linear monoidal categories.
 abstract type VectorSpace end
 
 """
-    field(V::VectorSpace) -> Field
+    field(a) -> Type{𝔽<:Field}
+    field(::Type{T}) -> Type{𝔽<:Field}
 
-Return the field type over which a vector space is defined.
+Return the type of field over which object `a` (e.g. a vector space or a tensor) is defined.
+Also works in type domain.
 """
-function field end
-field(V::VectorSpace) = field(typeof(V))
+field(x) = field(typeof(x))
+field(::Type{T}) where {T} = field(spacetype(T))
 
 # Basic vector space methods
 #----------------------------
@@ -102,7 +104,6 @@ of a homogeneous tensor product of these spaces.
 abstract type ElementarySpace <: VectorSpace end
 const IndexSpace = ElementarySpace
 
-field(V::ElementarySpace) = field(typeof(V))
 # field(::Type{<:ElementarySpace{𝕜}}) where {𝕜} = 𝕜
 
 @doc """
@@ -241,11 +242,14 @@ dual(::EuclideanInnerProduct, V::VectorSpace) = conj(V)
 
 """
     sectortype(a) -> Type{<:Sector}
+    sectortype(::Type) -> Type{<:Sector}
 
 Return the type of sector over which object `a` (e.g. a representation space or a tensor) is
 defined. Also works in type domain.
 """
-sectortype(V::VectorSpace) = sectortype(typeof(V))
+sectortype(x) = sectortype(typeof(x))
+sectortype(::Type{T}) where {T} = sectortype(spacetype(T))
+sectortype(::Type{S}) where {S<:Sector} = S
 
 """
     hassector(V::VectorSpace, a::Sector) -> Bool
@@ -274,13 +278,19 @@ abstract type CompositeSpace{S<:ElementarySpace} <: VectorSpace end
 
 InnerProductStyle(::Type{<:CompositeSpace{S}}) where {S} = InnerProductStyle(S)
 
-spacetype(S::Type{<:ElementarySpace}) = S
-spacetype(V::ElementarySpace) = typeof(V) # = spacetype(typeof(V))
-spacetype(::Type{<:CompositeSpace{S}}) where {S} = S
-spacetype(V::CompositeSpace) = spacetype(typeof(V)) # = spacetype(typeof(V))
+"""
+    spacetype(a) -> Type{S<:IndexSpace}
+    spacetype(::Type) -> Type{S<:IndexSpace}
 
-field(P::Type{<:CompositeSpace}) = field(spacetype(P))
-sectortype(P::Type{<:CompositeSpace}) = sectortype(spacetype(P))
+Return the type of the elementary space `S` of object `a` (e.g. a tensor). Also works in
+type domain.
+"""
+spacetype(x) = spacetype(typeof(x))
+function spacetype(::Type{T}) where {T}
+    throw(MethodError(spacetype, (T,)))
+end
+spacetype(::Type{E}) where {E<:ElementarySpace} = E
+spacetype(::Type{S}) where {E,S<:CompositeSpace{E}} = E
 
 # make ElementarySpace instances behave similar to ProductSpace instances
 blocksectors(V::ElementarySpace) = collect(sectors(V))

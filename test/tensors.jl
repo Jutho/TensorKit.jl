@@ -1,4 +1,4 @@
-for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
+for V in (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₂U₁)#, VSU₃)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
@@ -10,15 +10,15 @@ spacelist = try
         if Sys.iswindows()
             (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂)
         elseif Sys.isapple()
-            (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VfU₁, VfSU₂)#, VSU₃)
+            (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VfU₁, VfSU₂, VSU₂U₁)#, VSU₃)
         else
-            (Vtr, Vℤ₂, Vfℤ₂, VU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
+            (Vtr, Vℤ₂, Vfℤ₂, VU₁, VCU₁, VSU₂, VfSU₂, VSU₂U₁)#, VSU₃)
         end
     else
-        (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
+        (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₂U₁)#, VSU₃)
     end
 catch
-    (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂)#, VSU₃)
+    (Vtr, Vℤ₂, Vfℤ₂, Vℤ₃, VU₁, VfU₁, VCU₁, VSU₂, VfSU₂, VSU₂U₁)#, VSU₃)
 end
 
 for V in spacelist
@@ -47,7 +47,9 @@ for V in spacelist
                 next = @constinferred Nothing iterate(bs, state)
                 b2 = @constinferred block(t, first(blocksectors(t)))
                 @test b1 == b2
-                @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t)
+                @test eltype(bs) === Pair{typeof(c),typeof(b1)}
+                @test typeof(b1) === TensorKit.blocktype(t)
+                @test typeof(c) === sectortype(t)
             end
         end
         @timedtestset "Tensor Dict conversion" begin
@@ -107,7 +109,9 @@ for V in spacelist
                 next = @constinferred Nothing iterate(bs, state)
                 b2 = @constinferred block(t', first(blocksectors(t')))
                 @test b1 == b2
-                @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t')
+                @test eltype(bs) === Pair{typeof(c),typeof(b1)}
+                @test typeof(b1) === TensorKit.blocktype(t')
+                @test typeof(c) === sectortype(t)
                 # linear algebra
                 @test isa(@constinferred(norm(t)), real(T))
                 @test norm(t)^2 ≈ dot(t, t)
@@ -736,6 +740,7 @@ for V in spacelist
             end
         end
     end
+    TensorKit.empty_globalcaches!()
 end
 
 @timedtestset "Deligne tensor product: test via conversion" begin

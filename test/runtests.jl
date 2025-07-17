@@ -100,6 +100,12 @@ VfSU₂ = (ℂ[FermionSpin](0 => 3, 1 // 2 => 1),
          ℂ[FermionSpin](1 // 2 => 1, 1 => 1)',
          ℂ[FermionSpin](0 => 2, 1 // 2 => 2),
          ℂ[FermionSpin](0 => 1, 1 // 2 => 1, 3 // 2 => 1)')
+VSU₂U₁ = (Vect[SU2Irrep ⊠ U1Irrep]((0, 0) => 1, (1 // 2, -1) => 1),
+          Vect[SU2Irrep ⊠ U1Irrep]((0, 0) => 2, (0, 2) => 1, (1, 0) => 1, (1, -2) => 1,
+                                   (1 // 2, -1) => 1),
+          Vect[SU2Irrep ⊠ U1Irrep]((1 // 2, 1) => 1, (1, -2) => 1)',
+          Vect[SU2Irrep ⊠ U1Irrep]((0, 0) => 2, (0, 2) => 1, (1 // 2, 1) => 1),
+          Vect[SU2Irrep ⊠ U1Irrep]((0, 0) => 1, (1 // 2, 1) => 1)')
 # VSU₃ = (ℂ[SU3Irrep]((0, 0, 0) => 3, (1, 0, 0) => 1),
 #     ℂ[SU3Irrep]((0, 0, 0) => 3, (2, 0, 0) => 1)',
 #     ℂ[SU3Irrep]((1, 1, 0) => 1, (2, 1, 0) => 1),
@@ -113,7 +119,7 @@ include("tensors.jl")
 include("diagonal.jl")
 include("planar.jl")
 # TODO: remove once we know AD is slow on macOS CI
-if !(Sys.isapple() && get(ENV, "CI", "false") == "true")
+if !(Sys.isapple() && get(ENV, "CI", "false") == "true") && isempty(VERSION.prerelease)
     include("ad.jl")
 end
 include("bugfixes.jl")

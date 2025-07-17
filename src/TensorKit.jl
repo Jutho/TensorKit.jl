@@ -87,6 +87,9 @@ export scalar, add!, contract!
 # truncation schemes
 export notrunc, truncerr, truncdim, truncspace, truncbelow
 
+# cache management
+export empty_globalcaches!
+
 # Imports
 #---------
 using TupleTools
@@ -122,8 +125,6 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      isposdef, isposdef!, ishermitian, rank, cond,
                      Diagonal, Hermitian
 
-using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
-
 import Base.Meta
 
 using Random: Random, rand!, randn!
@@ -133,6 +134,7 @@ using PackageExtensionCompat
 # Auxiliary files
 #-----------------
 include("auxiliary/auxiliary.jl")
+include("auxiliary/caches.jl")
 include("auxiliary/dicts.jl")
 include("auxiliary/iterators.jl")
 include("auxiliary/linalg.jl")
@@ -179,6 +181,21 @@ include("fusiontrees/fusiontrees.jl")
 # Definitions and methods for vector spaces
 #-------------------------------------------
 include("spaces/vectorspaces.jl")
+
+# Multithreading settings
+#-------------------------
+const TRANSFORMER_THREADS = Ref(1)
+
+get_num_transformer_threads() = TRANSFORMER_THREADS[]
+
+function set_num_transformer_threads(n::Int)
+    N = Base.Threads.nthreads()
+    if n > N
+        n = N
+        Strided._set_num_threads_warn(n)
+    end
+    return TRANSFORMER_THREADS[] = n
+end
 
 # Definitions and methods for tensors
 #-------------------------------------

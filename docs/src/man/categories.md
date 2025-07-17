@@ -46,7 +46,9 @@ matrix product), bottom to top (quantum field theory convention) or top to botto
 circuit convention). Throughout this manual, we stick to this latter convention (which is
 not very common in manuscripts on category theory):
 
-![composition](img/diagram_morphism.svg)
+```@raw html
+<img src="../img/diagram_morphism.svg" alt="composition" class="color-invertible"/>
+```
 
 The direction of the arrows, which become important once we introduce duals, are also
 subject to convention, and are here chosen to follow the arrow in ``f:W→V``, i.e. the
@@ -168,7 +170,9 @@ this gives rise to the following graphical notation for the tensor product of tw
 morphisms, and for a general morphism ``t`` between a tensor product of objects in source
 and target:
 
-![tensorproduct](img/diagram-tensorproduct.svg)
+```@raw html
+<img src="../img/diagram-tensorproduct.svg" alt="tensorproduct" class="color-invertible"/>
+```
 
 Another relevant example is the category ``\mathbf{SVect}_𝕜``, which has as objects *super
 vector spaces* over ``𝕜``, which are vector spaces with a ``ℤ₂`` grading, i.e.
@@ -258,7 +262,9 @@ coevaluation of ``V`` and ``W``, such that ``{}^{∨}W ⊗ {}^{∨}V`` is at lea
 
 Graphically, we represent the exact pairing and snake rules as
 
-![left dual](img/diagram-leftdual.svg)
+```@raw html
+<img src="../img/diagram-leftdual.svg" alt="left dual" class="color-invertible"/>
+```
 
 Note that we denote the dual objects ``{}^{∨}V`` as a line ``V`` with arrows pointing in the
 opposite (i.e. upward) direction. This notation is related to quantum field theory, where
@@ -269,7 +275,9 @@ the left dual of ``V``. Likewise, we can also define a right dual ``V^{∨}`` of
 associated pairings, the right evaluation ``\tilde{ϵ}_V: V ⊗ V^{∨} → I`` and coevaluation
 ``\tilde{η}_V: I → V^{∨} ⊗ V``, satisfying
 
-![right dual](img/diagram-rightdual.svg)
+```@raw html
+<img src="../img/diagram-rightdual.svg" alt="right dual" class="color-invertible"/>
+```
 
 In particular, one could choose ``\tilde{ϵ}_{{}^{∨}V} = ϵ_V`` and thus define ``V`` as the
 right dual of ``{}^{∨}V``. While there might be other choices, this choice must at least be
@@ -278,7 +286,9 @@ isomorphic, such that ``({}^{∨}V)^{∨} ≂ V``.
 If objects ``V`` and ``W`` have left (respectively right) duals, than for a morphism ``f ∈ \mathrm{Hom}(W,V)``, we furthermore define the left (respectively right)
 *transpose* ``{}^{∨}f ∈ \mathrm{Hom}({}^{∨}V, {}^{∨}W)`` (respectively  ``f^{∨} ∈ \mathrm{Hom}(V^{∨}, W^{∨})``) as
 
-![transpose](img/diagram-transpose.svg)
+```@raw html
+<img src="../img/diagram-transpose.svg" alt="transpose" class="color-invertible"/>
+```
 
 where on the right we also illustrate the mapping from
 ``t ∈ \mathrm{Hom}(W_1 ⊗ W_2 ⊗ W_3, V_1 ⊗ V_2)`` to a morphism in
@@ -339,7 +349,9 @@ and a right trace as
 
 They are graphically represented as
 
-![trace](img/diagram-trace.svg)
+```@raw html
+<img src="../img/diagram-trace.svg" alt="trace" class="color-invertible"/>
+```
 
 and they do not need to coincide. Note that
 ``\mathrm{tr}_{\mathrm{l}}(f) = \mathrm{tr}_{\mathrm{r}}(f*)`` and that
@@ -391,11 +403,15 @@ has been omitted). We also have ``λ_V ∘ τ_{V,I} = ρ_{V,I}``, ``ρ_V ∘ τ_
 The braiding isomorphism ``τ_{V,W}`` and its inverse are graphically represented as the
 lines ``V`` and ``W`` crossing over and under each other:
 
-![braiding](img/diagram-braiding.svg)
+```@raw html
+<img src="../img/diagram-braiding.svg" alt="braiding" class="color-invertible"/>
+```
 
 such that we have
 
-![braiding relations](img/diagram-braiding2.svg)
+```@raw html
+<img src="../img/diagram-braiding2.svg" alt="braiding relations" class="color-invertible"/>
+```
 
 where the expression on the right hand side, ``τ_{W,V}∘τ_{V,W}`` can generically not be
 simplified. Hence, for general braidings, there is no unique choice to identify a tensor in
@@ -420,7 +436,9 @@ of ``\mathbf{SVect}``, which will again be studied in detail at the end of this 
 The braiding of a space and a dual space also follows naturally, it is given by
 ``τ_{V^*,W} = λ_{W ⊗ V^*} ∘ (ϵ_V ⊗ \mathrm{id}_{W ⊗ V^*}) ∘ (\mathrm{id}_{V^*} ⊗ τ_{V,W}^{-1} ⊗ \mathrm{id}_{V^*}) ∘ (\mathrm{id}_{V^*⊗ W} ⊗ η_V) ∘ ρ_{V^* ⊗ W}^{-1}``, i.e.
 
-![braiding dual](img/diagram-braidingdual.svg)
+```@raw html
+<img src="../img/diagram-braidingdual.svg" alt="braiding dual" class="color-invertible"/>
+```
 
 **Balanced categories** ``C`` are braided categories that come with a **twist** ``θ``, a
 natural transformation from the identity functor ``1_C`` to itself, such that
@@ -441,7 +459,9 @@ and
 where we omitted the necessary left and right unitors and associators. Graphically, the
 twists and their inverse (for which we refer to [^turaev]) are then represented as
 
-![twists](img/diagram-twists.svg)
+```@raw html
+<img src="../img/diagram-twists.svg" alt="twists" class="color-invertible"/>
+```
 
 The graphical representation also makes it straightforward to verify that
 ``(θ^{\mathrm{l}}_V)^* = θ^{\mathrm{r}}_{V^*}``,
@@ -465,7 +485,9 @@ structure, or, to define the exact pairing for the right dual functor as
 
 or graphically
 
-![pivotal from twist](img/diagram-pivotalfromtwist.svg)
+```@raw html
+<img src="../img/diagram-pivotalfromtwist.svg" alt="pivotal from twist" class="color-invertible"/>
+```
 
 where we have drawn ``θ`` as ``θ^{\mathrm{l}}`` on the left and as ``θ^{\mathrm{r}}`` on
 the right, but in this case the starting assumption was that they are one and the same, and
@@ -520,7 +542,9 @@ In the graphical representation, the dagger of a morphism can be represented by 
 the morphism around a horizontal axis, and then reversing all arrows (bringing them back to
 their original orientation before the mirror operation):
 
-![dagger](img/diagram-dagger.svg)
+```@raw html
+<img src="../img/diagram-dagger.svg" alt="dagger" class="color-invertible"/>
+```
 
 where for completeness we have also depicted the graphical representation of the transpose,
 which is a very different operation. In particular, the dagger does not reverse the order
@@ -704,7 +728,9 @@ fusion category, on which we now focus, the corresponding projection maps are
 
 Graphically, we represent these relations as
 
-![fusion](img/diagram-fusion.svg)
+```@raw html
+<img src="../img/diagram-fusion.svg" alt="fusion" class="color-invertible"/>
+```
 
 and also refer to the inclusion and projection maps as splitting and fusion tensor,
 respectively.
@@ -744,7 +770,9 @@ thus represent a unitary basis transform between the basis of inclusion maps
 ``X_{d,(eμν)}^{abc}`` and ``\tilde{X}_{d,(fκλ)}^{abc}``, which is also called an F-move,
 i.e. graphically:
 
-![Fmove](img/diagram-Fmove.svg)
+```@raw html
+<img src="../img/diagram-Fmove.svg" alt="Fmove" class="color-invertible"/>
+```
 
 The matrix ``F^{abc}_d`` is thus a unitary matrix. The pentagon coherence equation can also
 be rewritten in terms of these matrix elements, and as such yields the celebrated pentagon
@@ -757,7 +785,9 @@ triangle equation and its collaries imply that
 ``[F^{1ab}_{c}]_{(11μ)}^{(cν1)} = δ^{ν}_{μ}``, and similar relations for ``F^{a1b}_c`` and
 ``F^{ab1}_c``, which are graphically represented as
 
-![Fmove1](img/diagram-Fmove1.svg)
+```@raw html
+<img src="../img/diagram-Fmove1.svg" alt="Fmove1" class="color-invertible"/>
+```
 
 In the case of group representations, i.e. the category ``\mathbf{Rep}_{\mathsf{G}}``, the
 splitting and fusion tensors are known as the Clebsch-Gordan coefficients, especially in
@@ -803,7 +833,9 @@ for ``a=\bar{a}``, the value of ``χ_a`` cannot be changed, but must satisfy ``�
 or thus ``χ_a = ±1``. This value is a topological invariant known as the
 *Frobenius-Schur indicator*. Graphically, we represent this isomorphism and its relations as
 
-![Zisomorphism](img/diagram-Zisomorphism.svg)
+```@raw html
+<img src="../img/diagram-Zisomorphism.svg" alt="Zisomorphism" class="color-invertible"/>
+```
 
 We can now discuss the relation between the exact pairing and the fusion and splitting
 tensors. Given that the (left) coevaluation ``η_a ∈ \mathrm{Hom}(1, a⊗a^*)``, we can define the
@@ -822,12 +854,16 @@ snake rules. Hence, both the quantum dimensions and the Frobenius-Schur indicato
 encoded in the F-symbol. Hence, they do not represent new independent data. Again, the
 graphical representation is more enlightning:
 
-![ZtoF](img/diagram-ZtoF.svg)
+```@raw html
+<img src="../img/diagram-ZtoF.svg" alt="ZtoF" class="color-invertible"/>
+```
 
 With these definitions, we can now also evaluate the action of the evaluation map on the
 splitting tensors, namely
 
-![splittingfusionrelation](img/diagram-splittingfusionrelation.svg)
+```@raw html
+<img src="../img/diagram-splittingfusionrelation.svg" alt="splittingfusionrelation" class="color-invertible"/>
+```
 
 where again bar denotes complex conjugation in the second line, and we introduced two new
 families of matrices ``A^{ab}_c`` and ``B^{ab}_c``, whose entries are composed out of
@@ -843,7 +879,9 @@ Composing the left hand side of first graphical equation with its dagger, and no
 the resulting element ``f ∈ \mathrm{End}(a)`` must satisfy
 ``f = d_a^{-1} \mathrm{tr}(f) \mathrm{id}_a``, i.e.
 
-![Brelation](img/diagram-Brelation.svg)
+```@raw html
+<img src="../img/diagram-Brelation.svg" alt="Brelation" class="color-invertible"/>
+```
 
 allows to conclude that
 ``∑_ν [B^{ab}_c]^{ν}_{μ} \overline{[B^{ab}_c]^{ν}_{μ′}} = \delta_{μ,μ′}``, i.e. ``B^{ab}_c``
@@ -893,7 +931,9 @@ the simple objects. We can then express ``τ_{a,b}`` in terms of its matrix elem
 
 or graphically
 
-![braidingR](img/diagram-braidingR.svg)
+```@raw html
+<img src="../img/diagram-braidingR.svg" alt="braidingR" class="color-invertible"/>
+```
 
 The hexagon coherence axiom for the braiding and the associator can then be reexpressed in
 terms of the F-symbols and R-symbols.
@@ -905,7 +945,9 @@ complex phases because of unitarity) multiplying the identity morphism, i.e.
 
 or graphically
 
-![simpletwist](img/diagram-simpletwist.svg)
+```@raw html
+<img src="../img/diagram-simpletwist.svg" alt="simpletwist" class="color-invertible"/>
+```
 
 Henceforth, we reserve ``θ_a`` for the scalar value itself. Note that ``θ_a = θ_{\bar{a}}``
 as our category is spherical and thus a ribbon category, and that the defining relation of
@@ -916,7 +958,9 @@ a twist implies
 If ``a = \bar{a}``, we can furthermore relate the twist, the braiding and the Frobenius-
 Schur indicator via ``θ_a χ_a R^{aa}_1 =1``, because of
 
-![twistfrobeniusschur](img/diagram-twistfrobeniusschur.svg)
+```@raw html
+<img src="../img/diagram-twistfrobeniusschur.svg" alt="twistfrobeniusschur" class="color-invertible"/>
+```
 
 For the recurring example of ``\mathbf{Rep}_{\mathsf{G}}``, the braiding acts simply as the
 swap of the two vector spaces on which the representations are acting and is thus symmetric,
