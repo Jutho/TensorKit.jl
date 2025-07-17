@@ -47,7 +47,9 @@ for V in spacelist
                 next = @constinferred Nothing iterate(bs, state)
                 b2 = @constinferred block(t, first(blocksectors(t)))
                 @test b1 == b2
-                @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t)
+                @test eltype(bs) === Pair{typeof(c),typeof(b1)}
+                @test typeof(b1) === TensorKit.blocktype(t)
+                @test typeof(c) === sectortype(t)
             end
         end
         @timedtestset "Tensor Dict conversion" begin
@@ -107,7 +109,9 @@ for V in spacelist
                 next = @constinferred Nothing iterate(bs, state)
                 b2 = @constinferred block(t', first(blocksectors(t')))
                 @test b1 == b2
-                @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t')
+                @test eltype(bs) === Pair{typeof(c),typeof(b1)}
+                @test typeof(b1) === TensorKit.blocktype(t')
+                @test typeof(c) === sectortype(t)
                 # linear algebra
                 @test isa(@constinferred(norm(t)), real(T))
                 @test norm(t)^2 ≈ dot(t, t)

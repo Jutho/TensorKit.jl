@@ -157,7 +157,7 @@ function _fusiontree_iterate(uncoupledsectors::NTuple{N},
         nextout = iterate(outiterN, outstateN)
         nextout === nothing && return nothing
         b, outstateN = nextout
-        vertexiterN = c ⊗ dual(b)
+        vertexiterN = coupled ⊗ dual(b)
         nextline = iterate(vertexiterN)
     end
     a, vertexstateN = nextline

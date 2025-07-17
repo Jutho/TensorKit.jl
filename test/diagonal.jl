@@ -29,7 +29,8 @@ diagspacelist = ((ℂ^4)', ℂ[Z2Irrep](0 => 2, 1 => 3),
             next = @constinferred Nothing iterate(bs, state)
             b2 = @constinferred block(t, first(blocksectors(t)))
             @test b1 == b2
-            @test eltype(bs) === typeof(b1) === TensorKit.blocktype(t)
+            @test eltype(bs) === Pair{typeof(c),typeof(b1)}
+            @test typeof(b1) === TensorKit.blocktype(t)
             # basic linear algebra
             @test isa(@constinferred(norm(t)), real(T))
             @test norm(t)^2 ≈ dot(t, t)
