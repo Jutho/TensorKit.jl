@@ -28,21 +28,15 @@ struct BraidingTensor{T,S} <: AbstractTensorMap{T,S,2,2}
         # partial construction: only construct rowr and colr when needed
     end
 end
-function BraidingTensor{T}(V1::S, V2::S, adjoint::Bool=false) where {T,S<:IndexSpace}
-    return BraidingTensor{T,S}(V1, V2, adjoint)
+function BraidingTensor{T}(V1::IndexSpace, V2::IndexSpace, adjoint::Bool=false) where {T}
+    return BraidingTensor{T,S}(promote(V1, V2)..., adjoint)
 end
 function BraidingTensor{T}(V1::IndexSpace, V2::IndexSpace, adjoint::Bool=false) where {T}
     return BraidingTensor{T}(promote(V1, V2)..., adjoint)
 end
-function BraidingTensor(V1::S, V2::S, adjoint::Bool=false) where {S<:IndexSpace}
-    if BraidingStyle(sectortype(S)) isa SymmetricBraiding
-        return BraidingTensor{Float64,S}(V1, V2, adjoint)
-    else
-        return BraidingTensor{ComplexF64,S}(V1, V2, adjoint)
-    end
-end
 function BraidingTensor(V1::IndexSpace, V2::IndexSpace, adjoint::Bool=false)
-    return BraidingTensor(promote(V1, V2)..., adjoint)
+    T = BraidingStyle(sectortype(S)) isa SymmetricBraiding ? Float64 : ComplexF64
+    return BraidingTensor{T}(V1, V2, adjoint)
 end
 function BraidingTensor(V::HomSpace, adjoint::Bool=false)
     domain(V) == reverse(codomain(V)) ||
