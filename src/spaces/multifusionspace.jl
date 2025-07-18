@@ -3,20 +3,28 @@
 
 # make this a separate module?
 
+# possible TODO: zero GradedSpace?
+
+function dim(V::Vect[IsingBimod])
+    T = Base.promote_op(*, Int, real(sectorscalartype(sectortype(V))))
+    return reduce(+, dim(V, c) * dim(c) for c in sectors(V);
+                  init=zero(T))
+end
+
 function Base.oneunit(S::Vect[IsingBimod])
-    allequal(a.i for a in sectors(S)) && allequal(a.j for a in sectors(S)) ||
+    allequal(a.row for a in sectors(S)) && allequal(a.col for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S are not all equal"))
-    first(sectors(S)).i == first(sectors(S)).j ||
+    first(sectors(S)).row == first(sectors(S)).col ||
         throw(ArgumentError("sectors of $S are non-diagonal"))
     sector = one(first(sectors(S)))
     return spacetype(S)(sector => 1)
 end
 
-function TensorKit.blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁,N₂}
+function blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁,N₂}
     codom = codomain(W)
     dom = domain(W)
     if N₁ == 0 && N₂ == 0
-        return NTuple{2,IsingBimod}(IsingBimod(1, 1, 0), IsingBimod(2, 2, 0))
+        return (IsingBimod(1, 1, 0), IsingBimod(2, 2, 0))
     elseif N₁ == 0
         @assert N₂ != 0 "one of Type IsingBimod doesn't exist"
         return filter!(isone, collect(blocksectors(dom)))
@@ -31,10 +39,10 @@ function TensorKit.blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) w
 end
 
 function rightoneunit(S::Vect[IsingBimod])
-    allequal(a.j for a in sectors(S)) ||
+    allequal(a.col for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S do not have the same rightone"))
 
-    allequal(a.i for a in sectors(S)) ||
+    allequal(a.row for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S are not all equal"))
 
     sector = rightone(first(sectors(S)))
@@ -42,17 +50,17 @@ function rightoneunit(S::Vect[IsingBimod])
 end
 
 function leftoneunit(S::Vect[IsingBimod])
-    allequal(a.i for a in sectors(S)) ||
+    allequal(a.row for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S do not have the same leftone"))
 
-    allequal(a.j for a in sectors(S)) ||
+    allequal(a.col for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S are not all equal"))
 
     sector = leftone(first(sectors(S)))
     return spacetype(S)(sector => 1)
 end
 
-function TensorKit.insertrightunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i};
+function insertrightunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i};
                                    conj::Bool=false,
                                    dual::Bool=false) where {i,N}
     i > N && error("cannot insert a sensible right unit onto $P at index $(i+1)")
@@ -68,7 +76,7 @@ function TensorKit.insertrightunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i}
 end
 
 # possible TODO: overwrite defaults at level of HomSpace and TensorMap?
-function TensorKit.insertleftunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i}; # want no defaults?
+function insertleftunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i}; # want no defaults?
                                   conj::Bool=false,
                                   dual::Bool=false) where {i,N}
     i > N && error("cannot insert a sensible left unit onto $P at index $i") # do we want this to error in the diagonal case?
