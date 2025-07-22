@@ -347,7 +347,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     isduala = f₁.isdual[1]
     factor = sqrtdim(a)
     if !isduala
-        factor *= frobeniusschur(a)
+        factor *= conj(frobeniusschur(a))
     end
     c1 = dual(a)
     c2 = f₁.coupled
