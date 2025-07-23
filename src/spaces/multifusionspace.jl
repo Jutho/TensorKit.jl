@@ -42,9 +42,6 @@ function rightoneunit(S::Vect[IsingBimod])
     allequal(a.col for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S do not have the same rightone"))
 
-    allequal(a.row for a in sectors(S)) ||
-        throw(ArgumentError("sectors of $S are not all equal"))
-
     sector = rightone(first(sectors(S)))
     return spacetype(S)(sector => 1)
 end
@@ -52,9 +49,6 @@ end
 function leftoneunit(S::Vect[IsingBimod])
     allequal(a.row for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S do not have the same leftone"))
-
-    allequal(a.col for a in sectors(S)) ||
-        throw(ArgumentError("sectors of $S are not all equal"))
 
     sector = leftone(first(sectors(S)))
     return spacetype(S)(sector => 1)
