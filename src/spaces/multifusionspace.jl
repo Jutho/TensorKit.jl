@@ -83,3 +83,15 @@ function insertleftunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i}; # want no
     end
     return ProductSpace(TupleTools.insertafter(P.spaces, i - 1, (u,)))
 end
+
+# is this even necessary? can let it error at fusiontrees.jl:93 from the one(IsingBimod) call
+# but these errors are maybe more informative
+function FusionTree(uncoupled::Tuple{IsingBimod,Vararg{IsingBimod}})
+    coupled = collect(⊗(uncoupled...))
+    @show coupled
+    if length(coupled) == 0 # illegal fusion somewhere
+        throw(ArgumentError("Forbidden fusion with uncoupled sectors $uncoupled"))
+    else # allowed fusions require inner lines
+        error("fusion tree requires inner lines if `FusionStyle(I) <: MultipleFusion`")
+    end
+end
