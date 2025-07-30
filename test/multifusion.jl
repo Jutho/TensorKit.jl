@@ -61,7 +61,7 @@ ti = time()
         @test @constinferred(field(V)) == ℂ
         @test @constinferred(sectortype(V)) == I
         slist = @constinferred sectors(V)
-        @test @constinferred(TensorKit.hassector(V, first(slist)))
+        @test @constinferred(hassector(V, first(slist)))
         @test @constinferred(dim(V)) == sum(dim(s) * dim(V, s) for s in slist)
         @test @constinferred(reduceddim(V)) == sum(dim(V, s) for s in slist)
         @constinferred dim(V, first(slist))
@@ -120,44 +120,57 @@ ti = time()
         @test_throws SpaceMismatch (⊕(V, V'))
     end
 
-    @timedtestset "HomSpace" begin
-        # for (V1, V2, V3, V4, V5) in (Vtr, Vℤ₃, VSU₂)
-        #     W = TensorKit.HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
-        #     @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
-        #     @test W == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
-        #     @test W' == (V1 ⊗ V2 → V3 ⊗ V4 ⊗ V5)
-        #     @test eval(Meta.parse(sprint(show, W))) == W
-        #     @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
-        #     @test spacetype(W) == typeof(V1)
-        #     @test sectortype(W) == sectortype(V1)
-        #     @test W[1] == V1
-        #     @test W[2] == V2
-        #     @test W[3] == V3'
-        #     @test W[4] == V4'
-        #     @test W[5] == V5'
-        #     @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
-        #     @test W == deepcopy(W)
-        #     @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
-        #     @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
-        #     @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
-        #     @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)) ==
-        #             @constinferred(insertleftunit(W)) ==
-        #             @constinferred(insertrightunit(W))
-        #     @test @constinferred(removeunit(insertleftunit(W), $(numind(W) + 1))) == W
-        #     @test (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V5)') ==
-        #             @constinferred(insertleftunit(W; conj=true)) ==
-        #             @constinferred(insertrightunit(W; conj=true))
-        #     @test (oneunit(V1) ⊗ V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5) ==
-        #             @constinferred(insertleftunit(W, 1)) ==
-        #             @constinferred(insertrightunit(W, 0))
-        #     @test (V1 ⊗ V2 ⊗ oneunit(V1) ← V3 ⊗ V4 ⊗ V5) ==
-        #             @constinferred(insertrightunit(W, 2))
-        #     @test (V1 ⊗ V2 ← oneunit(V1) ⊗ V3 ⊗ V4 ⊗ V5) ==
-        #             @constinferred(insertleftunit(W, 3))
-        #     @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W
-        #     @test @constinferred(insertrightunit(one(V1) ← V1, 0)) == (oneunit(V1) ← V1)
-        #     @test_throws BoundsError insertleftunit(one(V1) ← V1, 0)
-        # end
+    VIB1 = (
+        Vect[I](I(1, 1, 0) => 1, I(1, 1, 1) => 1),
+        Vect[I](I(1, 1, 0) => 1, I(1, 1, 1) => 2),
+        Vect[I](I(1, 1, 0) => 3, I(1, 1, 1) => 2),
+        Vect[I](I(1, 1, 0) => 2, I(1, 1, 1) => 3),
+        Vect[I](I(1, 1, 0) => 2, I(1, 1, 1) => 5),
+    )
+
+    VIB2 = (
+        Vect[I](I(2, 2, 0) => 1, I(2, 2, 1) => 1),
+        Vect[I](I(2, 2, 0) => 1, I(2, 2, 1) => 2),
+        Vect[I](I(2, 2, 0) => 3, I(2, 2, 1) => 2),
+        Vect[I](I(2, 2, 0) => 2, I(2, 2, 1) => 3),
+        Vect[I](I(2, 2, 0) => 2, I(2, 2, 1) => 5),
+    )
+
+    @timedtestset "HomSpace with $(TensorKit.type_repr(Vect[I])) " begin
+        for (V1, V2, V3, V4, V5) in (VIB1, VIB2) #TODO: examples with module spaces
+            W = HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
+            @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
+            @test W == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5)
+            @test W' == (V1 ⊗ V2 → V3 ⊗ V4 ⊗ V5)
+            @test eval(Meta.parse(sprint(show, W))) == W
+            @test eval(Meta.parse(sprint(show, typeof(W)))) == typeof(W)
+            @test spacetype(W) == typeof(V1)
+            @test sectortype(W) == sectortype(V1)
+            @test W[1] == V1
+            @test W[2] == V2
+            @test W[3] == V3'
+            @test W[4] == V4'
+            @test W[5] == V5'
+
+            @test @constinferred(hash(W)) == hash(deepcopy(W)) != hash(W')
+            @test W == deepcopy(W)
+            @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
+            @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
+            @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
+
+            @test_throws ErrorException insertleftunit(W)
+            @test insertrightunit(W) == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ oneunit(V1))
+            @test_throws ErrorException insertrightunit(W, 6)
+            @test_throws ErrorException insertleftunit(W, 6)
+
+            @test (V1 ⊗ V2 ⊗ oneunit(V1) ← V3 ⊗ V4 ⊗ V5) ==
+                @constinferred(insertrightunit(W, 2))
+            @test (V1 ⊗ V2 ← oneunit(V1) ⊗ V3 ⊗ V4 ⊗ V5) ==
+                @constinferred(insertleftunit(W, 3))
+            @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W
+            @test_throws ErrorException @constinferred(insertrightunit(one(V1) ← V1, 0)) # should I specify it's the other error?
+            @test_throws ErrorException insertleftunit(one(V1) ← V1, 0)
+        end
     end
 end
 
@@ -415,7 +428,6 @@ end
             end
         end
     end
-    TensorKit.empty_globalcaches!()
 end
 
 V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
@@ -542,7 +554,6 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
         # no V * V' * V ← V or V^2 ← V tests due to Nsymbol erroring where fusion is forbidden
     end
     @timedtestset "Tensor contraction" begin
-        #TODO: fix this part
         for W in (Vect[I](I(1, 1, 0) => 2, I(1, 1, 1) => 3), Vect[I](I(2, 2, 0) => 2, I(2, 2, 1) => 3))
             d = DiagonalTensorMap(rand(ComplexF64, reduceddim(W)), W)
             t = TensorMap(d)
@@ -654,6 +665,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
     end
 end
 
+TensorKit.empty_globalcaches!()
 ##########
 tf = time()
 printstyled(
