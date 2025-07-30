@@ -20,6 +20,8 @@ function Base.oneunit(S::Vect[IsingBimod])
     return spacetype(S)(sector => 1)
 end
 
+Base.zero(S::Type{Vect[IsingBimod]}) = Vect[IsingBimod]()
+
 function blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁,N₂}
     codom = codomain(W)
     dom = domain(W)
@@ -88,10 +90,14 @@ end
 # but these errors are maybe more informative
 function FusionTree(uncoupled::Tuple{IsingBimod,Vararg{IsingBimod}})
     coupled = collect(⊗(uncoupled...))
-    @show coupled
     if length(coupled) == 0 # illegal fusion somewhere
         throw(ArgumentError("Forbidden fusion with uncoupled sectors $uncoupled"))
     else # allowed fusions require inner lines
         error("fusion tree requires inner lines if `FusionStyle(I) <: MultipleFusion`")
     end
+end
+
+# this one might also be overkill, since `FusionTreeIterator`s don't check whether the fusion is allowed
+function fusiontrees(uncoupled::Tuple{IsingBimod, Vararg{IsingBimod}})
+    return throw(ArgumentError("coupled sector must be provided for IsingBimod fusion"))
 end
