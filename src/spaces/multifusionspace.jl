@@ -3,8 +3,6 @@
 
 # make this a separate module?
 
-# possible TODO: zero GradedSpace?
-
 function dim(V::Vect[IsingBimod])
     T = Base.promote_op(*, Int, real(sectorscalartype(sectortype(V))))
     return reduce(+, dim(V, c) * dim(c) for c in sectors(V);
