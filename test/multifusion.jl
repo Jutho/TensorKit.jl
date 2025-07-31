@@ -6,6 +6,30 @@ println("Multifusion tests for $Istr")
 println("------------------------------------")
 ti = time()
 
+C0, C1, D0, D1, M, Mop = I(1, 1, 0), I(1, 1, 1), I(2, 2, 0), I(2, 2, 1), I(1, 2, 0), I(2, 1, 0)
+VIB1 = (
+    Vect[I](C0 => 1, C1 => 1),
+    Vect[I](C0 => 1, C1 => 2),
+    Vect[I](C0 => 3, C1 => 2),
+    Vect[I](C0 => 2, C1 => 3),
+    Vect[I](C0 => 2, C1 => 5),
+)
+
+VIB2 = (
+    Vect[I](D0 => 1, D1 => 1),
+    Vect[I](D0 => 1, D1 => 2),
+    Vect[I](D0 => 3, D1 => 2),
+    Vect[I](D0 => 2, D1 => 3),
+    Vect[I](D0 => 2, D1 => 5),
+)
+
+VIB3 = (Vect[I](I(1,2,0) => 2), 
+        Vect[I](I(2, 2, 0) => 1, I(2,2,1) => 2), # MD ← CMD
+        Vect[I](I(1, 1, 0) => 2, I(1,1,1) => 3), 
+        Vect[I](I(1,2,0) => 4),
+        Vect[I](I(2, 2, 0) => 3, I(2,2,1) => 5)
+        )
+
 @timedtestset "Multifusion spaces " verbose = true begin
     @timedtestset "GradedSpace: $(TensorKit.type_repr(Vect[I]))" begin
         gen = (values(I)[k] => (k + 1) for k in 1:length(values(I)))
@@ -34,10 +58,10 @@ ti = time()
         @test eval(Meta.parse(sprint(show, typeof(V)))) == typeof(V)
 
         # space with a single sector
-        Wleft = @constinferred Vect[I](I(1, 1, 0) => 1, I(1, 1, 1) => 1)
-        Wright = @constinferred Vect[I](I(2, 2, 0) => 1, I(2, 2, 1) => 1)
-        WM = @constinferred Vect[I](I(1, 2, 0) => 1)
-        WMop = @constinferred Vect[I](I(2, 1, 0) => 1)
+        Wleft = @constinferred Vect[I](C0 => 1, C1 => 1)
+        Wright = @constinferred Vect[I](D0 => 1, D1 => 1)
+        WM = @constinferred Vect[I](M => 1)
+        WMop = @constinferred Vect[I](Mop => 1)
 
         @test @constinferred(oneunit(Wleft)) == leftoneunit(Wleft) == rightoneunit(Wleft)
         @test @constinferred(oneunit(Wright)) == leftoneunit(Wright) == rightoneunit(Wright)
@@ -78,15 +102,15 @@ ti = time()
 
         # sensible direct sums and fuses
         @test @constinferred(⊕(Wleft, WM)) ==
-            Vect[I](c => 1 for c in sectors(V) if leftone(c) == I(1, 1, 0))
+            Vect[I](c => 1 for c in sectors(V) if leftone(c) == C0)
         @test @constinferred(⊕(Wright, WMop)) ==
-            Vect[I](c => 1 for c in sectors(V) if leftone(c) == I(2, 2, 0))
+            Vect[I](c => 1 for c in sectors(V) if leftone(c) == D0)
         @test @constinferred(⊕(Wright, WM)) ==
-            Vect[I](c => 1 for c in sectors(V) if rightone(c) == I(2, 2, 0))
+            Vect[I](c => 1 for c in sectors(V) if rightone(c) == D0)
         @test @constinferred(⊕(Wleft, WMop)) ==
-            Vect[I](c => 1 for c in sectors(V) if rightone(c) == I(1, 1, 0))
-        @test @constinferred(fuse(Wleft, WM)) == Vect[I](I(1, 2, 0) => 2)
-        @test @constinferred(fuse(Wright, WMop)) == Vect[I](I(2, 1, 0) => 2)
+            Vect[I](c => 1 for c in sectors(V) if rightone(c) == C0)
+        @test @constinferred(fuse(Wleft, WM)) == Vect[I](M => 2)
+        @test @constinferred(fuse(Wright, WMop)) == Vect[I](Mop => 2)
 
         # less sensible direct sums and fuses
         @test @constinferred(⊕(Wleft, Wright)) ==
@@ -110,31 +134,15 @@ ti = time()
         @test V == @constinferred infimum(V, ⊕(V, V))
         @test V ≺ ⊕(V, V)
         @test !(V ≻ ⊕(V, V))
-        @test infimum(V, GradedSpace(I(1, 1, 0) => 3)) ==
-            GradedSpace(I(1, 1, 0) => 2)
-        @test infimum(V, GradedSpace(I(1, 2, 0) => 6)) ==
-            GradedSpace(I(1, 2, 0) => 5)
+        @test infimum(V, GradedSpace(C0 => 3)) ==
+            GradedSpace(C0 => 2)
+        @test infimum(V, GradedSpace(M => 6)) ==
+            GradedSpace(M => 5)
         for W in [WM, WMop, Wright]
             @test infimum(Wleft, W) == Vect[I](c => 0 for c in sectors(V))
         end
         @test_throws SpaceMismatch (⊕(V, V'))
     end
-
-    VIB1 = (
-        Vect[I](I(1, 1, 0) => 1, I(1, 1, 1) => 1),
-        Vect[I](I(1, 1, 0) => 1, I(1, 1, 1) => 2),
-        Vect[I](I(1, 1, 0) => 3, I(1, 1, 1) => 2),
-        Vect[I](I(1, 1, 0) => 2, I(1, 1, 1) => 3),
-        Vect[I](I(1, 1, 0) => 2, I(1, 1, 1) => 5),
-    )
-
-    VIB2 = (
-        Vect[I](I(2, 2, 0) => 1, I(2, 2, 1) => 1),
-        Vect[I](I(2, 2, 0) => 1, I(2, 2, 1) => 2),
-        Vect[I](I(2, 2, 0) => 3, I(2, 2, 1) => 2),
-        Vect[I](I(2, 2, 0) => 2, I(2, 2, 1) => 3),
-        Vect[I](I(2, 2, 0) => 2, I(2, 2, 1) => 5),
-    )
 
     @timedtestset "HomSpace with $(TensorKit.type_repr(Vect[I])) " begin
         for (V1, V2, V3, V4, V5) in (VIB1, VIB2) #TODO: examples with module spaces
@@ -176,7 +184,6 @@ end
 
 @timedtestset "Fusion trees for $(TensorKit.type_repr(I))" verbose = true begin
     N = 6
-    C0, C1, D0, D1, M, Mop = I(1, 1, 0), I(1, 1, 1), I(2, 2, 0), I(2, 2, 1), I(1, 2, 0), I(2, 1, 0)
     out = (Mop, C0, C1, M, D0, D1) # should I try to make a non-hardcoded example?
     isdual = ntuple(n -> rand(Bool), N)
     in = rand(collect(⊗(out...))) # will be D0 or D1 in this choice of out
@@ -554,7 +561,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
         # no V * V' * V ← V or V^2 ← V tests due to Nsymbol erroring where fusion is forbidden
     end
     @timedtestset "Tensor contraction" begin
-        for W in (Vect[I](I(1, 1, 0) => 2, I(1, 1, 1) => 3), Vect[I](I(2, 2, 0) => 2, I(2, 2, 1) => 3))
+        for W in (Vect[I](C0 => 2, C1 => 3), Vect[I](D0 => 2, D1 => 3))
             d = DiagonalTensorMap(rand(ComplexF64, reduceddim(W)), W)
             t = TensorMap(d)
             A = randn(ComplexF64, W ⊗ W' ⊗ W, W)
@@ -668,11 +675,15 @@ end
 # whatever V will be, for now VIB1
 #TODO: test with non-diagonal sectors
 # needs to be 1 dimensional stuff for the isomorphism test in removeunit
-V1, V2, V3, V4, V5 = V
-@assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
-@assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
+# is ^ still true?
 
-@timedtestset "Tensors with symmetry: $Istr" verbose = true begin
+for V in (VIB1, VIB2)
+    V1, V2, V3, V4, V5 = V
+    @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
+    @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests
+end
+
+@timedtestset "Tensors with symmetry: $Istr" verbose = true for V in (VIB1, VIB2)
     V1, V2, V3, V4, V5 = V
     @timedtestset "Basic tensor properties" begin # passes for diagonal sectors
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
@@ -687,10 +698,10 @@ V1, V2, V3, V4, V5 = V
             @test typeof(t) == TensorMap{T,spacetype(t),5,0,Vector{T}}
             # blocks
             bs = @constinferred blocks(t)
-            (c, b1), state = @constinferred Nothing iterate(bs)
+            (c, b1), state = @constinferred Nothing iterate(bs) # fusion matters here
             @test c == first(blocksectors(W))
             next = @constinferred Nothing iterate(bs, state)
-            b2 = @constinferred block(t, first(blocksectors(t)))
+            b2 = @constinferred block(t, first(blocksectors(t))) # and here
             @test b1 == b2
             @test eltype(bs) === Pair{typeof(c),typeof(b1)}
             @test typeof(b1) === TensorKit.blocktype(t)
@@ -702,7 +713,7 @@ V1, V2, V3, V4, V5 = V
         for T in (Int, Float32, ComplexF64)
             t = @constinferred rand(T, W)
             d = convert(Dict, t)
-            @test t == convert(TensorMap, d)
+            @test t == convert(TensorMap, d) # fusion matters here
         end
     end
     # no tensor array conversion tests: no fusion tensor
