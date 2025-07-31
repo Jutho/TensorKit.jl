@@ -936,7 +936,7 @@ end
 
 # braid fusion tree
 """
-    braid(f::FusionTree{<:Sector, N}, levels::NTuple{N, Int}, p::NTuple{N, Int})
+    braid(f::FusionTree{<:Sector, N}, p::NTuple{N, Int}, levels::NTuple{N, Int})
     -> <:AbstractDict{typeof(t), <:Number}
 
 Perform a braiding of the uncoupled indices of the fusion tree `f` and return the result as
@@ -949,7 +949,7 @@ that if `i` and `j` cross, ``τ_{i,j}`` is applied if `levels[i] < levels[j]` an
 ``τ_{j,i}^{-1}`` if `levels[i] > levels[j]`. This does not allow to encode the most general
 braid, but a general braid can be obtained by combining such operations.
 """
-function braid(f::FusionTree{I,N}, levels::NTuple{N,Int}, p::NTuple{N,Int}) where {I,N}
+function braid(f::FusionTree{I,N}, p::NTuple{N,Int}, levels::NTuple{N,Int}) where {I,N}
     TupleTools.isperm(p) || throw(ArgumentError("not a valid permutation: $p"))
     if FusionStyle(I) isa UniqueFusion && BraidingStyle(I) isa SymmetricBraiding
         coeff = one(sectorscalartype(I))
@@ -998,13 +998,13 @@ as a `<:AbstractDict` of output trees and corresponding coefficients; this requi
 """
 function permute(f::FusionTree{I,N}, p::NTuple{N,Int}) where {I,N}
     @assert BraidingStyle(I) isa SymmetricBraiding
-    return braid(f, ntuple(identity, Val(N)), p)
+    return braid(f, p, ntuple(identity, Val(N)))
 end
 
 # braid double fusion tree
 """
-    braid((f₁, f₂)::FusionTreePair{I}, (levels1, levels2)::Index2Tuple,
-          (p1, p2)::Index2Tuple{N₁, N₂}) where {I, N₁, N₂}
+    braid((f₁, f₂)::FusionTreePair{I}, (p1, p2)::Index2Tuple{N₁,N₂},
+          (levels1, levels2)::Index2Tuple) where {I,N₁,N₂}
         -> <:AbstractDict{<:FusionTreePair{I, N₁, N₂}}, <:Number}
 
 Input is a fusion-splitting tree pair that describes the fusion of a set of incoming
@@ -1019,22 +1019,22 @@ respectively, which determines how indices braid. In particular, if `i` and `j` 
 levels[j]`. This does not allow to encode the most general braid, but a general braid can
 be obtained by combining such operations.
 """
-function braid((f₁, f₂)::FusionTreePair{I}, (levels1, levels2)::Index2Tuple,
-               (p1, p2)::Index2Tuple{N₁,N₂}) where {I,N₁,N₂}
+function braid((f₁, f₂)::FusionTreePair{I}, (p1, p2)::Index2Tuple{N₁,N₂},
+               (levels1, levels2)::Index2Tuple) where {I,N₁,N₂}
     @assert length(f₁) + length(f₂) == N₁ + N₂
     @assert length(f₁) == length(levels1) && length(f₂) == length(levels2)
     @assert TupleTools.isperm((p1..., p2...))
-    return fsbraid(((f₁, f₂), (levels1, levels2), (p1, p2)))
+    return fsbraid(((f₁, f₂), (p1, p2), (levels1, levels2)))
 end
-const FSBraidKey{I,N₁,N₂} = Tuple{<:FusionTreePair{I},Index2Tuple,Index2Tuple{N₁,N₂}}
+const FSBraidKey{I,N₁,N₂} = Tuple{<:FusionTreePair{I},Index2Tuple{N₁,N₂},Index2Tuple}
 
 @cached function fsbraid(key::FSBraidKey{I,N₁,N₂})::_fsdicttype(I, N₁, N₂) where {I,N₁,N₂}
-    ((f₁, f₂), (l1, l2), (p1, p2)) = key
+    ((f₁, f₂), (p1, p2), (l1, l2)) = key
     p = linearizepermutation(p1, p2, length(f₁), length(f₂))
     levels = (l1..., reverse(l2)...)
     local newtrees
     for ((f, f0), coeff1) in repartition((f₁, f₂), N₁ + N₂)
-        for (f′, coeff2) in braid(f, levels, p)
+        for (f′, coeff2) in braid(f, p, levels)
             for ((f₁′, f₂′), coeff3) in repartition((f′, f0), N₁)
                 if @isdefined newtrees
                     newtrees[(f₁′, f₂′)] = get(newtrees, (f₁′, f₂′), zero(coeff3)) +
@@ -1067,9 +1067,9 @@ outgoing (`t1`) and incoming sectors (`t2`) respectively (with identical coupled
 repartitioning and permuting the tree such that sectors `p1` become outgoing and sectors
 `p2` become incoming.
 """
-function permute((f₁, f₂)::FusionTreePair{I}, (p1, p2)::Index2Tuple{N₁, N₂}) where {I, N₁, N₂}
+function permute((f₁, f₂)::FusionTreePair{I}, (p1, p2)::Index2Tuple{N₁,N₂}) where {I,N₁,N₂}
     @assert BraidingStyle(I) isa SymmetricBraiding
     levels1 = ntuple(identity, length(f₁))
     levels2 = length(f₁) .+ ntuple(identity, length(f₂))
-    return braid((f₁, f₂), (levels1, levels2), (p1, p2))
+    return braid((f₁, f₂), (p1, p2), (levels1, levels2))
 end

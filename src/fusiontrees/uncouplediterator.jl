@@ -19,7 +19,6 @@ function fusiontrees(iter::OuterTreeIterator{I,N₁,N₂}) where {I,N₁,N₂}
     trees = Vector{Tuple{F₁,F₂}}(undef, 0)
     for c in blocksectors(iter), f₁ in fusiontrees(iter.uncoupled[1], c, iter.isdual[1]),
         f₂ in fusiontrees(iter.uncoupled[2], c, iter.isdual[2])
-
         push!(trees, (f₁, f₂))
     end
     return trees
@@ -211,10 +210,10 @@ end
 const _FSTransposeKey{I,N₁,N₂} = Tuple{<:OuterTreeIterator{I},Index2Tuple{N₁,N₂}}
 
 @cached function _fstranspose(key::_FSTransposeKey{I,N₁,N₂})::Tuple{OuterTreeIterator{I,N₁,
-                                                                                     N₂},
-                                                                   Matrix{sectorscalartype(I)}} where {I,
-                                                                                                       N₁,
-                                                                                                       N₂}
+                                                                                      N₂},
+                                                                    Matrix{sectorscalartype(I)}} where {I,
+                                                                                                        N₁,
+                                                                                                        N₂}
     fs_src, (p1, p2) = key
 
     N = N₁ + N₂
@@ -277,8 +276,8 @@ function artin_braid(fs_src::OuterTreeIterator{I,N,0}, i; inv::Bool=false) where
     return fs_dst, U
 end
 
-function braid(fs_src::OuterTreeIterator{I,N,0}, levels::NTuple{N,Int},
-               p::NTuple{N,Int}) where {I,N}
+function braid(fs_src::OuterTreeIterator{I,N,0}, p::NTuple{N,Int},
+               levels::NTuple{N,Int}) where {I,N}
     TupleTools.isperm(p) || throw(ArgumentError("not a valid permutation: $p"))
 
     if FusionStyle(I) isa UniqueFusion && BraidingStyle(I) isa SymmetricBraiding
@@ -292,7 +291,7 @@ function braid(fs_src::OuterTreeIterator{I,N,0}, levels::NTuple{N,Int},
         U = zeros(sectorscalartype(I), length(trees_dst), length(trees_src))
 
         for (col, (f₁, f₂)) in enumerate(trees_src)
-            for (f₁′, c) in braid(f₁, levels, p)
+            for (f₁′, c) in braid(f₁, p, levels)
                 row = indexmap[(f₁′, f₂)]
                 U[row, col] = c
             end
@@ -310,27 +309,27 @@ function braid(fs_src::OuterTreeIterator{I,N,0}, levels::NTuple{N,Int},
     return fs_dst, U
 end
 
-function braid(fs_src::OuterTreeIterator{I}, levels::Index2Tuple,
-               p::Index2Tuple{N₁,N₂}) where {I,N₁,N₂}
+function braid(fs_src::OuterTreeIterator{I}, p::Index2Tuple{N₁,N₂},
+               levels::Index2Tuple) where {I,N₁,N₂}
     @assert numind(fs_src) == N₁ + N₂
     @assert numout(fs_src) == length(levels[1]) && numin(fs_src) == length(levels[2])
     @assert TupleTools.isperm((p[1]..., p[2]...))
-    return _fsbraid((fs_src, levels, p))
+    return _fsbraid((fs_src, p, levels))
 end
 
-const _FSBraidKey{I,N₁,N₂} = Tuple{<:OuterTreeIterator{I},Index2Tuple,Index2Tuple{N₁,N₂}}
+const _FSBraidKey{I,N₁,N₂} = Tuple{<:OuterTreeIterator{I},Index2Tuple{N₁,N₂},Index2Tuple}
 
 @cached function _fsbraid(key::_FSBraidKey{I,N₁,N₂})::Tuple{OuterTreeIterator{I,N₁,N₂},
-                                                           Matrix{sectorscalartype(I)}} where {I,
-                                                                                               N₁,
-                                                                                               N₂}
-    fs_src, (l1, l2), (p1, p2) = key
+                                                            Matrix{sectorscalartype(I)}} where {I,
+                                                                                                N₁,
+                                                                                                N₂}
+    fs_src, (p1, p2), (l1, l2) = key
 
     p = linearizepermutation(p1, p2, numout(fs_src), numin(fs_src))
     levels = (l1..., reverse(l2)...)
 
     fs_dst, U = repartition(fs_src, numind(fs_src))
-    fs_dst, U_tmp = braid(fs_dst, levels, p)
+    fs_dst, U_tmp = braid(fs_dst, p, levels)
     U = U_tmp * U
     fs_dst, U_tmp = repartition(fs_dst, N₁)
     U = U_tmp * U
@@ -349,5 +348,5 @@ function permute(fs_src::OuterTreeIterator{I}, p::Index2Tuple) where {I}
     @assert BraidingStyle(I) isa SymmetricBraiding
     levels1 = ntuple(identity, numout(fs_src))
     levels2 = numout(fs_src) .+ ntuple(identity, numin(fs_src))
-    return braid(fs_src, (levels1, levels2), p)
+    return braid(fs_src, p, (levels1, levels2))
 end
