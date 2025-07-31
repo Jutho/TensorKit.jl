@@ -1078,7 +1078,7 @@ V1, V2, V3, V4, V5 = V
             @test domain(t) == V2 ⊗ V4
             @test norm(tA * t + t * tB + tC) <
                     (norm(tA) + norm(tB) + norm(tC)) * eps(real(T))^(2 / 3)
-            # no reshape test
+            # no reshape test: NoBraiding and no fusion tensor
         end
     end
     @timedtestset "Tensor product: test via norm preservation" begin # works for diagonal case
@@ -1092,10 +1092,10 @@ V1, V2, V3, V4, V5 = V
     # no tensor product test via conversion: NoBraiding and no fusion tensor
     @timedtestset "Tensor product: test via tensor contraction" begin # works for diagonal case
         for T in (Float32, ComplexF64)
-            t1 = rand(T, V2 ⊗ V3 ⊗ V1)
-            t2 = rand(T, V2 ⊗ V1 ⊗ V3)
+            t1 = rand(T, V2 ⊗ V3, V1)
+            t2 = rand(T, V2, V1 ⊗ V3)
             t = @constinferred (t1 ⊗ t2)
-            @tensor t′[1, 2, 3, 4, 5, 6] := t1[1, 2, 3] * t2[4, 5, 6]
+            @planar t′[1 2 4; 3 5 6] := t1[1 2; 3] * t2[4; 5 6]
             @test t ≈ t′
         end
     end
