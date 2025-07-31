@@ -599,7 +599,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                     )
                 )
             end
-            @testset "leftorth with $alg" for alg in (TensorKit.QR(), TensorKit.QL())
+            @testset "leftorth with $alg" for alg in (QR(), QL())
                 Q, R = @constinferred leftorth(t; alg = alg)
                 QdQ = Q' * Q
                 @test QdQ ≈ one(QdQ)
@@ -608,7 +608,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                     @test isposdef(R)
                 end
             end
-            @testset "rightorth with $alg" for alg in (TensorKit.RQ(), TensorKit.LQ())
+            @testset "rightorth with $alg" for alg in (RQ(), LQ())
                 L, Q = @constinferred rightorth(t; alg = alg)
                 QQd = Q * Q'
                 @test QQd ≈ one(QQd)
@@ -617,7 +617,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                     @test isposdef(L)
                 end
             end
-            @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+            @testset "tsvd with $alg" for alg in (SVD(), SDD())
                 U, S, Vᴴ = @constinferred tsvd(t; alg = alg)
                 UdU = U' * U
                 @test UdU ≈ one(UdU)
@@ -882,91 +882,81 @@ V1, V2, V3, V4, V5 = V
         @test LinearAlgebra.diag(D) == d
     end
     @timedtestset "Factorization" begin
-        W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5
+        WL = V3 ⊗ V4 ⊗ V2 ← V1' ⊗ V5' # old left permute resulted in this space
+        WR = V3 ⊗ V4 ← V2' ⊗ V1' ⊗ V5' # old right permute
         for T in (Float32, ComplexF64)
-            # no left/rightorth, left/rightnull, tsvd, cond and rank tests for filled tensor
-            #TODO: rewrite these tests without permuting
-
             # Test both a normal tensor and an adjoint one.
-            ts = (rand(T, W), rand(T, W)')
-            for t in ts
+            # adjoint takes other space for shape of matrix in RQ(pos)
+            for t in (rand(T, WR), rand(T, WL)')
+                @testset "rightorth with $alg" for alg in
+                                                (RQ(), RQpos(), LQ(), LQpos(),
+                                                Polar(), SVD(), SDD())
+                    L, Q = @constinferred rightorth(t; alg=alg)
+                    QQd = Q * Q'
+                    @test QQd ≈ one(QQd)
+                    @test L * Q ≈ t
+                    if alg isa Polar
+                        @test isposdef(L)
+                        @test domain(L) == codomain(L) == space(t, 1) ⊗ space(t, 2)
+                    end
+                end
+                @testset "rightnull with $alg" for alg in (LQ(), SVD(), SDD())
+                    M = @constinferred rightnull(t; alg=alg)
+                    MMd = M * M'
+                    @test MMd ≈ one(MMd)
+                    @test norm(t * M') < 100 * eps(norm(t))
+                end
+            end
+            # adjoints take other space for shape of matrix in QL(pos)
+            for t in (rand(T, WL), rand(T, WR)')
                 @testset "leftorth with $alg" for alg in
-                                                    (TensorKit.QR(), TensorKit.QRpos(),
-                                                    TensorKit.QL(), TensorKit.QLpos(),
-                                                    TensorKit.Polar(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
-                    Q, R = @constinferred leftorth(t, ((3, 4, 2), (1, 5)); alg=alg)
+                                                    (QR(), QRpos(), QL(), QLpos(),
+                                                    Polar(), SVD(), SDD())
+                    Q, R = @constinferred leftorth(t; alg=alg)
                     QdQ = Q' * Q
                     @test QdQ ≈ one(QdQ)
-                    @test Q * R ≈ permute(t, ((3, 4, 2), (1, 5)))
+                    @test Q * R ≈ t
                     if alg isa Polar
                         @test isposdef(R)
-                        @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'
+                        @test domain(R) == codomain(R) == space(t, 4)' ⊗ space(t, 5)'
                     end
                 end
                 @testset "leftnull with $alg" for alg in
-                                                    (TensorKit.QR(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
-                    N = @constinferred leftnull(t, ((3, 4, 2), (1, 5)); alg=alg)
+                                                    (QR(), SVD(), SDD())
+                    N = @constinferred leftnull(t; alg=alg)
                     NdN = N' * N
                     @test NdN ≈ one(NdN)
-                    @test norm(N' * permute(t, ((3, 4, 2), (1, 5)))) <
-                            100 * eps(norm(t))
+                    @test norm(N' * t) < 100 * eps(norm(t))
                 end
-                @testset "rightorth with $alg" for alg in
-                                                    (TensorKit.RQ(), TensorKit.RQpos(),
-                                                    TensorKit.LQ(), TensorKit.LQpos(),
-                                                    TensorKit.Polar(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
-                    L, Q = @constinferred rightorth(t, ((3, 4), (2, 1, 5)); alg=alg)
-                    QQd = Q * Q'
-                    @test QQd ≈ one(QQd)
-                    @test L * Q ≈ permute(t, ((3, 4), (2, 1, 5)))
-                    if alg isa Polar
-                        @test isposdef(L)
-                        @test domain(L) == codomain(L) == space(t, 3) ⊗ space(t, 4)
-                    end
-                end
-                @testset "rightnull with $alg" for alg in
-                                                    (TensorKit.LQ(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
-                    M = @constinferred rightnull(t, ((3, 4), (2, 1, 5)); alg=alg)
-                    MMd = M * M'
-                    @test MMd ≈ one(MMd)
-                    @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') <
-                            100 * eps(norm(t))
-                end
-                @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
-                    U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
+                @testset "tsvd with $alg" for alg in (SVD(), SDD())
+                    U, S, V = @constinferred tsvd(t; alg=alg)
                     UdU = U' * U
                     @test UdU ≈ one(UdU)
                     VVd = V * V'
                     @test VVd ≈ one(VVd)
-                    t2 = permute(t, ((3, 4, 2), (1, 5)))
-                    @test U * S * V ≈ t2
+                    @test U * S * V ≈ t
 
-                    s = LinearAlgebra.svdvals(t2)
+                    s = LinearAlgebra.svdvals(t)
                     s′ = LinearAlgebra.diag(S)
                     for (c, b) in s
                         @test b ≈ s′[c]
                     end
                 end
                 @testset "cond and rank" begin
-                    t2 = permute(t, ((3, 4, 2), (1, 5)))
-                    d1 = dim(codomain(t2))
-                    d2 = dim(domain(t2))
-                    @test rank(t2) == min(d1, d2)
-                    M = leftnull(t2)
+                    d1 = dim(codomain(t))
+                    d2 = dim(domain(t))
+                    @test rank(t) == min(d1, d2)
+                    M = leftnull(t)
                     @test rank(M) == max(d1, d2) - min(d1, d2)
-                    t3 = unitary(T, V1 ⊗ V2, V1 ⊗ V2)
-                    @test cond(t3) ≈ one(real(T))
-                    @test rank(t3) == dim(V1 ⊗ V2)
-                    t4 = randn(T, V1 ⊗ V2, V1 ⊗ V2)
-                    t4 = (t4 + t4') / 2
-                    vals = LinearAlgebra.eigvals(t4)
+                    t2 = unitary(T, V1 ⊗ V2, V1 ⊗ V2)
+                    @test cond(t2) ≈ one(real(T))
+                    @test rank(t2) == dim(V1 ⊗ V2)
+                    t3 = randn(T, V1 ⊗ V2, V1 ⊗ V2)
+                    t3 = (t3 + t3') / 2
+                    vals = LinearAlgebra.eigvals(t3)
                     λmax = maximum(s -> maximum(abs, s), values(vals))
                     λmin = minimum(s -> minimum(abs, s), values(vals))
-                    @test cond(t4) ≈ λmax / λmin
+                    @test cond(t3) ≈ λmax / λmin
                 end
             end
 
@@ -974,38 +964,30 @@ V1, V2, V3, V4, V5 = V
             @testset "empty tensor" begin # passes for diagonal sectors
                 t = randn(T, V1 ⊗ V2, zero(V1))
                 @testset "leftorth with $alg" for alg in
-                                                    (TensorKit.QR(), TensorKit.QRpos(),
-                                                    TensorKit.QL(), TensorKit.QLpos(),
-                                                    TensorKit.Polar(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
+                                                    (QR(), QRpos(), QL(), QLpos(),
+                                                    Polar(), SVD(), SDD())
                     Q, R = @constinferred leftorth(t; alg=alg)
                     @test Q == t
                     @test dim(Q) == dim(R) == 0
                 end
-                @testset "leftnull with $alg" for alg in
-                                                    (TensorKit.QR(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
+                @testset "leftnull with $alg" for alg in (QR(), SVD(), SDD())
                     N = @constinferred leftnull(t; alg=alg)
                     @test N' * N ≈ id(domain(N))
                     @test N * N' ≈ id(codomain(N))
                 end
                 @testset "rightorth with $alg" for alg in
-                                                    (TensorKit.RQ(), TensorKit.RQpos(),
-                                                    TensorKit.LQ(), TensorKit.LQpos(),
-                                                    TensorKit.Polar(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
+                                                    (RQ(), RQpos(), LQ(), LQpos(),
+                                                    Polar(), SVD(), SDD())
                     L, Q = @constinferred rightorth(copy(t'); alg=alg)
                     @test Q == t'
                     @test dim(Q) == dim(L) == 0
                 end
-                @testset "rightnull with $alg" for alg in
-                                                    (TensorKit.LQ(), TensorKit.SVD(),
-                                                    TensorKit.SDD())
+                @testset "rightnull with $alg" for alg in (LQ(), SVD(), SDD())
                     M = @constinferred rightnull(copy(t'); alg=alg)
                     @test M * M' ≈ id(codomain(M))
                     @test M' * M ≈ id(domain(M))
                 end
-                @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
+                @testset "tsvd with $alg" for alg in (SVD(), SDD())
                     U, S, V = @constinferred tsvd(t; alg=alg)
                     @test U == t
                     @test dim(U) == dim(S) == dim(V)
@@ -1018,13 +1000,12 @@ V1, V2, V3, V4, V5 = V
                     @test cond(t2) == 0.0
                 end
             end
-            t = rand(T, V1 ⊗ V1' ⊗ V2 ⊗ V2')
+            t = rand(T, V1 ⊗ V2 ← V1 ⊗ V2)
             @testset "eig and isposdef" begin
-                D, V = eigen(t, ((1, 3), (2, 4)))
-                t2 = permute(t, ((1, 3), (2, 4)))
-                @test t2 * V ≈ V * D
+                D, V = eigen(t)
+                @test t * V ≈ V * D
 
-                d = LinearAlgebra.eigvals(t2; sortby=nothing)
+                d = LinearAlgebra.eigvals(t; sortby=nothing)
                 d′ = LinearAlgebra.diag(D)
                 for (c, b) in d
                     @test b ≈ d′[c]
@@ -1036,8 +1017,8 @@ V1, V2, V3, V4, V5 = V
                 VdV = (VdV + VdV') / 2
                 @test isposdef(VdV)
 
-                @test !isposdef(t2) # unlikely for non-hermitian map
-                t2 = (t2 + t2')
+                @test !isposdef(t) # unlikely for non-hermitian map
+                t2 = (t + t')
                 D, V = eigen(t2)
                 VdV = V' * V
                 @test VdV ≈ one(VdV)
