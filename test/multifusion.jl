@@ -806,28 +806,20 @@ V1, V2, V3, V4, V5 = V
     # no permutations test via inner product invariance: NoBraiding
     # no permutations test via conversion: NoBraiding and no fusion tensor
     @timedtestset "Full trace: test self-consistency" begin
-            t = rand(ComplexF64, V1 ⊗ V2' ⊗ V2 ⊗ V1')
-            t2 = permute(t, ((1, 2), (4, 3))) #TODO: rewrite to not permute
-            s = @constinferred tr(t2)
-            @test conj(s) ≈ tr(t2')
-            if !isdual(V1)
-                t2 = twist!(t2, 1)
-            end
-            if isdual(V2)
-                t2 = twist!(t2, 2)
-            end
-            ss = tr(t2)
-            @tensor s2 = t[a, b, b, a]
-            @tensor t3[a, b] := t[a, c, c, b]
-            @tensor s3 = t3[a, a]
-            @test ss ≈ s2
-            @test ss ≈ s3
-        end
+        t = rand(ComplexF64, V1 ⊗ V2 ← V1 ⊗ V2)
+        s = @constinferred tr(t)
+        @test conj(s) ≈ tr(t')
+        @planar s2 = t[a b; a b] # no twist needed bc permute avoided
+        @planar t3[a; b] := t[a c; b c]
+        @planar s3 = t3[a; a]
+        @test s ≈ s2
+        @test s ≈ s3
+    end
     @timedtestset "Partial trace: test self-consistency" begin
-        t = rand(ComplexF64, V1 ⊗ V2' ⊗ V3 ⊗ V2 ⊗ V1' ⊗ V3') #TODO: fix by removing need to permute
-        @tensor t2[a, b] := t[c, d, b, d, c, a] # change @tensor to @planar
-        @tensor t4[a, b, c, d] := t[d, e, b, e, c, a]
-        @tensor t5[a, b] := t4[a, b, c, c]
+        t= rand(ComplexF64, V1 ⊗ V3 ⊗ V2 ← V1 ⊗ V3 ⊗ V2)
+        @planar t2[a; b] := t[c a d; c b d]
+        @planar t4[a b; c d] := t[e a b; e c d]
+        @planar t5[a; b] := t4[a c; b c]
         @test t2 ≈ t5
     end
     # no trace test via conversion: NoBraiding and no fusion tensor
