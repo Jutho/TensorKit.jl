@@ -227,7 +227,7 @@ end
 
 # Fusion tree iterators
 include("iterator.jl")
-include("uncouplediterator.jl")
+include("fusiontreeblocks.jl")
 
 # Manipulate fusion trees
 include("manipulations.jl")
