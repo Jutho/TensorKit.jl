@@ -182,15 +182,15 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
             @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TK.compose(W, W')
 
             @test_throws ErrorException insertleftunit(W)
-            @test insertrightunit(W) == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ rightoneunit(V5)) # works for VIBM1, VIBM2
+            @test insertrightunit(W) == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ rightoneunit(V5))
             @test_throws ErrorException insertrightunit(W, 6)
             @test_throws ErrorException insertleftunit(W, 6)
 
             @test (V1 ⊗ V2 ⊗ rightoneunit(V2) ← V3 ⊗ V4 ⊗ V5) ==
-                  @constinferred(insertrightunit(W, 2)) # works for VIBM
+                  @constinferred(insertrightunit(W, 2))
             @test (V1 ⊗ V2 ← leftoneunit(V3) ⊗ V3 ⊗ V4 ⊗ V5) ==
-                  @constinferred(insertleftunit(W, 3)) # same
-            @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W # same
+                  @constinferred(insertleftunit(W, 3))
+            @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W
             @test_throws ErrorException @constinferred(insertrightunit(one(V1) ← V1, 0)) # should I specify it's the other error?
             @test_throws ErrorException insertleftunit(one(V1) ← V1, 0)
         end
@@ -241,8 +241,6 @@ end
         @test_throws errstr FusionTree((u, u, u), u)
         @test_throws errstr FusionTree((u, u, u, u)) # custom FusionTree constructor required here
     end
-
-    # CONTINUE HERE
 
     @testset "Fusion tree $Istr: insertat" begin
         N = 4
@@ -667,10 +665,6 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
     end
 end
 
-#TODO: test with non-diagonal sectors
-# needs to be 1 dimensional stuff for the isomorphism test in removeunit
-# is ^ still true?
-
 for V in (VIBC, VIBD)
     V1, V2, V3, V4, V5 = V
     @assert V3 * V4 * V2 ≿ V1' * V5' # necessary for leftorth tests
@@ -681,7 +675,7 @@ end
                                                                 (VIBC, VIBD, VIBM1, VIBM2,
                                                                  VIBMop1, VIBMop2)
     V1, V2, V3, V4, V5 = V
-    @timedtestset "Basic tensor properties" begin # passes for diagonal sectors
+    @timedtestset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5 # fusion matters
         for T in (Int, Float32, Float64, ComplexF32, ComplexF64, BigFloat)
             t = @constinferred zeros(T, W)
@@ -1148,8 +1142,6 @@ end
         end
     end
 end
-
-# TODO: add AD tests?
 
 TK.empty_globalcaches!()
 ##########
