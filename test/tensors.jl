@@ -282,9 +282,9 @@ for V in spacelist
                 t2 = twist!(t, 2)
             end
             ss = tr(t2)
-            @tensor s2 = t[a b; a b]
-            @tensor t2[a; b] := t[a c; b c]
-            @tensor s3 = t2[a; a]
+            @planar s2 = t[a b; a b]
+            @planar t3[a; b] := t[a c; b c]
+            @planar s3 = t3[a; a]
             @test ss ≈ s2
             @test ss ≈ s3
         end
