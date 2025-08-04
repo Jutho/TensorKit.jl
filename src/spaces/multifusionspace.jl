@@ -27,10 +27,10 @@ function blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁
         return (IsingBimod(1, 1, 0), IsingBimod(2, 2, 0))
     elseif N₁ == 0
         @assert N₂ != 0 "one of Type IsingBimod doesn't exist"
-        return filter!(isone, collect(blocksectors(dom)))
-    elseif N₂ == 0
+        return filter!(c -> c == leftone(c) == rightone(c), collect(blocksectors(dom))) # is this what we want? doesn't allow M/Mop to end at empty space
+    elseif N₂ == 0                                                                      # also causes traces over module legs to vanish
         @assert N₁ != 0 "one of Type IsingBimod doesn't exist"
-        return filter!(isone, collect(blocksectors(codom)))
+        return filter!(c -> c == leftone(c) == rightone(c), collect(blocksectors(codom)))
     elseif N₂ <= N₁ # keep intersection
         return filter!(c -> hasblock(codom, c), collect(blocksectors(dom)))
     else
@@ -69,7 +69,7 @@ function insertrightunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i};
     return ProductSpace(TupleTools.insertafter(P.spaces, i, (u,)))
 end
 
-# possible TODO: overwrite defaults at level of HomSpace and TensorMap?
+# TODO?: overwrite defaults at level of HomSpace and TensorMap?
 function insertleftunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i}; # want no defaults?
                                   conj::Bool=false,
                                   dual::Bool=false) where {i,N}
