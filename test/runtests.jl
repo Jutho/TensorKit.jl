@@ -120,6 +120,7 @@ include("spaces.jl")
 include("tensors.jl")
 include("diagonal.jl")
 include("planar.jl")
+include("multifusion.jl")
 # TODO: remove once we know AD is slow on macOS CI
 if !(Sys.isapple() && get(ENV, "CI", "false") == "true") && isempty(VERSION.prerelease)
     include("ad.jl")
