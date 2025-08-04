@@ -1,5 +1,5 @@
 I = IsingBimod
-Istr = TensorKit.type_repr(I)
+Istr = TK.type_repr(I)
 
 println("------------------------------------")
 println("Multifusion tests for $Istr")
@@ -52,11 +52,11 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
 #TODO: MxMop or MopxM fusion needed?
 
 @timedtestset "Multifusion spaces " verbose = true begin
-    @timedtestset "GradedSpace: $(TensorKit.type_repr(Vect[I]))" begin
+    @timedtestset "GradedSpace: $(TK.type_repr(Vect[I]))" begin
         gen = (values(I)[k] => (k + 1) for k in 1:length(values(I)))
 
         V = GradedSpace(gen)
-        @test eval(Meta.parse(TensorKit.type_repr(typeof(V)))) == typeof(V)
+        @test eval(Meta.parse(TK.type_repr(typeof(V)))) == typeof(V)
         @test eval(Meta.parse(sprint(show, V))) == V
         @test eval(Meta.parse(sprint(show, V'))) == V'
         @test V' == GradedSpace(gen; dual = true)
@@ -165,7 +165,7 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
         @test_throws SpaceMismatch (⊕(V, V'))
     end
 
-    @timedtestset "HomSpace with $(TensorKit.type_repr(Vect[I])) " begin
+    @timedtestset "HomSpace with $(TK.type_repr(Vect[I])) " begin
         for (V1, V2, V3, V4, V5) in (VIBC, VIBD, VIBM1, VIBM2, VIBMop1, VIBMop2)
             W = HomSpace(V1 ⊗ V2, V3 ⊗ V4 ⊗ V5)
             @test W == (V3 ⊗ V4 ⊗ V5 → V1 ⊗ V2)
@@ -185,7 +185,7 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
             @test W == deepcopy(W)
             @test W == @constinferred permute(W, ((1, 2), (3, 4, 5)))
             @test permute(W, ((2, 4, 5), (3, 1))) == (V2 ⊗ V4' ⊗ V5' ← V3 ⊗ V1')
-            @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TensorKit.compose(W, W')
+            @test (V1 ⊗ V2 ← V1 ⊗ V2) == @constinferred TK.compose(W, W')
 
             @test_throws ErrorException insertleftunit(W)
             @test insertrightunit(W) == (V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 ⊗ rightoneunit(V5)) # works for VIBM1, VIBM2
@@ -203,7 +203,7 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
     end
 end
 
-@timedtestset "Fusion trees for $(TensorKit.type_repr(I))" verbose = true begin
+@timedtestset "Fusion trees for $(TK.type_repr(I))" verbose = true begin
     N = 6
     out = (Mop, C0, C1, M, D0, D1) # should I try to make a non-hardcoded example?
     isdual = ntuple(n -> rand(Bool), N)
@@ -488,7 +488,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
             b2 = @constinferred block(t, first(blocksectors(t)))
             @test b1 == b2
             @test eltype(bs) === Pair{typeof(c), typeof(b1)}
-            @test typeof(b1) === TensorKit.blocktype(t)
+            @test typeof(b1) === TK.blocktype(t)
             # basic linear algebra
             @test isa(@constinferred(norm(t)), real(T))
             @test norm(t)^2 ≈ dot(t, t)
@@ -627,7 +627,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                     )
                 )
             end
-            @testset "leftorth with $alg" for alg in (QR(), QL())
+            @testset "leftorth with $alg" for alg in (TK.QR(), TK.QL())
                 Q, R = @constinferred leftorth(t; alg = alg)
                 QdQ = Q' * Q
                 @test QdQ ≈ one(QdQ)
@@ -636,7 +636,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                     @test isposdef(R)
                 end
             end
-            @testset "rightorth with $alg" for alg in (RQ(), LQ())
+            @testset "rightorth with $alg" for alg in (TK.RQ(), TK.LQ())
                 L, Q = @constinferred rightorth(t; alg = alg)
                 QQd = Q * Q'
                 @test QQd ≈ one(QQd)
@@ -645,7 +645,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                     @test isposdef(L)
                 end
             end
-            @testset "tsvd with $alg" for alg in (SVD(), SDD())
+            @testset "tsvd with $alg" for alg in (TK.SVD(), TK.SDD())
                 U, S, Vᴴ = @constinferred tsvd(t; alg = alg)
                 UdU = U' * U
                 @test UdU ≈ one(UdU)
@@ -729,7 +729,7 @@ end
                 b2 = @constinferred block(t, first(blocksectors(t)))
                 @test b1 == b2
                 @test eltype(bs) === Pair{typeof(c),typeof(b1)}
-                @test typeof(b1) === TensorKit.blocktype(t)
+                @test typeof(b1) === TK.blocktype(t)
                 @test typeof(c) === sectortype(t)
             end
         end
@@ -761,7 +761,7 @@ end
             b2 = @constinferred block(t', first(blocksectors(t')))
             @test b1 == b2
             @test eltype(bs) === Pair{typeof(c),typeof(b1)}
-            @test typeof(b1) === TensorKit.blocktype(t')
+            @test typeof(b1) === TK.blocktype(t')
             @test typeof(c) === sectortype(t)
             # linear algebra
             @test isa(@constinferred(norm(t)), real(T))
@@ -948,8 +948,8 @@ end
             # adjoint takes other space for shape of matrix in RQ(pos)
             for t in tsR
                 @testset "rightorth with $alg" for alg in
-                                                (RQ(), RQpos(), LQ(), LQpos(),
-                                                Polar(), SVD(), SDD())
+                                                (TK.RQ(), TK.RQpos(), TK.LQ(), TK.LQpos(),
+                                                TK.Polar(), TK.SVD(), TK.SDD())
                     L, Q = @constinferred rightorth(t; alg=alg)
                     QQd = Q * Q'
                     @test QQd ≈ one(QQd)
@@ -959,7 +959,7 @@ end
                         @test domain(L) == codomain(L) == space(t, 1) ⊗ space(t, 2)
                     end
                 end
-                @testset "rightnull with $alg" for alg in (LQ(), SVD(), SDD())
+                @testset "rightnull with $alg" for alg in (TK.LQ(), TK.SVD(), TK.SDD())
                     M = @constinferred rightnull(t; alg=alg)
                     MMd = M * M'
                     @test MMd ≈ one(MMd)
@@ -969,8 +969,8 @@ end
             # adjoints take other space for shape of matrix in QL(pos)
             for t in tsL
                 @testset "leftorth with $alg" for alg in
-                                                    (QR(), QRpos(), QL(), QLpos(),
-                                                    Polar(), SVD(), SDD())
+                                                    (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
+                                                    TK.Polar(), TK.SVD(), TK.SDD())
                     # skip QL because the monomorphism condition is hard to satisfy for off-diagonal case
                     # have to skip Polar as well as all tests fail with modules
                     (alg isa QL || alg isa QLpos || alg isa Polar) && !isdiag && continue
@@ -984,7 +984,7 @@ end
                     end
                 end
                 @testset "leftnull with $alg" for alg in
-                                                    (QR(), SVD(), SDD())
+                                                    (TK.QR(), TK.SVD(), TK.SDD())
                     # less rows than columns so either fails or no data in off-diagonal case
                     !isdiag && continue
                     N = @constinferred leftnull(t; alg=alg)
@@ -992,7 +992,7 @@ end
                     @test NdN ≈ one(NdN)
                     @test norm(N' * t) < 100 * eps(norm(t))
                 end
-                @testset "tsvd with $alg" for alg in (SVD(), SDD())
+                @testset "tsvd with $alg" for alg in (TK.SVD(), TK.SDD())
                     U, S, V = @constinferred tsvd(t; alg=alg)
                     UdU = U' * U
                     @test UdU ≈ one(UdU)
@@ -1030,30 +1030,30 @@ end
             @testset "empty tensor" begin
                 t = randn(T, V1 ⊗ V2, zero(V1))
                 @testset "leftorth with $alg" for alg in
-                                                    (QR(), QRpos(), QL(), QLpos(),
-                                                    Polar(), SVD(), SDD())
+                                                    (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
+                                                    TK.Polar(), TK.SVD(), TK.SDD())
                     Q, R = @constinferred leftorth(t; alg=alg)
                     @test Q == t
                     @test dim(Q) == dim(R) == 0
                 end
-                @testset "leftnull with $alg" for alg in (QR(), SVD(), SDD())
+                @testset "leftnull with $alg" for alg in (TK.QR(), TK.SVD(), TK.SDD())
                     N = @constinferred leftnull(t; alg=alg)
                     @test N' * N ≈ id(domain(N))
                     @test N * N' ≈ id(codomain(N))
                 end
                 @testset "rightorth with $alg" for alg in
-                                                    (RQ(), RQpos(), LQ(), LQpos(),
-                                                    Polar(), SVD(), SDD())
+                                                    (TK.RQ(), TK.RQpos(), TK.LQ(), TK.LQpos(),
+                                                    TK.Polar(), TK.SVD(), TK.SDD())
                     L, Q = @constinferred rightorth(copy(t'); alg=alg)
                     @test Q == t'
                     @test dim(Q) == dim(L) == 0
                 end
-                @testset "rightnull with $alg" for alg in (LQ(), SVD(), SDD())
+                @testset "rightnull with $alg" for alg in (TK.LQ(), TK.SVD(), TK.SDD())
                     M = @constinferred rightnull(copy(t'); alg=alg)
                     @test M * M' ≈ id(codomain(M))
                     @test M' * M ≈ id(domain(M))
                 end
-                @testset "tsvd with $alg" for alg in (SVD(), SDD())
+                @testset "tsvd with $alg" for alg in (TK.SVD(), TK.SDD())
                     U, S, V = @constinferred tsvd(t; alg=alg)
                     @test U == t
                     @test dim(U) == dim(S) == dim(V)
@@ -1129,8 +1129,8 @@ end
         for T in (Float32, ComplexF64)
             tA = rand(T, V1 ⊗ V2, V1 ⊗ V2) # rewritten for modules
             tB = rand(T, V4 ⊗ V5, V4 ⊗ V5)
-            tA = 3 // 2 * leftorth(tA; alg=Polar())[1]
-            tB = 1 // 5 * leftorth(tB; alg=Polar())[1]
+            tA = 3 // 2 * leftorth(tA; alg=TK.Polar())[1]
+            tB = 1 // 5 * leftorth(tB; alg=TK.Polar())[1]
             tC = rand(T, V1 ⊗ V2, V4 ⊗ V5)
             t = @constinferred sylvester(tA, tB, tC)
             @test codomain(t) == V1 ⊗ V2
@@ -1174,7 +1174,7 @@ end
 
 # TODO: add AD tests?
 
-TensorKit.empty_globalcaches!()
+TK.empty_globalcaches!()
 ##########
 tf = time()
 printstyled(
