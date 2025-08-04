@@ -3,7 +3,9 @@ using TestExtras
 using Random
 using TensorKit
 using Combinatorics
-using TensorKit: ProductSector, fusiontensor, pentagon_equation, hexagon_equation
+using TensorKit: ProductSector, fusiontensor
+using TensorKitSectors
+using TensorKitSectors: leftone, rightone
 using TensorOperations
 using Base.Iterators: take, product
 # using SUNRepresentations: SUNIrrep
@@ -29,7 +31,7 @@ end
 function randsector(::Type{I}) where {I<:Sector}
     s = collect(smallset(I))
     a = rand(s)
-    while a == one(a) # don't use trivial label
+    while a == leftone(a) == rightone(a) # don't use trivial label
         a = rand(s)
     end
     return a
