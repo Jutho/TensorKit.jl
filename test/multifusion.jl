@@ -6,48 +6,42 @@ println("Multifusion tests for $Istr")
 println("------------------------------------")
 ti = time()
 
-C0, C1, D0, D1, M, Mop = I(1, 1, 0), I(1, 1, 1), I(2, 2, 0), I(2, 2, 1), I(1, 2, 0), I(2, 1, 0)
-VIBC = (
-    Vect[I](C0 => 1, C1 => 1),
-    Vect[I](C0 => 1, C1 => 2),
-    Vect[I](C0 => 3, C1 => 2),
-    Vect[I](C0 => 2, C1 => 3),
-    Vect[I](C0 => 2, C1 => 5),
-)
+C0, C1, D0, D1, M, Mop = I(1, 1, 0), I(1, 1, 1), I(2, 2, 0), I(2, 2, 1), I(1, 2, 0),
+                         I(2, 1, 0)
+VIBC = (Vect[I](C0 => 1, C1 => 1),
+        Vect[I](C0 => 1, C1 => 2),
+        Vect[I](C0 => 3, C1 => 2),
+        Vect[I](C0 => 2, C1 => 3),
+        Vect[I](C0 => 2, C1 => 5))
 
-VIBD = (
-    Vect[I](D0 => 1, D1 => 1),
-    Vect[I](D0 => 1, D1 => 2),
-    Vect[I](D0 => 3, D1 => 2),
-    Vect[I](D0 => 2, D1 => 3),
-    Vect[I](D0 => 2, D1 => 5),
-)
+VIBD = (Vect[I](D0 => 1, D1 => 1),
+        Vect[I](D0 => 1, D1 => 2),
+        Vect[I](D0 => 3, D1 => 2),
+        Vect[I](D0 => 2, D1 => 3),
+        Vect[I](D0 => 2, D1 => 5))
 
 VIBM1 = (Vect[I](C0 => 1, C1 => 2), # not a random ordering! designed to make V1 ⊗ V2 ← V3 ⊗ V4 ⊗ V5 work
-        Vect[I](M => 3),
-        Vect[I](C0 => 2, C1 => 3), 
-        Vect[I](M => 4),
-        Vect[I](D0 => 3, D1 => 4)
-)
+         Vect[I](M => 3),
+         Vect[I](C0 => 2, C1 => 3),
+         Vect[I](M => 4),
+         Vect[I](D0 => 3, D1 => 4))
 
-VIBM2 = (Vect[I](M => 2), Vect[I](D0 =>1, D1 => 1),
-        Vect[I](C0 => 1, C1 => 2),
-        Vect[I](M => 4),
-        Vect[I](D0 => 3, D1 => 4)
-)
+VIBM2 = (Vect[I](M => 2), Vect[I](D0 => 1, D1 => 1),
+         Vect[I](C0 => 1, C1 => 2),
+         Vect[I](M => 4),
+         Vect[I](D0 => 3, D1 => 4))
 
 VIBMop1 = (Vect[I](Mop => 2),
-            Vect[I](C0 => 1, C1 => 2),
-            Vect[I](D0 => 3, D1 => 4),
-            Vect[I](Mop => 4),
-            Vect[I](C0 => 3, C1 => 4))
+           Vect[I](C0 => 1, C1 => 2),
+           Vect[I](D0 => 3, D1 => 4),
+           Vect[I](Mop => 4),
+           Vect[I](C0 => 3, C1 => 4))
 
 VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
-            Vect[I](Mop => 2),
-            Vect[I](D0 => 3, D1 => 4),
-            Vect[I](Mop => 4),
-            Vect[I](C0 => 3, C1 => 4)
-)
+           Vect[I](Mop => 2),
+           Vect[I](D0 => 3, D1 => 4),
+           Vect[I](Mop => 4),
+           Vect[I](C0 => 3, C1 => 4))
 
 #TODO: MxMop or MopxM fusion needed?
 
@@ -59,19 +53,19 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
         @test eval(Meta.parse(TK.type_repr(typeof(V)))) == typeof(V)
         @test eval(Meta.parse(sprint(show, V))) == V
         @test eval(Meta.parse(sprint(show, V'))) == V'
-        @test V' == GradedSpace(gen; dual = true)
+        @test V' == GradedSpace(gen; dual=true)
         @test V == @constinferred GradedSpace(gen...)
-        @test V' == @constinferred GradedSpace(gen...; dual = true)
+        @test V' == @constinferred GradedSpace(gen...; dual=true)
         @test V == @constinferred GradedSpace(tuple(gen...))
-        @test V' == @constinferred GradedSpace(tuple(gen...); dual = true)
+        @test V' == @constinferred GradedSpace(tuple(gen...); dual=true)
         @test V == @constinferred GradedSpace(Dict(gen))
-        @test V' == @constinferred GradedSpace(Dict(gen); dual = true)
+        @test V' == @constinferred GradedSpace(Dict(gen); dual=true)
         @test V == @inferred Vect[I](gen)
-        @test V' == @constinferred Vect[I](gen; dual = true)
+        @test V' == @constinferred Vect[I](gen; dual=true)
         @test V == @constinferred Vect[I](gen...)
-        @test V' == @constinferred Vect[I](gen...; dual = true)
+        @test V' == @constinferred Vect[I](gen...; dual=true)
         @test V == @constinferred Vect[I](Dict(gen))
-        @test V' == @constinferred Vect[I](Dict(gen); dual = true)
+        @test V' == @constinferred Vect[I](Dict(gen); dual=true)
         @test V == @constinferred typeof(V)(c => dim(V, c) for c in sectors(V))
         @test @constinferred(hash(V)) == hash(deepcopy(V)) != hash(V')
         @test V == GradedSpace(reverse(collect(gen))...)
@@ -102,7 +96,7 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
         @test isa(V, GradedSpace)
         @test isa(V, GradedSpace{I})
         @test @constinferred(dual(V)) == @constinferred(conj(V)) ==
-            @constinferred(adjoint(V)) != V
+              @constinferred(adjoint(V)) != V
         @test @constinferred(field(V)) == ℂ
         @test @constinferred(sectortype(V)) == I
         slist = @constinferred sectors(V)
@@ -117,29 +111,29 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
 
         for W in [Wleft, Wright]
             @test @constinferred(⊕(W, oneunit(W))) ==
-                Vect[I](c => isone(c) + dim(W, c) for c in sectors(W))
+                  Vect[I](c => isone(c) + dim(W, c) for c in sectors(W))
             @test @constinferred(fuse(W, oneunit(W))) == W
         end
 
         # sensible direct sums and fuses
         @test @constinferred(⊕(Wleft, WM)) ==
-            Vect[I](c => 1 for c in sectors(V) if leftone(c) == C0)
+              Vect[I](c => 1 for c in sectors(V) if leftone(c) == C0)
         @test @constinferred(⊕(Wright, WMop)) ==
-            Vect[I](c => 1 for c in sectors(V) if leftone(c) == D0)
+              Vect[I](c => 1 for c in sectors(V) if leftone(c) == D0)
         @test @constinferred(⊕(Wright, WM)) ==
-            Vect[I](c => 1 for c in sectors(V) if rightone(c) == D0)
+              Vect[I](c => 1 for c in sectors(V) if rightone(c) == D0)
         @test @constinferred(⊕(Wleft, WMop)) ==
-            Vect[I](c => 1 for c in sectors(V) if rightone(c) == C0)
+              Vect[I](c => 1 for c in sectors(V) if rightone(c) == C0)
         @test @constinferred(fuse(Wleft, WM)) == Vect[I](M => 2)
         @test @constinferred(fuse(Wright, WMop)) == Vect[I](Mop => 2)
 
         # less sensible direct sums and fuses
         @test @constinferred(⊕(Wleft, Wright)) ==
-            Vect[I](c => 1 for c in sectors(V) if c.row == c.col)
+              Vect[I](c => 1 for c in sectors(V) if c.row == c.col)
         @test @constinferred(fuse(Wleft, WMop)) == fuse(Wright, WM) ==
-            Vect[I](c => 0 for c in sectors(V))
+              Vect[I](c => 0 for c in sectors(V))
 
-        d = Dict{I, Int}()
+        d = Dict{I,Int}()
         for a in sectors(V), b in sectors(V)
             for c in a ⊗ b
                 d[c] = get(d, c, 0) + dim(V, a) * dim(V, b) * Nsymbol(a, b, c)
@@ -147,7 +141,7 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
         end
         @test @constinferred(fuse(V, V)) == GradedSpace(d)
         @test @constinferred(flip(V)) ==
-            Vect[I](conj(c) => dim(V, c) for c in sectors(V))'
+              Vect[I](conj(c) => dim(V, c) for c in sectors(V))'
         @test flip(V) ≅ V
         @test flip(V) ≾ V
         @test flip(V) ≿ V
@@ -156,9 +150,9 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
         @test V ≺ ⊕(V, V)
         @test !(V ≻ ⊕(V, V))
         @test infimum(V, GradedSpace(C0 => 3)) ==
-            GradedSpace(C0 => 2)
+              GradedSpace(C0 => 2)
         @test infimum(V, GradedSpace(M => 6)) ==
-            GradedSpace(M => 5)
+              GradedSpace(M => 5)
         for W in [WM, WMop, Wright]
             @test infimum(Wleft, W) == Vect[I](c => 0 for c in sectors(V))
         end
@@ -193,9 +187,9 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
             @test_throws ErrorException insertleftunit(W, 6)
 
             @test (V1 ⊗ V2 ⊗ rightoneunit(V2) ← V3 ⊗ V4 ⊗ V5) ==
-                @constinferred(insertrightunit(W, 2)) # works for VIBM
+                  @constinferred(insertrightunit(W, 2)) # works for VIBM
             @test (V1 ⊗ V2 ← leftoneunit(V3) ⊗ V3 ⊗ V4 ⊗ V5) ==
-                @constinferred(insertleftunit(W, 3)) # same
+                  @constinferred(insertleftunit(W, 3)) # same
             @test @constinferred(removeunit(insertleftunit(W, 3), 3)) == W # same
             @test_throws ErrorException @constinferred(insertrightunit(one(V1) ← V1, 0)) # should I specify it's the other error?
             @test_throws ErrorException insertleftunit(one(V1) ← V1, 0)
@@ -224,19 +218,13 @@ end
         @constinferred FusionTree((u,), u, (false,), (), ())
         @constinferred FusionTree((u, u), u, (false, false), (), (1,))
         @constinferred FusionTree((u, u, u), u, (false, false, false), (u,), (1, 1))
-        @constinferred FusionTree(
-            (u, u, u, u), u, (false, false, false, false), (u, u),
-            (1, 1, 1)
-        )
+        @constinferred FusionTree((u, u, u, u), u, (false, false, false, false), (u, u),
+                                  (1, 1, 1))
         @test_throws MethodError FusionTree((u, u, u), u, (false, false), (u,), (1, 1))
-        @test_throws MethodError FusionTree(
-            (u, u, u), u, (false, false, false), (u, u),
-            (1, 1)
-        )
-        @test_throws MethodError FusionTree(
-            (u, u, u), u, (false, false, false), (u,),
-            (1, 1, 1)
-        )
+        @test_throws MethodError FusionTree((u, u, u), u, (false, false, false), (u, u),
+                                            (1, 1))
+        @test_throws MethodError FusionTree((u, u, u), u, (false, false, false), (u,),
+                                            (1, 1, 1))
         @test_throws MethodError FusionTree((u, u, u), u, (false, false, false), (), (1,))
 
         f = FusionTree((u, u, u), u, (false, false, false), (u,), (1, 1))
@@ -322,14 +310,14 @@ end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2, coeff2) in TK.artin_braid(f1, 3; inv = true)
+            for (f2, coeff2) in TK.artin_braid(f1, 3; inv=true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
             end
         end
         d1 = d2
         d2 = empty(d1)
         for (f1, coeff1) in d1
-            for (f2, coeff2) in TK.artin_braid(f1, 2; inv = true)
+            for (f2, coeff2) in TK.artin_braid(f1, 2; inv=true)
                 d2[f2] = get(d2, f2, zero(coeff1)) + coeff2 * coeff1
             end
         end
@@ -338,7 +326,7 @@ end
             if f1 == f
                 @test coeff1 ≈ 1
             else
-                @test isapprox(coeff1, 0; atol = 1.0e-12, rtol = 1.0e-12)
+                @test isapprox(coeff1, 0; atol=1.0e-12, rtol=1.0e-12)
             end
         end
     end
@@ -367,11 +355,9 @@ end
         @constinferred TK.merge(f1, f2, first(in1 ⊗ in2), 1)
         @constinferred TK.merge(f1, f2, first(in1 ⊗ in2))
 
-        @test dim(in1) * dim(in2) ≈ sum(
-            abs2(coeff) * dim(c) for c in in1 ⊗ in2
-                for μ in 1:Nsymbol(in1, in2, c)
-                for (f, coeff) in TK.merge(f1, f2, c, μ)
-        )
+        @test dim(in1) * dim(in2) ≈ sum(abs2(coeff) * dim(c) for c in in1 ⊗ in2
+                                        for μ in 1:Nsymbol(in1, in2, c)
+                                        for (f, coeff) in TK.merge(f1, f2, c, μ))
         # no merge and braid interplay tests
     end
 
@@ -387,8 +373,8 @@ end
         for n in 0:(2 * N)
             d = @constinferred TK.repartition(f1, f2, $n)
             @test dim(incoming) ≈
-                sum(abs2(coef) * dim(f1.coupled) for ((f1, f2), coef) in d)
-            d2 = Dict{typeof((f1, f2)), valtype(d)}()
+                  sum(abs2(coef) * dim(f1.coupled) for ((f1, f2), coef) in d)
+            d2 = Dict{typeof((f1, f2)),valtype(d)}()
             for ((f1′, f2′), coeff) in d
                 for ((f1′′, f2′′), coeff2) in TK.repartition(f1′, f2′, N)
                     d2[(f1′′, f2′′)] = get(d2, (f1′′, f2′′), zero(coeff)) + coeff2 * coeff
@@ -398,7 +384,7 @@ end
                 if f1 == f1′ && f2 == f2′
                     @test coeff2 ≈ 1
                 else
-                    @test isapprox(coeff2, 0; atol = 1.0e-12, rtol = 1.0e-12)
+                    @test isapprox(coeff2, 0; atol=1.0e-12, rtol=1.0e-12)
                 end
             end
         end
@@ -416,8 +402,8 @@ end
 
             d = @constinferred transpose(f1, f2, p1, p2)
             @test dim(incoming) ≈
-                sum(abs2(coef) * dim(f1.coupled) for ((f1, f2), coef) in d)
-            d2 = Dict{typeof((f1, f2)), valtype(d)}()
+                  sum(abs2(coef) * dim(f1.coupled) for ((f1, f2), coef) in d)
+            d2 = Dict{typeof((f1, f2)),valtype(d)}()
             for ((f1′, f2′), coeff) in d
                 d′ = transpose(f1′, f2′, ip1, ip2)
                 for ((f1′′, f2′′), coeff2) in d′
@@ -437,13 +423,11 @@ end
         d1 = transpose(f1, f1, (N + 1, 1:N..., ((2N):-1:(N + 3))...), (N + 2,))
         f1front, = TK.split(f1, N - 1)
         T = sectorscalartype(I)
-        d2 = Dict{typeof((f1front, f1front)), T}()
+        d2 = Dict{typeof((f1front, f1front)),T}()
         for ((f1′, f2′), coeff′) in d1
             for ((f1′′, f2′′), coeff′′) in
-                TK.planar_trace(
-                    f1′, f2′, (2:N...,), (1, ((2N):-1:(N + 3))...), (N + 1,),
-                    (N + 2,)
-                )
+                TK.planar_trace(f1′, f2′, (2:N...,), (1, ((2N):-1:(N + 3))...), (N + 1,),
+                                (N + 2,))
                 coeff = coeff′ * coeff′′
                 d2[(f1′′, f2′′)] = get(d2, (f1′′, f2′′), zero(coeff)) + coeff
             end
@@ -487,7 +471,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
             next = @constinferred Nothing iterate(bs, state)
             b2 = @constinferred block(t, first(blocksectors(t)))
             @test b1 == b2
-            @test eltype(bs) === Pair{typeof(c), typeof(b1)}
+            @test eltype(bs) === Pair{typeof(c),typeof(b1)}
             @test typeof(b1) === TK.blocktype(t)
             # basic linear algebra
             @test isa(@constinferred(norm(t)), real(T))
@@ -530,7 +514,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
             @test convert(TensorMap, α * t1) ≈ α * convert(TensorMap, t1)
             @test convert(TensorMap, t1') ≈ convert(TensorMap, t1)'
             @test convert(TensorMap, t1 + t2) ≈
-                convert(TensorMap, t1) + convert(TensorMap, t2)
+                  convert(TensorMap, t1) + convert(TensorMap, t2)
         end
     end
     @timedtestset "Real and imaginary parts" begin
@@ -575,10 +559,8 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
         @test TensorMap(@constinferred t1 / t2) ≈ TensorMap(t1) / TensorMap(t2)
         @test TensorMap(@constinferred inv(t1)) ≈ inv(TensorMap(t1))
         @test TensorMap(@constinferred pinv(t1)) ≈ pinv(TensorMap(t1))
-        @test all(
-            Base.Fix2(isa, DiagonalTensorMap),
-            (t1 * t2, t1 \ t2, t1 / t2, inv(t1), pinv(t1))
-        )
+        @test all(Base.Fix2(isa, DiagonalTensorMap),
+                  (t1 * t2, t1 \ t2, t1 / t2, inv(t1), pinv(t1)))
         # no V * V' * V ← V or V^2 ← V tests due to Nsymbol erroring where fusion is forbidden
     end
     @timedtestset "Tensor contraction" begin
@@ -619,16 +601,12 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
 
                 @test rank(D) ≈ rank(t)
                 @test cond(D) ≈ cond(t)
-                @test all(
-                    ((s, t),) -> isapprox(s, t),
-                    zip(
-                        values(LinearAlgebra.eigvals(D)),
-                        values(LinearAlgebra.eigvals(t))
-                    )
-                )
+                @test all(((s, t),) -> isapprox(s, t),
+                          zip(values(LinearAlgebra.eigvals(D)),
+                              values(LinearAlgebra.eigvals(t))))
             end
             @testset "leftorth with $alg" for alg in (TK.QR(), TK.QL())
-                Q, R = @constinferred leftorth(t; alg = alg)
+                Q, R = @constinferred leftorth(t; alg=alg)
                 QdQ = Q' * Q
                 @test QdQ ≈ one(QdQ)
                 @test Q * R ≈ t
@@ -637,7 +615,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                 end
             end
             @testset "rightorth with $alg" for alg in (TK.RQ(), TK.LQ())
-                L, Q = @constinferred rightorth(t; alg = alg)
+                L, Q = @constinferred rightorth(t; alg=alg)
                 QQd = Q * Q'
                 @test QQd ≈ one(QQd)
                 @test L * Q ≈ t
@@ -646,7 +624,7 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
                 end
             end
             @testset "tsvd with $alg" for alg in (TK.SVD(), TK.SDD())
-                U, S, Vᴴ = @constinferred tsvd(t; alg = alg)
+                U, S, Vᴴ = @constinferred tsvd(t; alg=alg)
                 UdU = U' * U
                 @test UdU ≈ one(UdU)
                 VdV = Vᴴ * Vᴴ'
@@ -655,13 +633,9 @@ V = Vect[I](values(I)[k] => 1 for k in 1:length(values(I)))
 
                 @test rank(S) ≈ rank(t)
                 @test cond(S) ≈ cond(t)
-                @test all(
-                    ((s, t),) -> isapprox(s, t),
-                    zip(
-                        values(LinearAlgebra.svdvals(S)),
-                        values(LinearAlgebra.svdvals(t))
-                    )
-                )
+                @test all(((s, t),) -> isapprox(s, t),
+                          zip(values(LinearAlgebra.svdvals(S)),
+                              values(LinearAlgebra.svdvals(t))))
             end
         end
     end
@@ -703,7 +677,9 @@ for V in (VIBC, VIBD)
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests -> this condition makes it hard to test non-diagonal sectors
 end
 
-@timedtestset "Tensors with symmetry: $Istr" verbose = true for V in (VIBC, VIBD, VIBM1, VIBM2, VIBMop1, VIBMop2)
+@timedtestset "Tensors with symmetry: $Istr" verbose = true for V in
+                                                                (VIBC, VIBD, VIBM1, VIBM2,
+                                                                 VIBMop1, VIBMop2)
     V1, V2, V3, V4, V5 = V
     @timedtestset "Basic tensor properties" begin # passes for diagonal sectors
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5 # fusion matters
@@ -865,7 +841,6 @@ end
         catch e
             @test isa(e, SectorMismatch)
         end
-        
     end
     @timedtestset "Partial trace: test self-consistency" begin
         t = rand(ComplexF64, V3 ⊗ V4 ⊗ V5 ← V3 ⊗ V4 ⊗ V5) # rewritten to be compatible with module fusion
@@ -948,8 +923,9 @@ end
             # adjoint takes other space for shape of matrix in RQ(pos)
             for t in tsR
                 @testset "rightorth with $alg" for alg in
-                                                (TK.RQ(), TK.RQpos(), TK.LQ(), TK.LQpos(),
-                                                TK.Polar(), TK.SVD(), TK.SDD())
+                                                   (TK.RQ(), TK.RQpos(), TK.LQ(),
+                                                    TK.LQpos(),
+                                                    TK.Polar(), TK.SVD(), TK.SDD())
                     L, Q = @constinferred rightorth(t; alg=alg)
                     QQd = Q * Q'
                     @test QQd ≈ one(QQd)
@@ -969,13 +945,13 @@ end
             # adjoints take other space for shape of matrix in QL(pos)
             for t in tsL
                 @testset "leftorth with $alg" for alg in
-                                                    (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
-                                                    TK.Polar(), TK.SVD(), TK.SDD())
+                                                  (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
+                                                   TK.Polar(), TK.SVD(), TK.SDD())
                     # skip QL because the monomorphism condition is hard to satisfy for off-diagonal case
                     # have to skip Polar as well as all tests fail with modules
                     (alg isa QL || alg isa QLpos || alg isa Polar) && !isdiag && continue
                     Q, R = @constinferred leftorth(t; alg=alg)
-                    QdQ = Q' * Q 
+                    QdQ = Q' * Q
                     @test QdQ ≈ one(QdQ)
                     @test Q * R ≈ t
                     if alg isa Polar
@@ -984,7 +960,7 @@ end
                     end
                 end
                 @testset "leftnull with $alg" for alg in
-                                                    (TK.QR(), TK.SVD(), TK.SDD())
+                                                  (TK.QR(), TK.SVD(), TK.SDD())
                     # less rows than columns so either fails or no data in off-diagonal case
                     !isdiag && continue
                     N = @constinferred leftnull(t; alg=alg)
@@ -1030,8 +1006,8 @@ end
             @testset "empty tensor" begin
                 t = randn(T, V1 ⊗ V2, zero(V1))
                 @testset "leftorth with $alg" for alg in
-                                                    (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
-                                                    TK.Polar(), TK.SVD(), TK.SDD())
+                                                  (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
+                                                   TK.Polar(), TK.SVD(), TK.SDD())
                     Q, R = @constinferred leftorth(t; alg=alg)
                     @test Q == t
                     @test dim(Q) == dim(R) == 0
@@ -1042,7 +1018,8 @@ end
                     @test N * N' ≈ id(codomain(N))
                 end
                 @testset "rightorth with $alg" for alg in
-                                                    (TK.RQ(), TK.RQpos(), TK.LQ(), TK.LQpos(),
+                                                   (TK.RQ(), TK.RQpos(), TK.LQ(),
+                                                    TK.LQpos(),
                                                     TK.Polar(), TK.SVD(), TK.SDD())
                     L, Q = @constinferred rightorth(copy(t'); alg=alg)
                     @test Q == t'
@@ -1106,13 +1083,13 @@ end
             ts = (randn(T, V1 ⊗ V2, V3 ⊗ V4 ⊗ V5), randn(T, V4 ⊗ V5, V3 ⊗ V1 ⊗ V2)') # rewritten for modules
             for p in (1, 2, 3, Inf)
                 for t in ts
-                    U₀, S₀, V₀, = tsvd(t)
+                    U₀, S₀, V₀ = tsvd(t)
                     t = rmul!(t, 1 / norm(S₀, p))
                     U, S, V, ϵ = @constinferred tsvd(t; trunc=truncerr(5e-1), p=p)
                     U′, S′, V′, ϵ′ = tsvd(t; trunc=truncerr(nextfloat(ϵ)), p=p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                     U′, S′, V′, ϵ′ = tsvd(t; trunc=truncdim(ceil(Int, dim(domain(S)))),
-                                            p=p)
+                                          p=p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                     U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
                     @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
@@ -1136,7 +1113,7 @@ end
             @test codomain(t) == V1 ⊗ V2
             @test domain(t) == V4 ⊗ V5
             @test norm(tA * t + t * tB + tC) <
-                    (norm(tA) + norm(tB) + norm(tC)) * eps(real(T))^(2 / 3)
+                  (norm(tA) + norm(tB) + norm(tC)) * eps(real(T))^(2 / 3)
             # no reshape test: NoBraiding and no fusion tensor
         end
     end
@@ -1144,11 +1121,11 @@ end
         for T in (Float32, ComplexF64)
             t1 = rand(T, V3 ⊗ V4 ⊗ V5 ← V1 ⊗ V2)
             if all(a.row != a.col for a in blocksectors(t1))
-                t2 = rand(T, V5'⊗ V4' ⊗ V3', V2' ⊗ V1')
+                t2 = rand(T, V5' ⊗ V4' ⊗ V3', V2' ⊗ V1')
             else
                 t2 = rand(T, V3' ⊗ V1, V4 ⊗ V5 ⊗ V2') # keep a non-trivial permutation in diagonal case
             end
-            t = @constinferred (t1 ⊗ t2);
+            t = @constinferred (t1 ⊗ t2)
             @test norm(t) ≈ norm(t1) * norm(t2)
         end
     end
@@ -1159,7 +1136,7 @@ end
         for T in (Float32, ComplexF64)
             if !isdiag
                 t1 = rand(T, W)
-                t2 = rand(T, V5'⊗ V4' ⊗ V3', V2' ⊗ V1') # same as previous test
+                t2 = rand(T, V5' ⊗ V4' ⊗ V3', V2' ⊗ V1') # same as previous test
                 @planar t′[1 2 3 6 7 8; 4 5 9 10] := t1[1 2 3; 4 5] * t2[6 7 8; 9 10]
             else
                 t1 = rand(T, V2 ⊗ V3, V1)
@@ -1177,9 +1154,7 @@ end
 TK.empty_globalcaches!()
 ##########
 tf = time()
-printstyled(
-    "Finished multifusion tests in ",
-    string(round(tf - ti; sigdigits = 3)),
-    " seconds."; bold = true, color = Base.info_color()
-)
+printstyled("Finished multifusion tests in ",
+            string(round(tf - ti; sigdigits=3)),
+            " seconds."; bold=true, color=Base.info_color())
 println()

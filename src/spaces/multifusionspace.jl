@@ -55,8 +55,8 @@ function leftoneunit(S::Vect[IsingBimod])
 end
 
 function insertrightunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i};
-                                   conj::Bool=false,
-                                   dual::Bool=false) where {i,N}
+                         conj::Bool=false,
+                         dual::Bool=false) where {i,N}
     i > N && error("cannot insert a sensible right unit onto $P at index $(i+1)")
     # possible change to rightone of correct space for N = 0
     u = N > 0 ? rightoneunit(P[i]) : error("no unit object in $P")
@@ -71,8 +71,8 @@ end
 
 # TODO?: overwrite defaults at level of HomSpace and TensorMap?
 function insertleftunit(P::ProductSpace{Vect[IsingBimod],N}, ::Val{i}; # want no defaults?
-                                  conj::Bool=false,
-                                  dual::Bool=false) where {i,N}
+                        conj::Bool=false,
+                        dual::Bool=false) where {i,N}
     i > N && error("cannot insert a sensible left unit onto $P at index $i") # do we want this to error in the diagonal case?
     u = N > 0 ? leftoneunit(P[i]) : error("no unit object in $P")
     if dual
@@ -96,6 +96,6 @@ function FusionTree(uncoupled::Tuple{IsingBimod,Vararg{IsingBimod}})
 end
 
 # this one might also be overkill, since `FusionTreeIterator`s don't check whether the fusion is allowed
-function fusiontrees(uncoupled::Tuple{IsingBimod, Vararg{IsingBimod}})
+function fusiontrees(uncoupled::Tuple{IsingBimod,Vararg{IsingBimod}})
     return throw(ArgumentError("coupled sector must be provided for IsingBimod fusion"))
 end

@@ -452,11 +452,12 @@ for V in spacelist
                 # Test both a normal tensor and an adjoint one.
                 tsL = (rand(T, WL), rand(T, WR)')
                 tsR = (rand(T, WR), rand(T, WL)') # can also have one space by taking adjoints in rightorth/rightnull
-                                                  # but this avoids taking copies
+                # but this avoids taking copies
 
                 for t in tsR
                     @testset "rightorth with $alg" for alg in
-                                                       (TK.RQ(), TK.RQpos(), TK.LQ(), TK.LQpos(),
+                                                       (TK.RQ(), TK.RQpos(), TK.LQ(),
+                                                        TK.LQpos(),
                                                         TK.Polar(), TK.SVD(), TK.SDD())
                         L, Q = @constinferred rightorth(t; alg=alg)
                         QQd = Q * Q'
@@ -477,7 +478,8 @@ for V in spacelist
 
                 for t in tsL
                     @testset "leftorth with $alg" for alg in
-                                                      (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
+                                                      (TK.QR(), TK.QRpos(), TK.QL(),
+                                                       TK.QLpos(),
                                                        TK.Polar(), TK.SVD(), TK.SDD())
                         Q, R = @constinferred leftorth(t; alg=alg)
                         QdQ = Q' * Q
@@ -529,7 +531,8 @@ for V in spacelist
                 @testset "empty tensor" begin
                     t = randn(T, V1 ⊗ V2, zero(V1))
                     @testset "leftorth with $alg" for alg in
-                                                      (TK.QR(), TK.QRpos(), TK.QL(), TK.QLpos(),
+                                                      (TK.QR(), TK.QRpos(), TK.QL(),
+                                                       TK.QLpos(),
                                                        TK.Polar(), TK.SVD(), TK.SDD())
                         Q, R = @constinferred leftorth(t; alg=alg)
                         @test Q == t
@@ -541,7 +544,8 @@ for V in spacelist
                         @test N * N' ≈ id(codomain(N))
                     end
                     @testset "rightorth with $alg" for alg in
-                                                       (TK.RQ(), TK.RQpos(), TK.LQ(), TK.LQpos(),
+                                                       (TK.RQ(), TK.RQpos(), TK.LQ(),
+                                                        TK.LQpos(),
                                                         TK.Polar(), TK.SVD(), TK.SDD())
                         L, Q = @constinferred rightorth(copy(t'); alg=alg)
                         @test Q == t'
@@ -607,7 +611,7 @@ for V in spacelist
                     ts = (randn(T, V1 ⊗ V2 ⊗ V3, V4 ⊗ V5),
                           randn(T, V4 ⊗ V5, V1 ⊗ V2 ⊗ V3)')
                     for t in ts
-                        U₀, S₀, V₀, = tsvd(t)
+                        U₀, S₀, V₀ = tsvd(t)
                         t = rmul!(t, 1 / norm(S₀, p))
                         U, S, V, ϵ = @constinferred tsvd(t; trunc=truncerr(5e-1), p=p)
                         # @show p, ϵ
