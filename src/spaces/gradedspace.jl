@@ -134,10 +134,10 @@ end
 Base.oneunit(S::Type{<:GradedSpace{I}}) where {I<:Sector} = S(one(I) => 1)
 
 """
-    leftoneunit(V::Type{<:GradedSpace{I}}) where {I<:Sector} -> GradedSpace{I}
+    leftoneunit(S::GradedSpace{I}) where {I<:Sector} -> GradedSpace{I}
 
 Return the corresponding vector space of type `GradedSpace{I}` that represents the trivial
-one-dimensional space consisting of the left unit of the underlying `Sector` `I`.
+one-dimensional space consisting of the left unit of the objects in  `Sector` `I`.
 """
 function leftoneunit(S::GradedSpace{I}) where {I<:Sector}
     sector = leftone(first(sectors(S)))
@@ -145,10 +145,10 @@ function leftoneunit(S::GradedSpace{I}) where {I<:Sector}
 end
 
 """
-    rightoneunit(V::Type{<:GradedSpace{I}}) where {I<:Sector} -> GradedSpace{I}
+    rightoneunit(S::GradedSpace{I}) where {I<:Sector} -> GradedSpace{I}
 
 Return the corresponding vector space of type `GradedSpace{I}` that represents the trivial
-one-dimensional space consisting of the right unit of the underlying `Sector` `I`.
+one-dimensional space consisting of the right unit of the objects in `Sector` `I`.
 """
 function rightoneunit(S::GradedSpace{I}) where {I<:Sector}
     sector = rightone(first(sectors(S)))
