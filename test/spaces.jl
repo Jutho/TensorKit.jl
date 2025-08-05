@@ -323,6 +323,7 @@ println("------------------------------------")
         @test Base.eltype(P) == Base.eltype(typeof(P)) == typeof(V1)
         @test eltype(collect(P)) == typeof(V1)
         @test collect(P) == [V1, V2, V3, V4]
+        @test_throws MethodError P ⊕ P
     end
 
     @timedtestset "ProductSpace{SU₂Space}" begin
