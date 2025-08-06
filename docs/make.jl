@@ -12,8 +12,8 @@ makedocs(; modules=[TensorKit, TensorKitSectors],
          sitename="TensorKit.jl",
          authors="Jutho Haegeman",
          warnonly=[:missing_docs, :cross_references],
-         format=Documenter.HTML(; prettyurls=get(ENV, "CI", nothing) == "true",
-                                mathengine=MathJax()),
+         format=Documenter.HTML(; prettyurls=true, mathengine=MathJax(),
+                                assets=["assets/custom.css"]),
          pages=pages,
          pagesonly=true)
 

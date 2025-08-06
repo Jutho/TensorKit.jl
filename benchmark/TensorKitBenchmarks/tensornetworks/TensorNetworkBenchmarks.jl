@@ -45,9 +45,8 @@ function benchmark_mpo!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
 end
 
 if haskey(all_parameters, "mpo")
-    g = addgroup!(SUITE, "mpo")
     for params in all_parameters["mpo"]
-        benchmark_mpo!(g, params)
+        benchmark_mpo!(SUITE, params)
     end
 end
 
@@ -90,9 +89,8 @@ function benchmark_pepo!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
 end
 
 if haskey(all_parameters, "pepo")
-    g = addgroup!(SUITE, "pepo")
     for params in all_parameters["pepo"]
-        benchmark_pepo!(g, params)
+        benchmark_pepo!(SUITE, params)
     end
 end
 
@@ -136,9 +134,8 @@ function benchmark_mera!(bench; sigmas=nothing, T="Float64", I="Trivial", dims)
 end
 
 if haskey(all_parameters, "mera")
-    g = addgroup!(SUITE, "mera")
     for params in all_parameters["mera"]
-        benchmark_mera!(g, params)
+        benchmark_mera!(SUITE, params)
     end
 end
 

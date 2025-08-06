@@ -453,177 +453,239 @@ end
 
 function add_transform!(tdst::AbstractTensorMap,
                         tsrc::AbstractTensorMap,
-                        (p₁, p₂)::Index2Tuple,
+                        p::Index2Tuple,
                         transformer,
                         α::Number,
                         β::Number,
                         backend::AbstractBackend...)
     @boundscheck begin
-        permute(space(tsrc), (p₁, p₂)) == space(tdst) ||
+        permute(space(tsrc), p) == space(tdst) ||
             throw(SpaceMismatch("source = $(codomain(tsrc))←$(domain(tsrc)),
-            dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p₁), p₂ = $(p₂)"))
+            dest = $(codomain(tdst))←$(domain(tdst)), p₁ = $(p[1]), p₂ = $(p[2])"))
     end
 
-    if p₁ === codomainind(tsrc) && p₂ === domainind(tsrc)
+    if p[1] === codomainind(tsrc) && p[2] === domainind(tsrc)
         add!(tdst, tsrc, α, β)
     else
-        add_transform_kernel!(tdst, tsrc, (p₁, p₂), transformer, α, β, backend...)
-    end
-
-    return tdst
-end
-
-function add_transform_kernel!(tdst::TensorMap,
-                               tsrc::TensorMap,
-                               (p₁, p₂)::Index2Tuple,
-                               ::TrivialTreeTransformer,
-                               α::Number,
-                               β::Number,
-                               backend::AbstractBackend...)
-    return TO.tensoradd!(tdst[], tsrc[], (p₁, p₂), false, α, β, backend...)
-end
-
-function add_transform_kernel!(tdst::TensorMap,
-                               tsrc::TensorMap,
-                               (p₁, p₂)::Index2Tuple,
-                               transformer::AbelianTreeTransformer,
-                               α::Number,
-                               β::Number,
-                               backend::AbstractBackend...)
-    structure_dst = transformer.structure_dst.fusiontreestructure
-    structure_src = transformer.structure_src.fusiontreestructure
-
-    # TODO: this could be multithreaded
-    for (row, col, val) in zip(transformer.rows, transformer.cols, transformer.vals)
-        sz_dst, str_dst, offset_dst = structure_dst[col]
-        subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
-
-        sz_src, str_src, offset_src = structure_src[row]
-        subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
-
-        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * val, β, backend...)
-    end
-
-    return nothing
-end
-
-function add_transform_kernel!(tdst::TensorMap,
-                               tsrc::TensorMap,
-                               (p₁, p₂)::Index2Tuple,
-                               transformer::GenericTreeTransformer,
-                               α::Number,
-                               β::Number,
-                               backend::AbstractBackend...)
-    structure_dst = transformer.structure_dst.fusiontreestructure
-    structure_src = transformer.structure_src.fusiontreestructure
-
-    rows = rowvals(transformer.matrix)
-    vals = nonzeros(transformer.matrix)
-
-    # TODO: this could be multithreaded
-    for j in axes(transformer.matrix, 2)
-        sz_dst, str_dst, offset_dst = structure_dst[j]
-        subblock_dst = StridedView(tdst.data, sz_dst, str_dst, offset_dst)
-        nzrows = nzrange(transformer.matrix, j)
-
-        # treat first entry
-        sz_src, str_src, offset_src = structure_src[rows[first(nzrows)]]
-        subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
-        TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[first(nzrows)],
-                      β,
-                      backend...)
-
-        # treat remaining entries
-        for i in @view(nzrows[2:end])
-            sz_src, str_src, offset_src = structure_src[rows[i]]
-            subblock_src = StridedView(tsrc.data, sz_src, str_src, offset_src)
-            TO.tensoradd!(subblock_dst, subblock_src, (p₁, p₂), false, α * vals[i], One(),
-                          backend...)
+        I = sectortype(tdst)
+        if I === Trivial
+            _add_trivial_kernel!(tdst, tsrc, p, transformer, α, β, backend...)
+        elseif FusionStyle(I) === UniqueFusion()
+            if use_threaded_transform(tdst, transformer)
+                _add_abelian_kernel_threaded!(tdst, tsrc, p, transformer, α, β, backend...)
+            else
+                _add_abelian_kernel_nonthreaded!(tdst, tsrc, p, transformer, α, β,
+                                                 backend...)
+            end
+        else
+            if use_threaded_transform(tdst, transformer)
+                _add_general_kernel_threaded!(tdst, tsrc, p, transformer, α, β, backend...)
+            else
+                _add_general_kernel_nonthreaded!(tdst, tsrc, p, transformer, α, β,
+                                                 backend...)
+            end
         end
     end
 
     return tdst
 end
 
-function add_transform_kernel!(tdst::AbstractTensorMap,
-                               tsrc::AbstractTensorMap,
-                               (p₁, p₂)::Index2Tuple,
-                               fusiontreetransform::Function,
-                               α::Number,
-                               β::Number,
-                               backend::AbstractBackend...)
-    I = sectortype(spacetype(tdst))
-
-    if I === Trivial
-        _add_trivial_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
-    elseif FusionStyle(I) isa UniqueFusion
-        _add_abelian_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
-    else
-        _add_general_kernel!(tdst, tsrc, (p₁, p₂), fusiontreetransform, α, β, backend...)
-    end
-
-    return nothing
+function use_threaded_transform(t::TensorMap, transformer)
+    return get_num_transformer_threads() > 1 && length(t.data) > Strided.MINTHREADLENGTH
+end
+function use_threaded_transform(t::AbstractTensorMap, transformer)
+    return get_num_transformer_threads() > 1 && dim(space(t)) > Strided.MINTHREADLENGTH
 end
 
-# internal methods: no argument types
-function _add_trivial_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
+# Trivial implementations
+# -----------------------
+function _add_trivial_kernel!(tdst, tsrc, p, transformer, α, β, backend...)
     TO.tensoradd!(tdst[], tsrc[], p, false, α, β, backend...)
     return nothing
 end
 
-function _add_abelian_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
-    if Threads.nthreads() > 1
-        Threads.@sync for (f₁, f₂) in fusiontrees(tsrc)
-            Threads.@spawn _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
-                                               f₁, f₂, α, β, backend...)
-        end
-    else
-        for (f₁, f₂) in fusiontrees(tsrc)
-            _add_abelian_block!(tdst, tsrc, p, fusiontreetransform,
-                                f₁, f₂, α, β, backend...)
-        end
+# Abelian implementations
+# -----------------------
+function _add_abelian_kernel_nonthreaded!(tdst, tsrc, p,
+                                          transformer::AbelianTreeTransformer,
+                                          α, β, backend...)
+    for subtransformer in transformer.data
+        _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
     end
     return nothing
 end
 
-function _add_abelian_block!(tdst, tsrc, p, fusiontreetransform, f₁, f₂, α, β, backend...)
-    (f₁′, f₂′), coeff = first(fusiontreetransform(f₁, f₂))
-    @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
-                            backend...)
-    return nothing
-end
-
-function _add_general_kernel!(tdst, tsrc, p, fusiontreetransform, α, β, backend...)
-    if iszero(β)
-        tdst = zerovector!(tdst)
-    elseif β != 1
-        tdst = scale!(tdst, β)
-    end
-    β′ = One()
-    if Threads.nthreads() > 1
-        Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
-            Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁,
-                                                   s₂, α, β′, backend...)
-        end
-    else
-        for (f₁, f₂) in fusiontrees(tsrc)
-            for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-                @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff,
-                                        β′, backend...)
+function _add_abelian_kernel_threaded!(tdst, tsrc, p, transformer::AbelianTreeTransformer,
+                                       α, β, backend...;
+                                       ntasks::Int=get_num_transformer_threads())
+    nblocks = length(transformer.data)
+    counter = Threads.Atomic{Int}(1)
+    Threads.@sync for _ in 1:min(ntasks, nblocks)
+        Threads.@spawn begin
+            while true
+                local_counter = Threads.atomic_add!(counter, 1)
+                local_counter > nblocks && break
+                @inbounds subtransformer = transformer.data[local_counter]
+                _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
             end
         end
     end
     return nothing
 end
 
-# TODO: β argument is weird here because it has to be 1
-function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, β,
-                                 backend...)
+function _add_transform_single!(tdst, tsrc, p,
+                                (coeff, struct_dst, struct_src)::_AbelianTransformerData,
+                                α, β, backend...)
+    subblock_dst = StridedView(tdst.data, struct_dst...)
+    subblock_src = StridedView(tsrc.data, struct_src...)
+    TO.tensoradd!(subblock_dst, subblock_src, p, false, α * coeff, β, backend...)
+    return nothing
+end
+
+function _add_abelian_kernel_nonthreaded!(tdst, tsrc, p, transformer, α, β, backend...)
+    for (f₁, f₂) in fusiontrees(tsrc)
+        _add_abelian_block!(tdst, tsrc, p, transformer, f₁, f₂, α, β, backend...)
+    end
+    return nothing
+end
+
+function _add_abelian_kernel_threaded!(tdst, tsrc, p, transformer, α, β, backend...)
+    Threads.@sync for (f₁, f₂) in fusiontrees(tsrc)
+        Threads.@spawn _add_abelian_block!(tdst, tsrc, p, transformer, f₁, f₂, α, β,
+                                           backend...)
+    end
+    return nothing
+end
+
+function _add_abelian_block!(tdst, tsrc, p, transformer, f₁, f₂, α, β, backend...)
+    (f₁′, f₂′), coeff = first(transformer(f₁, f₂))
+    @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
+                            backend...)
+    return nothing
+end
+
+# Non-abelian implementations
+# ---------------------------
+function _add_general_kernel_nonthreaded!(tdst, tsrc, p,
+                                          transformer::GenericTreeTransformer,
+                                          α, β, backend...)
+    # preallocate buffers
+    buffers = allocate_buffers(tdst, tsrc, transformer)
+
+    for subtransformer in transformer.data
+        # Special case without intermediate buffers whenever there is only a single block
+        if length(subtransformer[1]) == 1
+            _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
+        else
+            _add_transform_multi!(tdst, tsrc, p, subtransformer, buffers, α, β, backend...)
+        end
+    end
+    return nothing
+end
+
+function _add_general_kernel_threaded!(tdst, tsrc, p, transformer::GenericTreeTransformer,
+                                       α, β, backend...;
+                                       ntasks::Int=get_num_transformer_threads())
+    nblocks = length(transformer.data)
+
+    counter = Threads.Atomic{Int}(1)
+    Threads.@sync for _ in 1:min(ntasks, nblocks)
+        Threads.@spawn begin
+            # preallocate buffers for each task
+            buffers = allocate_buffers(tdst, tsrc, transformer)
+
+            while true
+                local_counter = Threads.atomic_add!(counter, 1)
+                local_counter > nblocks && break
+                @inbounds subtransformer = transformer.data[local_counter]
+                if length(subtransformer[1]) == 1
+                    _add_transform_single!(tdst, tsrc, p, subtransformer, α, β, backend...)
+                else
+                    _add_transform_multi!(tdst, tsrc, p, subtransformer, buffers,
+                                          α, β, backend...)
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function _add_general_kernel_nonthreaded!(tdst, tsrc, p, transformer, α, β, backend...)
+    if iszero(β)
+        tdst = zerovector!(tdst)
+    elseif !isone(β)
+        tdst = scale!(tdst, β)
+    end
+    for (f₁, f₂) in fusiontrees(tsrc)
+        for ((f₁′, f₂′), coeff) in transformer(f₁, f₂)
+            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff,
+                                    One(), backend...)
+        end
+    end
+    return nothing
+end
+
+function _add_transform_single!(tdst, tsrc, p,
+                                (basistransform, structs_dst,
+                                 structs_src)::_GenericTransformerData,
+                                α, β, backend...)
+    struct_dst = (structs_dst[1], only(structs_dst[2])...)
+    struct_src = (structs_src[1], only(structs_src[2])...)
+    coeff = only(basistransform)
+    _add_transform_single!(tdst, tsrc, p, (coeff, struct_dst, struct_src), α, β, backend...)
+    return nothing
+end
+
+function _add_transform_multi!(tdst, tsrc, p,
+                               (basistransform, (sz_dst, structs_dst),
+                                (sz_src, structs_src)),
+                               (buffer1, buffer2), α, β, backend...)
+    rows, cols = size(basistransform)
+    blocksize = prod(sz_src)
+    matsize = (prod(TupleTools.getindices(sz_src, codomainind(tsrc))),
+               prod(TupleTools.getindices(sz_src, domainind(tsrc))))
+
+    # Filling up a buffer with contiguous data
+    buffer_src = StridedView(buffer2, (blocksize, cols), (1, blocksize), 0)
+    for (i, struct_src) in enumerate(structs_src)
+        subblock_src = sreshape(StridedView(tsrc.data, sz_src, struct_src...), matsize)
+        _copyto!(buffer_src[:, i], subblock_src)
+    end
+
+    # Resummation into a second buffer using BLAS
+    buffer_dst = StridedView(buffer1, (blocksize, rows), (1, blocksize), 0)
+    mul!(buffer_dst, buffer_src, basistransform, α, Zero())
+
+    # Filling up the output
+    for (i, struct_dst) in enumerate(structs_dst)
+        subblock_dst = StridedView(tdst.data, sz_dst, struct_dst...)
+        bufblock_dst = sreshape(buffer_dst[:, i], sz_src)
+        TO.tensoradd!(subblock_dst, bufblock_dst, p, false, One(), β, backend...)
+    end
+
+    return nothing
+end
+
+function _add_general_kernel_threaded!(tdst, tsrc, p, transformer, α, β, backend...)
+    if iszero(β)
+        tdst = zerovector!(tdst)
+    elseif !isone(β)
+        tdst = scale!(tdst, β)
+    end
+    Threads.@sync for s₁ in sectors(codomain(tsrc)), s₂ in sectors(domain(tsrc))
+        Threads.@spawn _add_nonabelian_sector!(tdst, tsrc, p, transformer, s₁, s₂, α,
+                                               backend...)
+    end
+    return nothing
+end
+
+function _add_nonabelian_sector!(tdst, tsrc, p, fusiontreetransform, s₁, s₂, α, backend...)
     for (f₁, f₂) in fusiontrees(tsrc)
         (f₁.uncoupled == s₁ && f₂.uncoupled == s₂) || continue
         for ((f₁′, f₂′), coeff) in fusiontreetransform(f₁, f₂)
-            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff, β,
-                                    backend...)
+            @inbounds TO.tensoradd!(tdst[f₁′, f₂′], tsrc[f₁, f₂], p, false, α * coeff,
+                                    One(), backend...)
         end
     end
     return nothing

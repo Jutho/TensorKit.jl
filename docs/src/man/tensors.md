@@ -148,7 +148,9 @@ fusiontrees((a1, …, aN₁), c)` as ``X^{a_1, …, a_{N₁}}_{c,α}`` where
 `e` and the vertex degeneracy labels `μ` of a generic fusion tree, as discussed in the
 [corresponding section](@ref ss_fusiontrees). The tensor is then represented as
 
-![tensor storage](img/tensor-storage.svg)
+```@raw html
+<img src="../img/tensor-storage.svg" alt="tensor storage" class="color-invertible"/>
+```
 
 In this diagram, we have indicated how the tensor map can be rewritten in terms of a block
 diagonal matrix with a unitary matrix on its left and another unitary matrix (if domain and
@@ -169,7 +171,9 @@ to `c`, either because of different sectors ``(b_1 … b_{N₂})`` or a differen
 To understand this better, we need to understand the basis transform, e.g. on the left
 (codomain) side. In more detail, it is given by
 
-![tensor unitary](img/tensor-unitary.svg)
+```@raw html
+<img src="../img/tensor-unitary.svg" alt="tensor unitary" class="color-invertible"/>
+```
 
 Indeed, remembering that ``V_i = ⨁_{a_i} R_{a_i} ⊗ ℂ^{n_{a_i}}`` with ``R_{a_i}`` the
 representation space on which irrep ``a_i`` acts (with dimension ``\mathrm{dim}(a_i)``), we
@@ -797,7 +801,9 @@ the graphical representation (where we draw the codomain and domain as a single 
 makes clear that this introduces an additional (inverse) twist, which is then compensated
 in the `transpose` implementation.
 
-![transpose](img/tensor-transpose.svg)
+```@raw html
+<img src="../img/tensor-transpose.svg" alt="transpose" class="color-invertible"/>
+```
 
 In categorical language, the reason for this extra twist is that we use the left
 coevaluation ``η``, but the right evaluation ``\tilde{ϵ}``, when repartitioning the indices
@@ -1152,7 +1158,9 @@ morphism. If we also compose the resulting morphisms with coevaluations so that 
 trivial domain, we just have one type of unconnected lines, henceforth called open indices.
 We sketch such a rearrangement in the following picture
 
-![tensor unitary](img/tensor-bosoniccontraction.svg)
+```@raw html
+<img src="../img/tensor-bosoniccontraction.svg" alt="tensor unitary" class="color-invertible"/>
+```
 
 Hence, we can now specify such a tensor diagram, henceforth called a tensor contraction or
 also tensor network, using a one-dimensional syntax that mimicks
@@ -1220,7 +1228,9 @@ graphical calculus, which yields some crossings and a twist. As the latter is tr
 can be omitted, and we just use the same rules to evaluate the newly ordered tensor
 network. For the particular case of matrix matrix multiplication, which also captures more general settings by appropriotely combining spaces into a single line, we indeed find
 
-![tensor contraction reorder](img/tensor-contractionreorder.svg)
+```@raw html
+<img src="../img/tensor-contractionreorder.svg" alt="tensor contraction reorder" class="color-invertible"/>
+```
 
 or thus, the following to lines of code yield the same result
 ```julia

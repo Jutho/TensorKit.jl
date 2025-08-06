@@ -165,8 +165,9 @@ operation is the inverse of `insertat` in the sense that if
         f₂ = FusionTree{I}(f.uncoupled, f.coupled, isdual2, f.innerlines, f.vertices)
         return f₁, f₂
     elseif M === 0
-        f₁ = FusionTree{I}((), one(I), (), ())
-        uncoupled2 = (one(I), f.uncoupled...)
+        u = leftone(f.uncoupled[1])
+        f₁ = FusionTree{I}((), u, (), ())
+        uncoupled2 = (u, f.uncoupled...)
         coupled2 = f.coupled
         isdual2 = (false, f.isdual...)
         innerlines2 = N >= 2 ? (f.uncoupled[1], f.innerlines...) : ()
@@ -230,7 +231,7 @@ function merge(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂},
     return insertat(f, N₁ + 1, f₂)
 end
 function merge(f₁::FusionTree{I,0}, f₂::FusionTree{I,0}, c::I, μ) where {I}
-    isone(c) ||
+    Nsymbol(f₁.coupled, f₂.coupled, c) == μ == 1 ||
         throw(SectorMismatch("cannot fuse sectors $(f₁.coupled) and $(f₂.coupled) to $c"))
     return fusiontreedict(I)(f₁ => Fsymbol(c, c, c, c, c, c)[1, 1, 1, 1])
 end
@@ -289,7 +290,8 @@ function bendright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     # map final splitting vertex (a, b)<-c to fusion vertex a<-(c, dual(b))
     @assert N₁ > 0
     c = f₁.coupled
-    a = N₁ == 1 ? one(I) : (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
+    a = N₁ == 1 ? leftone(f₁.uncoupled[1]) :
+        (N₁ == 2 ? f₁.uncoupled[1] : f₁.innerlines[end])
     b = f₁.uncoupled[N₁]
 
     uncoupled1 = TupleTools.front(f₁.uncoupled)
@@ -345,7 +347,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
     isduala = f₁.isdual[1]
     factor = sqrtdim(a)
     if !isduala
-        factor *= frobeniusschur(a)
+        factor *= conj(frobeniusschur(a))
     end
     c1 = dual(a)
     c2 = f₁.coupled
@@ -360,7 +362,7 @@ function foldright(f₁::FusionTree{I,N₁}, f₂::FusionTree{I,N₂}) where {I<
         hasmultiplicities = FusionStyle(a) isa GenericFusion
         local newtrees
         if N₁ == 1
-            cset = (one(c1),)
+            cset = (leftone(c1),) # or rightone(a)
         elseif N₁ == 2
             cset = (f₁.uncoupled[2],)
         else
@@ -729,7 +731,8 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
     # if trace is zero, return empty dict
     (b == dual(b′) && f.isdual[i] != f.isdual[j]) || return newtrees
     if i < N
-        inner_extended = (one(I), f.uncoupled[1], f.innerlines..., f.coupled)
+        inner_extended = (leftone(f.uncoupled[1]), f.uncoupled[1], f.innerlines...,
+                          f.coupled)
         a = inner_extended[i]
         d = inner_extended[i + 2]
         a == d || return newtrees
@@ -753,11 +756,11 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
         if i > 1
             c = f.innerlines[i - 1]
             if FusionStyle(I) isa MultiplicityFreeFusion
-                coeff *= Fsymbol(a, b, dual(b), a, c, one(I))
+                coeff *= Fsymbol(a, b, dual(b), a, c, rightone(a))
             else
                 μ = f.vertices[i - 1]
                 ν = f.vertices[i]
-                coeff *= Fsymbol(a, b, dual(b), a, c, one(I))[μ, ν, 1, 1]
+                coeff *= Fsymbol(a, b, dual(b), a, c, rightone(a))[μ, ν, 1, 1]
             end
         end
         if f.isdual[i]
@@ -766,8 +769,9 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
         push!(newtrees, f′ => coeff)
         return newtrees
     else # i == N
+        unit = leftone(b)
         if N == 2
-            f′ = FusionTree{I}((), one(I), (), (), ())
+            f′ = FusionTree{I}((), unit, (), (), ())
             coeff = sqrtdim(b)
             if !(f.isdual[N])
                 coeff *= conj(frobeniusschur(b))
@@ -778,18 +782,17 @@ function elementary_trace(f::FusionTree{I,N}, i) where {I<:Sector,N}
         uncoupled_ = TupleTools.front(f.uncoupled)
         inner_ = TupleTools.front(f.innerlines)
         coupled_ = f.innerlines[end]
-        @assert coupled_ == dual(b)
         isdual_ = TupleTools.front(f.isdual)
         vertices_ = TupleTools.front(f.vertices)
         f_ = FusionTree(uncoupled_, coupled_, isdual_, inner_, vertices_)
         fs = FusionTree((b,), b, (!f.isdual[1],), (), ())
-        for (f_′, coeff) in merge(fs, f_, one(I), 1)
-            f_′.innerlines[1] == one(I) || continue
+        for (f_′, coeff) in merge(fs, f_, unit, 1) # coloring gets reversed here, should be the other unit
+            f_′.innerlines[1] == unit || continue
             uncoupled′ = Base.tail(Base.tail(f_′.uncoupled))
             isdual′ = Base.tail(Base.tail(f_′.isdual))
             inner′ = N <= 4 ? () : Base.tail(Base.tail(f_′.innerlines))
             vertices′ = N <= 3 ? () : Base.tail(Base.tail(f_′.vertices))
-            f′ = FusionTree(uncoupled′, one(I), isdual′, inner′, vertices′)
+            f′ = FusionTree(uncoupled′, unit, isdual′, inner′, vertices′) # and this one?
             coeff *= sqrtdim(b)
             if !(f.isdual[N])
                 coeff *= conj(frobeniusschur(b))

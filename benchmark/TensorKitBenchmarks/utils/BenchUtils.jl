@@ -55,13 +55,15 @@ function generate_space(::Type{U1Irrep}, D::Int, sigma::Real=0.5)
     return U1Space((s => d for (s, d) in zip(sectors, dims))...)
 end
 function generate_space(::Type{SU2Irrep}, D::Int, sigma::Real=0.5)
-    poisson_pdf(x) = ceil(Int, D * exp(-sigma) * sigma^x / factorial(x + 1))
+    normal_pdf = let D = D
+        x -> D * exp(-0.5 * (x / sigma)^2) / (sigma * sqrt(2π))
+    end
 
     sectors = SU2Irrep[]
     dims = Int[]
 
     for sector in values(SU2Irrep)
-        d = poisson_pdf(Int(sector.j * 2))
+        d = ceil(Int, normal_pdf(sector.j) / dim(sector))
         push!(sectors, sector)
         push!(dims, d)
         D -= d * dim(sector)

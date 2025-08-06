@@ -39,7 +39,7 @@ export infimum, supremum, isisomorphic, ismonomorphic, isepimorphic
 
 # methods for sectors and properties thereof
 export sectortype, sectors, hassector, Nsymbol, Fsymbol, Rsymbol, Bsymbol,
-       frobeniusschur, twist, otimes
+       frobeniusschur, twist, otimes, sectorscalartype
 export fusiontrees, braid, permute, transpose
 export ZNSpace, SU2Irrep, U1Irrep, CU1Irrep
 # other fusion tree manipulations, should not be exported:
@@ -131,8 +131,6 @@ using LinearAlgebra: norm, dot, normalize, normalize!, tr,
                      Diagonal, Hermitian
 using MatrixAlgebraKit
 
-using SparseArrays: SparseMatrixCSC, sparse, nzrange, rowvals, nonzeros
-
 import Base.Meta
 
 using Random: Random, rand!, randn!
@@ -189,6 +187,21 @@ include("fusiontrees/fusiontrees.jl")
 # Definitions and methods for vector spaces
 #-------------------------------------------
 include("spaces/vectorspaces.jl")
+
+# Multithreading settings
+#-------------------------
+const TRANSFORMER_THREADS = Ref(1)
+
+get_num_transformer_threads() = TRANSFORMER_THREADS[]
+
+function set_num_transformer_threads(n::Int)
+    N = Base.Threads.nthreads()
+    if n > N
+        n = N
+        Strided._set_num_threads_warn(n)
+    end
+    return TRANSFORMER_THREADS[] = n
+end
 
 # Definitions and methods for tensors
 #-------------------------------------

@@ -10,9 +10,8 @@ end
 
 Base.IteratorSize(::BlockIterator) = Base.HasLength()
 Base.IteratorEltype(::BlockIterator) = Base.HasEltype()
-Base.eltype(::Type{<:BlockIterator{T}}) where {T} = blocktype(T)
+Base.eltype(::Type{<:BlockIterator{T}}) where {T} = Pair{sectortype(T),blocktype(T)}
 Base.length(iter::BlockIterator) = length(iter.structure)
-Base.isdone(iter::BlockIterator, state...) = Base.isdone(iter.structure, state...)
 
 # TODO: fast-path when structures are the same?
 # TODO: implement scheduler
