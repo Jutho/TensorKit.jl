@@ -146,8 +146,8 @@ spaces `V₁`, `V₂`, ... Note that all the individual spaces should have the s
 [`isdual`](@ref), as otherwise the direct sum is not defined.
 """
 function ⊕ end
-⊕(V₁::VectorSpace, V₂::VectorSpace) = ⊕(promote(V₁, V₂)...)
-⊕(V::Vararg{VectorSpace}) = foldl(⊕, V)
+⊕(V₁::ElementarySpace, V₂::ElementarySpace) = ⊕(promote(V₁, V₂)...)
+⊕(V::Vararg{ElementarySpace}) = foldl(⊕, V)
 const oplus = ⊕
 
 """
