@@ -30,9 +30,7 @@ Base.zero(S::Type{Vect[IsingBimod]}) = Vect[IsingBimod]()
 function blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁,N₂}
     codom = codomain(W)
     dom = domain(W)
-    @info "in blocksectors with $W"
     if N₁ == 0 && N₂ == 0
-        @info "no sectors, returning empty set"
         return (IsingBimod(1, 1, 0), IsingBimod(2, 2, 0))
     elseif N₁ == 0
         @assert N₂ != 0 "one of Type IsingBimod doesn't exist"
@@ -41,7 +39,6 @@ function blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁
         @assert N₁ != 0 "one of Type IsingBimod doesn't exist"
         return filter!(c -> c == leftone(c) == rightone(c), collect(blocksectors(codom)))
     elseif N₂ <= N₁ # keep intersection
-        @info "returning sectors in domain"
         return filter!(c -> hasblock(codom, c), collect(blocksectors(dom)))
     else
         return filter!(c -> hasblock(dom, c), collect(blocksectors(codom)))
