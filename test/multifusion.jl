@@ -823,7 +823,7 @@ end
         @test conj(s) ≈ tr(t')
         try # needed for module cases: certain transposes with module legs will result in different colorings
             @planar s2 = t[a b; a b] # no twist needed bc permute avoided
-            @test s ≈ s2 #FIXME: currently this trace gives zero for VIBD, but not for VIBC
+            @test s ≈ s2
         catch e
             @test isa(e, SectorMismatch)
         end
