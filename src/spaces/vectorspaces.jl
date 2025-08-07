@@ -323,10 +323,6 @@ include("deligne.jl")
 #------------------------------
 include("homspace.jl")
 
-# Additional methods for IsingBimod Sector
-# ----------------------------------------
-include("multifusionspace.jl")
-
 # Partial order for vector spaces
 #---------------------------------
 """

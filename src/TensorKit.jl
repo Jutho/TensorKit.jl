@@ -228,6 +228,10 @@ include("planar/planaroperations.jl")
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")
 
+# Additional methods for IsingBimod Sector
+# ----------------------------------------
+include("spaces/multifusionspace.jl")
+
 # Extensions
 # ----------
 function __init__()
