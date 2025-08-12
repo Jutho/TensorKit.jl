@@ -367,7 +367,7 @@ end
     f1 = rand(collect(fusiontrees(out, incoming, ntuple(n -> rand(Bool), N))))
     f2 = rand(collect(fusiontrees(out2, incoming, ntuple(n -> rand(Bool), N))))
 
-    @testset "Double fusion tree $Istr: repartioning" begin
+    @testset "Double fusion tree $Istr: repartitioning" begin
         for n in 0:(2 * N)
             d = @constinferred TK.repartition(f1, f2, $n)
             @test dim(incoming) ≈
