@@ -54,12 +54,18 @@ numind(::Type{T}) where {T<:FusionTreeBlock} = numin(T) + numout(T)
 fusiontrees(block::FusionTreeBlock) = block.trees
 Base.length(block::FusionTreeBlock) = length(fusiontrees(block))
 
+function treeindex_map(fs::FusionTreeBlock)
+    I = sectortype(fs)
+    return fusiontreedict(I)(f => ind for (ind, f) in enumerate(fusiontrees(fs)))
+end
+
+
 # Manipulations
 # -------------
 function transformation_matrix(transform, dst::FusionTreeBlock{I},
                                src::FusionTreeBlock{I}) where {I}
     U = zeros(sectorscalartype(I), length(dst), length(src))
-    indexmap = Dict(f => ind for (ind, f) in enumerate(fusiontrees(dst)))
+    indexmap = treeindex_map(dst)
     for (col, f) in enumerate(fusiontrees(src))
         for (f′, c) in transform(f)
             row = indexmap[f′]
@@ -80,7 +86,7 @@ function bendright(src::FusionTreeBlock)
     @assert N₁ > 0
 
     dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
-    indexmap = fusiontreedict(I)(f => ind for (ind, f) in enumerate(fusiontrees(dst)))
+    indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
     for (col, (f₁, f₂)) in enumerate(fusiontrees(src))
@@ -139,7 +145,7 @@ function bendleft(src::FusionTreeBlock)
     @assert N₁ > 0
 
     dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
-    indexmap = fusiontreedict(I)(f => ind for (ind, f) in enumerate(fusiontrees(dst)))
+    indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
     for (col, (f₂, f₁)) in enumerate(fusiontrees(src))
@@ -196,7 +202,7 @@ function foldright(src::FusionTreeBlock)
     dst = FusionTreeBlock{sectortype(src)}(uncoupled_dst, isdual_dst)
 
     dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
-    indexmap = fusiontreedict(I)(f => ind for (ind, f) in enumerate(fusiontrees(dst)))
+    indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
     for (col, (f₁, f₂)) in enumerate(fusiontrees(src))
@@ -265,7 +271,7 @@ function foldleft(src::FusionTreeBlock)
     @assert N₁ > 0
 
     dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
-    indexmap = fusiontreedict(I)(f => ind for (ind, f) in enumerate(fusiontrees(dst)))
+    indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
     for (col, (f₂, f₁)) in enumerate(fusiontrees(src))
