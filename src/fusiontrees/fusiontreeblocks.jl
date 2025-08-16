@@ -607,7 +607,10 @@ end
 
 const _FSBraidKey{I,N₁,N₂} = Tuple{<:FusionTreeBlock{I},Index2Tuple{N₁,N₂},Index2Tuple}
 
-@cached function _fsbraid(key::_FSBraidKey{I,N₁,N₂})::Tuple{FusionTreeBlock{I,N₁,N₂},
+@cached function _fsbraid(key::_FSBraidKey{I,N₁,N₂})::Tuple{FusionTreeBlock{I,N₁,N₂,
+                                                                            fusiontreetype(I,
+                                                                                           N₁,
+                                                                                           N₂)},
                                                             Matrix{sectorscalartype(I)}} where {I,
                                                                                                 N₁,
                                                                                                 N₂}
