@@ -153,6 +153,7 @@ Check out the [tutorial](https://jutho.github.io/TensorKit.jl/stable/man/tutoria
 full [documentation](https://jutho.github.io/TensorKit.jl/stable).
 
 ## Installation
+
 `TensorKit.jl` can be installed with the Julia package manager.
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 ```
@@ -180,3 +181,9 @@ platforms with a 64-bit architecture.
 Contributions are very welcome, as are feature requests and suggestions. Please open an [issue][issues-url] if you encounter any problems.
 
 [issues-url]: https://github.com/Jutho/TensorKit.jl/issues
+
+## Acknowledgements
+
+The design and development of the TensorKit.jl package have benefited from countless discussions with many people, including most current and former members of the Quantum Group at Ghent University.
+Being an open-source software project developed over the course of many years, we also thank all past, current and future contributors, including the bug reports and feature requests that have shaped this package.
+In particular, we like to thank [Maarten Van Damme](@maartenvd), who initiated the MPSKit.jl package on top of TensorKit.jl early-on, and has as such had a strong influence on the development and design decisions of the TensorKit.jl package.
