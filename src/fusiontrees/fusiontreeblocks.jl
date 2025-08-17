@@ -3,11 +3,11 @@ struct FusionTreeBlock{I,N₁,N₂,F<:FusionTreePair{I,N₁,N₂}}
 end
 
 function FusionTreeBlock{I}(uncoupled::Tuple{NTuple{N₁,I},NTuple{N₂,I}},
-                            isdual::Tuple{NTuple{N₁,Bool},NTuple{N₂,Bool}}) where {I<:Sector,
-                                                                                   N₁,N₂}
-    F₁ = fusiontreetype(I, N₁)
-    F₂ = fusiontreetype(I, N₂)
-    trees = Vector{Tuple{F₁,F₂}}(undef, 0)
+                            isdual::Tuple{NTuple{N₁,Bool},NTuple{N₂,Bool}};
+                            sizehint::Int=0) where {I<:Sector,N₁,N₂}
+    F = fusiontreetype(I, N₁, N₂)
+    trees = Vector{F}(undef, 0)
+    sizehint > 0 && sizehint!(trees, sizehint)
 
     if N₁ == N₂ == 0
         return FusionTreeBlock(trees)
@@ -97,7 +97,7 @@ function bendright(src::FusionTreeBlock)
     N₂ = numin(src)
     @assert N₁ > 0
 
-    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
+    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst; sizehint=length(src))
     indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
@@ -156,7 +156,7 @@ function bendleft(src::FusionTreeBlock)
     N₂ = numout(src)
     @assert N₁ > 0
 
-    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
+    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst; sizehint=length(src))
     indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
@@ -211,9 +211,8 @@ function foldright(src::FusionTreeBlock)
     N₁ = numout(src)
     N₂ = numin(src)
     @assert N₁ > 0
-    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
 
-    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
+    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst; sizehint=length(src))
     indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
@@ -282,7 +281,7 @@ function foldleft(src::FusionTreeBlock)
     N₂ = numout(src)
     @assert N₁ > 0
 
-    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst)
+    dst = FusionTreeBlock{I}(uncoupled_dst, isdual_dst; sizehint=length(src))
     indexmap = treeindex_map(dst)
     U = zeros(sectorscalartype(I), length(dst), length(src))
 
@@ -464,7 +463,7 @@ function artin_braid(src::FusionTreeBlock{I,N,0}, i; inv::Bool=false) where {I,N
     isdual = src.isdual[1]
     isdual′ = TupleTools.setindex(isdual, isdual[i], i + 1)
     isdual′ = TupleTools.setindex(isdual′, isdual[i + 1], i)
-    dst = FusionTreeBlock{I}((uncoupled′, ()), (isdual′, ()))
+    dst = FusionTreeBlock{I}((uncoupled′, ()), (isdual′, ()); sizehint=length(src))
 
     oneT = one(sectorscalartype(I))
 
@@ -596,7 +595,7 @@ function braid(src::FusionTreeBlock{I,N,0}, p::NTuple{N,Int},
     if FusionStyle(I) isa UniqueFusion && BraidingStyle(I) isa SymmetricBraiding
         uncoupled′ = TupleTools._permute(src.uncoupled[1], p)
         isdual′ = TupleTools._permute(src.isdual[1], p)
-        dst = FusionTreeBlock{I}(uncoupled′, isdual′)
+        dst = FusionTreeBlock{I}(uncoupled′, isdual′; sizehint=length(src))
         U = transformation_matrix(dst, src) do (f₁, f₂)
             return ((f₁′, f₂) => c for (f₁′, c) in braid(f₁, p, levels))
         end
