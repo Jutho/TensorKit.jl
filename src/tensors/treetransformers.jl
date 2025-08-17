@@ -85,10 +85,11 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
                 push!(fusiontreeblocks, fs_src)
             end
         end
+        nblocks = length(fusiontreeblocks)
 
-        resize!(data, length(fusiontreeblocks))
+        resize!(data, nblocks)
         counter = Threads.Atomic{Int}(1)
-        Threads.@sync for _ in 1:min(nthreads, length(fusiontreeblocks))
+        Threads.@sync for _ in 1:min(nthreads, nblocks)
             Threads.@spawn begin
                 while true
                     local_counter = Threads.atomic_add!(counter, 1)
@@ -97,6 +98,7 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
                     fs_dst, U = transform(fs_src)
                     matrix = copy(transpose(U)) # TODO: should we avoid this
 
+                    trees_src = fusiontrees(fs_src)
                     inds_src = map(Base.Fix1(getindex, structure_src.fusiontreeindices),
                                    trees_src)
                     trees_dst = fusiontrees(fs_dst)
@@ -110,7 +112,7 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
                     sz_dst, newstructs_dst = repack_transformer_structure(fusionstructure_dst,
                                                                           inds_dst)
 
-                    data1[local_counter] = (matrix, (sz_dst, newstructs_dst),
+                    data[local_counter] = (matrix, (sz_dst, newstructs_dst),
                                             (sz_src, newstructs_src))
                 end
             end
