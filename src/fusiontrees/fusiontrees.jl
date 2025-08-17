@@ -145,7 +145,8 @@ Base.@assume_effects :foldable function fusiontreetype(::Type{I}, N::Int) where 
         FusionTree{I,N,N - 2,N - 1}
     end
 end
-Base.@assume_effects :foldable function fusiontreetype(::Type{I}, N₁::Int, N₂::Int) where {I<:Sector}
+Base.@assume_effects :foldable function fusiontreetype(::Type{I}, N₁::Int,
+                                                       N₂::Int) where {I<:Sector}
     return Tuple{fusiontreetype(I, N₁),fusiontreetype(I, N₂)}
 end
 

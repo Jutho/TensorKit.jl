@@ -113,7 +113,7 @@ function GenericTreeTransformer(transform, p, Vdst, Vsrc)
                                                                           inds_dst)
 
                     data[local_counter] = (matrix, (sz_dst, newstructs_dst),
-                                            (sz_src, newstructs_src))
+                                           (sz_src, newstructs_src))
                 end
             end
         end
