@@ -8,10 +8,10 @@ authors:
   given-names: "Jutho"
   orcid: "https://orcid.org/0000-0002-0858-291X"
 title: "TensorKit.jl"
-version: 2.0.4
-doi: 10.5281/zenodo.1234
-date-released: 2017-12-18
-url: "https://github.com/github-linguist/linguist"
+version: "0.14.9"
+doi: "10.5281/zenodo.8421339"
+date-released: "2025-07-18"
+url: "https://github.com/Jutho/TensorKit.jl"
 preferred-citation:
   type: article
   authors:
