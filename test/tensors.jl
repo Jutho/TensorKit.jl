@@ -369,9 +369,8 @@ for V in spacelist
             for T in (Float64, ComplexF64)
                 t1 = randisometry(T, W1, W2)
                 t2 = randisometry(T, W2 ← W2)
-                @test t1' * t1 ≈ one(t2)
-                @test t2' * t2 ≈ one(t2)
-                @test t2 * t2' ≈ one(t2)
+                @test isisometry(t1)
+                @test isunitary(t2)
                 P = t1 * t1'
                 @test P * P ≈ P
             end
@@ -451,20 +450,14 @@ for V in spacelist
                                                        TensorKit.Polar(), TensorKit.SVD(),
                                                        TensorKit.SDD())
                         Q, R = @constinferred leftorth(t, ((3, 4, 2), (1, 5)); alg=alg)
-                        QdQ = Q' * Q
-                        @test QdQ ≈ one(QdQ)
+                        @test isisometry(Q)
                         @test Q * R ≈ permute(t, ((3, 4, 2), (1, 5)))
-                        if alg isa Polar
-                            @test isposdef(R)
-                            @test domain(R) == codomain(R) == space(t, 1)' ⊗ space(t, 5)'
-                        end
                     end
                     @testset "leftnull with $alg" for alg in
                                                       (TensorKit.QR(), TensorKit.SVD(),
                                                        TensorKit.SDD())
                         N = @constinferred leftnull(t, ((3, 4, 2), (1, 5)); alg=alg)
-                        NdN = N' * N
-                        @test NdN ≈ one(NdN)
+                        @test isisometry(N)
                         @test norm(N' * permute(t, ((3, 4, 2), (1, 5)))) <
                               100 * eps(norm(t))
                     end
@@ -474,34 +467,31 @@ for V in spacelist
                                                         TensorKit.Polar(), TensorKit.SVD(),
                                                         TensorKit.SDD())
                         L, Q = @constinferred rightorth(t, ((3, 4), (2, 1, 5)); alg=alg)
-                        QQd = Q * Q'
-                        @test QQd ≈ one(QQd)
+                        @test isisometry(Q; side=:right)
                         @test L * Q ≈ permute(t, ((3, 4), (2, 1, 5)))
-                        if alg isa Polar
-                            @test isposdef(L)
-                            @test domain(L) == codomain(L) == space(t, 3) ⊗ space(t, 4)
-                        end
                     end
                     @testset "rightnull with $alg" for alg in
                                                        (TensorKit.LQ(), TensorKit.SVD(),
                                                         TensorKit.SDD())
                         M = @constinferred rightnull(t, ((3, 4), (2, 1, 5)); alg=alg)
-                        MMd = M * M'
-                        @test MMd ≈ one(MMd)
+                        @test isisometry(M; side=:right)
                         @test norm(permute(t, ((3, 4), (2, 1, 5))) * M') <
                               100 * eps(norm(t))
                     end
                     @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
                         U, S, V = @constinferred tsvd(t, ((3, 4, 2), (1, 5)); alg=alg)
-                        UdU = U' * U
-                        @test UdU ≈ one(UdU)
-                        VVd = V * V'
-                        @test VVd ≈ one(VVd)
+                        @test isisometry(U)
+                        @test isisometry(V; side=:right)
                         t2 = permute(t, ((3, 4, 2), (1, 5)))
                         @test U * S * V ≈ t2
 
                         s = LinearAlgebra.svdvals(t2)
                         s′ = LinearAlgebra.diag(S)
+                        for (c, b) in s
+                            @test b ≈ s′[c]
+                        end
+                        s = LinearAlgebra.svdvals(t2')
+                        s′ = LinearAlgebra.diag(S')
                         for (c, b) in s
                             @test b ≈ s′[c]
                         end
@@ -522,6 +512,10 @@ for V in spacelist
                         λmax = maximum(s -> maximum(abs, s), values(vals))
                         λmin = minimum(s -> minimum(abs, s), values(vals))
                         @test cond(t4) ≈ λmax / λmin
+                        vals = LinearAlgebra.eigvals(t4')
+                        λmax = maximum(s -> maximum(abs, s), values(vals))
+                        λmin = minimum(s -> minimum(abs, s), values(vals))
+                        @test cond(t4') ≈ λmax / λmin
                     end
                 end
                 @testset "empty tensor" begin
@@ -539,8 +533,7 @@ for V in spacelist
                                                       (TensorKit.QR(), TensorKit.SVD(),
                                                        TensorKit.SDD())
                         N = @constinferred leftnull(t; alg=alg)
-                        @test N' * N ≈ id(domain(N))
-                        @test N * N' ≈ id(codomain(N))
+                        @test isunitary(N)
                     end
                     @testset "rightorth with $alg" for alg in
                                                        (TensorKit.RQ(), TensorKit.RQpos(),
@@ -555,8 +548,7 @@ for V in spacelist
                                                        (TensorKit.LQ(), TensorKit.SVD(),
                                                         TensorKit.SDD())
                         M = @constinferred rightnull(copy(t'); alg=alg)
-                        @test M * M' ≈ id(codomain(M))
-                        @test M' * M ≈ id(domain(M))
+                        @test isunitary(M)
                     end
                     @testset "tsvd with $alg" for alg in (TensorKit.SVD(), TensorKit.SDD())
                         U, S, V = @constinferred tsvd(t; alg=alg)
@@ -592,8 +584,7 @@ for V in spacelist
                     @test !isposdef(t2) # unlikely for non-hermitian map
                     t2 = (t2 + t2')
                     D, V = eigen(t2)
-                    VdV = V' * V
-                    @test VdV ≈ one(VdV)
+                    @test isisometry(V)
                     D̃, Ṽ = @constinferred eigh(t2)
                     @test D ≈ D̃
                     @test V ≈ Ṽ
@@ -615,23 +606,36 @@ for V in spacelist
                     for t in ts
                         U₀, S₀, V₀, = tsvd(t)
                         t = rmul!(t, 1 / norm(S₀, p))
-                        U, S, V, ϵ = @constinferred tsvd(t; trunc=truncerr(5e-1), p=p)
+                        U, S, V = @constinferred tsvd(t; trunc=truncerr(5e-1, p))
+                        ϵ = TensorKit._norm(LinearAlgebra.svdvals(U * S * V - t), p,
+                                            zero(scalartype(S)))
+                        p == 2 && @test ϵ < 5e-1
                         # @show p, ϵ
                         # @show domain(S)
                         # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncerr(nextfloat(ϵ)), p=p)
+                        U′, S′, V′ = tsvd(t; trunc=truncerr(ϵ + 10eps(ϵ), p))
+                        ϵ′ = TensorKit._norm(LinearAlgebra.svdvals(U′ * S′ * V′ - t), p,
+                                             zero(scalartype(S)))
+
                         @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncdim(ceil(Int, dim(domain(S)))),
-                                              p=p)
+                        U′, S′, V′ = tsvd(t; trunc=truncdim(ceil(Int, dim(domain(S)))))
+                        ϵ′ = TensorKit._norm(LinearAlgebra.svdvals(U′ * S′ * V′ - t), p,
+                                             zero(scalartype(S)))
                         @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
+                        U′, S′, V′ = tsvd(t; trunc=truncspace(space(S, 1)))
+                        ϵ′ = TensorKit._norm(LinearAlgebra.svdvals(U′ * S′ * V′ - t), p,
+                                             zero(scalartype(S)))
                         @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                         # results with truncationcutoff cannot be compared because they don't take degeneracy into account, and thus truncate differently
-                        U, S, V, ϵ = tsvd(t; trunc=truncbelow(1 / dim(domain(S₀))), p=p)
+                        U, S, V = tsvd(t; trunc=truncbelow(1 / dim(domain(S₀))))
+                        ϵ = TensorKit._norm(LinearAlgebra.svdvals(U * S * V - t), p,
+                                            zero(scalartype(S)))
                         # @show p, ϵ
                         # @show domain(S)
                         # @test min(space(S,1), space(S₀,1)) != space(S₀,1)
-                        U′, S′, V′, ϵ′ = tsvd(t; trunc=truncspace(space(S, 1)), p=p)
+                        U′, S′, V′ = tsvd(t; trunc=truncspace(space(S, 1)))
+                        ϵ′ = TensorKit._norm(LinearAlgebra.svdvals(U′ * S′ * V′ - t), p,
+                                             zero(scalartype(S)))
                         @test (U, S, V, ϵ) == (U′, S′, V′, ϵ′)
                     end
                 end
@@ -691,8 +695,8 @@ for V in spacelist
             for T in (Float32, ComplexF64)
                 tA = rand(T, V1 ⊗ V3, V1 ⊗ V3)
                 tB = rand(T, V2 ⊗ V4, V2 ⊗ V4)
-                tA = 3 // 2 * leftorth(tA; alg=Polar())[1]
-                tB = 1 // 5 * leftorth(tB; alg=Polar())[1]
+                tA = 3 // 2 * left_polar(tA)[1]
+                tB = 1 // 5 * left_polar(tB)[1]
                 tC = rand(T, V1 ⊗ V3, V2 ⊗ V4)
                 t = @constinferred sylvester(tA, tB, tC)
                 @test codomain(t) == V1 ⊗ V3
