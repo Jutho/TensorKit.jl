@@ -7,12 +7,11 @@ export eig, eig!, eigh, eigh!
 export tsvd, tsvd!, svdvals, svdvals!
 export leftorth, leftorth!, rightorth, rightorth!
 export leftnull, leftnull!, rightnull, rightnull!
-export copy_oftype, permutedcopy_oftype
+export copy_oftype, permutedcopy_oftype, one!
 export TruncationScheme, notrunc, truncbelow, truncerr, truncdim, truncspace
 
 using ..TensorKit
-using ..TensorKit: AdjointTensorMap, SectorDict, OFA, blocktype, foreachblock
-using ..MatrixAlgebra: MatrixAlgebra
+using ..TensorKit: AdjointTensorMap, SectorDict, OFA, blocktype, foreachblock, one!
 
 using LinearAlgebra: LinearAlgebra, BlasFloat, Diagonal, svdvals, svdvals!
 import LinearAlgebra: eigen, eigen!, isposdef, isposdef!, ishermitian
@@ -41,6 +40,8 @@ include("implementations.jl")
 include("matrixalgebrakit.jl")
 include("truncation.jl")
 include("deprecations.jl")
+
+TensorKit.one!(A::AbstractMatrix) = MatrixAlgebraKit.one!(A)
 
 function isisometry(t::AbstractTensorMap, (p₁, p₂)::Index2Tuple)
     t = permute(t, (p₁, p₂); copy=false)
@@ -112,7 +113,7 @@ function _compute_svddata!(d::DiagonalTensorMap, alg::Union{SVD,SDD})
         V = zerovector!(similar(b.diag, lb, lb))
         p = sortperm(b.diag; by=abs, rev=true)
         for (i, pi) in enumerate(p)
-            U[pi, i] = MatrixAlgebra.safesign(b.diag[pi])
+            U[pi, i] = safesign(b.diag[pi])
             V[i, pi] = 1
         end
         Σ = abs.(view(b.diag, p))

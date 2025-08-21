@@ -24,7 +24,9 @@ for f! in (:qr_compact!, :qr_full!,
            :lq_compact!, :lq_full!,
            :eig_full!, :eigh_full!,
            :svd_compact!, :svd_full!,
-           :left_polar!, :left_orth_polar!, :right_polar!, :right_orth_polar!)
+           :left_polar!, :left_orth_polar!,
+           :right_polar!, :right_orth_polar!,
+           :left_orth!, :right_orth!)
     @eval function $f!(t::AbstractTensorMap, F, alg::AbstractAlgorithm)
         check_input($f!, t, F, alg)
 
