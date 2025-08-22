@@ -132,6 +132,29 @@ function Base.axes(V::GradedSpace{I}, c::I) where {I<:Sector}
 end
 
 Base.oneunit(S::Type{<:GradedSpace{I}}) where {I<:Sector} = S(one(I) => 1)
+
+"""
+    leftoneunit(S::GradedSpace{I}) where {I<:Sector} -> GradedSpace{I}
+
+Return the corresponding vector space of type `GradedSpace{I}` that represents the trivial
+one-dimensional space consisting of the left unit of the objects in  `Sector` `I`.
+"""
+function leftoneunit(S::GradedSpace{I}) where {I<:Sector}
+    sector = leftone(first(sectors(S)))
+    return spacetype(S)(sector => 1)
+end
+
+"""
+    rightoneunit(S::GradedSpace{I}) where {I<:Sector} -> GradedSpace{I}
+
+Return the corresponding vector space of type `GradedSpace{I}` that represents the trivial
+one-dimensional space consisting of the right unit of the objects in `Sector` `I`.
+"""
+function rightoneunit(S::GradedSpace{I}) where {I<:Sector}
+    sector = rightone(first(sectors(S)))
+    return spacetype(S)(sector => 1)
+end
+
 Base.zero(S::Type{<:GradedSpace{I}}) where {I<:Sector} = S(one(I) => 0)
 
 # TODO: the following methods can probably be implemented more efficiently for
