@@ -1,7 +1,7 @@
-# additional interface to deal with IsingBimod Sector
+# additional interface to deal with IsingBimodule Sector
 #------------------------------------------------------------------------------
 
-# make this a separate module?
+const IsingBimod = IsingBimodule #TODO: do the rename after compat fix
 
 function dim(V::Vect[IsingBimod])
     T = Base.promote_op(*, Int, real(sectorscalartype(sectortype(V))))
@@ -16,7 +16,10 @@ function scalar(t::AbstractTensorMap{T,Vect[IsingBimod],0,0}) where {T}
     return only(last(Bs[only(inds)]))
 end
 
+# no custom fuse: we choose to return empty graded space when fusion is forbidden
+
 function Base.oneunit(S::Vect[IsingBimod])
+    !isempty(sectors(S)) || throw(ArgumentError("Cannot determine type of empty space"))
     allequal(a.row for a in sectors(S)) && allequal(a.col for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S are not all equal"))
     first(sectors(S)).row == first(sectors(S)).col ||
@@ -46,6 +49,7 @@ function blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁
 end
 
 function rightoneunit(S::Vect[IsingBimod])
+    !isempty(sectors(S)) || throw(ArgumentError("Cannot determine type of empty space"))
     allequal(a.col for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S do not have the same rightone"))
 
@@ -54,6 +58,7 @@ function rightoneunit(S::Vect[IsingBimod])
 end
 
 function leftoneunit(S::Vect[IsingBimod])
+    !isempty(sectors(S)) || throw(ArgumentError("Cannot determine type of empty space"))
     allequal(a.row for a in sectors(S)) ||
         throw(ArgumentError("sectors of $S do not have the same leftone"))
 
