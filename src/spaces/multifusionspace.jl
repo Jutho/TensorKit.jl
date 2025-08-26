@@ -34,7 +34,7 @@ function blocksectors(W::TensorMapSpace{Vect[IsingBimod],N₁,N₂}) where {N₁
     codom = codomain(W)
     dom = domain(W)
     if N₁ == 0 && N₂ == 0
-        return (IsingBimod(1, 1, 0), IsingBimod(2, 2, 0))
+        return [IsingBimod(1, 1, 0), IsingBimod(2, 2, 0)]
     elseif N₁ == 0
         @assert N₂ != 0 "one of Type IsingBimod doesn't exist"
         return filter!(c -> c == leftone(c) == rightone(c), collect(blocksectors(dom))) # is this what we want? doesn't allow M/Mop to end at empty space
