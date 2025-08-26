@@ -835,15 +835,13 @@ function artin_braid(f::FusionTree{I,N}, i; inv::Bool=false) where {I<:Sector,N}
     vertices = f.vertices
     oneT = one(sectorscalartype(I))
 
-    diaga = a == leftone(a) == rightone(a) # might be excessive because multifusion doesn't support braiding currently
-    diagb = b == leftone(b) == rightone(b)
-    if diaga || diagb
+    if isone(a) || isone(b)
         # braiding with trivial sector: simple and always possible
         inner′ = inner
         vertices′ = vertices
         if i > 1 # we also need to alter innerlines and vertices
             inner′ = TupleTools.setindex(inner,
-                                         inner_extended[diaga ? (i + 1) : (i - 1)],
+                                         inner_extended[isone(a) ? (i + 1) : (i - 1)],
                                          i - 1)
             vertices′ = TupleTools.setindex(vertices′, vertices[i], i - 1)
             vertices′ = TupleTools.setindex(vertices′, vertices[i - 1], i)
