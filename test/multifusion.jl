@@ -85,9 +85,16 @@ VIBMop2 = (Vect[I](D0 => 1, D1 => 1),
         @test @constinferred(rightoneunit(⊕(Wright, WM))) == oneunit(Wright)
         @test @constinferred(rightoneunit(⊕(Wleft, WMop))) == oneunit(Wleft)
 
-        @test_throws ArgumentError oneunit(I)
-        @test_throws ArgumentError oneunit(WM)
-        @test_throws ArgumentError oneunit(WMop)
+        @test_throws ArgumentError("one of Type IsingBimodule doesn't exist") oneunit(I)
+        @test_throws ArgumentError("sectors of $WM are non-diagonal") oneunit(WM)
+        @test_throws ArgumentError("sectors of $WMop are non-diagonal") oneunit(WMop)
+
+        # empty space
+        Wempty = Vect[I]()
+        @test @constinferred(zero(V)) == Wempty
+        for f in (oneunit, leftoneunit, rightoneunit)
+            @test_throws ArgumentError("Cannot determine type of empty space") f(Wempty)
+        end
 
         @test isa(V, VectorSpace)
         @test isa(V, ElementarySpace)
@@ -671,9 +678,9 @@ for V in (VIBC, VIBD)
     @assert V3 * V4 ≾ V1' * V2' * V5' # necessary for rightorth tests -> this condition makes it hard to test non-diagonal sectors
 end
 
-@timedtestset "Tensors with symmetry: $Istr" verbose = true for V in
-                                                                (VIBC, VIBD, VIBM1, VIBM2,
-                                                                 VIBMop1, VIBMop2)
+@timedtestset "Tensors with symmetry: $Istr $i" verbose = true for (i, V) in
+                                                                enumerate((VIBC, VIBD, VIBM1, VIBM2,
+                                                                 VIBMop1, VIBMop2))
     V1, V2, V3, V4, V5 = V
     @timedtestset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5 # fusion matters
