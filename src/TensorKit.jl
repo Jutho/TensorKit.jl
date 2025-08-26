@@ -15,7 +15,7 @@ export BraidingStyle, SymmetricBraiding, Bosonic, Fermionic, Anyonic, NoBraiding
 export Trivial, Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
 export ProductSector
 export FermionParity, FermionNumber, FermionSpin
-export FibonacciAnyon, IsingAnyon, IsingBimod
+export FibonacciAnyon, IsingAnyon, IsingBimodule
 export leftone, rightone
 
 export VectorSpace, Field, ElementarySpace # abstract vector spaces
@@ -229,7 +229,7 @@ include("planar/planaroperations.jl")
 # deprecations: to be removed in version 1.0 or sooner
 include("auxiliary/deprecate.jl")
 
-# Additional methods for IsingBimod Sector
+# Additional methods for IsingBimodule Sector
 # ----------------------------------------
 include("spaces/multifusionspace.jl")
 

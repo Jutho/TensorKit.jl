@@ -1,4 +1,4 @@
-I = IsingBimod
+I = IsingBimodule
 Istr = TK.type_repr(I)
 
 println("------------------------------------")
