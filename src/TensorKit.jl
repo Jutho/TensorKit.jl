@@ -16,6 +16,7 @@ export Trivial, Z2Irrep, Z3Irrep, Z4Irrep, ZNIrrep, U1Irrep, SU2Irrep, CU1Irrep
 export ProductSector
 export FermionParity, FermionNumber, FermionSpin
 export FibonacciAnyon, IsingAnyon, IsingBimod
+export leftone, rightone
 
 export VectorSpace, Field, ElementarySpace # abstract vector spaces
 export InnerProductStyle, NoInnerProduct, HasInnerProduct, EuclideanInnerProduct
