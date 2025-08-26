@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Devos"
+  given-names: "Lukas"
+  orcid: "https://orcid.org/0000-0002-0256-4200"
+- family-names: "Haegeman"
+  given-names: "Jutho"
+  orcid: "https://orcid.org/0000-0002-0858-291X"
+title: "TensorKit.jl"
+version: "0.14.9"
+doi: "10.5281/zenodo.8421339"
+date-released: "2025-07-18"
+url: "https://github.com/Jutho/TensorKit.jl"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Devos"
+    given-names: "Lukas"
+    orcid: "https://orcid.org/0000-0002-0256-4200"
+  - family-names: "Haegeman"
+    given-names: "Jutho"
+    orcid: "https://orcid.org/0000-0002-0858-291X"
+  doi: "10.48550/arXiv.2508.10076"
+  journal: "arXiv"
+  title: "TensorKit.jl: A Julia package for large-scale tensor computations, with a hint of category theory"
+  year: 2025
