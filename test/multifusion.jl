@@ -679,8 +679,10 @@ for V in (VIBC, VIBD)
 end
 
 @timedtestset "Tensors with symmetry: $Istr $i" verbose = true for (i, V) in
-                                                                enumerate((VIBC, VIBD, VIBM1, VIBM2,
-                                                                 VIBMop1, VIBMop2))
+                                                                   enumerate((VIBC, VIBD,
+                                                                              VIBM1, VIBM2,
+                                                                              VIBMop1,
+                                                                              VIBMop2))
     V1, V2, V3, V4, V5 = V
     @timedtestset "Basic tensor properties" begin
         W = V1 ⊗ V2 ⊗ V3 ⊗ V4 ⊗ V5 # fusion matters
