@@ -494,7 +494,7 @@ end
     @test @constinferred(⊗(V1, V2)) == P1
 
     @test rightunitspace(V2) != leftunitspace(V1)
-    @test_throws ArgumentError (⊗(V2, V1))
+    @test_throws SpaceMismatch (⊗(V2, V1))
 
     @test rightunitspace(V3) == leftunitspace(V4)
     @test rightunitspace(V4) == leftunitspace(V5)
@@ -502,13 +502,16 @@ end
 
     @test leftunitspace(P1[1]) == rightunitspace(dual(P2[length(P2)]))
     @test HomSpace(P1, P2') isa HomSpace
-    @test_throws ArgumentError P1 ← P2
+    @test_throws SpaceMismatch P1 ← P2
 
     @test (V1 ← one(V1)) isa HomSpace
     @test (one(V1) ← one(V1)) isa HomSpace
 
     @test leftunitspace(V2) != rightunitspace(V2)
-    @test_throws ArgumentError V2 ← one(V2)
+    @test_throws SpaceMismatch V2 ← one(V2)
+
+    Vbad = typeof(V1)(first(sectors(V1)) => 1, first(sectors(V3)) => 1)
+    @test_throws ArgumentError ProductSpace(Vbad)
 
     V0 = zerospace(V1)
     @test dim(@constinferred(⊗(V1, V2, V0))) == 0
