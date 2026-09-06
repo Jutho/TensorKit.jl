@@ -17,9 +17,12 @@ end
 function _check_unit_compatibility(::Type{S}, spaces::NTuple{N, S}) where {N, S <: ElementarySpace}
     UnitStyle(sectortype(S)) isa GenericUnit || return nothing
     N == 0 && return nothing
+    any(V -> isempty(sectors(V)), spaces) && return nothing # zero spaces -> ignore color check
 
+    rightunits = map(_rightunit, spaces)
+    leftunits = map(_leftunit, spaces)
     @inbounds for i in 1:(N - 1)
-        _rightunit(spaces[i]) == _leftunit(spaces[i + 1]) ||
+        rightunits[i] == leftunits[i + 1] ||
             throw(ArgumentError(lazy"spaces $(i) and $(i + 1) have incompatible coloring"))
     end
     return nothing

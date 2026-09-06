@@ -509,6 +509,12 @@ end
 
     @test leftunitspace(V2) != rightunitspace(V2)
     @test_throws ArgumentError V2 ← one(V2)
+
+    V0 = zerospace(V1)
+    @test dim(@constinferred(⊗(V1, V2, V0))) == 0
+    @test dim(@constinferred(⊗(V2, V1, V0))) == 0 # bad coloring, but zero-dimensional space
+    @test dim(@constinferred(ProductSpace(V1, V0, V3))) == 0
+    @test (ProductSpace(V1, V0, V3) ← V3) isa HomSpace
 end
 
 @timedtestset "show and friends" begin

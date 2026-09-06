@@ -22,6 +22,8 @@ function _check_unit_compatibility(codomain::ProductSpace{S}, domain::ProductSpa
     UnitStyle(sectortype(S)) isa GenericUnit || return nothing
     N₁, N₂ = length(codomain), length(domain)
     N₁ == N₂ == 0 && return nothing # one() ← one()
+    any(V -> isempty(sectors(V)), codomain) && return nothing # zero spaces -> ignore color check
+    any(V -> isempty(sectors(V)), domain) && return nothing
 
     # product spaces themselves already check that their factors are compatible
     if N₁ == 0 # codomain is empty, domain is non-empty
