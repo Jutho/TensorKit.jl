@@ -23,6 +23,7 @@ When releasing a new version, move the "Unreleased" changes to a new version sec
 ### Added
 
 ### Changed
+- For sector types with `GenericUnit` such that colorings are not unique, `HomSpace`s and `ProductSpace`s now check for this compatibility. In particular, this prevents the construction of `TensorMap`s with incompatible colorings, which previously either errored or produced empty tensors inconsistently. ([#515](https://github.com/QuantumKitHub/TensorKit.jl/pull/515))
 
 ### Deprecated
 
