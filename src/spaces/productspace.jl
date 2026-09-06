@@ -23,7 +23,7 @@ function _check_unit_compatibility(::Type{S}, spaces::NTuple{N, S}) where {N, S 
     leftunits = map(_leftunit, spaces)
     @inbounds for i in 1:(N - 1)
         rightunits[i] == leftunits[i + 1] ||
-            throw(ArgumentError(lazy"spaces $(i) and $(i + 1) have incompatible coloring"))
+            throw(SpaceMismatch(lazy"$(spaces[i]) and $(spaces[i + 1]) have incompatible coloring"))
     end
     return nothing
 end
@@ -82,7 +82,7 @@ Base.axes(P::ProductSpace) = map(axes, P)
 Base.axes(P::ProductSpace, n::Int) = axes(P[n])
 
 dual(P::ProductSpace{<:ElementarySpace, 0}) = P
-dual(P::ProductSpace) = ProductSpace(map(dual, reverse(P.spaces)))
+dual(P::ProductSpace) = ProductSpace(reverse(map(dual, P)))
 Base.conj(P::ProductSpace{<:ElementarySpace, 0}) = P
 Base.conj(P::ProductSpace) = ProductSpace(map(conj, P))
 

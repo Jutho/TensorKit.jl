@@ -29,12 +29,12 @@ function _check_unit_compatibility(codomain::ProductSpace{S}, domain::ProductSpa
     if N₁ == 0 # codomain is empty, domain is non-empty
         VdomL, VdomR = domain[1], domain[N₂]
         _leftunit(VdomL) == _rightunit(VdomR) ||
-            throw(ArgumentError("cannot construct HomSpace: domain has incompatible left and right units"))
+            throw(SpaceMismatch(lazy"domain $domain has incompatible left and right units"))
         return nothing
     elseif N₂ == 0 # domain is empty, codomain is non-empty
         VcodL, VcodR = codomain[1], codomain[N₁]
         _leftunit(VcodL) == _rightunit(VcodR) ||
-            throw(ArgumentError("cannot construct HomSpace: codomain has incompatible left and right units"))
+            throw(SpaceMismatch(lazy"codomain $codomain has incompatible left and right units"))
         return nothing
     end
 
@@ -42,11 +42,11 @@ function _check_unit_compatibility(codomain::ProductSpace{S}, domain::ProductSpa
     # just need to check coupled charge compatibility
     VcodL, VdomL = codomain[1], domain[1]
     _leftunit(VcodL) == _leftunit(VdomL) ||
-        throw(ArgumentError("cannot construct HomSpace: codomain and domain have incompatible left units"))
+        throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible left units"))
 
     VcodR, VdomR = codomain[N₁], domain[N₂]
     _rightunit(VcodR) == _rightunit(VdomR) ||
-        throw(ArgumentError("cannot construct HomSpace: codomain and domain have incompatible right units"))
+        throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible right units"))
     return nothing
 end
 
