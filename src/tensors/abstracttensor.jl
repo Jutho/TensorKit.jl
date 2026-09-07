@@ -486,6 +486,17 @@ subblocktype(T::Type) = throw(MethodError(subblocktype, (T,)))
 @doc """
     Base.getindex(t::AbstractTensorMap, sectors::Tuple{Vararg{Sector}})
     t[sectors]
+
+$_doc_subblock
+
+!!! warning
+    Contrary to Julia's array types, the default behavior is to return a view into the tensor data.
+    As a result, modifying the view will modify the data in the tensor.
+
+See also [`subblock`](@ref), [`subblocks`](@ref) and [`fusiontrees`](@ref).
+""" Base.getindex(::AbstractTensorMap, ::Tuple{I, Vararg{I}}) where {I <: Sector}
+
+@doc """
     Base.getindex(t::AbstractTensorMap, f₁::FusionTree, f₂::FusionTree)
     t[f₁, f₂]
 
@@ -496,8 +507,7 @@ $_doc_subblock
     As a result, modifying the view will modify the data in the tensor.
 
 See also [`subblock`](@ref), [`subblocks`](@ref) and [`fusiontrees`](@ref).
-""" Base.getindex(::AbstractTensorMap, ::Tuple{I, Vararg{I}}) where {I <: Sector},
-    Base.getindex(::AbstractTensorMap, ::FusionTree, ::FusionTree)
+""" Base.getindex(::AbstractTensorMap, ::FusionTree, ::FusionTree)
 
 @inline Base.getindex(t::AbstractTensorMap, sectors::Tuple{I, Vararg{I}}) where {I <: Sector} =
     subblock(t, sectors)
@@ -507,6 +517,14 @@ See also [`subblock`](@ref), [`subblocks`](@ref) and [`fusiontrees`](@ref).
 @doc """
     Base.setindex!(t::AbstractTensorMap, v, sectors::Tuple{Vararg{Sector}})
     t[sectors] = v
+
+Copies `v` into the data slice of `t` corresponding to the splitting - fusion tree pair `(f₁, f₂)`.
+By default, `v` can be any object that can be copied into the view associated with `t[f₁, f₂]`.
+
+See also [`subblock`](@ref), [`subblocks`](@ref) and [`fusiontrees`](@ref).
+""" Base.setindex!(::AbstractTensorMap, ::Any, ::Tuple{I, Vararg{I}}) where {I <: Sector}
+
+@doc """
     Base.setindex!(t::AbstractTensorMap, v, f₁::FusionTree, f₂::FusionTree)
     t[f₁, f₂] = v
 
@@ -514,8 +532,7 @@ Copies `v` into the data slice of `t` corresponding to the splitting - fusion tr
 By default, `v` can be any object that can be copied into the view associated with `t[f₁, f₂]`.
 
 See also [`subblock`](@ref), [`subblocks`](@ref) and [`fusiontrees`](@ref).
-""" Base.setindex!(::AbstractTensorMap, ::Any, ::Tuple{I, Vararg{I}}) where {I <: Sector},
-    Base.setindex!(::AbstractTensorMap, ::Any, ::FusionTree, ::FusionTree)
+""" Base.setindex!(::AbstractTensorMap, ::Any, ::FusionTree, ::FusionTree)
 
 @inline Base.setindex!(t::AbstractTensorMap, v, sectors::Tuple{I, Vararg{I}}) where {I <: Sector} =
     copy!(subblock(t, sectors), v)
