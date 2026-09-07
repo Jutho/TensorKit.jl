@@ -155,7 +155,7 @@ for V in spacelist
                 test_rrule(inv, E; atol, rtol)
             end
 
-            A = randn(T, V[1] ⊗ V[2] ← V[3] ⊗ V[4] ⊗ V[5])
+            A = randn(T, V[1] ⊗ V[2] ← (V[3] ⊗ V[4] ⊗ V[5])')
             test_rrule(LinearAlgebra.adjoint, A; atol, rtol)
             test_rrule(LinearAlgebra.norm, A, 2; atol, rtol)
 
