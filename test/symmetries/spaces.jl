@@ -483,7 +483,7 @@ end
     end
 end
 
-@timedtestset "ProductSpace and HomSpace: GenericUnit coloring" for V in (VIBM, VIBMRepA4)
+@timedtestset "ProductSpace and HomSpace: GenericUnit coloring $(sectortype(V[1]))" for V in (VIBM, VIBMRepA4)
     @test UnitStyle(sectortype(V[1])) isa GenericUnit
     V1, V2, V3, V4, V5 = V
 

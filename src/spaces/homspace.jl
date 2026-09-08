@@ -309,6 +309,30 @@ function compose(W::HomSpace{S}, V::HomSpace{S}) where {S}
     return HomSpace(codomain(W), domain(V))
 end
 
+# workaround to permuting after composing intermediate spaces without constructing the latter
+function _contractedspace(
+        A::HomSpace{S}, (oindA, cindA)::Index2Tuple,
+        B::HomSpace{S}, (cindB, oindB)::Index2Tuple,
+        (p₁, p₂)::Index2Tuple{N₁, N₂}
+    ) where {S, N₁, N₂}
+    NA = length(oindA)
+
+    Acind = map(n -> dual(A[n]), cindA)
+    Bcind = map(n -> B[n], cindB)
+    Acind == Bcind || throw(SpaceMismatch(lazy"$(Acind) ≠ $(Bcind)"))
+
+    # the "open" leg at virtual position n, without ever materializing compose(...)
+    getopen(n) = n <= NA ? A[oindA[n]] : B[oindB[n - NA]]
+    @show p₁, p₂
+    @show oindA, cindA, oindB, cindB
+    @show A B
+    @show map(getopen, p₁) map(n -> dual(getopen(n)), p₂)
+
+    cod = ProductSpace{S, N₁}(map(getopen, p₁))
+    dom = ProductSpace{S, N₂}(map(n -> dual(getopen(n)), p₂))
+    return cod ← dom
+end
+
 function TensorOperations.tensorcontract(
         A::HomSpace, pA::Index2Tuple, conjA::Bool,
         B::HomSpace, pB::Index2Tuple, conjB::Bool,
@@ -329,7 +353,7 @@ function TensorOperations.tensorcontract(
         pB′ = adjointtensorindices(B, pB)
         TensorOperations.tensorcontract(A, pA, false, B′, pB′, false, pAB)
     else
-        return permute(compose(permute(A, pA), permute(B, pB)), pAB)
+        _contractedspace(A, pA, B, pB, pAB)
     end
 end
 
