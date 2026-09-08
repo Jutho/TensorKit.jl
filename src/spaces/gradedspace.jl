@@ -196,7 +196,7 @@ end
 function infimum(V₁::GradedSpace{I, <:SectorDict}, V₂::GradedSpace{I, <:SectorDict}) where {I <: Sector}
     Visdual = isdual(V₁)
     Visdual == isdual(V₂) || throw(SpaceMismatch("Infimum of space and dual space does not exist"))
-    return typeof(V₁)(_sortedintersect(min, V₁.dims, V₂.dims), Visdual)
+    return typeof(V₁)(mergewith(min, V₁.dims, V₂.dims), Visdual)
 end
 function supremum(V₁::GradedSpace{I, <:Tuple}, V₂::GradedSpace{I, <:Tuple}) where {I <: Sector}
     Visdual = isdual(V₁)
