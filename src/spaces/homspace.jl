@@ -321,12 +321,7 @@ function _contractedspace(
     Bcind = map(n -> B[n], cindB)
     Acind == Bcind || throw(SpaceMismatch(lazy"$(Acind) ≠ $(Bcind)"))
 
-    # the "open" leg at virtual position n, without ever materializing compose(...)
     getopen(n) = n <= NA ? A[oindA[n]] : B[oindB[n - NA]]
-    @show p₁, p₂
-    @show oindA, cindA, oindB, cindB
-    @show A B
-    @show map(getopen, p₁) map(n -> dual(getopen(n)), p₂)
 
     cod = ProductSpace{S, N₁}(map(getopen, p₁))
     dom = ProductSpace{S, N₂}(map(n -> dual(getopen(n)), p₂))
