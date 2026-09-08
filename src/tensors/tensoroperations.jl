@@ -328,23 +328,21 @@ function contract!(
         throw(IndexError("number of contracted indices does not match"))
 
     @timeit_debug GLOBAL_TIMER "contract!" begin
-        @timeit_debug GLOBAL_TIMER "bookkeeping: planning" begin
-            # find optimal contraction scheme by checking the following options:
-            # - sorting the contracted inds of A or B to avoid permutations
-            # - contracting B with A instead to avoid permutations
-            pA′, pB′, pA″, pB″, pAB′ = _contract_candidates(pA, pB, pAB)
+        # find optimal contraction scheme by checking the following options:
+        # - sorting the contracted inds of A or B to avoid permutations
+        # - contracting B with A instead to avoid permutations
+        pA′, pB′, pA″, pB″, pAB′ = _contract_candidates(pA, pB, pAB)
 
-            # dims are permutation-invariant, so compute them once here rather than in every memcost call
-            dA, dB, dC = dim(A), dim(B), dim(C)
+        # dims are permutation-invariant, so compute them once here rather than in every memcost call
+        dA, dB, dC = dim(A), dim(B), dim(C)
 
-            # keep order A en B, check possibilities for cind
-            memcost1 = _contract_memcost(dA, dB, dC, C, A, pA′, B, pB′, pAB)
-            memcost2 = _contract_memcost(dA, dB, dC, C, A, pA″, B, pB″, pAB)
+        # keep order A en B, check possibilities for cind
+        memcost1 = _contract_memcost(dA, dB, dC, C, A, pA′, B, pB′, pAB)
+        memcost2 = _contract_memcost(dA, dB, dC, C, A, pA″, B, pB″, pAB)
 
-            # reverse order A en B, check possibilities for cind
-            memcost3 = _contract_memcost(dB, dA, dC, C, B, reverse(pB′), A, reverse(pA′), pAB′)
-            memcost4 = _contract_memcost(dB, dA, dC, C, B, reverse(pB″), A, reverse(pA″), pAB′)
-        end
+        # reverse order A en B, check possibilities for cind
+        memcost3 = _contract_memcost(dB, dA, dC, C, B, reverse(pB′), A, reverse(pA′), pAB′)
+        memcost4 = _contract_memcost(dB, dA, dC, C, B, reverse(pB″), A, reverse(pA″), pAB′)
 
         return if min(memcost1, memcost2) <= min(memcost3, memcost4)
             if memcost1 <= memcost2
