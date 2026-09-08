@@ -42,7 +42,7 @@ for f! in (
         $(f! in (:eig_full!, :eigh_full!) && :(LinearAlgebra.checksquare(t)))
         @timeit_debug GLOBAL_TIMER $(string(f!)) begin
             foreachblock(t, F...) do _, (tblock, Fblocks...)
-                @timeit_debug GLOBAL_TIMER "dense: lapack" begin
+                @timeit_debug GLOBAL_TIMER "dense: MatrixAlgebraKit" begin
                     Fblocks′ = $f!(tblock, Fblocks, alg)
                     # deal with the case where the output is not in-place
                     for (b′, b) in zip(Fblocks′, Fblocks)
@@ -67,7 +67,7 @@ for f! in (
         $(f! in (:eig_vals!, :eigh_vals!, :project_hermitian!, :project_antihermitian!, :exponential!) && :(LinearAlgebra.checksquare(t)))
         @timeit_debug GLOBAL_TIMER $(string(f!)) begin
             foreachblock(t, N) do _, (tblock, Nblock)
-                @timeit_debug GLOBAL_TIMER "dense: lapack" begin
+                @timeit_debug GLOBAL_TIMER "dense: MatrixAlgebraKit" begin
                     Nblock′ = $f!(tblock, Nblock, alg)
                     # deal with the case where the output is not the same as the input
                     Nblock === Nblock′ || copy!(Nblock, Nblock′)
@@ -84,7 +84,7 @@ function MAK.exponential!((τ, t)::Tuple{E, T}, N, alg::AbstractAlgorithm) where
     LinearAlgebra.checksquare(t)
     @timeit_debug GLOBAL_TIMER "exponential!" begin
         foreachblock(t, N) do _, (tblock, Nblock)
-            @timeit_debug GLOBAL_TIMER "dense: lapack" begin
+            @timeit_debug GLOBAL_TIMER "dense: MatrixAlgebraKit" begin
                 Nblock′ = exponential!((τ, tblock), Nblock, alg)
                 # deal with the case where the output is not the same as the input
                 Nblock === Nblock′ || copy!(Nblock, Nblock′)

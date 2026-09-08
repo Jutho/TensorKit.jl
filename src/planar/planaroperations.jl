@@ -98,9 +98,9 @@ function planartrace!(
             rmul!(C, β)
         end
         β′ = One()
-        @timeit_debug GLOBAL_TIMER "dense: trace" for (f₁, f₂) in fusiontrees(A)
+        for (f₁, f₂) in fusiontrees(A)
             for ((f₁′, f₂′), coeff) in planar_trace((f₁, f₂), (p₁, p₂), (q₁, q₂))
-                TO.tensortrace!(
+                @timeit_debug GLOBAL_TIMER "dense: trace" TO.tensortrace!(
                     C[f₁′, f₂′],
                     A[f₁, f₂], (p₁, p₂), (q₁, q₂), false,
                     α * coeff, β′,

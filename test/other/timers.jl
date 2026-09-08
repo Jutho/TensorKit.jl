@@ -60,7 +60,7 @@ end
         svd_compact(t)
 
         names = [child.name for child in TensorKit.timer().root.children]
-        @test "permute!" in names
+        @test "permute!/braid!" in names
         @test "contract!" in names
         # also verifies that `enable_timers!` reached the Factorizations submodule
         @test "svd_compact!" in names

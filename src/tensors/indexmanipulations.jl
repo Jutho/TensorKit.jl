@@ -221,9 +221,7 @@ See also [`permute`](@ref) for creating a new tensor.
     )
     @boundscheck spacecheck_transform(permute, tdst, tsrc, p)
     levels = ntuple(identity, numind(tsrc))
-    return @timeit_debug GLOBAL_TIMER "permute!" @inbounds braid!(
-        tdst, tsrc, p, levels, α, β, backend, allocator
-    )
+    return @inbounds braid!(tdst, tsrc, p, levels, α, β, backend, allocator)
 end
 
 """
@@ -309,9 +307,11 @@ See also [`braid`](@ref) for creating a new tensor.
         backend::AbstractBackend = TO.DefaultBackend(), allocator = TO.DefaultAllocator()
     )
     @boundscheck spacecheck_transform(braid, tdst, tsrc, p, levels)
-    @timeit_debug GLOBAL_TIMER "braid!" begin
+    @timeit_debug GLOBAL_TIMER "permute!/braid!" begin
         if has_array_view(tdst) && has_array_view(tsrc)
-            TO.tensoradd!(tdst[], tsrc[], p, false, α, β, backend, allocator)
+            @timeit_debug GLOBAL_TIMER "dense: tensoradd" TO.tensoradd!(
+                tdst[], tsrc[], p, false, α, β, backend, allocator
+            )
             return tdst
         end
         levels1 = TupleTools.getindices(levels, codomainind(tsrc))
@@ -389,7 +389,9 @@ end
     @boundscheck spacecheck_transform(transpose, tdst, tsrc, p)
     @timeit_debug GLOBAL_TIMER "transpose!" begin
         if has_array_view(tdst) && has_array_view(tsrc)
-            TO.tensoradd!(tdst[], tsrc[], p, false, α, β, backend, allocator)
+            @timeit_debug GLOBAL_TIMER "dense: tensoradd" TO.tensoradd!(
+                tdst[], tsrc[], p, false, α, β, backend, allocator
+            )
             return tdst
         end
         transformer = treetransposer(tdst, tsrc, p)

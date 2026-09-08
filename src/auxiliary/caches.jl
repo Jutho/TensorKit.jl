@@ -48,6 +48,12 @@ function CacheStyle(args...)
     return GlobalLRUCache()
 end
 
+# category of the miss-path (construction) timer section of an `@cached` function
+function _cached_category(fname::Symbol)
+    return fname in (:fsbraid, :fstranspose, :treebraider, :treetransposer) ?
+        "symmetry" : "bookkeeping"
+end
+
 macro cached(ex)
     Meta.isexpr(ex, :function) ||
         error("cached macro can only be used on function definitions")

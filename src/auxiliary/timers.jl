@@ -1,5 +1,8 @@
-# define the `@timeit_debug` switch explicitly (instead of letting the first macro
-# expansion do it) so that ordinary code can branch on it, see `timers_enabled`
+# This is the switch that every `@timeit_debug` section in this module checks, and that
+# `TimerOutputs.enable_debug_timings(TensorKit)` redefines to `true` (recompiling all
+# instrumented methods). TimerOutputs would define it automatically on the first
+# `@timeit_debug` expansion; defining it explicitly here lets ordinary code branch on it
+# as well, see `timers_enabled`.
 timeit_debug_enabled() = false
 
 """
@@ -26,9 +29,11 @@ timer() = GLOBAL_TIMER
 Return whether the `@timeit_debug` timer sections of TensorKit are currently compiled in,
 i.e. whether [`enable_timers!`](@ref) has been called.
 
-This is used internally to force serial execution of parallel regions while timing, since
-a `TimerOutput` may only be manipulated from a single task. When timers are disabled this
-check const-folds to `false`, so it has no runtime cost.
+This is a documented alias for `timeit_debug_enabled`, the switch that is redefined by
+`TimerOutputs.enable_debug_timings`. It is used internally to force serial execution of
+parallel regions while timing, since a `TimerOutput` may only be manipulated from a single
+task. When timers are disabled this check const-folds to `false`, so it has no runtime
+cost.
 """
 timers_enabled() = timeit_debug_enabled()
 
@@ -96,12 +101,6 @@ function _timer_category(label::String)
     i === nothing && return nothing
     prefix = Symbol(label[1:prevind(label, i)])
     return prefix in TIMER_CATEGORIES ? prefix : nothing
-end
-
-# category of the miss-path (construction) section of an `@cached` function
-function _cached_category(fname::Symbol)
-    return fname in (:fsbraid, :fstranspose, :treebraider, :treetransposer) ?
-        "symmetry" : "bookkeeping"
 end
 
 const TimerSummary = Dict{Symbol, @NamedTuple{time::Int64, allocated::Int64, ncalls::Int64}}

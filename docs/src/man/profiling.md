@@ -33,7 +33,7 @@ TensorKit.timer_summary()       # symmetry / bookkeeping / alloc / dense / other
 TensorKit.disable_timers!()
 ```
 
-[`TensorKit.print_timers`](@ref) displays the accumulated timings as a nested call tree, with sections for the top-level operations (`"permute!"`, `"contract!"`, `"svd_compact!"`, ...) and nested sections labeled by their category prefix (`"symmetry: ..."`, `"bookkeeping: ..."`, `"alloc: ..."`, `"dense: ..."`).
+[`TensorKit.print_timers`](@ref) displays the accumulated timings as a nested call tree, with sections for the top-level operations (`"permute!/braid!"`, `"contract!"`, `"svd_compact!"`, ...) and nested sections labeled by their category prefix (`"symmetry: ..."`, `"bookkeeping: ..."`, `"alloc: ..."`, `"dense: ..."`).
 [`TensorKit.timer_summary`](@ref) aggregates the *exclusive* time of each section (its own time minus that of its timed children) into per-category totals, such that every nanosecond is counted exactly once and the totals sum to the total measured time.
 
 A few caveats to keep in mind:
