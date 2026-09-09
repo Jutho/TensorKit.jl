@@ -31,7 +31,7 @@ sectortype(::Type{<:GradedSpace{I}}) where {I <: Sector} = I
 
 function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
     d = zeros(Int, N)
-    isset = falses(N) # see if this is still needed if we're restricting to small N
+    isset = falses(N)
     for (c, dc) in dims
         k = convert(I, c)
         i = findindex(values(I), k)
@@ -151,7 +151,7 @@ function ⊖(V::GradedSpace{I, <:SectorDict}, W::GradedSpace{I, <:SectorDict}) w
 end
 
 function fuse(V₁::GradedSpace{I, <:SectorDict}, V₂::GradedSpace{I, <:SectorDict}) where {I <: Sector}
-    acc = Dict{I, Int}() # SectorDict `get` within the double for loop accumulates O(N^2) `findindex` calls -> sort afterwards
+    acc = Dict{I, Int}()
     for (a, da) in blockdims(V₁), (b, db) in blockdims(V₂)
         dab = da * db
         for c in a ⊗ b
@@ -170,12 +170,12 @@ function fuse(V₁::GradedSpace{I, NTuple{N, Int}}, V₂::GradedSpace{I, NTuple{
     @inbounds for na in 1:N
         da = V₁.dims[na]
         iszero(da) && continue
-        a₀ = vals[na] # avoid call to sectors(V₁)
+        a₀ = vals[na]
         a = dual1 ? dual(a₀) : a₀
         for nb in 1:N
             db = V₂.dims[nb]
             iszero(db) && continue
-            b₀ = vals[nb] # idem for V₂
+            b₀ = vals[nb]
             b = dual2 ? dual(b₀) : b₀
             dab = da * db
             for c in a ⊗ b
