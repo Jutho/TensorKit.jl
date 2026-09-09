@@ -18,6 +18,8 @@ using LinearAlgebra: LinearAlgebra, BlasFloat, Diagonal,
 
 using TensorOperations: Index2Tuple
 
+using TupleTools: MutableNTuple, StaticLength
+
 using MatrixAlgebraKit
 import MatrixAlgebraKit as MAK
 using MatrixAlgebraKit: AbstractAlgorithm, TruncatedAlgorithm, DiagonalAlgorithm

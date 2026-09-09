@@ -30,17 +30,19 @@ end
 sectortype(::Type{<:GradedSpace{I}}) where {I <: Sector} = I
 
 function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
-    d = zeros(Int, N)
-    isset = falses(N)
+    @assert N <= 64 "the `UInt64` bitmask tracking which sectors have been set holds 64 bits"
+    d = TupleTools.MutableNTuple(ntuple(Returns(0), StaticLength(N)))
+    mask = zero(UInt64)
     for (c, dc) in dims
         k = convert(I, c)
         i = findindex(values(I), k)
         dc < 0 && throw(ArgumentError(lazy"Sector $k has negative dimension $dc"))
-        isset[i] && throw(ArgumentError(lazy"Sector $c appears multiple times"))
-        isset[i] = true
+        bit = one(UInt64) << (i - 1)
+        iszero(mask & bit) || throw(ArgumentError(lazy"Sector $c appears multiple times"))
+        mask |= bit
         d[i] = dc
     end
-    return GradedSpace{I, NTuple{N, Int}}(ntuple(i -> @inbounds(d[i]), Val(N)), dual)
+    return GradedSpace{I, NTuple{N, Int}}(Tuple(d), dual)
 end
 function GradedSpace{I, NTuple{N, Int}}(dims::Pair; dual::Bool = false) where {I, N}
     return GradedSpace{I, NTuple{N, Int}}((dims,); dual = dual)

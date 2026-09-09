@@ -56,13 +56,13 @@ end
 function truncate_space(V::GradedSpace{I, NTuple{N, Int}}, inds) where {I <: Sector, N}
     @assert !isdual(V)
     vals = values(I)
-    newdims = zeros(Int, N)
+    newdims = MutableNTuple(ntuple(_ -> 0, StaticLength(N)))
     for (c, ind) in pairs(inds)
         d = dim(V, c)
         n_write = findindex(vals, c)
-        newdims[n_write] = _blocklength(d, ind)
+        @inbounds newdims[n_write] = _blocklength(d, ind)
     end
-    return typeof(V)(ntuple(i -> @inbounds(newdims[i]), Val(N)), false)
+    return typeof(V)(Tuple(newdims), false)
 end
 function truncate_space(V::GradedSpace{I, <:SectorDict}, inds) where {I <: Sector}
     @assert !isdual(V)
