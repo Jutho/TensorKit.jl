@@ -123,6 +123,18 @@ function flip(V::GradedSpace{I}) where {I <: Sector}
     end
 end
 
+# the permutation of `values(I)` induced by `dual`; only depends on the type, so it folds away
+Base.@assume_effects :foldable function _dualpermutation(::Type{I}, ::Val{N}) where {I <: Sector, N}
+    vals = values(I)
+    return ntuple(n -> findindex(vals, dual(vals[n])), Val(N))
+end
+function flip(V::GradedSpace{I, NTuple{N, Int}}) where {I <: Sector, N}
+    # `flip` maps `c => d` to `dual(c) => d` and negates `isdual`, which for tuple storage is
+    # just a fixed permutation of the dims, so the generic constructor can be skipped
+    newdims = TupleTools.getindices(V.dims, _dualpermutation(I, Val(N)))
+    return GradedSpace{I, NTuple{N, Int}}(newdims, !isdual(V))
+end
+
 function unitspace(S::Type{<:GradedSpace{I}}) where {I <: Sector}
     return S(unit => 1 for unit in allunits(I))
 end
