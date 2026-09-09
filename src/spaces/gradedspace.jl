@@ -122,7 +122,6 @@ function flip(V::GradedSpace{I}) where {I <: Sector}
         typeof(V)(dual(c) => d for (c, d) in blockdims(V))'
     end
 end
-
 # the permutation of `values(I)` induced by `dual`; only depends on the type, so it folds away
 Base.@assume_effects :foldable function _dualpermutation(::Type{I}, ::Val{N}) where {I <: Sector, N}
     vals = values(I)
@@ -193,7 +192,7 @@ function ⊖(V::GradedSpace{I, <:SectorDict}, W::GradedSpace{I, <:SectorDict}) w
 end
 
 function fuse(V₁::GradedSpace{I, <:SectorDict}, V₂::GradedSpace{I, <:SectorDict}) where {I <: Sector}
-    acc = Dict{I, Int}()
+    acc = Dict{I, Int}() # Accumulation into Dict is more efficient than repeated insertion in sorted vector
     for (a, da) in blockdims(V₁), (b, db) in blockdims(V₂)
         dab = da * db
         for c in a ⊗ b
