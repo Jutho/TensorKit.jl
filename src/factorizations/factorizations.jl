@@ -6,9 +6,9 @@ module Factorizations
 export copy_oftype, factorisation_scalartype, one!, truncspace
 
 using ..TensorKit
-using ..TensorKit: AdjointTensorMap, SectorDict, SectorVector, FullVectorDict, findindex,
+using ..TensorKit: AdjointTensorMap, SectorDict, SectorVector, findindex,
     blocktype, foreachblock, one!,
-    similar_diagonal, similarstoragetype, sectorstoragetype
+    similar_diagonal, similarstoragetype, sectormap
 using ..TensorKit: GLOBAL_TIMER
 using TimerOutputs: @timeit_debug
 

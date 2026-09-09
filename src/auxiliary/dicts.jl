@@ -309,6 +309,38 @@ function Base.iterate(d::FullVectorDict{K}, i = 1) where {K}
     return nothing
 end
 
+# the dense sector map is backed by a `FullVectorDict` or a `SortedVectorDict`, mirroring the
+# `NTuple`/`SortedVectorDict` storage choice that `sectorstoragetype` makes for `GradedSpace`
+_densemaptype(::Type{<:Tuple}, ::Type{I}, ::Type{V}) where {I <: Sector, V} = FullVectorDict{I, V}
+_densemaptype(::Type{<:SortedVectorDict}, ::Type{I}, ::Type{V}) where {I <: Sector, V} =
+    SortedVectorDict{I, V}
+
+"""
+    sectormaptype(::Type{I}, ::Type{V}) where {I <: Sector, V} -> Type
+
+The dense `AbstractDict{I, V}` type used to map sectors of type `I` onto values of type `V`,
+chosen to match the storage type of `GradedSpace{I}`, see [`sectorstoragetype`](@ref).
+"""
+sectormaptype(::Type{I}, ::Type{V}) where {I <: Sector, V} =
+    _densemaptype(sectorstoragetype(I), I, V)
+
+"""
+    sectormap(f, [V::Type, ] pairsiter)
+
+Map `f(c, v)` over an iterator `pairsiter` of `c => v` pairs, collecting the results into the
+dense sector map returned by [`sectormaptype`](@ref). The value type `V` of the result is
+inferred from `f` unless it is given explicitly.
+"""
+sectormap(f, pairsiter) = _sectormap(f, pairsiter, eltype(pairsiter))
+sectormap(f, ::Type{V}, pairsiter) where {V} = _sectormap(f, V, pairsiter, eltype(pairsiter))
+
+function _sectormap(f, pairsiter, ::Type{<:Pair{I, W}}) where {I <: Sector, W}
+    return _sectormap(f, Base.promote_op(f, I, W), pairsiter, Pair{I, W})
+end
+function _sectormap(f, ::Type{V}, pairsiter, ::Type{<:Pair{I}}) where {V, I <: Sector}
+    return sectormaptype(I, V)(c => f(c, v) for (c, v) in pairsiter)
+end
+
 """
     Hashed(value, hashfunction = Base.hash, isequal = Base.isequal)
 

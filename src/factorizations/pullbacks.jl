@@ -24,12 +24,7 @@ for pullback! in (:qr_null_pullback!, :lq_null_pullback!)
         return Δt
     end
 end
-function _notrunc_ind(t)
-    I = sectortype(t)
-    return _builddensemap(sectorstoragetype(I), I, blocks(t), Colon) do _, _
-        Colon()
-    end
-end
+_notrunc_ind(t) = sectormap(Returns(Colon()), blocks(t))
 
 for pullback! in (:svd_pullback!, :eig_pullback!, :eigh_pullback!)
     @eval function MAK.$pullback!(

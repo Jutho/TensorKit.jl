@@ -34,19 +34,6 @@ _blocklength(ax, ind) = length(ax[ind])
 _blocklength(ax::Base.OneTo, ind::AbstractVector{<:Integer}) = length(ind)
 _blocklength(ax::Base.OneTo, ind::AbstractVector{Bool}) = count(ind)
 
-# represent the sector-index mapping as either a FullVectorDict or SectorDict based on sectorstoragetype(I)
-# the type V is needed because the concrete type of ind depends on the strategy (except for intersect/union)
-_densemaptype(::Type{<:Tuple}, ::Type{I}, ::Type{V}) where {I <: Sector, V} = FullVectorDict{I, V}
-_densemaptype(::Type{<:SectorDict}, ::Type{I}, ::Type{V}) where {I <: Sector, V} = SectorDict{I, V}
-
-# builds a sector => f(c, v) map through either FullVectorDict or SectorDict storage
-# so every `findtruncated` method shares one output-construction path
-# `pairsiter` are c => v pairs, can be c => nothing for NoTruncation/TruncationIntersection/TruncationUnion
-function _builddensemap(f, ::Type{D}, ::Type{I}, pairsiter, ::Type{V}) where {D, I <: Sector, V}
-    Dout = _densemaptype(D, I, V)
-    return Dout(c => f(c, v) for (c, v) in pairsiter)
-end
-
 function truncate_space(V::ElementarySpace, inds)
     @assert !isdual(V)
     I = sectortype(V)
@@ -155,8 +142,7 @@ end
 function MAK.truncate(
         ::typeof(left_null!), (U, S)::NTuple{2, AbstractTensorMap}, strategy::NoTruncation
     )
-    I = sectortype(S)
-    ind = _builddensemap(sectorstoragetype(I), I, blocks(S), UnitRange{Int}) do _, b
+    ind = sectormap(blocks(S)) do _, b
         (size(b, 2) + 1):size(b, 1)
     end
     V_truncated = truncate_space(space(S, 1), ind)
@@ -167,8 +153,7 @@ end
 function MAK.truncate(
         ::typeof(right_null!), (S, Vᴴ)::NTuple{2, AbstractTensorMap}, strategy::NoTruncation
     )
-    I = sectortype(S)
-    ind = _builddensemap(sectorstoragetype(I), I, blocks(S), UnitRange{Int}) do _, b
+    ind = sectormap(blocks(S)) do _, b
         (size(b, 1) + 1):size(b, 2)
     end
     V_truncated = truncate_space(dual(space(S, 2)), ind)
@@ -207,10 +192,7 @@ function MAK.findtruncated_svd(values::SectorVector, strategy::TruncationStrateg
 end
 
 function MAK.findtruncated(values::SectorVector, ::NoTruncation)
-    I = sectortype(values)
-    return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in keys(values)), Colon) do _, _
-        Colon()
-    end
+    return sectormap(Returns(Colon()), pairs(values))
 end
 
 # Need to select the first k values here after sorting across blocks, weighted by quantum dimension
@@ -256,27 +238,22 @@ MAK.findtruncated_svd(values::SectorVector, strategy::TruncationByOrder) =
     MAK.findtruncated(values, strategy)
 
 function MAK.findtruncated(values::SectorVector, strategy::TruncationByFilter)
-    I = sectortype(values)
-    return _builddensemap(sectorstoragetype(I), I, pairs(values), Vector{Int}) do _, v
+    return sectormap(pairs(values)) do _, v
         findall(strategy.filter, v)
     end
 end
 
 function MAK.findtruncated(values::SectorVector, strategy::TruncationByValue)
-    I = sectortype(values)
     atol = rtol_to_atol(values, strategy.p, strategy.atol, strategy.rtol)
     strategy′ = trunctol(; atol, strategy.by, strategy.keep_below)
-    V = Base.promote_op(MAK.findtruncated, valtype(values), typeof(strategy′))
-    return _builddensemap(sectorstoragetype(I), I, pairs(values), V) do _, v
+    return sectormap(pairs(values)) do _, v
         MAK.findtruncated(v, strategy′)
     end
 end
 function MAK.findtruncated_svd(values::SectorVector, strategy::TruncationByValue)
-    I = sectortype(values)
     atol = rtol_to_atol(values, strategy.p, strategy.atol, strategy.rtol)
     strategy′ = trunctol(; atol, strategy.by, strategy.keep_below)
-    V = Base.promote_op(MAK.findtruncated_svd, valtype(values), typeof(strategy′))
-    return _builddensemap(sectorstoragetype(I), I, pairs(values), V) do _, v
+    return sectormap(pairs(values)) do _, v
         MAK.findtruncated_svd(v, strategy′)
     end
 end
@@ -323,9 +300,7 @@ function MAK.findtruncated(values::SectorVector, strategy::TruncationSpace)
     I = sectortype(values)
     I == sectortype(strategy) || throw(SectorMismatch("sectortype of truncation strategy does not match values"))
     blockstrategy(c) = truncrank(dim(strategy.space, c); strategy.by, strategy.rev)
-    Vstrategy = Base.promote_op(blockstrategy, I)
-    V = Base.promote_op(MAK.findtruncated, valtype(values), Vstrategy)
-    return _builddensemap(sectorstoragetype(I), I, pairs(values), V) do c, v
+    return sectormap(pairs(values)) do c, v
         MAK.findtruncated(v, blockstrategy(c))
     end
 end
@@ -333,9 +308,7 @@ function MAK.findtruncated_svd(values::SectorVector, strategy::TruncationSpace)
     I = sectortype(values)
     I == sectortype(strategy) || throw(SectorMismatch("sectortype of truncation strategy does not match values"))
     blockstrategy(c) = truncrank(dim(strategy.space, c); strategy.by, strategy.rev)
-    Vstrategy = Base.promote_op(blockstrategy, I)
-    V = Base.promote_op(MAK.findtruncated_svd, valtype(values), Vstrategy)
-    return _builddensemap(sectorstoragetype(I), I, pairs(values), V) do c, v
+    return sectormap(pairs(values)) do c, v
         MAK.findtruncated_svd(v, blockstrategy(c))
     end
 end
@@ -345,38 +318,30 @@ end
 # This is always the case in the implementations above.
 
 function MAK.findtruncated(values::SectorVector, strategy::TruncationIntersection)
-    I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated, values), strategy.components)
     @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
-    sectors = collect(keys(first(inds)))
-    return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
+    return sectormap(Any, pairs(first(inds))) do c, _
         mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_intersect, inds)
     end
 end
 function MAK.findtruncated_svd(values::SectorVector, strategy::TruncationIntersection)
-    I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated_svd, values), strategy.components)
     @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
-    sectors = collect(keys(first(inds)))
-    return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
+    return sectormap(Any, pairs(first(inds))) do c, _
         mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_intersect, inds)
     end
 end
 function MAK.findtruncated(values::SectorVector, strategy::TruncationUnion)
-    I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated, values), strategy.components)
     @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
-    sectors = collect(keys(first(inds)))
-    return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
+    return sectormap(Any, pairs(first(inds))) do c, _
         mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_union, inds)
     end
 end
 function MAK.findtruncated_svd(values::SectorVector, strategy::TruncationUnion)
-    I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated_svd, values), strategy.components)
     @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
-    sectors = collect(keys(first(inds)))
-    return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
+    return sectormap(Any, pairs(first(inds))) do c, _
         mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_union, inds)
     end
 end
