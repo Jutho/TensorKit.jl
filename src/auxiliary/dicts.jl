@@ -231,6 +231,85 @@ Base.mergewith(combine, d1::SortedVectorDict{K, V}, d2::SortedVectorDict{K, V}) 
     _sortedmerge(combine, d1, d2)
 
 """
+    FullVectorDict{K<:Sector,V} <: AbstractDict{K,V}
+
+Dictionary-like type that reserves one slot for every possible sector `c::K`, indexed
+through `findindex(values(K), c)`. Absent entries are stored as `nothing`.
+This is the counterpart of `SectorDict` for `NTuple{N,Int}`-backed storage.
+Both are needed to build a "sector => value" map over some value type `V`.
+"""
+struct FullVectorDict{K <: Sector, V} <: AbstractDict{K, V}
+    slots::Vector{Union{Nothing, V}}
+    function FullVectorDict{K, V}(slots::Vector{Union{Nothing, V}}) where {K <: Sector, V}
+        @assert length(slots) == length(values(K))
+        return new{K, V}(slots)
+    end
+end
+FullVectorDict{K, V}() where {K <: Sector, V} =
+    FullVectorDict{K, V}(Vector{Union{Nothing, V}}(nothing, length(values(K))))
+function FullVectorDict{K, V}(kv) where {K <: Sector, V}
+    d = FullVectorDict{K, V}()
+    for (k, v) in kv
+        d[k] = v
+    end
+    return d
+end
+FullVectorDict{K, V}(kv::Pair{K, V}...) where {K <: Sector, V} = FullVectorDict{K, V}(kv)
+
+Base.length(d::FullVectorDict) = count(!isnothing, d.slots)
+
+Base.copy(d::FullVectorDict{K, V}) where {K, V} = FullVectorDict{K, V}(copy(d.slots))
+Base.empty(::FullVectorDict{K}, ::Type{K}, ::Type{V}) where {K <: Sector, V} = FullVectorDict{K, V}()
+Base.empty!(d::FullVectorDict) = (fill!(d.slots, nothing); return d)
+
+function Base.delete!(d::FullVectorDict{K}, k) where {K}
+    key = convert(K, k)
+    isequal(k, key) && (d.slots[findindex(values(K), key)] = nothing)
+    return d
+end
+
+function Base.haskey(d::FullVectorDict{K}, k) where {K}
+    key = convert(K, k)
+    return isequal(k, key) && !isnothing(d.slots[findindex(values(K), key)])
+end
+function Base.getindex(d::FullVectorDict{K}, k) where {K}
+    key = convert(K, k)
+    isequal(k, key) || throw(KeyError(k))
+    v = d.slots[findindex(values(K), key)]
+    return isnothing(v) ? throw(KeyError(key)) : v
+end
+function Base.setindex!(d::FullVectorDict{K}, v, k) where {K}
+    key = convert(K, k)
+    isequal(k, key) || throw(ArgumentError("$k is not a valid key for type $K"))
+    d.slots[findindex(values(K), key)] = v
+    return d
+end
+
+function Base.get(d::FullVectorDict{K}, k, default) where {K}
+    key = convert(K, k)
+    isequal(k, key) || return default
+    v = d.slots[findindex(values(K), key)]
+    return isnothing(v) ? default : v
+end
+function Base.get(f::Union{Function, Type}, d::FullVectorDict{K}, k) where {K}
+    key = convert(K, k)
+    isequal(k, key) || return f()
+    v = d.slots[findindex(values(K), key)]
+    return isnothing(v) ? f() : v
+end
+
+function Base.iterate(d::FullVectorDict{K}, i = 1) where {K}
+    vals = values(K)
+    n = length(d.slots)
+    @inbounds while i <= n
+        v = d.slots[i]
+        isnothing(v) || return (vals[i] => v), i + 1
+        i += 1
+    end
+    return nothing
+end
+
+"""
     Hashed(value, hashfunction = Base.hash, isequal = Base.isequal)
 
 Wrapper struct to alter the `hash` and `isequal` implementations of a given value.

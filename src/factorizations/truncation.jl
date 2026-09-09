@@ -34,55 +34,30 @@ _blocklength(ax, ind) = length(ax[ind])
 _blocklength(ax::Base.OneTo, ind::AbstractVector{<:Integer}) = length(ind)
 _blocklength(ax::Base.OneTo, ind::AbstractVector{Bool}) = count(ind)
 
-# TODO: it quacks like a duck, just define a subtype of AbstractDict?
-# represent the sector-index mapping as Vector{Union{Nothing, V}} where V is the type of the index
-# mapping is indexed through findindex
+# represent the sector-index mapping as either a FullVectorDict or SectorDict based on sectorstoragetype(I)
 # the type V is needed because the concrete type of ind depends on the strategy (except for intersect/union)
-_densenew(::Type{I}, ::Type{V}) where {I <: Sector, V} =
-    Vector{Union{Nothing, V}}(nothing, length(values(I)))
+_densemaptype(::Type{<:Tuple}, ::Type{I}, ::Type{V}) where {I <: Sector, V} = FullVectorDict{I, V}
+_densemaptype(::Type{<:SectorDict}, ::Type{I}, ::Type{V}) where {I <: Sector, V} = SectorDict{I, V}
 
-function _denseset!(v::Vector, ::Type{I}, c::I, val) where {I <: Sector}
-    v[findindex(values(I), c)] = val
-    return v
-end
-_denseget(v::Vector, ::Type{I}, c::I) where {I <: Sector} = v[findindex(values(I), c)]
-function _densepairs(v::Vector, ::Type{I}) where {I <: Sector}
-    vals = values(I)
-    return (vals[i] => x for (i, x) in enumerate(v) if !isnothing(x))
-end
-_densekeys(v::Vector, ::Type{I}) where {I <: Sector} = (c for (c, _) in _densepairs(v, I))
-
-# fallbacks to catch SectorVector/SectorDict, even for NTuple sectorstoragetype
-_denseget(v, ::Type{I}, c::I) where {I <: Sector} = get(v, c, nothing)
-_densekeys(v, ::Type{I}) where {I <: Sector} = keys(v)
-_densepairs(v, ::Type{I}) where {I <: Sector} = pairs(v)
-
-# builds either a dense Vector or SectorDict based on sectorstoragetype
-# mapping each (c, v) pair's sector c to f(c, v)
+# builds a sector => f(c, v) map through either FullVectorDict or SectorDict storage
 # so every `findtruncated` method shares one output-construction path
 # `pairsiter` are c => v pairs, can be c => nothing for NoTruncation/TruncationIntersection/TruncationUnion
-function _builddensemap(f, ::Type{D}, ::Type{I}, pairsiter, ::Type{V}) where {D <: Tuple, I <: Sector, V}
-    d = _densenew(I, V)
-    for (c, v) in pairsiter
-        _denseset!(d, I, c, f(c, v))
-    end
-    return d
-end
-function _builddensemap(f, ::Type{D}, ::Type{I}, pairsiter, ::Type{V}) where {D <: SectorDict, I <: Sector, V}
-    return SectorDict(c => f(c, v) for (c, v) in pairsiter) # V unused
+function _builddensemap(f, ::Type{D}, ::Type{I}, pairsiter, ::Type{V}) where {D, I <: Sector, V}
+    Dout = _densemaptype(D, I, V)
+    return Dout(c => f(c, v) for (c, v) in pairsiter)
 end
 
 function truncate_space(V::ElementarySpace, inds)
     @assert !isdual(V)
     I = sectortype(V)
     @assert I == Trivial
-    return spacetype(V)(c => _blocklength(dim(V, c), ind) for (c, ind) in _densepairs(inds, I))
+    return spacetype(V)(c => _blocklength(dim(V, c), ind) for (c, ind) in pairs(inds))
 end
 function truncate_space(V::GradedSpace{I, NTuple{N, Int}}, inds) where {I <: Sector, N}
     @assert !isdual(V)
     vals = values(I)
     newdims = zeros(Int, N)
-    for (c, ind) in _densepairs(inds, I)
+    for (c, ind) in pairs(inds)
         d = dim(V, c)
         n_write = findindex(vals, c)
         newdims[n_write] = _blocklength(d, ind)
@@ -105,30 +80,27 @@ function truncate_space(V::GradedSpace{I, <:SectorDict}, inds) where {I <: Secto
 end
 
 function truncate_domain!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, inds)
-    Isec = sectortype(tdst)
     for (c, b) in blocks(tdst)
-        I = _denseget(inds, Isec, c)
-        @assert !isnothing(I) # kept for safety, but should be guaranteed by _densepairs
+        I = get(inds, c, nothing)
+        @assert !isnothing(I) # kept for safety, but should be guaranteed by pairs(inds) covering every block sector
         b′ = block(tsrc, c)
         b .= view(b′, :, I)
     end
     return tdst
 end
 function truncate_codomain!(tdst::AbstractTensorMap, tsrc::AbstractTensorMap, inds)
-    Isec = sectortype(tdst)
     for (c, b) in blocks(tdst)
-        I = _denseget(inds, Isec, c)
-        @assert !isnothing(I) # kept for safety, but should be guaranteed by _densepairs
+        I = get(inds, c, nothing)
+        @assert !isnothing(I) # kept for safety, but should be guaranteed by pairs(inds) covering every block sector
         b′ = block(tsrc, c)
         b .= view(b′, I, :)
     end
     return tdst
 end
 function truncate_diagonal!(Ddst::DiagonalTensorMap, Dsrc::DiagonalTensorMap, inds)
-    Isec = sectortype(Ddst)
     for (c, b) in blocks(Ddst)
-        I = _denseget(inds, Isec, c)
-        @assert !isnothing(I) # kept for safety, but should be guaranteed by _densepairs
+        I = get(inds, c, nothing)
+        @assert !isnothing(I) # kept for safety, but should be guaranteed by pairs(inds) covering every block sector
         diagview(b) .= view(diagview(block(Dsrc, c)), I)
     end
     return Ddst
@@ -375,37 +347,37 @@ end
 function MAK.findtruncated(values::SectorVector, strategy::TruncationIntersection)
     I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated, values), strategy.components)
-    @assert TensorKit._allequal(v -> collect(_densekeys(v, I)), inds) "missing blocks are not supported right now"
-    sectors = collect(_densekeys(first(inds), I))
+    @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
+    sectors = collect(keys(first(inds)))
     return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
-        mapreduce(v -> _denseget(v, I, c), MatrixAlgebraKit._ind_intersect, inds)
+        mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_intersect, inds)
     end
 end
 function MAK.findtruncated_svd(values::SectorVector, strategy::TruncationIntersection)
     I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated_svd, values), strategy.components)
-    @assert TensorKit._allequal(v -> collect(_densekeys(v, I)), inds) "missing blocks are not supported right now"
-    sectors = collect(_densekeys(first(inds), I))
+    @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
+    sectors = collect(keys(first(inds)))
     return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
-        mapreduce(v -> _denseget(v, I, c), MatrixAlgebraKit._ind_intersect, inds)
+        mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_intersect, inds)
     end
 end
 function MAK.findtruncated(values::SectorVector, strategy::TruncationUnion)
     I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated, values), strategy.components)
-    @assert TensorKit._allequal(v -> collect(_densekeys(v, I)), inds) "missing blocks are not supported right now"
-    sectors = collect(_densekeys(first(inds), I))
+    @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
+    sectors = collect(keys(first(inds)))
     return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
-        mapreduce(v -> _denseget(v, I, c), MatrixAlgebraKit._ind_union, inds)
+        mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_union, inds)
     end
 end
 function MAK.findtruncated_svd(values::SectorVector, strategy::TruncationUnion)
     I = sectortype(values)
     inds = map(Base.Fix1(MAK.findtruncated_svd, values), strategy.components)
-    @assert TensorKit._allequal(v -> collect(_densekeys(v, I)), inds) "missing blocks are not supported right now"
-    sectors = collect(_densekeys(first(inds), I))
+    @assert TensorKit._allequal(v -> collect(keys(v)), inds) "missing blocks are not supported right now"
+    sectors = collect(keys(first(inds)))
     return _builddensemap(sectorstoragetype(I), I, (c => nothing for c in sectors), Any) do c, _
-        mapreduce(v -> _denseget(v, I, c), MatrixAlgebraKit._ind_union, inds)
+        mapreduce(v -> get(v, c, nothing), MatrixAlgebraKit._ind_union, inds)
     end
 end
 
@@ -414,8 +386,7 @@ end
 MAK.truncation_error(values::SectorVector, ind) = MAK.truncation_error!(copy(values), ind)
 
 function MAK.truncation_error!(values::SectorVector, ind)
-    Isec = sectortype(values)
-    for (c, ind_c) in _densepairs(ind, Isec)
+    for (c, ind_c) in pairs(ind)
         v = values[c]
         v[ind_c] .= zero(eltype(v))
     end

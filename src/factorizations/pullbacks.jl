@@ -36,9 +36,8 @@ for pullback! in (:svd_pullback!, :eig_pullback!, :eigh_pullback!)
             Δt::AbstractTensorMap, t::AbstractTensorMap, F, ΔF, inds = _notrunc_ind(t);
             kwargs...
         )
-        Isec = sectortype(t)
         foreachblock(Δt, t) do c, (Δb, b)
-            ind = _denseget(inds, Isec, c)
+            ind = get(inds, c, nothing)
             isnothing(ind) && return nothing
             Fc = block.(F, Ref(c))
             ΔFc = block.(ΔF, Ref(c))
