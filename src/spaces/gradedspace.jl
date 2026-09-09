@@ -40,7 +40,7 @@ function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
         isset[i] = true
         d[i] = dc
     end
-    return GradedSpace{I, NTuple{N, Int}}(NTuple{N, Int}(d), dual)
+    return GradedSpace{I, NTuple{N, Int}}(ntuple(i -> @inbounds(d[i]), Val(N)), dual)
 end
 function GradedSpace{I, NTuple{N, Int}}(dims::Pair; dual::Bool = false) where {I, N}
     return GradedSpace{I, NTuple{N, Int}}((dims,); dual = dual)
@@ -184,7 +184,7 @@ function fuse(V₁::GradedSpace{I, NTuple{N, Int}}, V₂::GradedSpace{I, NTuple{
             end
         end
     end
-    return typeof(V₁)(NTuple{N, Int}(newdims), false)
+    return typeof(V₁)(ntuple(i -> @inbounds(newdims[i]), Val(N)), false)
 end
 
 function infimum(V₁::GradedSpace{I, <:Tuple}, V₂::GradedSpace{I, <:Tuple}) where {I <: Sector}
