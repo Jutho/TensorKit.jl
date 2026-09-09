@@ -152,16 +152,44 @@ function ⊕(V₁::GradedSpace{I, <:Tuple}, V₂::GradedSpace{I, <:Tuple}) where
     newdims = map(+, V₁.dims, V₂.dims)
     return typeof(V₁)(newdims, dual1)
 end
+@noinline _throw_not_subspace(V, W) = throw(SpaceMismatch(lazy"$(W) is not a subspace of $(V)"))
 function ⊖(V::GradedSpace{I, <:Tuple}, W::GradedSpace{I, <:Tuple}) where {I <: Sector}
     dualV = isdual(V)
-    V ≿ W && dualV == isdual(W) || throw(SpaceMismatch("$(W) is not a subspace of $(V)"))
-    newdims = map(-, V.dims, W.dims)
+    dualV == isdual(W) || _throw_not_subspace(V, W)
+    # single unrolled pass: subtract and validate non-negativity at once
+    newdims = map((dV, dW) -> dV < dW ? _throw_not_subspace(V, W) : dV - dW, V.dims, W.dims)
     return typeof(V)(newdims, dualV)
 end
 function ⊖(V::GradedSpace{I, <:SectorDict}, W::GradedSpace{I, <:SectorDict}) where {I <: Sector}
     dualV = isdual(V)
-    V ≿ W && dualV == isdual(W) || throw(SpaceMismatch("$(W) is not a subspace of $(V)"))
-    return typeof(V)(mergewith(-, V.dims, W.dims), dualV)
+    dualV == isdual(W) || _throw_not_subspace(V, W)
+    k1, v1 = keys(V.dims), values(V.dims)
+    k2, v2 = keys(W.dims), values(W.dims)
+    n1, n2 = length(k1), length(k2)
+    ks, vs = Vector{I}(undef, n1), Vector{Int}(undef, n1)
+    i, j, n = 1, 1, 0
+    @inbounds while i <= n1 && j <= n2
+        a, b = k1[i], k2[j]
+        if isless(a, b)
+            n = _mergestore!(ks, vs, n, a, v1[i])
+            i += 1
+        elseif isless(b, a)
+            _throw_not_subspace(V, W) # sector of `W` absent from `V`
+        else
+            v1[i] < v2[j] && _throw_not_subspace(V, W)
+            n = _mergestore!(ks, vs, n, a, v1[i] - v2[j])
+            i += 1
+            j += 1
+        end
+    end
+    j <= n2 && _throw_not_subspace(V, W) # leftover sectors of `W` absent from `V`
+    @inbounds while i <= n1
+        n = _mergestore!(ks, vs, n, k1[i], v1[i])
+        i += 1
+    end
+    resize!(ks, n)
+    resize!(vs, n)
+    return typeof(V)(SectorDict{I, Int}(ks, vs), dualV)
 end
 
 function fuse(V₁::GradedSpace{I, <:SectorDict}, V₂::GradedSpace{I, <:SectorDict}) where {I <: Sector}
