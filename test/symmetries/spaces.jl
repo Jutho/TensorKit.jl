@@ -237,8 +237,8 @@ end
         @test @constinferred(unitspace(V)) == W == unitspace(typeof(V))
         @test @constinferred(leftunitspace(V)) == W == @constinferred(rightunitspace(V))
     else
-        @test_throws ArgumentError leftunitspace(V)
-        @test_throws ArgumentError rightunitspace(V)
+        @test_throws SpaceMismatch leftunitspace(V)
+        @test_throws SpaceMismatch rightunitspace(V)
         @test_throws ArgumentError unitspace(V)
     end
     @test eval_show(W) == W
@@ -511,13 +511,17 @@ end
     @test_throws SpaceMismatch V2 ← one(V2)
 
     Vbad = typeof(V1)(first(sectors(V1)) => 1, first(sectors(V3)) => 1)
-    @test_throws ArgumentError ProductSpace(Vbad)
+    @test_throws SpaceMismatch ProductSpace(Vbad)
 
+    # zero spaces are wildcards that suppress only the junctions they touch
     V0 = zerospace(V1)
     @test dim(@constinferred(⊗(V1, V2, V0))) == 0
-    @test dim(@constinferred(⊗(V2, V1, V0))) == 0 # bad coloring, but zero-dimensional space
-    @test dim(@constinferred(ProductSpace(V1, V0, V3))) == 0
-    @test (ProductSpace(V1, V0, V3) ← V3) isa HomSpace
+    @test_throws SpaceMismatch (⊗(V2, V1, V0)) # V2 ⊗ V1 is incompatible on its own
+    @test dim(@constinferred(ProductSpace(V1, V0, V3))) == 0 # V0 breaks the chain
+    @test_throws SpaceMismatch (ProductSpace(V1, V0, V3) ← V3) # left units of V1 and V3
+    @test_throws SpaceMismatch ProductSpace(Vbad, V0) # V0 does not hide a bad factor
+    @test (ProductSpace(V2, V0) ← one(V2)) isa HomSpace
+    @test (ProductSpace(V0) ← ProductSpace(V0)) isa HomSpace
 end
 
 @timedtestset "show and friends" begin

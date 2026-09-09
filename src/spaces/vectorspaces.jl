@@ -174,10 +174,9 @@ function leftunitspace(V::ElementarySpace)
 end
 
 function _leftunit(V::ElementarySpace)
-    !isempty(sectors(V)) || throw(ArgumentError("Cannot determine the left unit of an empty space"))
-    _allequal(leftunit, sectors(V)) ||
-        throw(ArgumentError(lazy"sectors of $V do not have the same left unit"))
-    return leftunit(first(sectors(V)))
+    u = _units(V)
+    isnothing(u) && throw(ArgumentError("Cannot determine the left unit of an empty space"))
+    return _leftunitof(u)
 end
 
 """
@@ -198,11 +197,32 @@ function rightunitspace(V::ElementarySpace)
 end
 
 function _rightunit(V::ElementarySpace)
-    !isempty(sectors(V)) || throw(ArgumentError("Cannot determine the right unit of an empty space"))
-    _allequal(rightunit, sectors(V)) ||
-        throw(ArgumentError(lazy"sectors of $V do not have the same right unit"))
-    return rightunit(first(sectors(V)))
+    u = _units(V)
+    isnothing(u) && throw(ArgumentError("Cannot determine the right unit of an empty space"))
+    return _rightunitof(u)
 end
+
+# Return the `(leftunit, rightunit)` shared by all sectors of `V`, or `nothing` for the zero
+# space, whose coloring is unconstrained and thus acts as a wildcard in unit checks.
+function _units(V::ElementarySpace)
+    s = sectors(V)
+    isempty(s) && return nothing
+    l, r = leftunit(first(s)), rightunit(first(s))
+    all(c -> leftunit(c) == l && rightunit(c) == r, s) ||
+        throw(SpaceMismatch(lazy"sectors of $V do not share a single left and right unit"))
+    return (l, r)
+end
+
+_leftunitof(u::Tuple{I, I}) where {I <: Sector} = u[1]
+_rightunitof(u::Tuple{I, I}) where {I <: Sector} = u[2]
+_leftunitof(::Nothing) = nothing
+_rightunitof(::Nothing) = nothing
+
+# `nothing` acts as a wildcard, being compatible with any coloring
+_matchunits(::Nothing, ::Nothing) = true
+_matchunits(::Nothing, ::Sector) = true
+_matchunits(::Sector, ::Nothing) = true
+_matchunits(u₁::Sector, u₂::Sector) = u₁ == u₂
 
 """
     isunitspace(V::S) where {S <: ElementarySpace} -> Bool

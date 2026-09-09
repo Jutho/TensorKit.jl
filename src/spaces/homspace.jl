@@ -18,35 +18,28 @@ function HomSpace(codomain::P1, domain::P2) where {S, P1 <: CompositeSpace{S}, P
     return HomSpace{S, P1, P2}(codomain, domain)
 end
 
-function _check_unit_compatibility(codomain::ProductSpace{S}, domain::ProductSpace{S}) where {S <: ElementarySpace}
+# check that the legs form a closed cycle of composable spaces:
+# codomain[1] … codomain[N₁], dual(domain[N₂]) … dual(domain[1]).
+function _check_unit_compatibility(
+        codomain::CompositeSpace{S}, domain::CompositeSpace{S}
+    ) where {S <: ElementarySpace}
     UnitStyle(sectortype(S)) isa GenericUnit || return nothing
     N₁, N₂ = length(codomain), length(domain)
-    N₁ == N₂ == 0 && return nothing # one() ← one()
-    any(V -> isempty(sectors(V)), codomain) && return nothing # zero spaces -> ignore color check
-    any(V -> isempty(sectors(V)), domain) && return nothing
 
-    # product spaces themselves already check that their factors are compatible
-    if N₁ == 0 # codomain is empty, domain is non-empty
-        VdomL, VdomR = domain[1], domain[N₂]
-        _leftunit(VdomL) == _rightunit(VdomR) ||
+    if N₁ == 0 && N₂ == 0 # one() ← one(): empty cycle
+        return nothing
+    elseif N₁ == 0 # the domain segment closes onto itself
+        _matchunits(_leftunitof(_units(domain[1])), _rightunitof(_units(domain[N₂]))) ||
             throw(SpaceMismatch(lazy"domain $domain has incompatible left and right units"))
-        return nothing
-    elseif N₂ == 0 # domain is empty, codomain is non-empty
-        VcodL, VcodR = codomain[1], codomain[N₁]
-        _leftunit(VcodL) == _rightunit(VcodR) ||
+    elseif N₂ == 0 # the codomain segment closes onto itself
+        _matchunits(_leftunitof(_units(codomain[1])), _rightunitof(_units(codomain[N₁]))) ||
             throw(SpaceMismatch(lazy"codomain $codomain has incompatible left and right units"))
-        return nothing
+    else
+        _matchunits(_rightunitof(_units(codomain[N₁])), _rightunitof(_units(domain[N₂]))) ||
+            throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible right units"))
+        _matchunits(_leftunitof(_units(codomain[1])), _leftunitof(_units(domain[1]))) ||
+            throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible left units"))
     end
-
-    # codomain and domain are non-empty
-    # just need to check coupled charge compatibility
-    VcodL, VdomL = codomain[1], domain[1]
-    _leftunit(VcodL) == _leftunit(VdomL) ||
-        throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible left units"))
-
-    VcodR, VdomR = codomain[N₁], domain[N₂]
-    _rightunit(VcodR) == _rightunit(VdomR) ||
-        throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible right units"))
     return nothing
 end
 

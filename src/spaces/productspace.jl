@@ -8,22 +8,24 @@ Only tensor products between [`ElementarySpace`](@ref) objects of the same type 
 struct ProductSpace{S <: ElementarySpace, N} <: CompositeSpace{S}
     spaces::NTuple{N, S}
     function ProductSpace{S, N}(spaces::NTuple{N, S}) where {S <: ElementarySpace, N}
-        _check_unit_compatibility(S, spaces)
+        _check_unit_compatibility(spaces)
         return new{S, N}(spaces)
     end
 end
 
-# check that every product of elementary spaces is compatible color-wise
-function _check_unit_compatibility(::Type{S}, spaces::NTuple{N, S}) where {N, S <: ElementarySpace}
-    UnitStyle(sectortype(S)) isa GenericUnit || return nothing
+# check that the factors form an open chain of composable spaces
+function _check_unit_compatibility(spaces::Tuple{Vararg{ElementarySpace}})
+    N = length(spaces)
     N == 0 && return nothing
-    any(V -> isempty(sectors(V)), spaces) && return nothing # zero spaces -> ignore color check
-
-    rightunits = map(_rightunit, spaces)
-    leftunits = map(_leftunit, spaces)
-    @inbounds for i in 1:(N - 1)
-        rightunits[i] == leftunits[i + 1] ||
-            throw(SpaceMismatch(lazy"$(spaces[i]) and $(spaces[i + 1]) have incompatible coloring"))
+    UnitStyle(sectortype(first(spaces))) isa GenericUnit || return nothing
+    if N == 1 # no junctions to check, but still validate the single factor
+        _units(spaces[1])
+        return nothing
+    end
+    @inbounds for i in 2:N
+        Vprev, V = spaces[i - 1], spaces[i]
+        _matchunits(_rightunitof(_units(Vprev)), _leftunitof(_units(V))) ||
+            throw(SpaceMismatch(lazy"$Vprev and $V have incompatible coloring"))
     end
     return nothing
 end
