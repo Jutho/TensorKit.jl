@@ -33,6 +33,7 @@ pages = [
         "man/sectors.md", "man/gradedspaces.md",
         "man/fusiontrees.md",
         "Tensors" => TENSOR_PAGES,
+        "man/profiling.md",
     ],
     "Library" => [
         "lib/sectors.md", "lib/fusiontrees.md",
