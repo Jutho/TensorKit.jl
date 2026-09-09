@@ -9,6 +9,8 @@ using ..TensorKit
 using ..TensorKit: AdjointTensorMap, SectorDict, SectorVector, FullVectorDict, findindex,
     blocktype, foreachblock, one!,
     similar_diagonal, similarstoragetype, sectorstoragetype
+using ..TensorKit: GLOBAL_TIMER
+using TimerOutputs: @timeit_debug
 
 using LinearAlgebra: LinearAlgebra, BlasFloat, Diagonal,
     svdvals, svdvals!, eigen, eigen!,
