@@ -29,15 +29,15 @@ function _check_unit_compatibility(
     if N₁ == 0 && N₂ == 0 # one() ← one(): empty cycle
         return nothing
     elseif N₁ == 0 # the domain segment closes onto itself
-        _matchunits(_leftunitof(_units(domain[1])), _rightunitof(_units(domain[N₂]))) ||
+        _matchunits(_leftunit(domain[1]), _rightunit(domain[N₂])) ||
             throw(SpaceMismatch(lazy"domain $domain has incompatible left and right units"))
     elseif N₂ == 0 # the codomain segment closes onto itself
-        _matchunits(_leftunitof(_units(codomain[1])), _rightunitof(_units(codomain[N₁]))) ||
+        _matchunits(_leftunit(codomain[1]), _rightunit(codomain[N₁])) ||
             throw(SpaceMismatch(lazy"codomain $codomain has incompatible left and right units"))
     else
-        _matchunits(_rightunitof(_units(codomain[N₁])), _rightunitof(_units(domain[N₂]))) ||
+        _matchunits(_rightunit(codomain[N₁]), _rightunit(domain[N₂])) ||
             throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible right units"))
-        _matchunits(_leftunitof(_units(codomain[1])), _leftunitof(_units(domain[1]))) ||
+        _matchunits(_leftunit(codomain[1]), _leftunit(domain[1])) ||
             throw(SpaceMismatch(lazy"HomSpace $codomain ← $domain has incompatible left units"))
     end
     return nothing

@@ -166,17 +166,10 @@ in the vector space.
 """
 function leftunitspace(V::ElementarySpace)
     I = sectortype(V)
-    if UnitStyle(I) isa SimpleUnit
-        return unitspace(typeof(V))
-    else
-        return spacetype(V)(_leftunit(V) => 1)
-    end
-end
-
-function _leftunit(V::ElementarySpace)
-    u = _units(V)
+    UnitStyle(I) isa SimpleUnit && return unitspace(typeof(V))
+    u = _leftunit(V)
     isnothing(u) && throw(ArgumentError("Cannot determine the left unit of an empty space"))
-    return _leftunitof(u)
+    return spacetype(V)(u => 1)
 end
 
 """
@@ -189,34 +182,24 @@ in the vector space.
 """
 function rightunitspace(V::ElementarySpace)
     I = sectortype(V)
-    if UnitStyle(I) isa SimpleUnit
-        return unitspace(typeof(V))
-    else
-        return spacetype(V)(_rightunit(V) => 1)
-    end
-end
-
-function _rightunit(V::ElementarySpace)
-    u = _units(V)
+    UnitStyle(I) isa SimpleUnit && return unitspace(typeof(V))
+    u = _rightunit(V)
     isnothing(u) && throw(ArgumentError("Cannot determine the right unit of an empty space"))
-    return _rightunitof(u)
+    return spacetype(V)(u => 1)
 end
 
-# Return the `(leftunit, rightunit)` shared by all sectors of `V`, or `nothing` for the zero
-# space, whose coloring is unconstrained and thus acts as a wildcard in unit checks.
-function _units(V::ElementarySpace)
+# Return the `(leftunit, rightunit)` of `V`, or `(nothing, nothing)` for the zero space,
+# whose coloring is unconstrained and thus acts as a wildcard. Elementary spaces are
+# homogeneously colored by construction, so any sector determines both.
+function _leftrightunit(V::ElementarySpace)
     s = sectors(V)
-    isempty(s) && return nothing
-    l, r = leftunit(first(s)), rightunit(first(s))
-    all(c -> leftunit(c) == l && rightunit(c) == r, s) ||
-        throw(SpaceMismatch(lazy"sectors of $V do not share a single left and right unit"))
-    return (l, r)
+    isempty(s) && return (nothing, nothing)
+    c = first(s)
+    return (leftunit(c), rightunit(c))
 end
 
-_leftunitof(u::Tuple{I, I}) where {I <: Sector} = u[1]
-_rightunitof(u::Tuple{I, I}) where {I <: Sector} = u[2]
-_leftunitof(::Nothing) = nothing
-_rightunitof(::Nothing) = nothing
+_leftunit(V::ElementarySpace) = _leftrightunit(V)[1]
+_rightunit(V::ElementarySpace) = _leftrightunit(V)[2]
 
 # `nothing` acts as a wildcard, being compatible with any coloring
 _matchunits(::Nothing, ::Nothing) = true
@@ -229,8 +212,8 @@ _matchunits(u₁::Sector, u₂::Sector) = u₁ == u₂
 
 Return whether the elementary space `V` is a unit space, i.e. is isomorphic to the
 trivial one-dimensional space. For vector spaces of type `GradedSpace{I}` where `Sector` `I` has a
-semisimple unit structure, this returns `true` if `V` is isomorphic to either the left, right or
-semisimple unit space.
+semisimple unit structure, this returns `true` if `V` is isomorphic to the left or right unit
+space of its coloring.
 """
 function isunitspace(V::ElementarySpace)
     I = sectortype(V)

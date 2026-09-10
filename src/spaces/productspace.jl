@@ -16,15 +16,11 @@ end
 # check that the factors form an open chain of composable spaces
 function _check_unit_compatibility(spaces::Tuple{Vararg{ElementarySpace}})
     N = length(spaces)
-    N == 0 && return nothing
+    N <= 1 && return nothing # no junctions to check
     UnitStyle(sectortype(first(spaces))) isa GenericUnit || return nothing
-    if N == 1 # no junctions to check, but still validate the single factor
-        _units(spaces[1])
-        return nothing
-    end
     @inbounds for i in 2:N
         Vprev, V = spaces[i - 1], spaces[i]
-        _matchunits(_rightunitof(_units(Vprev)), _leftunitof(_units(V))) ||
+        _matchunits(_rightunit(Vprev), _leftunit(V)) ||
             throw(SpaceMismatch(lazy"$Vprev and $V have incompatible coloring"))
     end
     return nothing
