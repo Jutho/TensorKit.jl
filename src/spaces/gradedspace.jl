@@ -29,6 +29,15 @@ struct GradedSpace{I <: Sector, D} <: ElementarySpace
 end
 sectortype(::Type{<:GradedSpace{I}}) where {I <: Sector} = I
 
+# elementary spaces are homogeneously colored: all sectors share a left and a right unit.
+function _check_unit_homogeneity(::Type{I}, sectors) where {I <: Sector}
+    (UnitStyle(I) isa SimpleUnit || isempty(sectors)) && return nothing
+    l, r = leftunit(first(sectors)), rightunit(first(sectors))
+    all(c -> leftunit(c) == l && rightunit(c) == r, sectors) ||
+        throw(SpaceMismatch(lazy"sectors $(collect(sectors)) do not share a single left and right unit"))
+    return nothing
+end
+
 function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
     @assert N <= 64 "the `UInt64` bitmask tracking which sectors have been set holds 64 bits"
     d = TupleTools.MutableNTuple(ntuple(Returns(0), StaticLength(N)))
@@ -42,6 +51,7 @@ function GradedSpace{I, NTuple{N, Int}}(dims; dual::Bool = false) where {I, N}
         mask |= bit
         d[i] = dc
     end
+    _check_unit_homogeneity(I, (values(I)[n] for n in 1:N if !iszero(d[n])))
     return GradedSpace{I, NTuple{N, Int}}(Tuple(d), dual)
 end
 function GradedSpace{I, NTuple{N, Int}}(dims::Pair; dual::Bool = false) where {I, N}
@@ -56,6 +66,7 @@ function GradedSpace{I, SectorDict{I, Int}}(dims; dual::Bool = false) where {I <
         dc < 0 && throw(ArgumentError(lazy"Sector $k has negative dimension $dc"))
         !iszero(dc) && push!(d, k => dc)
     end
+    _check_unit_homogeneity(I, keys(d))
     return GradedSpace{I, SectorDict{I, Int}}(d, dual)
 end
 function GradedSpace{I, SectorDict{I, Int}}(dims::Pair; dual::Bool = false) where {I <: Sector}
@@ -135,6 +146,8 @@ function flip(V::GradedSpace{I, NTuple{N, Int}}) where {I <: Sector, N}
 end
 
 function unitspace(S::Type{<:GradedSpace{I}}) where {I <: Sector}
+    UnitStyle(I) isa GenericUnit &&
+        throw(ArgumentError("Cannot construct unit space for sector types with semisimple unit structure."))
     return S(unit => 1 for unit in allunits(I))
 end
 zerospace(S::Type{<:GradedSpace}) = S()
