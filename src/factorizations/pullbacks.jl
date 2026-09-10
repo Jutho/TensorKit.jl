@@ -24,7 +24,7 @@ for pullback! in (:qr_null_pullback!, :lq_null_pullback!)
         return Δt
     end
 end
-_notrunc_ind(t) = SectorDict(c => Colon() for c in blocksectors(t))
+_notrunc_ind(t) = sectormap(Returns(Colon()), blocks(t))
 
 for pullback! in (:svd_pullback!, :eig_pullback!, :eigh_pullback!)
     @eval function MAK.$pullback!(
@@ -32,8 +32,8 @@ for pullback! in (:svd_pullback!, :eig_pullback!, :eigh_pullback!)
             kwargs...
         )
         foreachblock(Δt, t) do c, (Δb, b)
-            haskey(inds, c) || return nothing
-            ind = inds[c]
+            ind = get(inds, c, nothing)
+            isnothing(ind) && return nothing
             Fc = block.(F, Ref(c))
             ΔFc = block.(ΔF, Ref(c))
             MAK.$pullback!(Δb, b, Fc, ΔFc, ind; kwargs...)
