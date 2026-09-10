@@ -134,7 +134,7 @@ Always returns `false` for spaces where `V == conj(V)`, i.e. vector spaces over 
 
 Return the corresponding vector space of type `S` that represents the trivial
 one-dimensional space, i.e. the space that is isomorphic to the corresponding field.
-For vector spaces where `I = sectortype(S)` has a semisimple unit structure
+For vector spaces where `I = sectortype(S)` has a non-simple unit structure
 (`UnitStyle(I) == GenericUnit()`), this errors. 
 
 !!! note

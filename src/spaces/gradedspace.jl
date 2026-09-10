@@ -31,7 +31,7 @@ sectortype(::Type{<:GradedSpace{I}}) where {I <: Sector} = I
 
 # elementary spaces are homogeneously colored: all sectors share a left and a right unit.
 function _check_unit_homogeneity(::Type{I}, sectors) where {I <: Sector}
-    (!(UnitStyle(I) isa GenericUnit) || isempty(sectors)) && return nothing
+    (UnitStyle(I) isa SimpleUnit || isempty(sectors)) && return nothing
     l, r = leftunit(first(sectors)), rightunit(first(sectors))
     all(c -> leftunit(c) == l && rightunit(c) == r, sectors) ||
         throw(SpaceMismatch(lazy"sectors $(collect(sectors)) do not share a single left and right unit"))
