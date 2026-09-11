@@ -321,6 +321,15 @@ function _contractedspace(
     return cod ← dom
 end
 
+# generic fallback for mixed elementary space type: compose the intermediate spaces
+function _contractedspace(
+        A::HomSpace, (oindA, cindA)::Index2Tuple,
+        B::HomSpace, (cindB, oindB)::Index2Tuple,
+        pAB::Index2Tuple
+    )
+    return permute(compose(select(A, (oindA, cindA)), select(B, (cindB, oindB))), pAB)
+end
+
 function TensorOperations.tensorcontract(
         A::HomSpace, pA::Index2Tuple, conjA::Bool,
         B::HomSpace, pB::Index2Tuple, conjB::Bool,
